@@ -111,10 +111,11 @@ Public Class ScriptInterface
         LOADOPT.Add("erase", Nothing, New ScriptFunction(AddressOf c_load_erase))
         LOADOPT.Add("bootloader", {CmdPrm.Data}, New ScriptFunction(AddressOf c_load_bootloader))
         ScriptProcessor.AddScriptNest(LOADOPT)
-        Dim FLSHOPT As New ScriptCmd("flash") 'Undocumented
-        Dim del_add As New ScriptFunction(AddressOf c_flash_add)
-        FLSHOPT.Add("add", {CmdPrm.String, CmdPrm.UInteger, CmdPrm.UInteger, CmdPrm.UInteger, CmdPrm.UInteger, CmdPrm.UInteger, CmdPrm.UInteger, CmdPrm.UInteger}, del_add)
+        Dim FLSHOPT As New ScriptCmd("nor_flash") 'Undocumented
+        Dim cb_flash_parallel_add As New ScriptFunction(AddressOf c_norflash_parallel_add)
+        FLSHOPT.Add("add", {CmdPrm.String, CmdPrm.UInteger, CmdPrm.UInteger, CmdPrm.UInteger, CmdPrm.Integer, CmdPrm.Integer, CmdPrm.Integer, CmdPrm.Integer}, cb_flash_parallel_add)
         ScriptProcessor.AddScriptNest(FLSHOPT)
+        FLSHOPT.Add("addsector", {CmdPrm.Integer, CmdPrm.Integer}, New ScriptFunction(AddressOf c_norflash_sector_add))
 
         ScriptProcessor.AddScriptCommand("endian", {CmdPrm.String}, New ScriptFunction(AddressOf c_endian))
         ScriptProcessor.AddScriptCommand("verify", {CmdPrm.Bool}, New ScriptFunction(AddressOf c_verify))
@@ -560,9 +561,11 @@ Public Class ScriptInterface
         If arguments.Length > 0 Then bytes_to_read = CInt(arguments(0).Value)
         Dim sv As New ScriptVariable(CreateVarName(), DataType.Data)
         If Me.CURRENT_DEVICE_MODE = DeviceMode.SPI Then
-            sv.Value = MAIN_FCUSB.SPI_NOR_IF.ReadStatusRegister(bytes_to_read)
+            Dim SPI_IF As SPI.SPI_Programmer = CType(MAIN_FCUSB.PROGRAMMER, SPI.SPI_Programmer)
+            sv.Value = SPI_IF.ReadStatusRegister(bytes_to_read)
         ElseIf Me.CURRENT_DEVICE_MODE = DeviceMode.SQI Then
-            sv.Value = MAIN_FCUSB.SQI_NOR_IF.ReadStatusRegister(bytes_to_read)
+            Dim SQI_IF As SPI.SQI_Programmer = CType(MAIN_FCUSB.PROGRAMMER, SPI.SQI_Programmer)
+            sv.Value = SQI_IF.ReadStatusRegister(bytes_to_read)
         End If
         Return sv
     End Function
@@ -578,9 +581,11 @@ Public Class ScriptInterface
         End If
         Dim data_out() As Byte = CType(arguments(0).Value, Byte())
         If Me.CURRENT_DEVICE_MODE = DeviceMode.SPI Then
-            MAIN_FCUSB.SPI_NOR_IF.WriteStatusRegister(data_out)
+            Dim SPI_IF As SPI.SPI_Programmer = CType(MAIN_FCUSB.PROGRAMMER, SPI.SPI_Programmer)
+            SPI_IF.WriteStatusRegister(data_out)
         ElseIf Me.CURRENT_DEVICE_MODE = DeviceMode.SQI Then
-            MAIN_FCUSB.SQI_NOR_IF.WriteStatusRegister(data_out)
+            Dim SQI_IF As SPI.SQI_Programmer = CType(MAIN_FCUSB.PROGRAMMER, SPI.SQI_Programmer)
+            SQI_IF.WriteStatusRegister(data_out)
         End If
         Return Nothing
     End Function
@@ -596,11 +601,13 @@ Public Class ScriptInterface
         Dim ReadBack As Int32 = 0
         If arguments.Length = 2 Then ReadBack = CInt(arguments(1).Value)
         If ReadBack = 0 Then
-            MAIN_FCUSB.SPI_NOR_IF.SPIBUS_WriteRead(DataToWrite)
+            Dim SPI_IF As SPI.SPI_Programmer = CType(MAIN_FCUSB.PROGRAMMER, SPI.SPI_Programmer)
+            SPI_IF.SPIBUS_WriteRead(DataToWrite)
             Return Nothing
         Else
             Dim return_data(ReadBack - 1) As Byte
-            MAIN_FCUSB.SPI_NOR_IF.SPIBUS_WriteRead(DataToWrite, return_data)
+            Dim SPI_IF As SPI.SPI_Programmer = CType(MAIN_FCUSB.PROGRAMMER, SPI.SPI_Programmer)
+            SPI_IF.SPIBUS_WriteRead(DataToWrite, return_data)
             Dim sv As New ScriptVariable(CreateVarName(), DataType.Data)
             sv.Value = return_data
             Return sv
@@ -608,12 +615,12 @@ Public Class ScriptInterface
     End Function
 
     Private Function c_spi_prog(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
-        Dim spi_port As SPI.SPI_Programmer = MAIN_FCUSB.SPI_NOR_IF
+        Dim SPI_IF As SPI.SPI_Programmer = CType(MAIN_FCUSB.PROGRAMMER, SPI.SPI_Programmer)
         Dim state As Integer = CInt(arguments(0).Value)
         If state = 1 Then 'Set the PROGPIN to HIGH
-            spi_port.SetProgPin(True)
+            SPI_IF.SetProgPin(True)
         Else 'Set the PROGPIN to LOW
-            spi_port.SetProgPin(False)
+            SPI_IF.SetProgPin(False)
         End If
         Return Nothing
     End Function
@@ -1028,9 +1035,7 @@ Public Class ScriptInterface
     End Function
 
     Private Function c_bsp_init(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
-        Dim flash_mode As Integer = 0 '0=Automatic, 1=X8_OVER_X16
-        If arguments.Length = 1 Then flash_mode = CInt(arguments(0).Value)
-        Dim result As Boolean = MAIN_FCUSB.JTAG_IF.BoundaryScan_Init(CBool(flash_mode))
+        Dim result As Boolean = MAIN_FCUSB.JTAG_IF.BoundaryScan_Init()
         Dim sv As New ScriptVariable(CreateVarName(), DataType.Bool)
         sv.Value = result
         Return sv
@@ -1130,26 +1135,48 @@ Public Class ScriptInterface
 
 #Region "FLASH commands"
 
-    Friend Function c_flash_add(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
+    Friend Function c_norflash_parallel_add(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim flash_name As String = CStr(arguments(0).Value)
-        Dim ID_MFG As Byte = CByte(CInt(arguments(1).Value))
-        Dim ID_PART As UInt16 = CUShort(CInt(arguments(2).Value))
-        Dim flash_size As UInt32 = CUInt(CInt(arguments(3).Value)) 'Upgrade this to LONG in the future
+        Dim ID_MFG As Byte = CByte(CUInt(arguments(1).Value))
+        Dim ID_PART As UInt16 = CUShort(CUInt(arguments(2).Value) And &HFFFFUI)
+        Dim flash_size As UInt32 = CUInt(arguments(3).Value)
         Dim flash_if As VCC_IF = CType(CInt(arguments(4).Value), VCC_IF)
         Dim block_layout As BLKLYT = CType(CInt(arguments(5).Value), BLKLYT)
         Dim prog_mode As MFP_PRG = CType(CInt(arguments(6).Value), MFP_PRG)
         Dim delay_mode As MFP_DELAY = CType(CInt(arguments(7).Value), MFP_DELAY)
-        Dim new_mem_part As New FlashMemory.P_NOR(flash_name, ID_MFG, ID_PART, flash_size, flash_if, block_layout, prog_mode, delay_mode)
+        Dim new_mem_part As New P_NOR(flash_name, ID_MFG, CUShort(ID_PART And &HFFFFUI), flash_size, flash_if, block_layout, prog_mode, delay_mode)
+        'Delete existing entry
+        Dim exist_device() As Device = FlashDatabase.FindDevices(ID_MFG, ID_PART, 0, MemoryType.PARALLEL_NOR)
+        If exist_device IsNot Nothing Then
+            For Each item In exist_device
+                FlashDatabase.FlashDB.Remove(item)
+            Next
+        End If
         FlashDatabase.FlashDB.Add(new_mem_part)
+        Dim sv As New ScriptVariable(CreateVarName(), DataType.Integer)
+        sv.Value = FlashDatabase.FlashDB.Count - 1
+        Return sv
+    End Function
+
+    Friend Function c_norflash_sector_add(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
+        Dim device_index As Int32 = CInt(arguments(0).Value)
+        Dim size As Int32 = CInt(arguments(1).Value)
+        Dim d As Device = FlashDatabase.FlashDB(device_index)
+        If d.GetType() Is GetType(P_NOR) Then
+            Dim nor_flash As P_NOR = DirectCast(d, P_NOR)
+            nor_flash.AddSector(size)
+        End If
         Return Nothing
     End Function
+
 
 #End Region
 
 #Region "Parallel"
 
     Friend Function c_parallel_test(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
-        Dim td As New Threading.Thread(AddressOf MAIN_FCUSB.PARALLEL_NOR_IF.PARALLEL_PORT_TEST)
+        Dim PNOR_IF As PARALLEL_NOR = CType(MAIN_FCUSB.PROGRAMMER, PARALLEL_NOR)
+        Dim td As New Thread(AddressOf PNOR_IF.PARALLEL_PORT_TEST)
         td.Start()
         Return Nothing
     End Function
@@ -1157,21 +1184,24 @@ Public Class ScriptInterface
     Friend Function c_parallel_command(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim cmd_addr As UInt32 = CUInt(arguments(0).Value)
         Dim cmd_data As UInt16 = CUShort(CUInt(arguments(1).Value) And &HFFFF)
-        MAIN_FCUSB.PARALLEL_NOR_IF.WriteCommandData(cmd_addr, cmd_data)
+        Dim PNOR_IF As PARALLEL_NOR = CType(MAIN_FCUSB.PROGRAMMER, PARALLEL_NOR)
+        PNOR_IF.WriteCommandData(cmd_addr, cmd_data)
         Return Nothing
     End Function
 
     Friend Function c_parallel_write(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim cmd_addr As UInt32 = CUInt(arguments(0).Value)
         Dim cmd_data As UInt16 = CUShort(CUInt(arguments(1).Value) And &HFFFF)
-        MAIN_FCUSB.PARALLEL_NOR_IF.WriteMemoryAddress(cmd_addr, cmd_data)
+        Dim PNOR_IF As PARALLEL_NOR = CType(MAIN_FCUSB.PROGRAMMER, PARALLEL_NOR)
+        PNOR_IF.WriteMemoryAddress(cmd_addr, cmd_data)
         Return Nothing
     End Function
 
     Friend Function c_parallel_read(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim cmd_addr As UInt32 = CUInt(arguments(0).Value)
+        Dim PNOR_IF As PARALLEL_NOR = CType(MAIN_FCUSB.PROGRAMMER, PARALLEL_NOR)
         Dim sv As New ScriptVariable(CreateVarName(), DataType.UInteger)
-        sv.Value = MAIN_FCUSB.PARALLEL_NOR_IF.ReadMemoryAddress(cmd_addr)
+        sv.Value = PNOR_IF.ReadMemoryAddress(cmd_addr)
         Return sv
     End Function
 

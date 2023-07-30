@@ -30,34 +30,30 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Dim sr(0) As Byte
         Dim MFG As Byte
         Dim PART As UInt16
-        If FCUSB.SPI_NOR_IF.W25M121AV_Mode Then
-            SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady()
-            MFG = &HEF
-            PART = &HAA21 'We need to override AB21 to indicate 1Gbit NAND die
-        Else
-            Dim clk_speed As UInt32 = CUInt(GetMaxSpiClock(FCUSB.HWBOARD, MySettings.SPI_CLOCK_MAX))
-            Me.FCUSB.USB_SPI_INIT(CUInt(MySettings.SPI_MODE), clk_speed)
-            SPIBUS_WriteRead({SPI_OPCODES.RDID}, rdid) 'NAND devives use 1 dummy byte, then MFG and ID1 (and sometimes, ID2)
-            If (rdid(0) = &HC8 AndAlso rdid(3) = &HC8) Then 'GigaDevice device
-                MFG = rdid(0)
-                PART = (CUShort(rdid(1)) << 8) + rdid(2)
-            Else 'Other Manufacturers use this
-                If Not (rdid(0) = 0 Or rdid(0) = 255) Then Return False
-                If rdid(1) = 0 OrElse rdid(1) = 255 Then Return False
-                If rdid(2) = 0 OrElse rdid(2) = 255 Then Return False
-                If rdid(1) = rdid(2) Then Return False
-                MFG = rdid(1)
-                PART = rdid(2)
-                If Not rdid(3) = MFG Then PART = (CUShort(rdid(2)) << 8) + rdid(3)
-            End If
+        Dim clk_speed As UInt32 = CUInt(GetMaxSpiClock(FCUSB.HWBOARD, MySettings.SPI_CLOCK_MAX))
+        Me.FCUSB.USB_SPI_INIT(CUInt(MySettings.SPI_MODE), clk_speed)
+        SPIBUS_WriteRead({SPI_OPCODES.RDID}, rdid) 'NAND devives use 1 dummy byte, then MFG and ID1 (and sometimes, ID2)
+        W25M121AV(rdid) 'Check to see if device is W25M121AV
+        If (rdid(0) = &HC8 AndAlso rdid(3) = &HC8) Then 'GigaDevice device
+            MFG = rdid(0)
+            PART = (CUShort(rdid(1)) << 8) + rdid(2)
+        Else 'Other Manufacturers use this
+            If Not (rdid(0) = 0 Or rdid(0) = 255) Then Return False
+            If rdid(1) = 0 OrElse rdid(1) = 255 Then Return False
+            If rdid(2) = 0 OrElse rdid(2) = 255 Then Return False
+            If rdid(1) = rdid(2) Then Return False
+            MFG = rdid(1)
+            PART = rdid(2)
+            If Not rdid(3) = MFG Then PART = (CUShort(rdid(2)) << 8) + rdid(3)
         End If
-        Dim RDID_Str As String = "0x" & Hex(MFG).PadLeft(2, "0"c) & Hex(PART).PadLeft(4, "0"c)
+        Dim RDID_STR As String = "0x" & MFG.ToString("X").PadLeft(2, "0"c) & PART.ToString("X").PadLeft(4, "0"c)
         RaiseEvent PrintConsole(RM.GetString("spinand_opened_device"))
-        RaiseEvent PrintConsole(String.Format(RM.GetString("spinand_connected"), RDID_Str))
+        RaiseEvent PrintConsole(String.Format(RM.GetString("spinand_connected"), RDID_STR))
+        If (PART And &HFF00) = 0 Then PART = (PART << 8) 'ID CODES are LEFT ALIGNED
         MyFlashDevice = CType(FlashDatabase.FindDevice(MFG, PART, 0, MemoryType.SERIAL_NAND), SPI_NAND)
         If MyFlashDevice IsNot Nothing Then
             MyFlashStatus = DeviceStatus.Supported
-            RaiseEvent PrintConsole(String.Format(RM.GetString("flash_detected"), MyFlashDevice.NAME, MyFlashDevice.FLASH_SIZE))
+            RaiseEvent PrintConsole(String.Format(RM.GetString("flash_detected"), MyFlashDevice.NAME, Format(MyFlashDevice.FLASH_SIZE, "#,###")))
             RaiseEvent PrintConsole(String.Format(RM.GetString("ext_page_size"), MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT))
             Me.ECC_ENABLED = Not MySettings.SPI_NAND_DISABLE_ECC
             If MFG = &HEF AndAlso PART = &HAA21 Then 'W25M01GV/W25M121AV
@@ -127,6 +123,16 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         data = PageRead_Physical(page_addr, page_offset, data_count, memory_area)
     End Sub
 
+    Private Sub W25M121AV(rdid() As Byte)
+        If (rdid(0) = &HEF AndAlso rdid(1) = &H40 AndAlso rdid(2) = &H18) Then 'Possibly W25M121AV
+            SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady() 'Switch to W25N01GV die
+            SPIBUS_WriteRead({SPI_OPCODES.RDID}, rdid)
+            If rdid(1) = &HEF AndAlso rdid(2) = &HAB AndAlso rdid(3) = &H21 Then 'ID changed, W25M121AV confirmed
+                rdid(2) = &HAA 'We need to change ID to 1Gbit version
+            End If
+        End If
+    End Sub
+
 #Region "Public Interface"
     Private MEMORY_AREA_ERASED() As Byte 'Preserved memory area
 
@@ -165,7 +171,6 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     End Property
 
     Public Function ReadData(logical_address As Long, data_count As Integer) As Byte() Implements MemoryDeviceUSB.ReadData
-        If FCUSB.SPI_NOR_IF.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady()
         Dim page_addr As Integer 'This is the page address
         Dim page_offset As UInt16 'this is the start offset within the page
         Dim page_size As UInt16
@@ -204,7 +209,6 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
 
     Public Function SectorErase(sector_index As Integer) As Boolean Implements MemoryDeviceUSB.SectorErase
         If Not MyFlashDevice.ERASE_REQUIRED Then Return True
-        If FCUSB.SPI_NOR_IF.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady()
         Dim page_logical As Integer = CInt(MyFlashDevice.PAGE_COUNT) * sector_index
         Dim page_addr_phy As Integer = Me.BlockManager.GetPhysical(page_logical)
         MEMORY_AREA_ERASED = Nothing
@@ -245,13 +249,11 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     End Function
 
     Public Function SectorWrite(sector_index As Integer, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
-        If FCUSB.SPI_NOR_IF.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady()
         Dim logical_address As Long = Me.SectorFind(sector_index)
         Return WriteData(logical_address, data, Params)
     End Function
 
     Public Function WriteData(logical_address As Long, data_to_write() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
-        If FCUSB.SPI_NOR_IF.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady()
         Dim page_addr As Integer = NAND_LayoutTool.GetNandPageAddress(MyFlashDevice, logical_address, Me.MemoryArea)
         page_addr = Me.BlockManager.GetPhysical(page_addr) 'Adjusts the page to point to a valid page
         Dim result As Boolean = WritePage_Physical(page_addr, data_to_write, Me.MemoryArea)
@@ -264,7 +266,6 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     End Function
 
     Public Function EraseDevice() As Boolean Implements MemoryDeviceUSB.EraseDevice
-        If FCUSB.SPI_NOR_IF.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady()
         Dim logical_index As Integer = 0
         For i As Integer = 0 To Me.BlockManager.VALID_BLOCKS - 1
             If (Not SectorErase(logical_index)) Then
@@ -371,7 +372,6 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     End Function
 
 #End Region
-
 
     Public Function WritePage_Physical(phy_page_index As Integer, data_to_write() As Byte, memory_area As FlashArea) As Boolean
         Dim main_data() As Byte = Nothing
@@ -687,7 +687,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     End Function
 
     Private Function GetPageForMultiDie(ByRef page_addr As Integer, page_offset As UInt16, ByRef count As Integer, ByRef buffer_size As Integer, area As FlashArea) As Integer
-        Dim total_pages As Integer = CUShort(MyFlashDevice.FLASH_SIZE \ MyFlashDevice.PAGE_SIZE)
+        Dim total_pages As Integer = CInt(MyFlashDevice.FLASH_SIZE \ MyFlashDevice.PAGE_SIZE)
         Dim pages_per_die As Integer = total_pages \ MyFlashDevice.STACKED_DIES
         Dim die_id As Byte = CByte((page_addr \ pages_per_die) And 255)
         If (die_id <> Me.DIE_SELECTED) Then
@@ -711,80 +711,5 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         count -= buffer_size
         Return (page_addr Mod pages_per_die)
     End Function
-
-
-
-
-
-
-    'Public Sub NAND_ReadPages(page_addr As Integer, page_offset As UInt16, data_count As Integer, memory_area As FlashArea, ByRef data() As Byte)
-    '    If (MyFlashDevice.STACKED_DIES > 1) Then
-    '        ReDim data(data_count - 1)
-    '        Dim array_ptr As Integer = 0
-    '        Dim bytes_left As Integer = data_count
-    '        Do Until bytes_left = 0
-    '            Dim buffer_size As Integer = 0
-    '            Dim die_page_addr As Integer = GetPageForMultiDie(page_addr, page_offset, bytes_left, buffer_size, memory_area)
-    '            Dim die_data() As Byte = ReadPages(die_page_addr, page_offset, buffer_size, memory_area)
-    '            Array.Copy(die_data, 0, data, array_ptr, die_data.Length) : array_ptr += buffer_size
-    '        Loop
-    '    Else
-    '        data = ReadPages(page_addr, page_offset, data_count, memory_area)
-    '    End If
-    'End Sub
-
-    'Private Sub NAND_WritePages(page_addr As Integer, main() As Byte, oob() As Byte, memory_area As FlashArea, ByRef write_result As Boolean)
-    '    If (MyFlashDevice.STACKED_DIES > 1) Then
-    '        Dim main_ptr As Integer = 0
-    '        Dim oob_ptr As Integer = 0
-    '        If (memory_area = FlashArea.All) Then 'ignore oob()
-    '            If main Is Nothing Then write_result = False : Exit Sub
-    '            Dim bytes_left As Integer = main.Length
-    '            Do Until (bytes_left = 0)
-    '                Dim main_buffer_size As Integer = 0
-    '                Dim die_page_addr As Integer = GetPageForMultiDie(page_addr, 0, bytes_left, main_buffer_size, memory_area)
-    '                Dim die_data(main_buffer_size - 1) As Byte
-    '                Array.Copy(main, main_ptr, die_data, 0, die_data.Length) : main_ptr += main_buffer_size
-    '                write_result = WriteBulk_SNAND(die_page_addr, die_data, Nothing, FlashArea.All)
-    '                If Not write_result Then Exit Sub
-    '            Loop
-    '        Else
-    '            If main IsNot Nothing Then
-    '                Dim bytes_left As Integer = main.Length
-    '                Do Until bytes_left = 0
-    '                    Dim main_buffer_size As Integer = 0
-    '                    Dim die_page_addr As Integer = GetPageForMultiDie(page_addr, 0US, bytes_left, main_buffer_size, memory_area)
-    '                    Dim die_data(main_buffer_size - 1) As Byte
-    '                    Dim die_oob() As Byte = Nothing
-    '                    Array.Copy(main, main_ptr, die_data, 0, die_data.Length) : main_ptr += main_buffer_size
-    '                    If oob IsNot Nothing Then
-    '                        Dim main_pages As Integer = main_buffer_size \ MyFlashDevice.PAGE_SIZE
-    '                        Dim oob_buffer_size As Integer = main_pages * MyFlashDevice.PAGE_EXT
-    '                        ReDim die_oob(oob_buffer_size - 1)
-    '                        Array.Copy(oob, oob_ptr, die_oob, 0, die_oob.Length) : oob_ptr += oob_buffer_size
-    '                    End If
-    '                    write_result = WriteBulk_SNAND(die_page_addr, die_data, die_oob, FlashArea.Main)
-    '                    If Not write_result Then Exit Sub
-    '                Loop
-    '            ElseIf oob IsNot Nothing Then
-    '                Dim bytes_left As Integer = oob.Length
-    '                Do Until bytes_left = 0
-    '                    Dim oob_buffer_size As Integer = 0
-    '                    Dim die_page_addr As Integer = GetPageForMultiDie(page_addr, 0, bytes_left, oob_buffer_size, memory_area)
-    '                    Dim die_oob(oob_buffer_size - 1) As Byte
-    '                    Array.Copy(oob, oob_ptr, die_oob, 0, die_oob.Length) : oob_ptr += oob_buffer_size
-    '                    write_result = WriteBulk_SNAND(die_page_addr, Nothing, die_oob, FlashArea.OOB)
-    '                    If Not write_result Then Exit Sub
-    '                Loop
-    '            Else
-    '                write_result = False
-    '            End If
-    '        End If
-    '    Else
-    '        write_result = WriteBulk_SNAND(page_addr, main, oob, memory_area)
-    '    End If
-    'End Sub
-
-
 
 End Class

@@ -127,6 +127,7 @@
     <Compile Include="programmers\FWH.vb" />
     <Compile Include="FileFormat_IHEX.vb" />
     <Compile Include="ISC_LOGIC_PROG.vb" />
+    <Compile Include="programmers\JTAG_BSR.vb" />
     <Compile Include="programmers\PARALLEL_NAND.vb" />
     <Compile Include="programmers\PARALLEL_NOR.vb" />
     <Compile Include="FlashMemory.vb" />

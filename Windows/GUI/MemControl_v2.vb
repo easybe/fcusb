@@ -490,11 +490,13 @@ Public Class MemControl_v2
             pb_ecc.Visible = False
             If Me.HAS_EXTAREA Then
                 If FCUSB.PROGRAMMER.GetType() Is GetType(PARALLEL_NAND) Then
-                    Me.FCUSB.PARALLEL_NAND_IF.MemoryArea = area
-                    Me.FlashAvailable = Me.FCUSB.PARALLEL_NAND_IF.DeviceSize
+                    Dim PNAND_IF As PARALLEL_NAND = CType(Me.FCUSB.PROGRAMMER, PARALLEL_NAND)
+                    PNAND_IF.MemoryArea = area
+                    Me.FlashAvailable = PNAND_IF.DeviceSize
                 ElseIf FCUSB.PROGRAMMER.GetType() Is GetType(SPINAND_Programmer) Then
-                    Me.FCUSB.SPI_NAND_IF.MemoryArea = area
-                    Me.FlashAvailable = Me.FCUSB.SPI_NAND_IF.DeviceSize
+                    Dim SNAND_IF As SPINAND_Programmer = CType(Me.FCUSB.PROGRAMMER, SPINAND_Programmer)
+                    SNAND_IF.MemoryArea = area
+                    Me.FlashAvailable = SNAND_IF.DeviceSize
                 End If
                 Select Case area
                     Case FlashMemory.FlashArea.Main
@@ -515,17 +517,19 @@ Public Class MemControl_v2
     Public Sub SetupLayout()
         Me.AreaSelected = FlashMemory.FlashArea.Main 'Lets always default to the main area
         If FCUSB.PROGRAMMER.GetType() Is GetType(SPINAND_Programmer) Then
-            Dim NandDevice As FlashMemory.SPI_NAND = FCUSB.SPI_NAND_IF.MyFlashDevice
+            Dim SNAND_IF As SPINAND_Programmer = CType(Me.FCUSB.PROGRAMMER, SPINAND_Programmer)
+            Dim NandDevice As FlashMemory.SPI_NAND = SNAND_IF.MyFlashDevice
             Dim pages_per_block As Integer = (NandDevice.Block_Size \ NandDevice.PAGE_SIZE)
-            Dim available_pages As Integer = FCUSB.SPI_NAND_IF.BlockManager.MAPPED_PAGES
-            Me.FlashAvailable = FCUSB.SPI_NAND_IF.DeviceSize
+            Dim available_pages As Integer = SNAND_IF.BlockManager.MAPPED_PAGES
+            Me.FlashAvailable = SNAND_IF.DeviceSize
             Me.MemDevice.Size = Me.FlashAvailable
             Me.AddExtendedArea(available_pages, NandDevice.PAGE_SIZE, NandDevice.PAGE_EXT, pages_per_block)
         ElseIf FCUSB.PROGRAMMER.GetType() Is GetType(PARALLEL_NAND) Then
-            Dim NandDevice As FlashMemory.P_NAND = FCUSB.PARALLEL_NAND_IF.MyFlashDevice
+            Dim PNAND_IF As PARALLEL_NAND = CType(Me.FCUSB.PROGRAMMER, PARALLEL_NAND)
+            Dim NandDevice As FlashMemory.P_NAND = PNAND_IF.MyFlashDevice
             Dim pages_per_block As Integer = (NandDevice.Block_Size \ NandDevice.PAGE_SIZE)
-            Dim available_pages As Integer = FCUSB.PARALLEL_NAND_IF.BlockManager.MAPPED_PAGES
-            Me.FlashAvailable = FCUSB.PARALLEL_NAND_IF.DeviceSize
+            Dim available_pages As Integer = PNAND_IF.BlockManager.MAPPED_PAGES
+            Me.FlashAvailable = PNAND_IF.DeviceSize
             Me.MemDevice.Size = Me.FlashAvailable
             Me.AddExtendedArea(available_pages, NandDevice.PAGE_SIZE, NandDevice.PAGE_EXT, pages_per_block)
         End If

@@ -18,54 +18,34 @@
     Private Sub cmd_write_config_Click(sender As Object, e As EventArgs) Handles cmd_write_config.Click
         Try
             PrintConsole("Writing non-vol registers")
-            Dim sr1(0) As Byte
-            Dim sr2(0) As Byte
-            If FCUSB_PROG.GetType Is GetType(SPI.SPI_Programmer) Then
-                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteRead({&H5}, sr1)
-                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteRead({&H35}, sr2)
-            ElseIf FCUSB_PROG.GetType Is GetType(SPI.SQI_Programmer) Then
-                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteRead({&H5}, sr1)
-                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteRead({&H35}, sr2)
-            End If
             Dim sr1_to_write(0) As Byte
             Dim sr2_to_write(0) As Byte
-            sr1_to_write(0) = sr1(0)
-            sr2_to_write(0) = sr2(0)
             If cb_bp0.Checked Then sr1_to_write(0) = sr1_to_write(0) Or CByte(1 << 2)
             If cb_bp1.Checked Then sr1_to_write(0) = sr1_to_write(0) Or CByte(1 << 3)
             If cb_bp2.Checked Then sr1_to_write(0) = sr1_to_write(0) Or CByte(1 << 4)
             If cb_bp3.Checked Then sr1_to_write(0) = sr1_to_write(0) Or CByte(1 << 5)
             If cb_qspi.Checked Then sr2_to_write(0) = sr2_to_write(0) Or CByte(1 << 1)
-            Dim programmed_one As Boolean = False
-            If Not sr1_to_write(0) = sr1(0) Then
-                If FCUSB_PROG.GetType Is GetType(SPI.SPI_Programmer) Then
-                    DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteEnable()
-                    DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteRead({&H1, sr1_to_write(0)})
-                ElseIf FCUSB_PROG.GetType Is GetType(SPI.SQI_Programmer) Then
-                    DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteEnable()
-                    DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteRead({&H1, sr1_to_write(0)})
-                End If
-                programmed_one = True
-                PrintConsole("Programming non-vol register-1: 0x" & Hex(sr1_to_write(0)).PadLeft(2, "0"c))
+            PrintConsole("Programming non-vol register-1: 0x" & Hex(sr1_to_write(0)).PadLeft(2, "0"c))
+            If FCUSB_PROG.GetType Is GetType(SPI.SPI_Programmer) Then
+                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteEnable()
+                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteRead({&H1, sr1_to_write(0)})
                 DirectCast(FCUSB_PROG, SPI.SPI_Programmer).WaitUntilReady()
+            ElseIf FCUSB_PROG.GetType Is GetType(SPI.SQI_Programmer) Then
+                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteEnable()
+                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteRead({&H1, sr1_to_write(0)})
+                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).WaitUntilReady()
             End If
-            If Not sr2_to_write(0) = sr2(0) Then
-                If FCUSB_PROG.GetType Is GetType(SPI.SPI_Programmer) Then
-                    DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteEnable()
-                    DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteRead({&H31, sr2_to_write(0)})
-                ElseIf FCUSB_PROG.GetType Is GetType(SPI.SQI_Programmer) Then
-                    DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteEnable()
-                    DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteRead({&H31, sr2_to_write(0)})
-                End If
-                programmed_one = True
-                PrintConsole("Programming non-vol register-2: 0x" & Hex(sr1_to_write(0)).PadLeft(2, "0"c))
+            PrintConsole("Programming non-vol register-2: 0x" & Hex(sr1_to_write(0)).PadLeft(2, "0"c))
+            If FCUSB_PROG.GetType Is GetType(SPI.SPI_Programmer) Then
+                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteEnable()
+                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteRead({&H31, sr2_to_write(0)})
                 DirectCast(FCUSB_PROG, SPI.SPI_Programmer).WaitUntilReady()
+            ElseIf FCUSB_PROG.GetType Is GetType(SPI.SQI_Programmer) Then
+                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteEnable()
+                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteRead({&H31, sr2_to_write(0)})
+                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).WaitUntilReady()
             End If
-            If programmed_one Then
-                SetStatus("Nonvolatile configuration successfully changed")
-            Else
-                SetStatus("Nonvolatile configuration not changed")
-            End If
+            SetStatus("Nonvolatile configuration successfully changed")
         Catch ex As Exception
         End Try
     End Sub

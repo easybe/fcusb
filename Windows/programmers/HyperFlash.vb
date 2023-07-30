@@ -1,7 +1,5 @@
-﻿Imports FlashcatUSB.PARALLEL_NOR
-Imports FlashcatUSB.FlashMemory
+﻿Imports FlashcatUSB.FlashMemory
 Imports FlashcatUSB.USB
-Imports FlashcatUSB.USB.HostClient
 
 Public Class HF_Programmer : Implements MemoryDeviceUSB
     Private FCUSB As FCUSB_DEVICE
@@ -10,6 +8,7 @@ Public Class HF_Programmer : Implements MemoryDeviceUSB
 
     Public Event PrintConsole(msg As String) Implements MemoryDeviceUSB.PrintConsole
     Public Event SetProgress(percent As Integer) Implements MemoryDeviceUSB.SetProgress 'Not used
+    Public CFI As NOR_CFI
 
     Sub New(parent_if As FCUSB_DEVICE)
         FCUSB = parent_if
@@ -29,6 +28,7 @@ Public Class HF_Programmer : Implements MemoryDeviceUSB
             If (device_matches IsNot Nothing AndAlso device_matches.Length > 0) Then
                 If MyFlashDevice Is Nothing Then MyFlashDevice = CType(device_matches(0), HYPERFLASH)
                 RaiseEvent PrintConsole(String.Format(RM.GetString("flash_detected"), MyFlashDevice.NAME, Format(MyFlashDevice.FLASH_SIZE, "#,###")))
+                Me.CFI = New NOR_CFI(HyperFlash_GetCFI())
                 MyFlashStatus = DeviceStatus.Supported
             Else
                 MyFlashStatus = DeviceStatus.NotSupported
@@ -39,6 +39,17 @@ Public Class HF_Programmer : Implements MemoryDeviceUSB
             Return False
         End If
     End Function
+
+    Private Function HyperFlash_GetCFI() As Byte()
+        Dim cfi_data(31) As Byte
+        WriteCommandData(&H55, &H98) 'Issue Enter CFI command
+        For i = 0 To cfi_data.Length - 1
+            cfi_data(i) = CByte(ReadMemoryAddress((&H10UI + CUInt(i)) << 1) And 255)
+        Next
+        WriteCommandData(0, &HF0) 'RESET
+        Return cfi_data
+    End Function
+
 
 #Region "Public Interface"
 
@@ -164,7 +175,8 @@ Public Class HF_Programmer : Implements MemoryDeviceUSB
 
     Public Function EraseDevice() As Boolean Implements MemoryDeviceUSB.EraseDevice
         Try
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_CHIPERASE)
+            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_CHIPERASE)
+            If Not result Then Return False
             Utilities.Sleep(1000) 'Perform blank check
             For i = 0 To 119 '2 minutes
                 Dim sr As Byte = GetStatusRegister()
@@ -272,5 +284,34 @@ Public Class HF_Programmer : Implements MemoryDeviceUSB
         End Try
         Return False
     End Function
+
+    Public Function WriteCommandData(cmd_addr As UInt32, cmd_data As UInt16) As Boolean
+        Dim addr_data(5) As Byte
+        addr_data(0) = CByte((cmd_addr >> 24) And 255)
+        addr_data(1) = CByte((cmd_addr >> 16) And 255)
+        addr_data(2) = CByte((cmd_addr >> 8) And 255)
+        addr_data(3) = CByte(cmd_addr And 255)
+        addr_data(4) = CByte((cmd_data >> 8) And 255)
+        addr_data(5) = CByte(cmd_data And 255)
+        Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRCMDDATA, addr_data)
+    End Function
+
+    Public Function WriteMemoryAddress(mem_addr As UInt32, mem_data As UInt16) As Boolean
+        Dim addr_data(5) As Byte
+        addr_data(0) = CByte((mem_addr >> 24) And 255)
+        addr_data(1) = CByte((mem_addr >> 16) And 255)
+        addr_data(2) = CByte((mem_addr >> 8) And 255)
+        addr_data(3) = CByte(mem_addr And 255)
+        addr_data(4) = CByte((mem_data >> 8) And 255)
+        addr_data(5) = CByte(mem_data And 255)
+        Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRMEMDATA, addr_data)
+    End Function
+
+    Public Function ReadMemoryAddress(mem_addr As UInt32) As UInt16
+        Dim data_out(1) As Byte
+        FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_RDMEMDATA, data_out, mem_addr)
+        Return (CUShort(data_out(1)) << 8) Or data_out(0)
+    End Function
+
 
 End Class

@@ -142,9 +142,8 @@ Namespace SPI
                 If MyFlashDevice.ID1 = &H2B1A Then SEMPER_SPI = True
                 If MyFlashDevice.ID1 = &H2B1B Then SEMPER_SPI = True
                 If SEMPER_SPI Then
-                    SQIBUS_WriteEnable()
-                    SQIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.EWSR})
-                    SQIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.WRSR, 0, 0, &H88, &H18}) 'Set sector to uniform 256KB / 512B Page size
+                    SQIBUS_WriteEnable() 'WRENB_0_0
+                    SQIBUS_WriteRead({&H71, 0, 0, 0, &H4, &H18}) 'Enables 512-byte buffer / 256KB sectors
                 End If
                 Dim SEMPER_SPI_HF As Boolean = False 'Semper HF/SPI version
                 If (MyFlashDevice.MFG_CODE = &H34) Then
@@ -157,9 +156,7 @@ Namespace SPI
                 End If
                 If SEMPER_SPI_HF Then
                     SQIBUS_WriteEnable()
-                    SQIBUS_WriteRead({&H71, &H80, 0, 4, &H18}) 'Enables 512-byte buffer
-                    SQIBUS_WriteEnable()
-                    SQIBUS_WriteRead({&H71, &H80, 0, 3, &H80}) 'Enables 4-byte mode
+                    SQIBUS_WriteRead({&H71, 0, &H80, 0, 4, &H18}) 'Enables 512-byte buffer
                 End If
             End If
         End Sub
