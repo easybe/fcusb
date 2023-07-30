@@ -1,0 +1,1210 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AUTHORS" xml:space="preserve">
+    <value>Bitte hinterlassen Sie Ihre E-Mail-Adresse als Kommentar</value>
+  </data>
+  <data name="board_fw_version" xml:space="preserve">
+    <value>Firmware-Version des Boards</value>
+  </data>
+  <data name="bootloader_mode" xml:space="preserve">
+    <value>Modus "Bootloader"</value>
+  </data>
+  <data name="connected_bl_mode" xml:space="preserve">
+    <value>Verbunden mit FlashcatUSB im Modus "Bootloader"</value>
+  </data>
+  <data name="connected_fw_ver" xml:space="preserve">
+    <value>Verbunden mit {0}, Firmware Version: {1}</value>
+  </data>
+  <data name="console_complete" xml:space="preserve">
+    <value>Vorgang abgeschlossen</value>
+    <comment>Shown after the console mode has completed</comment>
+  </data>
+  <data name="mem_erasing_device" xml:space="preserve">
+    <value>Lösche Flash-Speicher... (dies kann bis zu 2 Minuten dauern)</value>
+  </data>
+  <data name="console_exescript_req" xml:space="preserve">
+    <value>Die Operation "ExecuteScript" erfordert die Option -FILE, um anzugeben, welches Skript ausgeführt werden soll</value>
+  </data>
+  <data name="console_i2c_reading" xml:space="preserve">
+    <value>Lese Daten vom I2C-Flash: {0} ({1} Bytes)</value>
+  </data>
+  <data name="console_i2c_saved" xml:space="preserve">
+    <value>I2C-Daten gespeichert in: {0}</value>
+  </data>
+  <data name="console_i2c_write_error" xml:space="preserve">
+    <value>Fehler: Schreiben auf I2C EEPROM nicht möglich</value>
+  </data>
+  <data name="console_i2c_write_success" xml:space="preserve">
+    <value>Schreiben auf I2C EEPROM war erfolgreich</value>
+  </data>
+  <data name="console_i2c_writing" xml:space="preserve">
+    <value>Schreibe Daten auf I2C Flash: {0} ({1} Bytes)</value>
+  </data>
+  <data name="console_logappend" xml:space="preserve">
+    <value>Den Konsolentext einer vorhandenen Datei hinzufügen</value>
+  </data>
+  <data name="console_mode_not_specified" xml:space="preserve">
+    <value>MODE nicht angegeben (d.h. -SPI oder -I2C)</value>
+  </data>
+  <data name="console_no_fcusb" xml:space="preserve">
+    <value>Keine FlashcatUSB-Geräte verbunden</value>
+  </data>
+  <data name="console_no_mem_devices" xml:space="preserve">
+    <value>Es können keine Aktionen ausgeführt werden, da keine Speichergeräte erkannt wurden</value>
+  </data>
+  <data name="console_operation_not_specified" xml:space="preserve">
+    <value>OPERATION nicht angegeben (d.h. -READ oder -WRITE)</value>
+  </data>
+  <data name="console_opt_addr" xml:space="preserve">
+    <value>Gibt die I2C Slave-Adresse an (d.h. 0xA0)</value>
+  </data>
+  <data name="console_opt_eeprom" xml:space="preserve">
+    <value>Gibt einen SPI/I2C-EEPROM an (d.h. M95080 oder 24XX64)</value>
+  </data>
+  <data name="console_opt_erase" xml:space="preserve">
+    <value>Führe vor dem Schreiben von Daten eine Speicherlöschung durch</value>
+  </data>
+  <data name="console_opt_exe" xml:space="preserve">
+    <value>Ermöglicht das Ausführen einer FlashcatUSB-Skriptdatei (*.fcs)</value>
+  </data>
+  <data name="console_opt_exit" xml:space="preserve">
+    <value>Fenster nach Fertigstellung automatisch schließen</value>
+  </data>
+  <data name="console_opt_file" xml:space="preserve">
+    <value>Gibt die Datei an, die zum Lesen/Schreiben/Ausführen verwendet werden soll</value>
+  </data>
+  <data name="console_opt_help" xml:space="preserve">
+    <value>Zeigt diesen Dialog an</value>
+    <comment>text seen in the console help menu</comment>
+  </data>
+  <data name="console_opt_length" xml:space="preserve">
+    <value>Gibt die Anzahl der zu lesenden/schreibenden Bytes an</value>
+  </data>
+  <data name="console_opt_list" xml:space="preserve">
+    <value>Zeigt die USB-Pfade für alle angeschlossenen FlashcatUSB-Geräte an</value>
+  </data>
+  <data name="console_opt_log" xml:space="preserve">
+    <value>Speichere die Ausgabe der Konsole in eine Datei</value>
+  </data>
+  <data name="console_opt_offset" xml:space="preserve">
+    <value>Gibt den Offset für das Schreiben der Datei in den Flash-Speicher an</value>
+  </data>
+  <data name="console_opt_path" xml:space="preserve">
+    <value>Wählen Sie den zu verwendenden FlashcatUSB (verwenden Sie die Anführungszeichen für den Pfad)</value>
+  </data>
+  <data name="console_opt_read" xml:space="preserve">
+    <value>Führt eine Flash-Speicher Leseoperation durch</value>
+  </data>
+  <data name="console_opt_verify" xml:space="preserve">
+    <value>Deaktiviert die Datenverifizierung bei Flash-Speicher Schreiboperationen</value>
+  </data>
+  <data name="console_opt_write" xml:space="preserve">
+    <value>Führt eine Flash-Speicher Schreiboperation durch</value>
+  </data>
+  <data name="console_progress" xml:space="preserve">
+    <value>[{0}% abgeschlossen]</value>
+    <comment>Progress bar for the console window</comment>
+  </data>
+  <data name="console_readmem_req" xml:space="preserve">
+    <value>Die Operation "ReadMemory" erfordert die Option -FILE, um anzugeben, wo die Daten gespeichert werden sollen</value>
+  </data>
+  <data name="console_read_err_nodata" xml:space="preserve">
+    <value>Fehler: Das Lesen ist fehlgeschlagen, weil keine Daten zu lesen sind</value>
+  </data>
+  <data name="console_usb_list" xml:space="preserve">
+    <value>Auflisten der USB-Pfade verbundener FlashcatUSB-Geräte</value>
+  </data>
+  <data name="console_writemem_req" xml:space="preserve">
+    <value>Die Operation "WriteMemory" erfordert die Option -FILE, um anzugeben, wo die Daten gespeichert werden sollen</value>
+  </data>
+  <data name="console_write_err_nodata" xml:space="preserve">
+    <value>Fehler: Das Schreiben ist fehlgeschlagen, weil keine Daten zu schreiben sind</value>
+  </data>
+  <data name="detecting_device" xml:space="preserve">
+    <value>Erkenne angebundene Flash-Speicher...</value>
+  </data>
+  <data name="device_mode" xml:space="preserve">
+    <value>Gerätemodus</value>
+  </data>
+  <data name="device_mode_i2c" xml:space="preserve">
+    <value>Gerätemodus auf I2C EEPROM gesetzt. Konfigurieren Sie die I2C-Einstellungen und klicken Sie auf "Erkennen"</value>
+  </data>
+  <data name="disconnected_from_device" xml:space="preserve">
+    <value>Von Gerät {0} getrennt</value>
+  </data>
+  <data name="error_file_not_found" xml:space="preserve">
+    <value>Fehler: Datei nicht gefunden: {0}</value>
+  </data>
+  <data name="err_file_not_found" xml:space="preserve">
+    <value>Fehler: Datei nicht gefunden</value>
+  </data>
+  <data name="err_unable_to_connect" xml:space="preserve">
+    <value>Fehler: Verbindung zu FlashcatUSB nicht möglich</value>
+  </data>
+  <data name="ext_4mbit_device" xml:space="preserve">
+    <value>DIP32/PLCC32 4MBIT Gerät erkannt, aktiviere A18 auf Pin 1 (Reset)</value>
+  </data>
+  <data name="io_mode_initalized" xml:space="preserve">
+    <value>Parallelmodus erfolgreich initialisiert</value>
+  </data>
+  <data name="ext_board_not_detected" xml:space="preserve">
+    <value>Verbindung zum parallel mode Board nicht möglich</value>
+  </data>
+  <data name="ext_connected_chipid" xml:space="preserve">
+    <value>Verbunden mit Flash (CHIP ID: 0x{0})</value>
+  </data>
+  <data name="ext_detecting_device" xml:space="preserve">
+    <value>Versuche den Flash-Speicher automatisch zu erkennen</value>
+  </data>
+  <data name="ext_device_detected" xml:space="preserve">
+    <value>Das Gerät wurde erfolgreich im Modus {0} erkannt</value>
+  </data>
+  <data name="ext_device_interface" xml:space="preserve">
+    <value>Geräteschnittstelle</value>
+    <comment>I.E. the memory type</comment>
+  </data>
+  <data name="ext_init" xml:space="preserve">
+    <value>Initialisiere Parallel I/O mode</value>
+  </data>
+  <data name="ext_large_flash_detected" xml:space="preserve">
+    <value>Hinweis: {0} Gerät erkannt, Erweiterungsport kann nur auf bis zu 512MB zugreifen</value>
+  </data>
+  <data name="ext_not_detected" xml:space="preserve">
+    <value>Flash wurde im Modus "Parallel I/O" nicht erkannt</value>
+  </data>
+  <data name="ext_page_size" xml:space="preserve">
+    <value>Flash Page Größe: {0} Bytes ({1} Bytes erweitert)</value>
+  </data>
+  <data name="ext_prog_mode" xml:space="preserve">
+    <value>Programmiermodus: Parallel mode</value>
+  </data>
+  <data name="ext_write_mode_supported" xml:space="preserve">
+    <value>Schreibmodus wird unterstützt</value>
+  </data>
+  <data name="flash_detected" xml:space="preserve">
+    <value>Flash erkannt: {0} ({1} Bytes)</value>
+  </data>
+  <data name="fw_feat_supported" xml:space="preserve">
+    <value>Firmware-Funktionen werden unterstützt</value>
+  </data>
+  <data name="fw_out_of_date" xml:space="preserve">
+    <value>Die FlashcatUSB Firmware ist veraltet, bitte aktualisieren</value>
+  </data>
+  <data name="fw_update_available" xml:space="preserve">
+    <value>Firmware-Update verfügbar, automatische Aktualisierung wird durchgeführt</value>
+  </data>
+  <data name="fw_update_error" xml:space="preserve">
+    <value>Fehler: Firmware-Update konnte nicht gestartet werden</value>
+  </data>
+  <data name="fw_update_performing" xml:space="preserve">
+    <value>Firmware-Update wird durchgeführt</value>
+  </data>
+  <data name="fw_update_programming" xml:space="preserve">
+    <value>Programmiere neue Firmware auf FlashcatUSB</value>
+  </data>
+  <data name="fw_update_starting" xml:space="preserve">
+    <value>Firmware-Update wird gestartet (sende {0} Bytes)</value>
+  </data>
+  <data name="i2c_addr_byte" xml:space="preserve">
+    <value>I2C-Adressbyte: 0x{0}</value>
+    <comment>I2C EEPROM ADDRESS</comment>
+  </data>
+  <data name="i2c_attempt_detect" xml:space="preserve">
+    <value>Versuche den I2C EEPROM zu erkennen</value>
+  </data>
+  <data name="i2c_connected" xml:space="preserve">
+    <value>Erfolgreich mit dem I2C EEPROM verbunden</value>
+  </data>
+  <data name="i2c_detected" xml:space="preserve">
+    <value>I2C EEPROM erkannt und betriebsbereit</value>
+  </data>
+  <data name="i2c_eeprom_size" xml:space="preserve">
+    <value>I2C EEPROM-Größe: {0} Bytes</value>
+  </data>
+  <data name="i2c_not_detected" xml:space="preserve">
+    <value>I2C EEPROM nicht erkannt</value>
+  </data>
+  <data name="i2c_protocol_speed" xml:space="preserve">
+    <value>I2C Protokollgeschwindigkeit</value>
+  </data>
+  <data name="i2c_unable_to_connect" xml:space="preserve">
+    <value>Verbindung zum I2C EEPROM nicht möglich</value>
+  </data>
+  <data name="jtag_cfi_attempt_detect" xml:space="preserve">
+    <value>Versuche den CFI Flash an folgender Adresse zu erkennen: 0x{0}</value>
+  </data>
+  <data name="jtag_cfi_no_detect" xml:space="preserve">
+    <value>Fehler: Der CFI Flash konnte nicht über JTAG erkannt werden</value>
+  </data>
+  <data name="jtag_dma" xml:space="preserve">
+    <value>Das Zielgerät unterstützt den DMA-Modus</value>
+  </data>
+  <data name="jtag_dma_not_supported" xml:space="preserve">
+    <value>Fehler: Die MCU unterstützt den DMA-Registerzugriff nicht</value>
+  </data>
+  <data name="jtag_failed_to_connect" xml:space="preserve">
+    <value>Herstellen einer Verbindung zum Zielboard mithilfe von JTAG fehlgeschlagen</value>
+  </data>
+  <data name="jtag_no_dma" xml:space="preserve">
+    <value>Das Zielgerät unterstützt den DMA-Modus nicht</value>
+  </data>
+  <data name="jtag_no_idcode" xml:space="preserve">
+    <value>Das Gerät hat keinen IDCODE zurückgegeben</value>
+  </data>
+  <data name="jtag_ready" xml:space="preserve">
+    <value>{0} bereit für den Betrieb im JTAG-Modus</value>
+  </data>
+  <data name="jtag_setup" xml:space="preserve">
+    <value>Einrichtung der JTAG-Engine erfolgreich</value>
+  </data>
+  <data name="jtag_spi_api_not_loaded" xml:space="preserve">
+    <value>Die Software ist nicht kompatibel mit MCU für SPI-Operationen</value>
+  </data>
+  <data name="jtag_spi_attempt_detect" xml:space="preserve">
+    <value>Versuche SPI-Flash zu erkennen, der über JTAG mit der MCU verbunden ist</value>
+  </data>
+  <data name="jtag_spi_no_detect" xml:space="preserve">
+    <value>Fehler: SPI-Flash-Gerät konnte nicht über JTAG erkannt werden</value>
+  </data>
+  <data name="jtag_unknown_device" xml:space="preserve">
+    <value>Unbekanntes JTAG-Gerät</value>
+  </data>
+  <data name="mem_ask_continue" xml:space="preserve">
+    <value>Schreibvorgang fortsetzen?</value>
+  </data>
+  <data name="mem_bad_nand_block" xml:space="preserve">
+    <value>Defekter NAND-Block bei Pageindex: 0x{0} (Blockindex 0x{1})</value>
+  </data>
+  <data name="mem_erase_device" xml:space="preserve">
+    <value>Vollständiger Löschvorgang des Chips wird durchgeführt</value>
+  </data>
+  <data name="mem_erase_device_fail" xml:space="preserve">
+    <value>Fehler: Löschvorgang des Chips fehlgeschlagen</value>
+  </data>
+  <data name="mem_erase_device_success" xml:space="preserve">
+    <value>Speichergerät erfolgreich gelöscht</value>
+  </data>
+  <data name="mem_erasing_sector" xml:space="preserve">
+    <value>Lösche Speichersektor</value>
+  </data>
+  <data name="mem_flash_supported" xml:space="preserve">
+    <value>Flash erfolgreich erkannt und betriebsbereit</value>
+  </data>
+  <data name="mem_i2c_error" xml:space="preserve">
+    <value>Fehler bei der Kommunikation mit dem I2C-Gerät</value>
+  </data>
+  <data name="mem_not_supported" xml:space="preserve">
+    <value>Flash-Speicher erkannt, aber nicht in Flash-Bibliothek gefunden</value>
+  </data>
+  <data name="mem_reading_memory" xml:space="preserve">
+    <value>Lese {0} Bytes aus Speicher</value>
+  </data>
+  <data name="mem_verify_data" xml:space="preserve">
+    <value>Verifiziere geschriebene Daten</value>
+  </data>
+  <data name="mem_verify_failed" xml:space="preserve">
+    <value>Datenüberprüfung fehlgeschlagen!</value>
+  </data>
+  <data name="mem_verify_failed_at" xml:space="preserve">
+    <value>Die Datenüberprüfung ist bei 0x{0} fehlgeschlagen</value>
+  </data>
+  <data name="mem_verify_failed_title" xml:space="preserve">
+    <value>Fehler: Überprüfung fehlgeschlagen</value>
+  </data>
+  <data name="mem_verify_mismatches" xml:space="preserve">
+    <value>Adresse {0}: {1} geschrieben, aber {2} gelesen ({3} Unterschiede)</value>
+  </data>
+  <data name="mem_verify_okay" xml:space="preserve">
+    <value>Die Datenüberprüfung war erfolgreich</value>
+  </data>
+  <data name="mem_write_not_successful" xml:space="preserve">
+    <value>Fehler, Schreibvorgang war nicht erfolgreich</value>
+  </data>
+  <data name="mem_write_successful" xml:space="preserve">
+    <value>Schreibvorgang war erfolgreich</value>
+  </data>
+  <data name="mem_writing_memory" xml:space="preserve">
+    <value>Schreibe {0} Bytes in Speicher</value>
+  </data>
+  <data name="nand_block_manager_disabled" xml:space="preserve">
+    <value>NAND Block-Manager deaktiviert</value>
+  </data>
+  <data name="nand_erase_failed" xml:space="preserve">
+    <value>Fehler beim Löschen des NAND-Flashs</value>
+  </data>
+  <data name="nand_erase_successful" xml:space="preserve">
+    <value>NAND-Flash erfolgreich gelöscht</value>
+  </data>
+  <data name="nand_mem_device_detected" xml:space="preserve">
+    <value>NAND-Speichergerät erkannt, lade gültige Speicherzuordnung</value>
+  </data>
+  <data name="nand_mem_map_complete" xml:space="preserve">
+    <value>NAND-Speicherzuordnung abgeschlossen: {0} Pages für den Zugriff verfügbar</value>
+  </data>
+  <data name="nand_mem_map_loading" xml:space="preserve">
+    <value>Lade NAND-Speicherzuordnung für gültigen Speicher</value>
+  </data>
+  <data name="no_flash_detected" xml:space="preserve">
+    <value>Kein Flash erkannt</value>
+  </data>
+  <data name="spinand_connected" xml:space="preserve">
+    <value>Mit SPI NAND Flash verbunden (RDID: {0})</value>
+  </data>
+  <data name="spinand_opened_device" xml:space="preserve">
+    <value>Gerät im SPI NAND-Modus erfolgreich verbunden</value>
+  </data>
+  <data name="spi_attempting_detect" xml:space="preserve">
+    <value>Versuche, das SPI-Gerät zu erkennen (automatischer Erkennungsmodus)</value>
+  </data>
+  <data name="spi_connected_to_flash_spi" xml:space="preserve">
+    <value>Verbunden mit SPI Flash (RDID: {0} REMS: {1})</value>
+  </data>
+  <data name="spi_connected_to_flash_sqi" xml:space="preserve">
+    <value>Verbunden mit SQI Flash (RDID: {0})</value>
+  </data>
+  <data name="spi_detected_ls_spi" xml:space="preserve">
+    <value>SPI Flash am Low-Speed SPI-Port erkannt</value>
+  </data>
+  <data name="spi_detected_spi" xml:space="preserve">
+    <value>SPI Flash am High-Speed SPI-Port erkannt</value>
+  </data>
+  <data name="spi_detected_sqi" xml:space="preserve">
+    <value>SPI Flash am SQI-Port erkannt</value>
+  </data>
+  <data name="spi_device_not_found_sqi" xml:space="preserve">
+    <value>Gerät wurde im SQI-Modus verbunden, wird aber nicht von der Flash-Bibliothek unterstützt</value>
+  </data>
+  <data name="spi_device_opened" xml:space="preserve">
+    <value>Gerät im SPI-Modus erfolgreich verbunden</value>
+  </data>
+  <data name="spi_eeprom_cfg" xml:space="preserve">
+    <value>Für die Verwendung von SPI EEPROM konfiguriert</value>
+  </data>
+  <data name="spi_erase_complete" xml:space="preserve">
+    <value>Löschen des Flash-Speichers in {0} Sekunden abgeschlossen</value>
+  </data>
+  <data name="spi_erasing_die" xml:space="preserve">
+    <value>Lösche Flash-Chip Index: {0} ({1} Bytes)</value>
+  </data>
+  <data name="spi_erasing_flash_device" xml:space="preserve">
+    <value>Lösche den gesamten Flash-Speicher, Gesamtgröße: {0} Bytes (dies kann einen Moment dauern)</value>
+  </data>
+  <data name="spi_error_reading" xml:space="preserve">
+    <value>SPI: Fehler beim Lesen der Daten vom USB-Port</value>
+  </data>
+  <data name="spi_error_writing" xml:space="preserve">
+    <value>SPI: Fehler beim Schreiben von Daten auf den USB-Port</value>
+  </data>
+  <data name="spi_flash_not_detected" xml:space="preserve">
+    <value>Es konnte kein kompatibles SPI-Gerät erkannt werden</value>
+  </data>
+  <data name="spi_flash_page_size" xml:space="preserve">
+    <value>Page Löschgröße: {0} Bytes</value>
+  </data>
+  <data name="spi_mode_sqi" xml:space="preserve">
+    <value>Programmiermodus: SQI (SPI-QUAD)</value>
+  </data>
+  <data name="spi_nand_attempt_detect" xml:space="preserve">
+    <value>Versuche SPI NAND Flash zu erkennen</value>
+  </data>
+  <data name="spi_nand_detected" xml:space="preserve">
+    <value>SPI NAND Flash wurde erfolgreich erkannt</value>
+  </data>
+  <data name="spi_nand_unable_to_detect" xml:space="preserve">
+    <value>SPI NAND Flash konnte nicht erkannt werden</value>
+  </data>
+  <data name="spi_not_detected" xml:space="preserve">
+    <value>Flash-Speicher wurde im Modus 'SPI NOR' nicht erkannt</value>
+  </data>
+  <data name="spi_set_clock" xml:space="preserve">
+    <value>Setze die SPI Clock auf: {0}</value>
+  </data>
+  <data name="spi_successfully_opened_sqi" xml:space="preserve">
+    <value>Gerät im SQI-Modus erfolgreich verbunden</value>
+  </data>
+  <data name="spi_unable_detect" xml:space="preserve">
+    <value>Nicht in der Lage, SPI NOR Flash zu erkennen</value>
+  </data>
+  <data name="successfully_connected" xml:space="preserve">
+    <value>Erfolgreich über USB mit FlashcatUSB verbunden</value>
+  </data>
+  <data name="sw_requires_fw" xml:space="preserve">
+    <value>Die Software benötigt die Firmware-Version {0}</value>
+  </data>
+  <data name="unknown_device_email" xml:space="preserve">
+    <value>Zur Unterstützung eines Chips senden Sie eine E-Mail an support@embeddedcomputers.net mit der entsprechenden CHIP ID</value>
+  </data>
+  <data name="usb_driver_out_of_date" xml:space="preserve">
+    <value>Ihr FlashcatUSB-Treiber ist veraltet, bitte aktualisieren Sie Ihren Treiber auf die neueste Version, die in dieser Softwareversion enthalten ist</value>
+  </data>
+  <data name="usb_firm_out_of_date" xml:space="preserve">
+    <value>Ihre FlashcatUSB-Firmware ist veraltet, bitte aktualisieren Sie diese auf die in dieser Softwareversion enthaltene Version</value>
+  </data>
+  <data name="voltage_set_to" xml:space="preserve">
+    <value>Ausgewählte Spannung: {0}</value>
+  </data>
+  <data name="welcome_to_flashcatusb" xml:space="preserve">
+    <value>Willkommen bei der FlashcatUSB-Schnittstellensoftware</value>
+  </data>
+  <data name="gui_active_script" xml:space="preserve">
+    <value>Aktives Skript</value>
+    <comment>Label for the form</comment>
+  </data>
+  <data name="gui_compressed_img" xml:space="preserve">
+    <value>Komprimierte Archivdatei</value>
+  </data>
+  <data name="gui_console_text_copied" xml:space="preserve">
+    <value>Konsolentext wurde in die Zwischenablage kopiert</value>
+  </data>
+  <data name="gui_creating_nand_file" xml:space="preserve">
+    <value>Erstelle ein Speicherabbild des NAND-Flashs</value>
+  </data>
+  <data name="gui_database_supported" xml:space="preserve">
+    <value>{0} Datenbank geladen: {1} Geräte werden unterstützt</value>
+    <comment>Displays how many flash devices the database contains</comment>
+  </data>
+  <data name="gui_fcusb_connected" xml:space="preserve">
+    <value>FlashcatUSB Status: Verbunden</value>
+  </data>
+  <data name="gui_fcusb_connected_multi" xml:space="preserve">
+    <value>FlashcatUSB Status: Verbunden ({0} Geräte)</value>
+  </data>
+  <data name="gui_fcusb_disconnected" xml:space="preserve">
+    <value>FlashcatUSB Status: Getrennt</value>
+  </data>
+  <data name="gui_fcusb_new_device" xml:space="preserve">
+    <value>Neues Gerät verbunden: {0}</value>
+  </data>
+  <data name="gui_gand_erase_all_confirm" xml:space="preserve">
+    <value>Dies löscht alle angeschlossenen Flash-Speicher, sind Sie sicher?</value>
+  </data>
+  <data name="gui_gane_write" xml:space="preserve">
+    <value>Schreiben</value>
+    <comment>Button to program data into multi devices</comment>
+  </data>
+  <data name="gui_gang_choose_binary" xml:space="preserve">
+    <value>Wählen Sie eine Binärdatei für die Programmierung</value>
+  </data>
+  <data name="gui_gang_devices_programmed" xml:space="preserve">
+    <value>Alle Flash-Speicher wurden programmiert</value>
+  </data>
+  <data name="gui_gang_device_busy" xml:space="preserve">
+    <value>Ein oder mehrere Geräte sind derzeit beschäftigt</value>
+  </data>
+  <data name="gui_gang_erase" xml:space="preserve">
+    <value>Löschen</value>
+    <comment>Button to erase memory device</comment>
+  </data>
+  <data name="gui_gang_erase_complete" xml:space="preserve">
+    <value>Alle Flash-Speicher wurden gelöscht</value>
+  </data>
+  <data name="gui_gang_erasing" xml:space="preserve">
+    <value>Lösche alle Flash-Speicher</value>
+  </data>
+  <data name="gui_gang_info" xml:space="preserve">
+    <value>Dies ist das Interface zur Programmierung mehrerer Geräte</value>
+  </data>
+  <data name="gui_img_saved_to_disk" xml:space="preserve">
+    <value>Flash-Speicherabbild auf Festplatte gespeichert: {0}</value>
+  </data>
+  <data name="gui_img_successful" xml:space="preserve">
+    <value>Flash-Speicherabbild wurde erfolgreich auf aktuelles Speichergerät programmiert</value>
+  </data>
+  <data name="gui_memory_device" xml:space="preserve">
+    <value>Speichergerät</value>
+    <comment>The beginning label of each Flash memory device</comment>
+  </data>
+  <data name="gui_mem_device_status" xml:space="preserve">
+    <value>Gerät {0}: Nicht verbunden</value>
+  </data>
+  <data name="gui_mem_size" xml:space="preserve">
+    <value>Flash-Speichergröße</value>
+  </data>
+  <data name="gui_menu_language" xml:space="preserve">
+    <value>Sprache</value>
+    <comment>Name of the Language menu</comment>
+  </data>
+  <data name="gui_menu_main" xml:space="preserve">
+    <value>Hauptmenü</value>
+    <comment>Name of the Main menu</comment>
+  </data>
+  <data name="gui_menu_main_detect" xml:space="preserve">
+    <value>Erkennen (re-/initialisieren)</value>
+    <comment>Detects any connected Flash device</comment>
+  </data>
+  <data name="gui_menu_main_exit" xml:space="preserve">
+    <value>Beenden</value>
+    <comment>Closes the application</comment>
+  </data>
+  <data name="gui_menu_main_refresh" xml:space="preserve">
+    <value>Flash aktualisieren</value>
+    <comment>Updates the hex editor</comment>
+  </data>
+  <data name="gui_menu_main_repeat" xml:space="preserve">
+    <value>Letzte Schreiboperation wiederholen</value>
+    <comment>Allows to repeat the last programming operation</comment>
+  </data>
+  <data name="gui_menu_mode" xml:space="preserve">
+    <value>Modus</value>
+    <comment>Name of the Mode menu</comment>
+  </data>
+  <data name="gui_menu_mode_bitswap" xml:space="preserve">
+    <value>Bit-Wechsel</value>
+  </data>
+  <data name="gui_menu_mode_endian" xml:space="preserve">
+    <value>Byte-Reihenfolge</value>
+  </data>
+  <data name="gui_menu_mode_settings" xml:space="preserve">
+    <value>Protokolleinstellungen</value>
+    <comment>The settings form</comment>
+  </data>
+  <data name="gui_menu_mode_verify" xml:space="preserve">
+    <value>Verifiziere Programmierung</value>
+    <comment>Makes the software read and verify after programming data</comment>
+  </data>
+  <data name="gui_menu_mode_voltage" xml:space="preserve">
+    <value>Spannung ({0})</value>
+    <comment>Sets the voltage of FCUSB Pro</comment>
+  </data>
+  <data name="gui_menu_mode_vpp" xml:space="preserve">
+    <value>VPP-Auswahl</value>
+  </data>
+  <data name="gui_menu_script" xml:space="preserve">
+    <value>Skript</value>
+    <comment>Name of the Script menu</comment>
+  </data>
+  <data name="gui_menu_script_load" xml:space="preserve">
+    <value>Lade Skript</value>
+    <comment>Loads and runs a script file</comment>
+  </data>
+  <data name="gui_menu_script_select" xml:space="preserve">
+    <value>Wähle Skript</value>
+    <comment>Chooses a script file</comment>
+  </data>
+  <data name="gui_menu_script_unload" xml:space="preserve">
+    <value>Entlade Skript</value>
+    <comment>Removes the script file/tab</comment>
+  </data>
+  <data name="gui_menu_tools" xml:space="preserve">
+    <value>Tools</value>
+    <comment>Name of the Tools menu</comment>
+  </data>
+  <data name="gui_menu_tools_create" xml:space="preserve">
+    <value>Erstelle Speicherabbild</value>
+    <comment>Reads and creates an image file</comment>
+  </data>
+  <data name="gui_menu_tools_erase" xml:space="preserve">
+    <value>Lösche Chip</value>
+    <comment>Erase a Flash device</comment>
+  </data>
+  <data name="gui_menu_tools_mem_map" xml:space="preserve">
+    <value>NAND Speicheraufteilung</value>
+  </data>
+  <data name="gui_menu_tools_spi_ecc" xml:space="preserve">
+    <value>SPI NAND interner ECC</value>
+  </data>
+  <data name="gui_menu_tools_vendor" xml:space="preserve">
+    <value>Herstellerspezifische Funktionen</value>
+  </data>
+  <data name="gui_menu_tools_write" xml:space="preserve">
+    <value>Schreibe Speicherabbild</value>
+    <comment>Programs an image file</comment>
+  </data>
+  <data name="gui_nand_creating_backup" xml:space="preserve">
+    <value>Fehler beim Erstellen des Backups: Beim Lesen des Speichers wurden inkonsistente Ergebnisse zurückgegeben</value>
+  </data>
+  <data name="gui_not_valid_img" xml:space="preserve">
+    <value>Fehler: Die Datei ist kein gültiges Flash-Speicherabbild</value>
+  </data>
+  <data name="gui_open_img" xml:space="preserve">
+    <value>Öffnen Sie das zu programmierende Flash-Speicherabbild</value>
+  </data>
+  <data name="gui_programming_img" xml:space="preserve">
+    <value>Programmiere Flash-Speicherabbild: {0}</value>
+  </data>
+  <data name="gui_reading_flash" xml:space="preserve">
+    <value>Lese Flash: {0} von {1} Bytes ({2}% abgeschlossen)</value>
+  </data>
+  <data name="gui_reading_spare_area" xml:space="preserve">
+    <value>Lesen des NAND Spare-Bereichs {0} von {1} Bytes ({2}% abgeschlossen)</value>
+  </data>
+  <data name="gui_repeat_beginning" xml:space="preserve">
+    <value>Wiederhole Schreiboperation, Setze Gerät zurück</value>
+  </data>
+  <data name="gui_repeat_failed_detect" xml:space="preserve">
+    <value>Fehler, Flash-Gerät wurde nicht erkannt um den Wiederholungsvorgang auszuführen</value>
+  </data>
+  <data name="gui_repeat_failed_reconnect" xml:space="preserve">
+    <value>Fehler, keine Verbindung zu FlashcatUSB möglich</value>
+  </data>
+  <data name="gui_saved_img_to_disk" xml:space="preserve">
+    <value>Flash-Speicherabbild wurde auf Festplatte gespeichert: {0}</value>
+  </data>
+  <data name="gui_save_dialog" xml:space="preserve">
+    <value>Wählen Sie den Speicherort zum Speichern des Konsolenprotokolls</value>
+  </data>
+  <data name="gui_script_can_not_load" xml:space="preserve">
+    <value>Skript kann nicht geladen werden, Datei existiert nicht</value>
+  </data>
+  <data name="gui_script_checking" xml:space="preserve">
+    <value>Prüfen, ob ein gerätespezifisches Skript automatisch geladen werden kann</value>
+  </data>
+  <data name="gui_script_loaded" xml:space="preserve">
+    <value>Skript {0} erfolgreich geladen</value>
+  </data>
+  <data name="gui_script_loading" xml:space="preserve">
+    <value>Gerätspezifisches Skript wird geladen: {0}</value>
+  </data>
+  <data name="gui_script_non_available" xml:space="preserve">
+    <value>Keine Skriptdateien verfügbar</value>
+  </data>
+  <data name="gui_script_open" xml:space="preserve">
+    <value>Wählen Sie die zu öffnende FlashcatUSB-Skriptdatei aus</value>
+  </data>
+  <data name="gui_script_reset" xml:space="preserve">
+    <value>Die FlashcatUSB Skript-Engine wurde zurückgesetzt</value>
+  </data>
+  <data name="gui_select_location" xml:space="preserve">
+    <value>Wählen Sie den Speicherort für das Flash-Speicherabbild aus</value>
+  </data>
+  <data name="gui_status_welcome" xml:space="preserve">
+    <value>Willkommen zu FlashcatUSB (Der SPI / I2C / JTAG Programmier-Software)!</value>
+  </data>
+  <data name="gui_tab_console" xml:space="preserve">
+    <value>Konsole</value>
+    <comment>Name of the console tab</comment>
+  </data>
+  <data name="gui_tab_multi" xml:space="preserve">
+    <value>Multi-Device</value>
+    <comment>Name of the gang programming tab</comment>
+  </data>
+  <data name="gui_tab_status" xml:space="preserve">
+    <value>Status</value>
+    <comment>Name of the status tab</comment>
+  </data>
+  <data name="gui_vpp_confirm" xml:space="preserve">
+    <value>Möchten Sie diese Funktion wirklich aktivieren?</value>
+    <comment>To enable to the +12V feature</comment>
+  </data>
+  <data name="gui_vpp_setting" xml:space="preserve">
+    <value>Bestätigen Sie die +12V VPP-Einstellung</value>
+  </data>
+  <data name="gui_vpp_warning" xml:space="preserve">
+    <value>Achtung, diese Einstellung sollte nur bei Adaptern mit einem +12V Schalter verwendet werden</value>
+  </data>
+  <data name="gui_writing_flash" xml:space="preserve">
+    <value>Schreibe Flash: {0} von {1} Bytes ({2}% abgeschlossen)</value>
+  </data>
+  <data name="mc_badnand_block" xml:space="preserve">
+    <value>Defekter NAND-Block bei: 0x{0} (zugeordnet zu 0x{1})</value>
+  </data>
+  <data name="mc_button_alldata" xml:space="preserve">
+    <value>Alle Daten</value>
+    <comment>The NAND memory area selection button (both main and spare areas)</comment>
+  </data>
+  <data name="mc_button_cancel" xml:space="preserve">
+    <value>Abbrechen</value>
+  </data>
+  <data name="mc_button_close" xml:space="preserve">
+    <value>Schließen</value>
+    <comment>The close button on the compare popup window</comment>
+  </data>
+  <data name="mc_button_compare" xml:space="preserve">
+    <value>Speicherinhalte vergleichen</value>
+    <comment>The popup text when your move your cursor over the button</comment>
+  </data>
+  <data name="mc_button_erase" xml:space="preserve">
+    <value>Löschen Sie den gesamten Speicher</value>
+    <comment>The popup text when your move your cursor over the button</comment>
+  </data>
+  <data name="mc_button_main" xml:space="preserve">
+    <value>Hauptbereich</value>
+    <comment>The NAND memory area selection button (main part)</comment>
+  </data>
+  <data name="mc_button_ok" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="mc_button_read" xml:space="preserve">
+    <value>Lese den Speicher aus</value>
+    <comment>The popup text when your move your cursor over the button</comment>
+  </data>
+  <data name="mc_button_spare" xml:space="preserve">
+    <value>Spare-Bereich</value>
+    <comment>The NAND memory area selection button (the spare or OOB)</comment>
+  </data>
+  <data name="mc_button_write" xml:space="preserve">
+    <value>Schreibe Daten in den Speicher</value>
+    <comment>The popup text when your move your cursor over the button</comment>
+  </data>
+  <data name="mc_compare_canceled" xml:space="preserve">
+    <value>Speichervergleich abgebrochen</value>
+  </data>
+  <data name="mc_compare_complete_match" xml:space="preserve">
+    <value>Speichervergleich abgeschlossen: {0}% Übereinstimmung</value>
+  </data>
+  <data name="mc_compare_complete_tot" xml:space="preserve">
+    <value>Speichervergleich abgeschlossen: {0} insgesamt nicht übereinstimmend ({1}% Übereinstimmung)</value>
+  </data>
+  <data name="mc_compare_filename" xml:space="preserve">
+    <value>Dateiname</value>
+  </data>
+  <data name="mc_compare_flash_addr" xml:space="preserve">
+    <value>Flash-Adresse</value>
+  </data>
+  <data name="mc_compare_info" xml:space="preserve">
+    <value>Flash-Adresse: 0x{0}, Größe: {1} Bytes</value>
+  </data>
+  <data name="mc_compare_mismatch" xml:space="preserve">
+    <value>Unterschiede: {0} Bytes ({1}% Übereinstimmung)</value>
+  </data>
+  <data name="mc_compare_results" xml:space="preserve">
+    <value>Ergebnisse des Speichervergleichs</value>
+  </data>
+  <data name="mc_compare_selected" xml:space="preserve">
+    <value>Datei ausgewählt, Vergleiche {0}</value>
+  </data>
+  <data name="mc_compare_start" xml:space="preserve">
+    <value>Beginne Speichervergleich</value>
+  </data>
+  <data name="mc_compare_total_processed" xml:space="preserve">
+    <value>Gesamtzahl der verarbeiteten Bytes</value>
+  </data>
+  <data name="mc_erase_command_sent" xml:space="preserve">
+    <value>Speicherlöschbefehl an Gerät gesendet: {0}</value>
+  </data>
+  <data name="mc_erase_confirm" xml:space="preserve">
+    <value>Speicherlöschung von {0} bestätigen</value>
+  </data>
+  <data name="mc_erase_warning" xml:space="preserve">
+    <value>Diese Aktion löscht alle Daten endgültig</value>
+  </data>
+  <data name="mc_io_destination" xml:space="preserve">
+    <value>Ziel-Flash-Adresse: 0x {0}, zu schreibende Bytes: {1} Bytes</value>
+  </data>
+  <data name="mc_io_file_cancel_to" xml:space="preserve">
+    <value>Durch Benutzer abgebrochen. Keine Daten auf {0} geschrieben</value>
+  </data>
+  <data name="mc_io_file_choose" xml:space="preserve">
+    <value>Wählen Sie die Datei aus, die in {0} geschrieben werden soll</value>
+  </data>
+  <data name="mc_io_file_compare" xml:space="preserve">
+    <value>Wählen Sie die Datei aus, die mit dem Speicher verglichen werden soll</value>
+  </data>
+  <data name="mc_io_file_writing" xml:space="preserve">
+    <value>Datei ausgewählt, schreibe auf {0}</value>
+  </data>
+  <data name="mc_io_open_file" xml:space="preserve">
+    <value>Datei zum Schreiben geöffnet: {0}, (Größe: {1} Bytes)</value>
+  </data>
+  <data name="mc_io_save_canceled" xml:space="preserve">
+    <value>Durch Benutzer abgebrochen. Es wurden keine Daten gespeichert</value>
+  </data>
+  <data name="mc_io_save_type" xml:space="preserve">
+    <value>Wählen Sie den Speicherort und das Ausgabedatenformat</value>
+  </data>
+  <data name="mc_mem_read_begin" xml:space="preserve">
+    <value>Beginne mit dem Auslesen des Speichers von {0}</value>
+  </data>
+  <data name="mc_mem_read_canceled" xml:space="preserve">
+    <value>Lesevorgang abgebrochen</value>
+  </data>
+  <data name="mc_mem_read_done" xml:space="preserve">
+    <value>Lesevorgang abgeschlossen</value>
+  </data>
+  <data name="mc_mem_read_from" xml:space="preserve">
+    <value>Wählen Sie den Bereich aus, der von {0} gelesen werden soll</value>
+  </data>
+  <data name="mc_mem_read_result" xml:space="preserve">
+    <value>{0} Bytes in {1} Sekunden gelesen, {2}</value>
+  </data>
+  <data name="mc_mem_read_start" xml:space="preserve">
+    <value>Lesevorgang wird durchgeführt</value>
+  </data>
+  <data name="mc_mem_start_addr" xml:space="preserve">
+    <value>Anfangsadresse: {0} ({1}) Länge: {2}</value>
+  </data>
+  <data name="mc_mem_user_cancel" xml:space="preserve">
+    <value>Benutzer hat Lesevorgang abgebrochen</value>
+  </data>
+  <data name="mc_mem_write_success" xml:space="preserve">
+    <value>{0} erfolgreich abgespeichert</value>
+  </data>
+  <data name="mc_reading" xml:space="preserve">
+    <value>Lesen: {0} von {1}</value>
+  </data>
+  <data name="mc_rngbox_base" xml:space="preserve">
+    <value>Basisadresse</value>
+    <comment>The flash address (starting point) of the operation</comment>
+  </data>
+  <data name="mc_rngbox_len" xml:space="preserve">
+    <value>Länge</value>
+    <comment>The number of bytes to read/write</comment>
+  </data>
+  <data name="mc_select_range" xml:space="preserve">
+    <value>Den Bereich zum Schreiben von Daten in {0} auswählen</value>
+  </data>
+  <data name="mc_wr_oper_complete" xml:space="preserve">
+    <value>Schreibvorgang abgeschlossen, {0} Bytes geschrieben</value>
+  </data>
+  <data name="mc_wr_oper_failed" xml:space="preserve">
+    <value>Schreibvorgang war nicht erfolgreich</value>
+  </data>
+  <data name="mc_wr_oper_file_err" xml:space="preserve">
+    <value>Fehler, Datei existiert nicht oder enthält keine Daten</value>
+  </data>
+  <data name="mc_wr_oper_result" xml:space="preserve">
+    <value>{0} Bytes in {1} Sekunden geschrieben, {2} Bytes/s</value>
+  </data>
+  <data name="mc_wr_oper_start" xml:space="preserve">
+    <value>Schreibvorgang wird durchgeführt</value>
+  </data>
+  <data name="mc_wr_oper_status" xml:space="preserve">
+    <value>Datei {0} in {1} schreiben ({2} Bytes zum Schreiben)</value>
+  </data>
+  <data name="mc_wr_user_canceled" xml:space="preserve">
+    <value>Benutzer hat Schreibvorgang abgebrochen</value>
+  </data>
+  <data name="mem_verify_data_at" xml:space="preserve">
+    <value>Verifiziere geschriebene Daten bei {0}</value>
+  </data>
+  <data name="settings_auto" xml:space="preserve">
+    <value>Verwende automatische Einstellungen</value>
+    <comment>Use automatic SPI settings</comment>
+  </data>
+  <data name="settings_blk_disabled" xml:space="preserve">
+    <value>Deaktiviert</value>
+  </data>
+  <data name="settings_box_block" xml:space="preserve">
+    <value>Bad-Block Verwaltung</value>
+    <comment>The box for the block manager settings</comment>
+  </data>
+  <data name="settings_box_general" xml:space="preserve">
+    <value>Allgemein</value>
+    <comment>The general / common group box</comment>
+  </data>
+  <data name="settings_box_layout" xml:space="preserve">
+    <value>Layout des Main/Spare-Bereichs</value>
+    <comment>The box to specify how to define the main and spare NAND areas</comment>
+  </data>
+  <data name="settings_mismatch" xml:space="preserve">
+    <value>Schreibe die Daten bei Schreibfehlern in den nächsten Block</value>
+  </data>
+  <data name="settings_preserve_mem" xml:space="preserve">
+    <value>Erhalte Speicherbereiche (d.h. kopiere den Spare-Bereich vor dem Schreibvorgang des Main-Bereichs)</value>
+  </data>
+  <data name="settings_read_cmd" xml:space="preserve">
+    <value>Lese-Befehl</value>
+    <comment>SPI command to read data</comment>
+  </data>
+  <data name="settings_specify" xml:space="preserve">
+    <value>Verwende benutzerdefinierte Einstellungen</value>
+    <comment>Use specific SPI command op codes</comment>
+  </data>
+  <data name="cfi_flash_base" xml:space="preserve">
+    <value>Basisadresse des CFI-Flashs: 0x{0}</value>
+  </data>
+  <data name="cfi_flash_detected" xml:space="preserve">
+    <value>CFI kompatibler Flash bei 0x{0} erkannt</value>
+  </data>
+  <data name="cfi_flash_failed" xml:space="preserve">
+    <value>Erkennen von CFI kompatiblem Flash fehlgeschlagen</value>
+  </data>
+  <data name="cfi_flash_info" xml:space="preserve">
+    <value>CFI Flash Beschreibung: {0} ({1} Bytes)</value>
+  </data>
+  <data name="nand_reading_block" xml:space="preserve">
+    <value>Lese NAND-Block {0} von {1} ({2}% abgeschlossen)</value>
+  </data>
+  <data name="settings_combined" xml:space="preserve">
+    <value>Kombiniert</value>
+    <comment>both the main and spare are combined to create a single area</comment>
+  </data>
+  <data name="settings_disable_ecc" xml:space="preserve">
+    <value>Deaktiviere den SPI-NAND ECC-Generator</value>
+  </data>
+  <data name="settings_nand_readverify" xml:space="preserve">
+    <value>Verwende die Verifizierung der gelesenen Daten bei der Operation 'Erstelle Speicherabbild'</value>
+  </data>
+  <data name="settings_segmented" xml:space="preserve">
+    <value>Segmentiert</value>
+    <comment>the sections are split up (main, then spare, the main, etc.)</comment>
+  </data>
+  <data name="settings_seperate" xml:space="preserve">
+    <value>Separat</value>
+    <comment>seperage sections of the NAND page(main/spare areas)</comment>
+  </data>
+  <data name="nand_writing_block" xml:space="preserve">
+    <value>Schreibe NAND-Block {0} von {1} ({2}% abgeschlossen)</value>
+  </data>
+  <data name="nand_completed_with_blocks_left" xml:space="preserve">
+    <value>Schreiben des Speicherabbilds mit {0} unbenutzten NAND Blöcken abgeschlossen</value>
+  </data>
+  <data name="nand_missing_block" xml:space="preserve">
+    <value>NAND-Block fehlt in Speicherabbild: {0}</value>
+  </data>
+  <data name="settings_blk_1stbyte" xml:space="preserve">
+    <value>1. Byte:</value>
+  </data>
+  <data name="settings_blk_1stpage" xml:space="preserve">
+    <value>Erste Spare Page</value>
+  </data>
+  <data name="settings_blk_2ndpage" xml:space="preserve">
+    <value>Zweite Spare Page</value>
+  </data>
+  <data name="settings_blk_6thbyte" xml:space="preserve">
+    <value>6. Byte:</value>
+  </data>
+  <data name="settings_blk_enabled" xml:space="preserve">
+    <value>Aktiviert (auf Bad-Block-Markierungen prüfen)</value>
+  </data>
+  <data name="settings_blk_lastpage" xml:space="preserve">
+    <value>Letzte Spare Page</value>
+  </data>
+  <data name="mem_erase_failed_at" xml:space="preserve">
+    <value>Fehler beim Löschen des Flashs bei Adresse: 0x {0} (Sektorindex: {1})</value>
+  </data>
+  <data name="mem_erase_failed_title" xml:space="preserve">
+    <value>Löschen des Flashs fehlgeschlagen</value>
+  </data>
+  <data name="console_eeprom_not_specified" xml:space="preserve">
+    <value>Der angegebene EEPROM wurde nicht gefunden</value>
+  </data>
+  <data name="console_erase_not_valid" xml:space="preserve">
+    <value>Die Option "Löschen" ist nur im Modus -WRITE verfügbar</value>
+  </data>
+  <data name="console_opt_erasechip" xml:space="preserve">
+    <value>Löscht den gesamten Inhalt des Speicherchips</value>
+  </data>
+  <data name="console_opt_not_valid" xml:space="preserve">
+    <value>Unbekannte Option: {0}</value>
+  </data>
+  <data name="console_value_missing" xml:space="preserve">
+    <value>Sie müssen einen Wert für -{0} angeben</value>
+  </data>
+  <data name="console_value_numeric_hex" xml:space="preserve">
+    <value>Der Wert für -{0} muss numerisch oder hexadezimal angegeben werden</value>
+  </data>
+  <data name="nandmngr_analyze" xml:space="preserve">
+    <value>Analysieren</value>
+    <comment>Text for the button to check the entire flash for bad blocks</comment>
+  </data>
+  <data name="nandmngr_analyzed_done" xml:space="preserve">
+    <value>NAND-Blöcke analysiert ({0} Defekte Blöcke gefunden)</value>
+  </data>
+  <data name="nandmngr_bad_block" xml:space="preserve">
+    <value>Bad-Block-Markierung</value>
+    <comment>Icon used for invalid block</comment>
+  </data>
+  <data name="nandmngr_bad_marker" xml:space="preserve">
+    <value>Bad-Markierung</value>
+  </data>
+  <data name="nandmngr_block_map" xml:space="preserve">
+    <value>NAND-Blockaufteilung ({0} Blöcke insgesamt; jeweils {1} Bytes)</value>
+  </data>
+  <data name="nandmngr_close" xml:space="preserve">
+    <value>Schließen</value>
+    <comment>Close the block manager form</comment>
+  </data>
+  <data name="nandmngr_confim" xml:space="preserve">
+    <value>Bestätigen Sie den Vorgang</value>
+  </data>
+  <data name="nandmngr_no_error" xml:space="preserve">
+    <value>Kein Fehler</value>
+    <comment>Icon used for valid block</comment>
+  </data>
+  <data name="nandmngr_selected_page" xml:space="preserve">
+    <value>Ausgewählte Page: {0} [Block: {1}]</value>
+  </data>
+  <data name="nandmngr_title" xml:space="preserve">
+    <value>NAND-Blockverwaltung ({0})</value>
+  </data>
+  <data name="nandmngr_user_discarded" xml:space="preserve">
+    <value>Vom Benutzer verworfen</value>
+    <comment>The user selected this block to ignore</comment>
+  </data>
+  <data name="nandmngr_user_marked" xml:space="preserve">
+    <value>Vom Benutzer markiert</value>
+    <comment>Icon used for user marked block to not use</comment>
+  </data>
+  <data name="nandmngr_valid" xml:space="preserve">
+    <value>Gültig</value>
+    <comment>Indicates the block is valid</comment>
+  </data>
+  <data name="nandmngr_verifing_block" xml:space="preserve">
+    <value>Verifiziere Block: {0}</value>
+  </data>
+  <data name="nandmngr_warning" xml:space="preserve">
+    <value>Achtung, diese Operation löscht und überschreibt alle Blöcke, wollen Sie fortfahren?</value>
+  </data>
+  <data name="nandmngr_write_error" xml:space="preserve">
+    <value>Schreibfehler</value>
+    <comment>Icon used for block that failed write/read</comment>
+  </data>
+  <data name="nandmngr_write_marker" xml:space="preserve">
+    <value>Schreibe Bad-Block-Markierungen in den Spare Bereich</value>
+    <comment>Text for checkbox to have the software write data flags</comment>
+  </data>
+  <data name="mc_mem_converting_format" xml:space="preserve">
+    <value>Konvertiere die Binärdatei in das Dateiformat {0}</value>
+  </data>
+  <data name="mc_mem_incorrect_format" xml:space="preserve">
+    <value>Die ausgewählte Datei entspricht nicht dem Dateiformat {0}</value>
+  </data>
+  <data name="mc_mem_open_file_write" xml:space="preserve">
+    <value>Datei zum Schreiben geöffnet: {0} ({1}), Gesamtdateigröße: {2} Bytes</value>
+  </data>
+  <data name="nandecc_algorithm" xml:space="preserve">
+    <value>Algorithmus</value>
+  </data>
+  <data name="nandecc_biterror" xml:space="preserve">
+    <value>Bitfehler</value>
+  </data>
+  <data name="nandecc_changes" xml:space="preserve">
+    <value>* Änderungen werden wirksam, nachdem das Gerät neu verbunden wurde.</value>
+  </data>
+  <data name="nandecc_ecclocation" xml:space="preserve">
+    <value>ECC Position</value>
+  </data>
+  <data name="nandecc_enabled" xml:space="preserve">
+    <value>Aktiviert</value>
+  </data>
+  <data name="nandecc_read_operation" xml:space="preserve">
+    <value>Lesevorgang (automatische Korrektur)</value>
+  </data>
+  <data name="nandecc_write_operation" xml:space="preserve">
+    <value>Schreibvorgang (ECC schreiben)</value>
+  </data>
+  <data name="nandecc_groupbox" xml:space="preserve">
+    <value>Software ECC Feature</value>
+  </data>
+  <data name="nandecc_revbyteorder" xml:space="preserve">
+    <value>Umgekehrte Byte-Reihenfolge</value>
+  </data>
+  <data name="nandecc_symwidth" xml:space="preserve">
+    <value>Symbolbreite</value>
+  </data>
+  <data name="console_i2c_params" xml:space="preserve">
+    <value>I2C-Parameter: Slave-Adresse 0x{0}, Offset: 0x{1}, Länge: {2} Bytes</value>
+  </data>
+  <data name="mc_button_all" xml:space="preserve">
+    <value>Alles</value>
+    <comment>Select all</comment>
+  </data>
+</root>
