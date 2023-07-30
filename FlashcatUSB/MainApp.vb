@@ -18,10 +18,10 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 591
+    Public Const Build As Integer = 592
 
     Private Const PRO_PCB4_FW As Single = 1.22F 'This is the embedded firmware version for pro
-    Private Const PRO_PCB5_FW As Single = 1.03F 'This is the embedded firmware version for pro
+    Private Const PRO_PCB5_FW As Single = 1.04F 'This is the embedded firmware version for pro
     Private Const MACH1_PCB2_FW As Single = 2.14F 'Firmware version for Mach1
     Private Const XPORT_PCB1_FW As Single = 4.55F 'XPORT PCB 1.x
     Private Const XPORT_PCB2_FW As Single = 5.13F 'XPORT PCB 2.x
@@ -1823,7 +1823,7 @@ Public Module MainApp
     Private Sub OnConnectedEvent(usb_dev As FCUSB_DEVICE)
         usb_dev.USB_Echo() 'This does reset events
         Dim fw_str As String = usb_dev.FW_VERSION()
-        If (Not fw_str = "") Then 'Bootloader does not have FW version
+        If (Not fw_str.Equals("")) Then 'Bootloader does not have FW version
             GUI.UpdateStatusMessage(RM.GetString("board_fw_version"), fw_str)
         End If
         Select Case usb_dev.HWBOARD
@@ -1848,14 +1848,7 @@ Public Module MainApp
             Case FCUSB_BOARD.Professional_PCB4
                 GUI.SetStatus("Connected to FlashcatUSB Professional (PCB 4.x)")
                 If usb_dev.USB_IsBootloaderMode() Then
-                    If Not (fw_str = "4.02") Then 'outdated bootloader
-                        FCUSBPRO_Bootloader(usb_dev, "PCB4_BL_APP.bin") 'Application firmware to update bootloader
-                    Else
-                        FCUSBPRO_Bootloader(usb_dev, "PCB4_Source.bin") 'Current PCB 4 firmware
-                    End If
-                    Exit Sub
-                ElseIf usb_dev.USB_IsAppUpdaterMode Then
-                    FCUSBPRO_Bootloader(usb_dev, "PCB4_BL_1.02.bin") 'This programs the bootloader
+                    FCUSBPRO_Bootloader(usb_dev, "PCB4_Source.bin") 'Current PCB 4 firmware 
                 End If
                 GUI.PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Pro (PCB 4.x)", fw_str}))
                 Dim AvrVerSng As Single = Utilities.StringToSingle(fw_str)
@@ -2446,9 +2439,7 @@ Public Module MainApp
     Private Sub FCUSBPRO_RebootToBootloader(usb_dev As FCUSB_DEVICE)
         GUI.SetStatus(RM.GetString("fw_update_available"))
         Utilities.Sleep(2000)
-        If usb_dev.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
-            usb_dev.USB_CONTROL_MSG_OUT(USBREQ.FW_REBOOT, Nothing, &HFFFFFFFFUI) 'Removes firmware version
-        ElseIf usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
+        If usb_dev.HasLogic() Then
             usb_dev.USB_CONTROL_MSG_OUT(USBREQ.FW_REBOOT, Nothing, &HFFFFFFFFUI) 'Removes firmware version
         End If
         usb_dev.Disconnect()

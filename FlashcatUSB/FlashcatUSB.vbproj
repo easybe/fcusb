@@ -353,11 +353,8 @@
     <None Include="app.config" />
     <EmbeddedResource Include="firmware\PCB4_I2C.svf" />
     <EmbeddedResource Include="firmware\JTAG_3V3.svf" />
-    <EmbeddedResource Include="firmware\arm_spi.bin" />
     <EmbeddedResource Include="firmware\PCB4_QUAD_3V3.svf" />
     <EmbeddedResource Include="firmware\PCB4_QUAD_1V8.svf" />
-    <EmbeddedResource Include="firmware\PCB4_BL_1.02.bin" />
-    <EmbeddedResource Include="firmware\PCB4_BL_APP.bin" />
     <EmbeddedResource Include="firmware\Mach1_v2_Source.bin" />
     <EmbeddedResource Include="firmware\MACH1_ERASE.svf" />
     <EmbeddedResource Include="firmware\MACH1_3V3.bit" />
