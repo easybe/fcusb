@@ -280,6 +280,7 @@ Namespace USB
             AddHandler HF_IF.PrintConsole, AddressOf PrintConsole
             AddHandler FWH_IF.PrintConsole, AddressOf PrintConsole
             AddHandler EPROM_IF.PrintConsole, AddressOf PrintConsole
+            AddHandler DFU_IF.PrintConsole, AddressOf PrintConsole
 
             If (Me.HasLogic) Then
                 Me.USBFLAG_OUT = (UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Interface Or UsbCtrlFlags.Direction_Out)
@@ -428,7 +429,7 @@ Namespace USB
                 Dim wIndex As UInt16 = (data And &HFFFF)
                 Dim bytes_out As Integer = 0
                 If buffer_out IsNot Nothing Then bytes_out = buffer_out.Length
-                Dim usbSetupPacket As New UsbSetupPacket(Me.USBFLAG_OUT, RQ, wValue, wIndex, bytes_out)
+                Dim usbSetupPacket As New UsbSetupPacket(Me.USBFLAG_OUT, RQ, wValue, wIndex, CShort(bytes_out))
                 Dim bytes_xfer As Integer = 0
                 If buffer_out Is Nothing Then
                     result = USBHANDLE.ControlTransfer(usbSetupPacket, Nothing, 0, bytes_xfer)

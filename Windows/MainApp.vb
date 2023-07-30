@@ -15,7 +15,7 @@ Public Module MainApp
     Public GUI As MainForm
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
     Public MySettings As New FlashcatSettings
-    Public Const FC_BUILD As Integer = 617
+    Public Const FC_BUILD As Integer = 618
     Private Const PRO_PCB5_FW As Single = 1.1F 'This is the embedded firmware version for pro
     Private Const MACH1_PCB2_FW As Single = 2.22F 'Firmware version for Mach1
     Private Const XPORT_PCB2_FW As Single = 5.21F 'XPORT PCB 2.x
@@ -760,6 +760,7 @@ Public Module MainApp
     Public Function DetectDevice_DFU(usb_dev As FCUSB_DEVICE, Params As DetectParams) As Boolean
         PrintConsole("Initializing DFU programming mode")
         usb_dev.SelectProgrammer(DeviceMode.DFU)
+        usb_dev.DFU_IF.DeviceInit()
         Dim dev_inst As MemoryDeviceInstance = MEM_IF.Add(usb_dev, usb_dev.PROGRAMMER.GetDevice)
         AddHandler dev_inst.PrintConsole, AddressOf MainApp.PrintConsole
         AddHandler dev_inst.SetStatus, AddressOf MainApp.SetStatus
