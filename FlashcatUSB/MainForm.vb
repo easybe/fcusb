@@ -710,6 +710,10 @@ Public Class MainForm
             mi_mode_extio.Enabled = True
             Enable_VCC_Menu(True)
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Classic_XPORT Then
+            mi_mode_spi.Enabled = True
+            mi_mode_spieeprom.Enabled = True
+            mi_mode_spi_nand.Enabled = True
+            mi_mode_i2c.Enabled = True
             mi_mode_extio.Enabled = True
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Classic_JTAG Then
             mi_mode_jtag.Enabled = True

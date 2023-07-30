@@ -16,9 +16,9 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 511
+    Public Const Build As Integer = 512
     Public PRO_CURRENT_FW As Single = 1.2 'This is the embedded firmware version for pro
-    Public CLASSIC_CURRENT_FW As Single = 4.32 'Min revision allowed for classic, xport
+    Public CLASSIC_CURRENT_FW As Single = 4.33 'Min revision allowed for classic, xport
     Public AppIsClosing As Boolean = False
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
     Public WithEvents ScriptEngine As New FcScriptEngine
@@ -1637,9 +1637,8 @@ Public Module MainApp
                     SetStatus(RM.GetString("fw_out_of_date"))
                     Exit Sub
                 End If
-                MySettings.OPERATION_MODE = DeviceMode.EXTIO 'Only EXTIO devices supported
-                GUI.PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Classic", fw_str}))
-                GUI.PrintConsole(RM.GetString("fw_feat_supported") & ": EXTIO")
+                GUI.PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB xPort", fw_str}))
+                GUI.PrintConsole(RM.GetString("fw_feat_supported") & ": SPI, I2C, EXTIO")
             Case FCUSB_BOARD.Professional
                 If usb_dev.USB_IsBootloaderMode() Then
                     GUI.PrintConsole(RM.GetString("connected_bl_mode"))
