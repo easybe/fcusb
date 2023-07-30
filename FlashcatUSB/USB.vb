@@ -59,7 +59,7 @@ Namespace USB
             Public SPI_NOR_IF As New SPI_Programmer(Me)
             Public SQI_NOR_IF As New SQI_Programmer(Me)
             Public SPI_NAND_IF As New SPINAND_Programmer(Me)
-            Public EXT_IF As New ExtPort(Me)
+            Public EXT_IF As New PARALLEL_NOR_NAND(Me)
             Public HF_IF As New HF_Port(Me)
             Public JTAG_IF As New JTAG.JTAG_IF(Me)
             Public I2C_IF As New I2C_Programmer(Me)
@@ -535,7 +535,7 @@ Namespace USB
                 Dim cpld_data(3) As Byte
                 USB_CONTROL_MSG_IN(USBREQ.CPLD_VERSION_GET, cpld_data)
                 Array.Reverse(cpld_data)
-                Dim result As UInt32 = Utilities.Bytes.ToUInteger(cpld_data)
+                Dim result As UInt32 = Utilities.Bytes.ToUInt32(cpld_data)
                 Return result
             End Function
 
@@ -874,6 +874,13 @@ Namespace USB
         JTAG_REGISTERS = &H30
         JTAG_SHIFT_TMS = &H31
         JTAG_SHIFT_DATA = &H32
+        JTAG_BDR_RD = &H33
+        JTAG_BDR_WR = &H34
+        JTAG_BDR_SETUP = &H35
+        JTAG_BDR_INIT = &H36
+        JTAG_BDR_ADDPIN = &H37
+        JTAG_BDR_RDFLASH = &H38
+        JTAG_BDR_WRFLASH = &H39
         'SPI
         SPI_INIT = &H40
         SPI_SS_ENABLE = &H41
@@ -933,6 +940,9 @@ Namespace USB
         EXPIO_CPEN = &H7D 'Sets CPEN pin (Mach1 only)
         EXPIO_SR = &H7E 'Mach1 for now, will add to EXTIO later 
         EXPIO_WRADRDATA = &H7F 'Writes address (24/26-bit) and data (8/16-bit)
+        EXPIO_OE_HIGH = &HF0
+        EXPIO_OE_LOW = &HF1
+        EXPIO_EPROM_VPP = &HF2
         '1-Wire
         SWI_DETECT = &HB0
         SWI_READ = &HB1
@@ -940,19 +950,13 @@ Namespace USB
         SWI_RD_REG = &HB3
         SWI_WR_REG = &HB4
         SWI_LOCK_REG = &HB5
-        'CPLD
+        'CPLD / FPGA
         CPLD_STATUS = &HC0  '0=OFF,1=3V3,2=1V8
         CPLD_OFF = &HC1 'Turns off CPLD circuit
         CPLD_1V8 = &HC2 'Turns On 1.8V And Then CPLD
         CPLD_3V3 = &HC3 'Turns On 3.3V And Then CPLD
-        CPLD_JTAG_DETECT = &HC4
-        CPLD_JTAG_RESET = &HC5
-        CPLD_JTAG_SELECT = &HC6
-        CPLD_JTAG_SHIFT_DATA = &HC7
-        CPLD_JTAG_TOGGLE = &HC8
-        CPLD_VERSION_GET = &HC9
-        CPLD_VERSION_SET = &HCA
-        CPLD_JTAG_SHIFT_TMS = &HCB
+        CPLD_VERSION_GET = &HC4
+        CPLD_VERSION_SET = &HC5
     End Enum
 
     Public Enum DeviceStatus

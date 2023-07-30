@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2018 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2019 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB
 'CONTACT EMAIL: contact@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
@@ -13,7 +13,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     Public Event PrintConsole(message As String) Implements MemoryDeviceUSB.PrintConsole
     Public Event SetProgress(ByVal percent As Integer) Implements MemoryDeviceUSB.SetProgress
     Public Property MyFlashDevice As SPI_NAND_Flash
-    Public Property MyFlashStatus As USB.DeviceStatus = USB.DeviceStatus.NotDetected
+    Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
     Public Property DIE_SELECTED As Integer = 0
 
     Sub New(ByVal parent_if As FCUSB_DEVICE)
@@ -30,7 +30,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             MFG = &HEF
             PART = &HAA21 'We need to override AB21 to indicate 1Gbit NAND die
         Else
-            Me.FCUSB.USB_SPI_SETUP(SPI.SPI_Programmer.SPIBUS_PORT.Port_A, MySettings.SPI_MODE, MySettings.SPI_BIT_ORDER)
+            Me.FCUSB.USB_SPI_SETUP(MySettings.SPI_MODE, MySettings.SPI_BIT_ORDER)
             SPIBUS_WriteRead({SPI_Command_DEF.RDID}, rdid) 'NAND devives use 1 dummy byte, then MFG and ID1 (and sometimes, ID2)
             If Not (rdid(0) = 0 Or rdid(0) = 255) Then Return False
             If rdid(1) = 0 OrElse rdid(1) = 255 Then Return False
@@ -50,7 +50,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             RaiseEvent PrintConsole(String.Format(RM.GetString("spinand_page_size"), MyFlashDevice.PAGE_SIZE, MyFlashDevice.EXT_PAGE_SIZE))
             NANDHELPER_SetupHandlers()
             Me.ECC_ENABLED = Not MySettings.SPI_NAND_DISABLE_ECC
-            If MFG = &HEF AndAlso PART = &HAA21 Then 'W25M121AV
+            If MFG = &HEF AndAlso PART = &HAA21 Then 'W25M01GV/W25M121AV
                 SPIBUS_WriteRead({OPCMD_GETFEAT, &HB0}, sr)
                 SPIBUS_WriteRead({OPCMD_SETFEAT, &HB0, (sr(0) Or 8)}) 'Set bit 3 to ON (BUF=1)
             ElseIf MFG = &HEF AndAlso PART = &HAB21 Then 'W25M02GV
@@ -78,7 +78,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             Return True
         Else
             RaiseEvent PrintConsole(RM.GetString("unknown_device_email"))
-            MyFlashStatus = USB.DeviceStatus.NotSupported
+            MyFlashStatus = DeviceStatus.NotSupported
             Return False
         End If
     End Function
@@ -111,9 +111,9 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     Friend ReadOnly Property DeviceName As String Implements MemoryDeviceUSB.DeviceName
         Get
             Select Case MyFlashStatus
-                Case USB.DeviceStatus.Supported
+                Case DeviceStatus.Supported
                     Return MyFlashDevice.NAME
-                Case USB.DeviceStatus.NotSupported
+                Case DeviceStatus.NotSupported
                     Return Hex(MyFlashDevice.MFG_CODE).PadLeft(2, CChar("0")) & " " & Hex(MyFlashDevice.ID1).PadLeft(2, CChar("0"))
                 Case Else
                     Return RM.GetString("no_flash_detected")
@@ -121,7 +121,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         End Get
     End Property
 
-    Friend ReadOnly Property DeviceSize As UInt32 Implements MemoryDeviceUSB.DeviceSize
+    Friend ReadOnly Property DeviceSize As Long Implements MemoryDeviceUSB.DeviceSize
         Get
             Dim available_pages As UInt32 = FCUSB.NAND_IF.MAPPED_PAGES
             If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then
@@ -132,7 +132,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         End Get
     End Property
 
-    Friend ReadOnly Property SectorSize(sector As UInteger, Optional ByVal memory_area As FlashArea = FlashArea.Main) As UInteger Implements MemoryDeviceUSB.SectorSize
+    Friend ReadOnly Property SectorSize(sector As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As UInt32 Implements MemoryDeviceUSB.SectorSize
         Get
             If Not MyFlashStatus = USB.DeviceStatus.Supported Then Return 0
             Dim page_count As UInt32 = MyFlashDevice.BLOCK_SIZE / MyFlashDevice.PAGE_SIZE
@@ -160,7 +160,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         End Try
     End Sub
 
-    Friend Function ReadData(logical_address As UInteger, data_count As UInteger, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
+    Friend Function ReadData(logical_address As Long, data_count As UInteger, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
         If FCUSB.SPI_NOR_IF.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady()
         Dim page_addr As UInt32 'This is the page address
         Dim page_offset As UInt16 'this is the start offset within the page
@@ -214,11 +214,11 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         End If
     End Function
 
-    Friend Function Sector_Count() As UInteger Implements MemoryDeviceUSB.Sector_Count
+    Friend Function SectorCount() As UInteger Implements MemoryDeviceUSB.SectorCount
         Return MyFlashDevice.Sector_Count
     End Function
 
-    Friend Function SectorFind(sector_index As UInteger, Optional ByVal memory_area As FlashArea = FlashArea.Main) As UInteger Implements MemoryDeviceUSB.SectorFind
+    Friend Function SectorFind(sector_index As UInteger, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Long Implements MemoryDeviceUSB.SectorFind
         Dim base_addr As UInt32 = 0
         If sector_index > 0 Then
             For i As UInt32 = 0 To sector_index - 1
@@ -239,7 +239,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Return Result
     End Function
 
-    Friend Function Sector_Erase(sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.Sector_Erase
+    Friend Function SectorErase(sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.SectorErase
         If FCUSB.SPI_NOR_IF.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady()
         Dim pages_per_block As UInt32 = (MyFlashDevice.BLOCK_SIZE / MyFlashDevice.PAGE_SIZE)
         Dim page_addr As UInt32 = (pages_per_block * sector_index)
@@ -247,13 +247,13 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Return FCUSB.NAND_IF.ERASEBLOCK(local_page_addr, memory_area, MySettings.NAND_Preserve)
     End Function
 
-    Friend Function Sector_Write(sector_index As UInt32, data() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.Sector_Write
+    Friend Function SectorWrite(sector_index As UInt32, data() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
         If FCUSB.SPI_NOR_IF.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady()
         Dim Addr32 As UInt32 = Me.SectorFind(sector_index, Params.Memory_Area)
         Return WriteData(Addr32, data, Params)
     End Function
 
-    Friend Function WriteData(logical_address As UInt32, data_to_write() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
+    Friend Function WriteData(logical_address As Long, data_to_write() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
         If FCUSB.SPI_NOR_IF.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady()
         Dim page_addr As UInt32 'This is the page address
         Dim page_offset As UInt16 'this is the start offset within the page (obsolete for now)
@@ -419,15 +419,15 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     'Makes the CS/SS pin go low
     Private Sub SPIBUS_SlaveSelect_Enable()
         Try
-            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.SPI_SS_ENABLE)
-            'Utilities.Sleep(1)
+            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SPI_SS_ENABLE)
+            Utilities.Sleep(1)
         Catch ex As Exception
         End Try
     End Sub
     'Releases the CS/SS pin
     Private Sub SPIBUS_SlaveSelect_Disable()
         Try
-            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.SPI_SS_DISABLE)
+            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SPI_SS_DISABLE)
         Catch ex As Exception
         End Try
     End Sub
@@ -435,7 +435,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     Private Function SPIBUS_WriteData(ByVal DataOut() As Byte) As Boolean
         Dim Success As Boolean = False
         Try
-            Success = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.SPI_WR_DATA, Nothing, DataOut, DataOut.Length)
+            Success = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPI_WR_DATA, Nothing, DataOut, DataOut.Length)
         Catch ex As Exception
             Return False
         End Try
@@ -446,7 +446,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     Private Function SPIBUS_ReadData(ByRef Data_In() As Byte) As Boolean
         Dim Success As Boolean = False
         Try
-            Success = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.SPI_RD_DATA, Nothing, Data_In, Data_In.Length)
+            Success = FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_RD_DATA, Nothing, Data_In, Data_In.Length)
         Catch ex As Exception
             Success = False
         End Try
@@ -478,10 +478,10 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Try
             Dim bytes_left As UInt32 = data_count
             Dim data_out(data_count - 1) As Byte
-            If (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB3) OrElse (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB4) Then 'Hardware-enabled routine
+            If (FCUSB.HWBOARD = FCUSB_BOARD.Professional) Then 'Hardware-enabled routine
                 Dim setup() As Byte = SetupPacket_NAND(page_addr, page_offset, data_count, memory_area)
                 Dim param As UInt32 = Utilities.BoolToInt(MyFlashDevice.PLANE_SELECT)
-                Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.SPINAND_READFLASH, setup, data_out, param)
+                Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.SPINAND_READFLASH, setup, data_out, param)
                 If Not result Then Return Nothing
             Else
                 Dim nand_layout As NANDLAYOUT_STRUCTURE = NANDLAYOUT_Get(MyFlashDevice)
@@ -489,7 +489,6 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                 Dim logical_block As UInt16 = (nand_layout.Layout_Main + nand_layout.Layout_Spare)
                 Dim data_ptr As UInt32 = 0
                 Do While (bytes_left > 0)
-                    SPIBUS_WriteRead({OPCMD_PAGEREAD, ((page_addr >> 16) And 255), ((page_addr >> 8) And 255), (page_addr And 255)})
                     Dim read_offset As UInt16 = 0 'We always want to read the entire page
                     If MyFlashDevice.PLANE_SELECT Then read_offset = read_offset Or &H1000 'Sets plane select to HIGH
                     Dim op_setup(3) As Byte
@@ -498,6 +497,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                     op_setup(2) = (read_offset And 255) 'Lower
                     op_setup(3) = 0 'Dummy bits
                     Dim read_packet(page_size_tot - 1) As Byte
+                    SPIBUS_WriteRead({OPCMD_PAGEREAD, ((page_addr >> 16) And 255), ((page_addr >> 8) And 255), (page_addr And 255)})
                     SPIBUS_WriteRead(op_setup, read_packet)
                     Select Case memory_area
                         Case FlashArea.Main
@@ -561,7 +561,18 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Return Nothing
     End Function
 
-    Public Function WritePages(page_addr As UInt32, main_data() As Byte, oob_data() As Byte, ByVal area As FlashArea) As Boolean
+    Private Sub SNAND_Wait()
+        SPIBUS_SlaveSelect_Enable()
+        SPIBUS_WriteData({&HF, &HC0})
+        Dim sr(0) As Byte
+        Do
+            SPIBUS_ReadData(sr)
+            Utilities.Sleep(5)
+        Loop While (sr(0) And 1 = 1)
+        SPIBUS_SlaveSelect_Disable()
+    End Sub
+
+    Private Function WritePages(page_addr As UInt32, main_data() As Byte, oob_data() As Byte, ByVal area As FlashArea) As Boolean
         Dim write_result As Boolean = False
         Try
             If main_data Is Nothing And oob_data Is Nothing Then Return False
@@ -593,7 +604,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     Private Function USB_WritePageAlignedData(ByRef page_addr As UInt32, ByVal page_aligned() As Byte) As Boolean
         Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE)
         Dim pages_to_write As UInt32 = (page_aligned.Length / page_size_tot)
-        If (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB3) OrElse (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB4) Then
+        If (FCUSB.HWBOARD = FCUSB_BOARD.Professional) Then
             Dim array_ptr As UInt32 = 0
             Do Until pages_to_write = 0
                 Dim max_page_count As Integer = 8192 / MyFlashDevice.PAGE_SIZE
@@ -638,7 +649,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             Return False
         End If
         Dim pages_to_write As UInt32 = (area_data.Length / page_size)
-        If (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB3) OrElse (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB4) Then
+        If (FCUSB.HWBOARD = FCUSB_BOARD.Professional) Then
             Dim array_ptr As UInt32 = 0
             Do Until pages_to_write = 0
                 Dim max_page_count As Integer = (8192 / page_size)

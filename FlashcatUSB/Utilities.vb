@@ -268,7 +268,7 @@ Namespace Utilities
 
 #Region "Bytes To"
             'Converts up to 4 bytes to a unsigned integer
-            Public Function ToUInteger(ByVal data() As Byte) As UInt32
+            Public Function ToUInt32(ByVal data() As Byte) As UInt32
                 Try
                     Dim Result As UInt32 = 0
                     Dim TotalBytes As Integer = 4
@@ -284,7 +284,7 @@ Namespace Utilities
                 End Try
             End Function
             'Converts up to 4 bytes to a unsigned integer
-            Public Function ToUInteger64(ByVal data() As Byte) As UInt64
+            Public Function ToUInt64(ByVal data() As Byte) As UInt64
                 Try
                     Dim Result As UInt64 = 0
                     Dim TotalBytes As Integer = 8
@@ -306,7 +306,7 @@ Namespace Utilities
                 Return (data(0) * 256) + data(1)
             End Function
             'Converts up to 4 bytes to a signed integer
-            Public Function ToInteger(ByVal input() As Byte) As Int32
+            Public Function ToInt32(ByVal input() As Byte) As Int32
                 If input Is Nothing Then Return 0
                 If input.Length = 0 Then Return 0
                 Dim IsNegative As Boolean = False
@@ -831,7 +831,7 @@ Namespace Utilities
                 Select Case pattern_chars(0)
                     Case "x"
                         If data Is Nothing Then data = {0}
-                        Dim output As Integer = Utilities.Bytes.ToInteger(data)
+                        Dim output As Integer = Utilities.Bytes.ToInt32(data)
                         Return Utilities.Pad(Hex(output))
                     Case "d"
                         If data Is Nothing Then data = {0}
@@ -839,7 +839,7 @@ Namespace Utilities
                         If pattern_chars.Length > 2 AndAlso pattern_chars(1) = "-" Then
                             decimal_point = CInt(CStr(pattern_chars(2)))
                         End If
-                        Dim output As String = (Utilities.Bytes.ToInteger(data)).ToString
+                        Dim output As String = (Utilities.Bytes.ToInt32(data)).ToString
                         If decimal_point > 0 Then
                             Do Until decimal_point < output.Length
                                 output = "0" & output
@@ -851,11 +851,11 @@ Namespace Utilities
                         Return output
                     Case "o"
                         If data Is Nothing Then data = {0}
-                        Dim output As UInteger = Utilities.Bytes.ToUInteger(data)
+                        Dim output As UInteger = Utilities.Bytes.ToUInt32(data)
                         Return Convert.ToString(output, 8)
                     Case "b"
                         If data Is Nothing Then data = {0}
-                        Dim output As UInteger = Utilities.Bytes.ToUInteger(data)
+                        Dim output As UInteger = Utilities.Bytes.ToUInt32(data)
                         Return Convert.ToString(output, 2)
                 End Select
             Catch ex As Exception
@@ -1086,9 +1086,9 @@ Namespace Utilities
                             Case "x" 'hexdecimal
                                 str_out &= Utilities.Bytes.ToHexString(data_to_parse)
                             Case "d" 'decimal
-                                str_out &= Utilities.Bytes.ToUInteger(data_to_parse)
+                                str_out &= Utilities.Bytes.ToUInt32(data_to_parse)
                             Case "o" 'octet
-                                Dim output As UInteger = Utilities.Bytes.ToUInteger(data_to_parse)
+                                Dim output As UInteger = Utilities.Bytes.ToUInt32(data_to_parse)
                                 str_out &= Convert.ToString(output, 8)
                             Case "a" 'ascii
                                 str_out &= Utilities.Bytes.ToChrString(data_to_parse)
@@ -1609,6 +1609,40 @@ Namespace Utilities
                 Buffer(i + 2) = out(2)
                 Buffer(i + 3) = out(3)
             Next
+        End Sub
+
+        Public Sub ReverseBits(ByRef x As UInt32, Optional count As Integer = 32)
+            Dim y As UInt32 = 0
+            For i = 0 To count - 1
+                y <<= 1
+                y = y Or (x And 1)
+                x >>= 1
+            Next
+            x = y
+        End Sub
+
+        Public Sub ReverseBits(ByRef x As UInt64, Optional count As Integer = 64)
+            Dim y As UInt64 = 0
+            For i = 0 To count - 1
+                y <<= 1
+                y = y Or (x And 1)
+                x >>= 1
+            Next
+            x = y
+        End Sub
+
+        Public Sub ReverseBits_ByteEndian(ByRef x As UInt32)
+            Dim y As UInt32
+            Dim offset As Integer = 7
+            For i = 0 To 31
+                If (x And 1) Then
+                    y = y Or (1 << (offset + ((i \ 8) * 8)))
+                End If
+                offset -= 1
+                If offset = -1 Then offset = 7
+                x >>= 1
+            Next
+            x = y
         End Sub
 
 #End Region
@@ -2164,7 +2198,7 @@ Namespace Utilities
             End Try
         End Function
 
-        Public Function FormatToDataUsage(ByVal bytes As UInt64) As String
+        Public Function FormatToDataSize(ByVal bytes As UInt64) As String
             Dim MB01 As UInt64 = 1048576UL
             Dim GB01 As UInt64 = 1073741824UL
             Dim TB01 As UInt64 = 1099511627776UL

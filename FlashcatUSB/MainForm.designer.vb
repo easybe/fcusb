@@ -75,6 +75,7 @@ Partial Class MainForm
         Me.mi_nand_map = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator5 = New System.Windows.Forms.ToolStripSeparator()
         Me.mi_device_features = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_cfi_info = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_Language = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_language_english = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_language_spanish = New System.Windows.Forms.ToolStripMenuItem()
@@ -388,26 +389,26 @@ Partial Class MainForm
         '
         Me.mi_script_selected.Image = Global.FlashcatUSB.My.Resources.Resources.config
         Me.mi_script_selected.Name = "mi_script_selected"
-        Me.mi_script_selected.Size = New System.Drawing.Size(144, 22)
+        Me.mi_script_selected.Size = New System.Drawing.Size(152, 22)
         Me.mi_script_selected.Text = "Select script"
         '
         'mi_script_load
         '
         Me.mi_script_load.Image = Global.FlashcatUSB.My.Resources.Resources.openfile
         Me.mi_script_load.Name = "mi_script_load"
-        Me.mi_script_load.Size = New System.Drawing.Size(144, 22)
+        Me.mi_script_load.Size = New System.Drawing.Size(152, 22)
         Me.mi_script_load.Text = "Load script"
         '
         'mi_script_unload
         '
         Me.mi_script_unload.Image = Global.FlashcatUSB.My.Resources.Resources.clear_x
         Me.mi_script_unload.Name = "mi_script_unload"
-        Me.mi_script_unload.Size = New System.Drawing.Size(144, 22)
+        Me.mi_script_unload.Size = New System.Drawing.Size(152, 22)
         Me.mi_script_unload.Text = "Unload script"
         '
         'mi_tools_menu
         '
-        Me.mi_tools_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_erase_tool, Me.ToolStripSeparator4, Me.mi_create_img, Me.mi_write_img, Me.ToolStripSeparator10, Me.mi_nand_map, Me.ToolStripSeparator5, Me.mi_device_features})
+        Me.mi_tools_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_erase_tool, Me.ToolStripSeparator4, Me.mi_create_img, Me.mi_write_img, Me.ToolStripSeparator10, Me.mi_nand_map, Me.ToolStripSeparator5, Me.mi_device_features, Me.mi_cfi_info})
         Me.mi_tools_menu.Name = "mi_tools_menu"
         Me.mi_tools_menu.Size = New System.Drawing.Size(47, 20)
         Me.mi_tools_menu.Text = "Tools"
@@ -461,6 +462,13 @@ Partial Class MainForm
         Me.mi_device_features.Name = "mi_device_features"
         Me.mi_device_features.Size = New System.Drawing.Size(183, 22)
         Me.mi_device_features.Text = "Vendor Features"
+        '
+        'mi_cfi_info
+        '
+        Me.mi_cfi_info.Image = Global.FlashcatUSB.My.Resources.Resources.tsop48
+        Me.mi_cfi_info.Name = "mi_cfi_info"
+        Me.mi_cfi_info.Size = New System.Drawing.Size(183, 22)
+        Me.mi_cfi_info.Text = "CFI Information"
         '
         'mi_Language
         '
@@ -1019,4 +1027,5 @@ Partial Class MainForm
     Friend WithEvents mi_mode_hyperflash As ToolStripMenuItem
     Friend WithEvents mi_mode_quad As ToolStripMenuItem
     Friend WithEvents mi_langauge_german As ToolStripMenuItem
+    Friend WithEvents mi_cfi_info As ToolStripMenuItem
 End Class

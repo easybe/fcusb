@@ -1,4 +1,4 @@
-﻿''COPYRIGHT EMBEDDEDCOMPUTERS.NET 2018 - ALL RIGHTS RESERVED
+﻿''COPYRIGHT EMBEDDEDCOMPUTERS.NET 2019 - ALL RIGHTS RESERVED
 ''CONTACT EMAIL: contact@embeddedcomputers.net
 ''ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 ''INFO: This class is the entire scripting engine which can control the software
@@ -90,7 +90,7 @@ Public Class FcScriptEngine
         CmdFunctions.AddNest(SPI_CMD)
         Dim JTAG_CMD As New ScriptCmd("JTAG")
         JTAG_CMD.Add("idcode", Nothing, New ScriptFunction(AddressOf c_jtag_idcode))
-        JTAG_CMD.Add("config", {CmdParam.String}, New ScriptFunction(AddressOf c_jtag_config))
+        JTAG_CMD.Add("config", {CmdParam.String_Optional}, New ScriptFunction(AddressOf c_jtag_config))
         JTAG_CMD.Add("select", {CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_select))
         JTAG_CMD.Add("writeword", {CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_write32))
         JTAG_CMD.Add("readword", {CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_read32))
@@ -120,6 +120,11 @@ Public Class FcScriptEngine
         BCM_CMD.Add("writeconfig", Nothing, New ScriptFunction(AddressOf c_bcm_writeconfig))
         BCM_CMD.Add("setserial", {CmdParam.String}, New ScriptFunction(AddressOf c_bcm_setserial))
         CmdFunctions.AddNest(BCM_CMD)
+        Dim BSDL As New ScriptCmd("BoundaryScan")
+        BSDL.Add("setup", {CmdParam.Integer}, New ScriptFunction(AddressOf c_bsdl_setup))
+        BSDL.Add("addpin", {CmdParam.Integer, CmdParam.String}, New ScriptFunction(AddressOf c_bsdl_addpin))
+        BSDL.Add("detect", Nothing, New ScriptFunction(AddressOf c_bsdl_detect))
+        CmdFunctions.AddNest(BSDL)
         CmdFunctions.Add("writeline", {CmdParam.Any, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_writeline))
         CmdFunctions.Add("print", {CmdParam.Any, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_writeline))
         CmdFunctions.Add("msgbox", {CmdParam.Any}, New ScriptFunction(AddressOf c_msgbox))
@@ -643,7 +648,7 @@ Public Class FcScriptEngine
                         If d.Length > 4 Then
                             OPERANDS.Add(New ScriptElementOperandEntry(MyParent, OperandType.Data) With {.Value = d})
                         Else
-                            Dim v32 As UInt32 = Utilities.Bytes.ToUInteger(d)
+                            Dim v32 As UInt32 = Utilities.Bytes.ToUInt32(d)
                             OPERANDS.Add(New ScriptElementOperandEntry(MyParent, OperandType.Integer) With {.Value = v32})
                         End If
                     ElseIf main_element.ToUpper = "NOTHING" Then
@@ -1579,7 +1584,7 @@ Public Class FcScriptEngine
                     Case OperandType.Data
                         Return InternalData
                     Case OperandType.Integer
-                        Return Utilities.Bytes.ToUInteger(InternalData)
+                        Return Utilities.Bytes.ToUInt32(InternalData)
                     Case OperandType.String
                         Return Utilities.Bytes.ToChrString(InternalData)
                     Case OperandType.Bool
@@ -2293,7 +2298,6 @@ Public Class FcScriptEngine
         End Property
         Public Property ERROR_MSG As String = ""
 
-
         Private OPERLIST As ScriptElementOperand
 
         Sub New(oParent As FcScriptEngine)
@@ -2347,7 +2351,7 @@ Public Class FcScriptEngine
     Public ScriptBar As ProgressBar 'Our one and only progress bar
     Private Delegate Sub UpdateFunction_Progress(ByVal percent As Integer)
     Private Delegate Sub UpdateFunction_Status(ByVal txt As String)
-    Private Delegate Sub UpdateFunction_Base(ByVal addr As UInt32)
+    Private Delegate Sub UpdateFunction_Base(ByVal addr As Long)
     Private Property PROGRESS_BASE As UInt32 = 0 'Address we have a operation at
 
     Private Sub ProgressUpdateBase(ByVal addr As UInt32)
@@ -2798,7 +2802,7 @@ Public Class FcScriptEngine
             b(2) = data1(offset + 2)
             b(3) = data1(offset + 3)
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
-            sv.Value = Utilities.Bytes.ToUInteger(b)
+            sv.Value = Utilities.Bytes.ToUInt32(b)
             Return sv
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Data.Word function exception"}
@@ -2843,6 +2847,7 @@ Public Class FcScriptEngine
 
     Private Function c_io_open(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
+            Dim opt_path As String = "\"
             Dim title As String = "Choose file"
             Dim filter As String = "All files (*.*)|*.*"
             If arguments IsNot Nothing Then
@@ -2852,13 +2857,16 @@ Public Class FcScriptEngine
                 If arguments.Length > 1 Then
                     filter = arguments(1).Value
                 End If
+                If arguments.Length > 2 Then
+                    opt_path = arguments(2).Value
+                End If
             End If
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Data)
             Dim fileio_diagbox As New OpenFileDialog
             fileio_diagbox.CheckFileExists = True
             fileio_diagbox.Title = title
             fileio_diagbox.Filter = filter
-            fileio_diagbox.InitialDirectory = Application.StartupPath
+            fileio_diagbox.InitialDirectory = Application.StartupPath & opt_path
             If (fileio_diagbox.ShowDialog = DialogResult.OK) Then
                 sv.Value = Utilities.FileIO.ReadBytes(fileio_diagbox.FileName) 'There was an error here!
             Else
@@ -3383,15 +3391,18 @@ Public Class FcScriptEngine
 
     Private Function c_jtag_config(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
-            Dim mode As String = arguments(0).Value
-            Select Case mode.ToUpper
-                Case "MIPS"
-                    USBCLIENT.FCUSB(Index).JTAG_IF.Configure(PROCESSOR.MIPS)
-                Case "ARM"
-                    USBCLIENT.FCUSB(Index).JTAG_IF.Configure(PROCESSOR.ARM)
-                Case Else
-                    Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.config unknown mode: " & mode}
-            End Select
+            If arguments IsNot Nothing AndAlso arguments.Length = 1 Then
+                Select Case arguments(0).Value.ToUpper
+                    Case "MIPS"
+                        USBCLIENT.FCUSB(Index).JTAG_IF.Configure(PROCESSOR.MIPS)
+                    Case "ARM"
+                        USBCLIENT.FCUSB(Index).JTAG_IF.Configure(PROCESSOR.ARM)
+                    Case Else
+                        Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.config unknown mode: " & arguments(0).Value}
+                End Select
+            Else
+                USBCLIENT.FCUSB(Index).JTAG_IF.Configure(PROCESSOR.NONE)
+            End If
             Return Nothing
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.config function exception"}
@@ -3412,7 +3423,8 @@ Public Class FcScriptEngine
     Private Function c_jtag_control(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
             Dim control_value As UInt32 = arguments(0).Value
-            Dim result As UInt32 = USBCLIENT.FCUSB(Index).JTAG_IF.ReadWriteReg32(EJTAG_OPCODE.CONTROL_IR, control_value)
+            Dim j As JTAG_DEVICE = USBCLIENT.FCUSB(Index).JTAG_IF.GetSelectedDevice()
+            Dim result As UInt32 = USBCLIENT.FCUSB(Index).JTAG_IF.ReadWriteReg32(j.BSDL.MIPS_CONTROL, control_value)
             RaiseEvent WriteConsole("JTAT CONTROL command issued: 0x" & Hex(control_value) & " result: 0x" & Hex(result))
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
             sv.Value = result
@@ -3573,9 +3585,6 @@ Public Class FcScriptEngine
             If arguments.Length = 3 Then exit_tms = CBool(arguments(2).Value)
             Dim tdo_data() As Byte = Nothing
             USBCLIENT.FCUSB(Index).JTAG_IF.ShiftTDI(bit_count, tdi_data, tdo_data, exit_tms)
-            If exit_tms Then
-                If USBCLIENT.FCUSB(Index).JTAG_IF.TAP IsNot Nothing Then USBCLIENT.FCUSB(Index).JTAG_IF.TAP.ExitState()
-            End If
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Data)
             sv.Value = tdo_data
             Return sv
@@ -3837,6 +3846,43 @@ Public Class FcScriptEngine
             bcm_util.Serial = input
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "BCM.SetSerial function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+#End Region
+
+#Region "Boundary Scan Programmer"
+
+    Private Function c_bsdl_setup(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Dim bsr_size As Integer = arguments(0).Value
+            USBCLIENT.FCUSB(Index).JTAG_IF.BoundaryScan_Setup(bsr_size)
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "BoundaryScan.Setup function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_bsdl_addpin(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Dim pin_index As Integer = arguments(0).Value
+            Dim pin_name As String = arguments(1).Value
+            USBCLIENT.FCUSB(Index).JTAG_IF.BoundaryScan_AddPin(pin_index, pin_name)
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "BoundaryScan.AddPin function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_bsdl_detect(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Dim result As Boolean = USBCLIENT.FCUSB(Index).JTAG_IF.BoundaryScan_Detect
+            Dim sv As New ScriptVariable(CurrentVars.GetNewName(), OperandType.Bool)
+            sv.Value = result
+            Return sv
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "BoundaryScan.Detect function exception"}
         End Try
         Return Nothing
     End Function

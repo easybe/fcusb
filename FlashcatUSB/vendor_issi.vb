@@ -1,18 +1,18 @@
 ﻿'This non-vol control is for ISSI IS25LP080D IS25WP080D IS25WP040D IS25WP020D
 
 Public Class vendor_issi
-    Private FCUSB_PROG As MemoryDeviceUSB
+    Private FCUSB As USB.HostClient.FCUSB_DEVICE
 
-    Sub New(ByVal mem_dev_programmer As MemoryDeviceUSB)
+    Sub New(ByVal usb_dev As USB.HostClient.FCUSB_DEVICE)
 
         ' This call is required by the designer.
         InitializeComponent()
 
         ' Add any initialization after the InitializeComponent() call.
-        FCUSB_PROG = mem_dev_programmer
+        FCUSB = usb_dev
     End Sub
 
-    Private Sub vendor_Load(sender As Object, e As EventArgs) Handles Me.Load
+    Private Sub NonVol_3_Load(sender As Object, e As EventArgs) Handles Me.Load
         group_sr1.Enabled = False
         cmd_write_config.Enabled = False
     End Sub
@@ -21,12 +21,7 @@ Public Class vendor_issi
         Try
             cmd_read_config.Enabled = False
             WriteConsole("Reading non-vol status registers")
-            Dim sr() As Byte = Nothing
-            If FCUSB_PROG.GetType Is GetType(SPI.SPI_Programmer) Then
-                sr = DirectCast(FCUSB_PROG, SPI.SPI_Programmer).ReadStatusRegister(1)
-            ElseIf FCUSB_PROG.GetType Is GetType(SPI.SQI_Programmer) Then
-                sr = DirectCast(FCUSB_PROG, SPI.SQI_Programmer).ReadStatusRegister(1)
-            End If
+            Dim sr() As Byte = FCUSB.SPI_NOR_IF.ReadStatusRegister() '0x05
             WriteConsole("Status register: 0x" & Hex(sr(0)).PadLeft(2, "0"))
             If ((sr(0) >> 2) And 1) Then 'bit 2
                 cb_bp0.Checked = True
@@ -72,16 +67,9 @@ Public Class vendor_issi
             If cb_bp3.Checked Then sr_to_write(0) = sr_to_write(0) Or (1 << 5)
             If cb_qspi.Checked Then sr_to_write(0) = sr_to_write(0) Or (1 << 6)
             WriteConsole("Verifing the nonvolatile register have been successfully programmed")
-            Dim sr_read_back() As Byte = Nothing
-            If FCUSB_PROG.GetType Is GetType(SPI.SPI_Programmer) Then
-                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).WriteStatusRegister(sr_to_write)
-                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).WaitUntilReady()
-                sr_read_back = DirectCast(FCUSB_PROG, SPI.SPI_Programmer).ReadStatusRegister(1)
-            ElseIf FCUSB_PROG.GetType Is GetType(SPI.SQI_Programmer) Then
-                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).WriteStatusRegister(sr_to_write)
-                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).WaitUntilReady()
-                sr_read_back = DirectCast(FCUSB_PROG, SPI.SQI_Programmer).ReadStatusRegister(1)
-            End If
+            FCUSB.SPI_NOR_IF.WriteStatusRegister(sr_to_write)
+            FCUSB.SPI_NOR_IF.WaitUntilReady()
+            Dim sr_read_back() As Byte = FCUSB.SPI_NOR_IF.ReadStatusRegister(1)
             Dim Successful As Boolean = True
             If (Not sr_to_write(0) = sr_read_back(0)) Then
                 Successful = False

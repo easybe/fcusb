@@ -2,14 +2,15 @@
     Public Property BaseOffset As Long = 0 'This is to offset the drawing
     Public Property BaseSize As Long = 0 'Number of bytes this hex view can display
     Public Property TopAddress As Long = 0 'The first address of the hex editor we can see
+    Public Property HexDataByteSize As Integer 'number of bits the left side displays
 
     Public Event AddressUpdate(ByVal top_address As Long) 'Updates the TopAddress
     Public Event RequestData(ByVal address As Long, ByRef data() As Byte)
 
+    Private HexView_AtBottom As Boolean = False
     Private MyFont As New Font("Lucida Console", 8)
     Private PreCache() As Byte = Nothing 'Can contain the entire data to display
     Private ScreenData() As Byte 'Contains a cache of the data that the editor can see
-    Private HexDataBitLength As Integer 'number of bits the left side displays
     Private IsLoaded As Boolean = False
     Private Background As Image
     Private BytesPerLine As Integer = -1
@@ -63,13 +64,13 @@
         Me.BaseSize = Size
         Me.TopAddress = 0
         If (Me.BaseSize <= &HFFFF) Then
-            HexDataBitLength = 16 '0000:
+            HexDataByteSize = 2 '0000:
         ElseIf (Me.BaseSize <= &HFFFFFF) Then '000000:
-            HexDataBitLength = 24
+            HexDataByteSize = 3
         ElseIf (Me.BaseSize <= &HFFFFFFFFL) Then '00000000:
-            HexDataBitLength = 32
+            HexDataByteSize = 4
         Else '0000000000:
-            HexDataBitLength = 40
+            HexDataByteSize = 5
         End If
         SBAR.Minimum = 1
         If (PBOX.Height > 0) Then
@@ -86,13 +87,13 @@
         Me.TopAddress = 0
         PreCache = PreLoadData
         If (Me.BaseSize <= &HFFFFL) Then
-            HexDataBitLength = 16 '0000:
+            HexDataByteSize = 2 '0000:
         ElseIf (Me.BaseSize <= &HFFFFFFL) Then '000000:
-            HexDataBitLength = 24
+            HexDataByteSize = 3
         ElseIf (Me.BaseSize <= &HFFFFFFFFL) Then '00000000:
-            HexDataBitLength = 32
+            HexDataByteSize = 4
         Else
-            HexDataBitLength = 40
+            HexDataByteSize = 5
         End If
         SBAR.Minimum = 1
         If (PBOX.Height > 0) Then
@@ -106,7 +107,7 @@
     Public Sub CloseHexViewer()
         Try
             TopAddress = 0
-            HexDataBitLength = 0
+            HexDataByteSize = 0
             PBOX.Image = Nothing
             IsLoaded = False
             SBAR.Enabled = False
@@ -114,11 +115,25 @@
         End Try
     End Sub
 
-    Private Sub HexEditor_Resize(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Resize
+    Public Sub HexEditor_Resize(ByVal sender As Object, ByVal e As EventArgs) Handles Me.Resize
         If Not IsLoaded Then Exit Sub 'Only resize if we are shown
         If (PBOX.Height > 0) Then
             Background = CreateBackground()
-            UpdateScreen()
+            Dim visible_lines As Integer = GetNumOfVisibleLines()
+            BytesPerLine = GetVisisbleDataAreaCount() 'Each column = 1 byte
+            If BytesPerLine > 0 Then
+                SBAR.LargeChange = visible_lines
+                SBAR.Maximum = CInt(Math.Ceiling(BaseSize / BytesPerLine))
+                If HexView_AtBottom Then
+                    SBAR.Value = SBAR.Maximum - visible_lines + 1
+                ElseIf (SBAR.Value + visible_lines) > SBAR.Maximum Then
+                    SBAR.Value = SBAR.Maximum - visible_lines + 1
+                Else
+                    Dim x As Integer = GetVisisbleDataAreaCount()
+                    SBAR.Value = Math.Floor(TopAddress / x) + 1
+                End If
+                UpdateScreen()
+            End If
         End If
     End Sub
 
@@ -126,11 +141,10 @@
         Return CInt(Math.Floor(PBOX.Height / (char_height + 1)))
     End Function
     'Returns the number of hex (32bit boundry) that we can display
-    Private Function GetNumOfHeaderLines() As UInt32
+    Public Function GetVisisbleDataAreaCount() As Integer
         Try
             If (PBOX.Width < 100) Then Return 0
-            Dim NumOfAddrBytes As Integer = (HexDataBitLength / 8)
-            Dim addr_area As Integer = ((NumOfAddrBytes * 2) * char_width)
+            Dim addr_area As Integer = ((Me.HexDataByteSize * 2) * char_width)
             Dim x As Single = PBOX.Width - (SBAR.Width + addr_area)
             Dim y As Single = (x / 3)
             Dim hex_area As Single = (y * 2) - (CSng(PBOX.Width) / 12.0F) - 2
@@ -186,43 +200,28 @@
             Me.Invoke(d)
         Else
             Try : InRefresh = True
-                Static CurrentTop As UInt32 = 0
+                Static CurrentTop As Long = 0
+                BytesPerLine = GetVisisbleDataAreaCount() 'Each column = 1 byte
+                Dim TotalLines As Int32 = GetNumOfVisibleLines()
+                If TotalLines = 0 Or BytesPerLine = 0 Then Exit Sub
                 Dim newBG As Image = Background.Clone
                 Using gfx As Graphics = Graphics.FromImage(newBG)
-                    Dim TotalLines As UInt32 = GetNumOfVisibleLines()
-                    BytesPerLine = GetNumOfHeaderLines() 'Each column = 1 byte
-                    If TotalLines = 0 Or BytesPerLine = 0 Then Exit Sub
-                    Dim MaxDataShown As UInt32 = TotalLines * BytesPerLine 'Total amount of bytes that we can show
+                    Dim MaxDataShown As Long = (TotalLines * BytesPerLine) 'Total amount of bytes that we can show
+                    HexView_AtBottom = False
                     If (BaseSize > MaxDataShown) Then
+                        SBAR.LargeChange = CInt(TotalLines)
+                        SBAR.Maximum = CInt(Math.Ceiling(BaseSize / BytesPerLine))
                         SBAR.Enabled = True 'More lines than we can display
-                        Dim BarPercent As Single = ((SBAR.Value - 1) / (SBAR.Maximum - SBAR.LargeChange))
-                        SBAR.LargeChange = TotalLines
-                        SBAR.Maximum = Math.Ceiling(BaseSize / BytesPerLine)
-                        Dim NewValue As UInt32 = Math.Round((SBAR.Maximum - SBAR.LargeChange) * BarPercent) + 1
-                        If NewValue < 1 Then NewValue = 1
-                        If NewValue > SBAR.Maximum Then NewValue = SBAR.Maximum
-                        SBAR.Value = NewValue
-                        TopAddress = (NewValue - 1) * CLng(BytesPerLine)
-                    Else
-                        SBAR.Enabled = False 'We can display all data
-                        TopAddress = 0
-                    End If
-                    If (BaseSize > MaxDataShown) Then
-                        SBAR.Enabled = True 'More lines than we can display
-                        Dim BarPercent As Single = ((SBAR.Value - 1) / (SBAR.Maximum - SBAR.LargeChange))
-                        SBAR.LargeChange = TotalLines
-                        SBAR.Maximum = Math.Ceiling(BaseSize / BytesPerLine)
-                        Dim NewValue As Integer = Math.Round((SBAR.Maximum - SBAR.LargeChange) * BarPercent) + 1
-                        If NewValue < 1 Then NewValue = 1
-                        If NewValue > SBAR.Maximum Then NewValue = SBAR.Maximum
-                        SBAR.Value = NewValue
-                        TopAddress = (NewValue - 1) * CLng(BytesPerLine)
+                        TopAddress = (CLng(SBAR.Value - 1) * CLng(BytesPerLine))
+                        If (TopAddress + MaxDataShown) >= BaseSize Then
+                            HexView_AtBottom = True
+                        End If
                     Else
                         SBAR.Enabled = False 'We can display all data
                         TopAddress = 0
                     End If
                     SBAR.Refresh() 'Recently added
-                    Dim DataToGet As UInt32 = BaseSize - TopAddress 'The amount of bytes we need to display in the box
+                    Dim DataToGet As Long = BaseSize - TopAddress 'The amount of bytes we need to display in the box
                     If (DataToGet > MaxDataShown) Then
                         DataToGet = MaxDataShown
                     End If
@@ -233,7 +232,7 @@
                         Array.Copy(PreCache, TopAddress, ScreenData, 0, ScreenData.Length)
                     End If
                     If ScreenData IsNot Nothing Then
-                        Dim AddrIndex As UInt32 = 0
+                        Dim AddrIndex As Long = 0
                         Dim LinesToDraw As UInt32 = CInt(Math.Ceiling(DataToGet / BytesPerLine))
                         For i = 0 To LinesToDraw - 1
                             Dim BytesForLine() As Byte
@@ -264,8 +263,7 @@
 
     Private Sub Drawline(ByVal LineIndex As Integer, ByVal FullAddr As UInt64, ByVal ByteCount As Integer, ByRef data() As Byte, ByRef gfx As Graphics)
         Dim YLOC As Integer = (LineIndex * Math.Round(char_height + 1)) + 1
-        Dim NumOfAddrBytes As Integer = (HexDataBitLength / 8)
-        Dim AddrStr As String = Hex(FullAddr).PadLeft(NumOfAddrBytes * 2, "0") & ": "
+        Dim AddrStr As String = Hex(FullAddr).PadLeft(Me.HexDataByteSize * 2, "0") & ": "
         gfx.DrawString(AddrStr, MyFont, Brushes.Gray, 0, YLOC)
         Dim w As SizeF = gfx.MeasureString(AddrStr, MyFont)
         PTR_CHAR_SIZE = Math.Ceiling(w.Width / CSng(AddrStr.Length))
@@ -295,7 +293,7 @@
         End If
     End Function
     'Causes the editor to redraw at the specified address
-    Public Sub GotoAddress(ByVal ThisAddr As UInt64)
+    Public Sub GotoAddress(ThisAddr As Long)
         Try
             If BytesPerLine = -1 Then Exit Sub
             If (ThisAddr + 1) > BaseSize Then ThisAddr = BaseSize
@@ -309,9 +307,7 @@
 
     Private Sub PBOX_MouseWheel(sender As Object, e As MouseEventArgs) Handles PBOX.MouseWheel
         If InRefresh Then Exit Sub
-        If DateTime.Compare(LastScroll.AddMilliseconds(100), DateTime.Now) > 0 Then
-            Exit Sub 'We only want to allow a scroll to happen no closer than 250 ms
-        End If
+        If DateTime.Compare(LastScroll.AddMilliseconds(100), DateTime.Now) > 0 Then Exit Sub
         EditBox_ProcessChange()
         SELECTED_HEX_ITEM = New Point(-1, -1)
         SELECTED_ASCII_ITEM = New Point(-1, -1)
@@ -319,13 +315,15 @@
         If PBOX.Controls.Contains(ASCII_BOX) Then PBOX.Controls.Remove(ASCII_BOX)
         Dim num_vis_rows As Integer = GetNumOfVisibleLines()
         Dim total_rows As Integer = SBAR.Maximum
-        If e.Delta > 0 Then 'Scrolling down
+        If e.Delta > 0 Then 'Moving up
             Dim new_value As Integer = SBAR.Value - num_vis_rows
             If new_value < 1 Then new_value = 1
             SBAR.Value = new_value
-        Else 'Scrolling up
+        Else 'Moving down
             Dim new_value As Integer = SBAR.Value + num_vis_rows
-            If (new_value + num_vis_rows) > SBAR.Maximum Then new_value = SBAR.Maximum - num_vis_rows + 1
+            If (new_value + num_vis_rows) > SBAR.Maximum Then
+                new_value = SBAR.Maximum - num_vis_rows + 1
+            End If
             SBAR.Value = new_value
         End If
         UpdateScreen()

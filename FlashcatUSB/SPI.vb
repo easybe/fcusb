@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2018 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2019 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB
 'CONTACT EMAIL: contact@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
@@ -113,7 +113,7 @@ Namespace SPI
             Return Me.SectorSize(0, memory_area) * sector_index
         End Function
 
-        Friend Function Sector_Count() As UInt32 Implements MemoryDeviceUSB.Sector_Count
+        Friend Function SectorCount() As UInt32 Implements MemoryDeviceUSB.SectorCount
             If MyFlashStatus = USB.DeviceStatus.Supported Then
                 Dim EraseSize As UInt32 = MyFlashDevice.ERASE_SIZE
                 If EraseSize = 0 Then Return 1
@@ -226,7 +226,7 @@ Namespace SPI
             Return False
         End Function
 
-        Friend Function Sector_Erase(ByVal sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.Sector_Erase
+        Friend Function SectorErase(ByVal sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.SectorErase
             If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             If (Not MyFlashDevice.ERASE_REQUIRED) Then Return True 'Erase not needed
             Dim flash_offset As UInt32 = Me.SectorFind(sector_index, memory_area)
@@ -259,7 +259,7 @@ Namespace SPI
             Return True
         End Function
 
-        Friend Function Sector_Write(ByVal sector_index As UInt32, ByVal data() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.Sector_Write
+        Friend Function SectorWrite(ByVal sector_index As UInt32, ByVal data() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
             If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             Dim Addr32 As UInteger = Me.SectorFind(sector_index, Params.Memory_Area)
             Return WriteData(Addr32, data, Params)
@@ -298,7 +298,7 @@ Namespace SPI
                         Dim SectorCount As UInt32 = MyFlashDevice.Sector_Count
                         RaiseEvent SetProgress(0)
                         For i As UInt32 = 0 To SectorCount - 1
-                            If (Not Sector_Erase(i, FlashArea.NotSpecified)) Then
+                            If (Not SectorErase(i, FlashArea.NotSpecified)) Then
                                 RaiseEvent SetProgress(0) : Return False 'Error erasing sector
                             Else
                                 Dim progress As Single = CSng((i / SectorCount) * 100)
@@ -820,7 +820,7 @@ Namespace SPI
             Me.CMD_PROG = spi_dev.OP_COMMANDS.PROG
             Me.CMD_WREN = spi_dev.OP_COMMANDS.WREN
             Me.CMD_RDSR = spi_dev.OP_COMMANDS.RDSR
-            Me.CMD_RDFR = spi_dev.OP_COMMANDS.RDFR
+            Me.CMD_RDFR = spi_dev.OP_COMMANDS.RDFR 'Flag Status Register
             Me.ADDR_BYTES = spi_dev.AddressBytes
             Me.DATA_OFFSET = offset
             Me.WR_COUNT = d_count

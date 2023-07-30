@@ -1,4 +1,4 @@
-﻿Imports FlashcatUSB.ExtPort
+﻿Imports FlashcatUSB.PARALLEL_NOR_NAND
 Imports FlashcatUSB.FlashMemory
 Imports FlashcatUSB.USB
 Imports FlashcatUSB.USB.HostClient
@@ -74,7 +74,7 @@ Public Class HF_Port : Implements MemoryDeviceUSB
         Return ReadBulk_NOR(logical_address, data_count)
     End Function
 
-    Public Function Sector_Erase(ByVal sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.Sector_Erase
+    Public Function SectorErase(ByVal sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.SectorErase
         Try
             If sector_index = 0 AndAlso SectorSize(0) = MyFlashDevice.FLASH_SIZE Then
                 Return EraseDevice() 'Single sector, must do a full chip erase instead
@@ -157,12 +157,12 @@ Public Class HF_Port : Implements MemoryDeviceUSB
         Return base_addr
     End Function
 
-    Public Function Sector_Write(ByVal sector_index As UInt32, ByVal data() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.Sector_Write
+    Public Function SectorWrite(ByVal sector_index As UInt32, ByVal data() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
         Dim Addr32 As UInteger = Me.SectorFind(sector_index, Params.Memory_Area)
         Return WriteData(Addr32, data, Params)
     End Function
 
-    Public Function Sector_Count() As UInt32 Implements MemoryDeviceUSB.Sector_Count
+    Public Function SectorCount() As UInt32 Implements MemoryDeviceUSB.SectorCount
         Return MyFlashDevice.SECTOR_COUNT
     End Function
 

@@ -38,8 +38,8 @@
     Function EraseDevice() As Boolean
     Sub WaitUntilReady()
     Function SectorFind(ByVal SectorIndex As UInt32, Optional ByVal area As FlashMemory.FlashArea = FlashMemory.FlashArea.Main) As Long
-    Function Sector_Erase(ByVal SectorIndex As UInt32, Optional ByVal area As FlashMemory.FlashArea = FlashMemory.FlashArea.Main) As Boolean
-    Function Sector_Count() As UInt32
-    Function Sector_Write(ByVal SectorIndex As UInt32, ByVal data() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean
+    Function SectorErase(ByVal SectorIndex As UInt32, Optional ByVal area As FlashMemory.FlashArea = FlashMemory.FlashArea.Main) As Boolean
+    Function SectorCount() As UInt32
+    Function SectorWrite(ByVal SectorIndex As UInt32, ByVal data() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean
 
 End Interface

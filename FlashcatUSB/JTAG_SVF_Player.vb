@@ -1,12 +1,15 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2015 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2019 - ALL RIGHTS RESERVED
 'CONTACT EMAIL: contact@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: This class implements the SVF / XSVF file format developed by Texas Instroments
+'12/29/18: Added Lattice LOOP/LOOPEND commands
+
 Namespace JTAG
 
     Public Class SVF_Player
         Public Property IgnoreErrors As Boolean = False 'If set to true, this player will not stop executing on a readback error
         Public Property Current_Hertz As Integer = 1000000 'Default of 1 MHz
+        Public Property Actual_Hertz As Integer = 500000 '500kHz
 
         Public Event Progress(ByVal percent As Integer)
         Public Event SetFrequency(ByVal Hz As Integer)
@@ -23,19 +26,35 @@ Namespace JTAG
 
         End Sub
 
+        Public Property ENDIR As JTAG_MACHINE_STATE
+        Public Property ENDDR As JTAG_MACHINE_STATE
+        Public Property IR_TAIL As svf_param
+        Public Property IR_HEAD As svf_param
+        Public Property DR_TAIL As svf_param
+        Public Property DR_HEAD As svf_param
+        Public Property SIR_LAST_LEN As Integer 'Number of bits the last mask length was
+        Public Property SDR_LAST_LEN As Integer 'Number of bits the last mask length was
+
+        Public SIR_LAST_MASK() As Byte
+        Public SDR_LAST_MASK() As Byte
+
         Private Sub Setup()
             RaiseEvent SetFrequency(Current_Hertz)
+            ENDIR = JTAG_MACHINE_STATE.RunTestIdle
+            ENDDR = JTAG_MACHINE_STATE.RunTestIdle
+            IR_TAIL = New svf_param
+            IR_HEAD = New svf_param
+            DR_TAIL = New svf_param
+            DR_HEAD = New svf_param
+            SIR_LAST_MASK = Nothing
+            SIR_LAST_LEN = -1
+            SDR_LAST_MASK = Nothing
+            SDR_LAST_LEN = -1
         End Sub
 
         Public Function RunFile_XSVF(ByVal user_file() As Byte) As Boolean
             Setup()
             Dim xsvf_file() As xsvf_param = ConvertDataToProperFormat(user_file)
-            Dim XENDIR As JTAG_MACHINE_STATE = JTAG_MACHINE_STATE.RunTestIdle
-            Dim XENDDR As JTAG_MACHINE_STATE = JTAG_MACHINE_STATE.RunTestIdle
-            Dim IR_TAIL As New svf_param
-            Dim IR_HEAD As New svf_param
-            Dim DR_TAIL As New svf_param
-            Dim DR_HEAD As New svf_param
             Dim TDO_MASK As svf_data = Nothing
             Dim TDO_REPEAT As UInt32 = 16 'Number of times to retry
             Dim XRUNTEST As UInt32 = 0
@@ -58,7 +77,7 @@ Namespace JTAG
                             RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
                             DoXRunTest(XRUNTEST) 'wait for the last specified XRUNTEST time. 
                         Else
-                            RaiseEvent GotoState(XENDIR)  'Otherwise, go to the last specified XENDIR state.
+                            RaiseEvent GotoState(ENDIR)  'Otherwise, go to the last specified XENDIR state.
                         End If
                     Case xsvf_instruction.XSDR
                         Dim Counter As UInt32 = TDO_REPEAT
@@ -69,8 +88,9 @@ Namespace JTAG
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
                             If (Not Result) Then
                                 RaiseEvent Writeconsole("Failed sending XSDR command (command number: " & line_counter & ")")
-                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" &
-                                                  Utilities.Bytes.ToHexString(line.value_expected.data) & " Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
+                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
+                                RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line.value_expected.data))
+                                RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
                             If Counter > 0 Then Counter -= 1
@@ -79,7 +99,7 @@ Namespace JTAG
                             RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
                             DoXRunTest(XRUNTEST) 'wait for the last specified XRUNTEST time. 
                         Else
-                            RaiseEvent GotoState(XENDDR)  'Otherwise, go to the last specified XENDDR state.
+                            RaiseEvent GotoState(ENDDR)  'Otherwise, go to the last specified XENDDR state.
                         End If
                     Case xsvf_instruction.XSDRSIZE
                         XSDRSIZE = line.value_uint    'Specifies the length of all XSDR/XSDRTDO records that follow.
@@ -93,8 +113,9 @@ Namespace JTAG
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
                             If Not Result Then
                                 RaiseEvent Writeconsole("Failed sending XSDRTDO command (command number: " & line_counter & ")")
-                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" &
-                                                  Utilities.Bytes.ToHexString(line.value_expected.data) & " Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
+                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
+                                RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line.value_expected.data))
+                                RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
                         Loop Until Result
@@ -102,7 +123,7 @@ Namespace JTAG
                             RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
                             DoXRunTest(XRUNTEST) 'wait for the last specified XRUNTEST time. 
                         Else
-                            RaiseEvent GotoState(XENDDR)  'Otherwise, go to the last specified XENDDR state.
+                            RaiseEvent GotoState(ENDDR)  'Otherwise, go to the last specified XENDDR state.
                         End If
                     Case xsvf_instruction.XSDRB
                         RaiseEvent ShiftDR(line.value_data.data, Nothing, line.value_data.bits, False)'Stay in DR
@@ -110,7 +131,7 @@ Namespace JTAG
                         RaiseEvent ShiftDR(line.value_data.data, Nothing, line.value_data.bits, False) 'Stay in DR
                     Case xsvf_instruction.XSDRE
                         RaiseEvent ShiftDR(line.value_data.data, Nothing, line.value_data.bits, False)
-                        RaiseEvent GotoState(XENDDR)
+                        RaiseEvent GotoState(ENDDR)
                     Case xsvf_instruction.XSDRTDOB
                         Dim Counter As UInt32 = TDO_REPEAT
                         Dim Result As Boolean = False
@@ -121,8 +142,9 @@ Namespace JTAG
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
                             If Not Result Then
                                 RaiseEvent Writeconsole("Failed sending XSDRTDOB command (command number: " & line_counter & ")")
-                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" &
-                                                  Utilities.Bytes.ToHexString(line.value_expected.data) & " Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
+                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
+                                RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line.value_expected.data))
+                                RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
                             If Counter > 0 Then Counter -= 1
@@ -137,8 +159,9 @@ Namespace JTAG
                             If IgnoreErrors Then Exit Do
                             If Not Result Then
                                 RaiseEvent Writeconsole("Failed sending XSDRTDOC command (command number: " & line_counter & ")")
-                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" &
-                                                  Utilities.Bytes.ToHexString(line.value_expected.data) & " Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
+                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
+                                RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line.value_expected.data))
+                                RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
                         Loop Until Result
@@ -152,12 +175,13 @@ Namespace JTAG
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data)
                             If Not Result Then
                                 RaiseEvent Writeconsole("Failed sending XSDRTDOE command (command number: " & line_counter & ")")
-                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" &
-                                                  Utilities.Bytes.ToHexString(line.value_expected.data) & " Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
+                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
+                                RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line.value_expected.data))
+                                RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
                         Loop Until Result
-                        RaiseEvent GotoState(XENDDR)
+                        RaiseEvent GotoState(ENDDR)
                     Case xsvf_instruction.XSETSDRMASKS 'Obsolete
                     Case xsvf_instruction.XSDRINC 'Obsolete
                     Case xsvf_instruction.XCOMPLETE
@@ -169,16 +193,16 @@ Namespace JTAG
                             RaiseEvent GotoState(line.state)
                         End If
                     Case xsvf_instruction.XENDIR
-                        XENDIR = line.state
+                        ENDIR = line.state
                     Case xsvf_instruction.XENDDR
-                        XENDDR = line.state
+                        ENDDR = line.state
                     Case xsvf_instruction.XSIR2 'Same as XSIR (since we should all support 255 bit lengths or more)
                         RaiseEvent ShiftIR(line.value_data.data, Nothing, line.value_data.bits, True)
                         If Not XRUNTEST = 0 Then
                             RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
                             DoXRunTest(line.value_uint) 'wait for the last specified XRUNTEST time. 
                         Else
-                            RaiseEvent GotoState(XENDIR)  'Otherwise, go to the last specified XENDIR state.
+                            RaiseEvent GotoState(ENDIR)  'Otherwise, go to the last specified XENDIR state.
                         End If
                     Case xsvf_instruction.XCOMMENT 'No need to display this
                     Case xsvf_instruction.XWAIT
@@ -196,114 +220,139 @@ Namespace JTAG
         Public Function RunFile_SVF(ByVal user_file() As String) As Boolean
             Setup()
             Dim svf_file() As String = ConvertFileToProperFormat(user_file)
-            Dim ENDIR As JTAG_MACHINE_STATE = JTAG_MACHINE_STATE.RunTestIdle
-            Dim ENDDR As JTAG_MACHINE_STATE = JTAG_MACHINE_STATE.RunTestIdle
-            Dim IR_TAIL As New svf_param
-            Dim IR_HEAD As New svf_param
-            Dim DR_TAIL As New svf_param
-            Dim DR_HEAD As New svf_param
-            Dim SIR_LAST_MASK() As Byte = Nothing
-            Dim SIR_LAST_LEN As Integer = -1 'Number of bits the last mask length was
-            Dim SDR_LAST_MASK() As Byte = Nothing
-            Dim SDR_LAST_LEN As Integer = -1 'Number of bits the last mask length was
-            Dim RUNTEST As UInt32 = 0
-            Dim line_counter As Integer = 0
             RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
-            For Each line In svf_file
-                line_counter += 1 'fail at 18
-                RaiseEvent Progress((line_counter / svf_file.Length) * 100)
-                If line.ToUpper.StartsWith("SIR ") Then
-                    Dim line_svf As New svf_param(line)
-                    Dim TDO() As Byte = Nothing
-                    If (IR_HEAD.LEN > 0) Then RaiseEvent ShiftIR(IR_HEAD.TDI, Nothing, IR_HEAD.LEN, False)
-                    If (IR_TAIL.LEN > 0) Then
-                        RaiseEvent ShiftIR(line_svf.TDI, TDO, line_svf.LEN, False)
-                        RaiseEvent ShiftIR(IR_TAIL.TDI, Nothing, IR_TAIL.LEN, True)
-                    Else
-                        RaiseEvent ShiftIR(line_svf.TDI, TDO, line_svf.LEN, True)
-                    End If
-                    Dim MASK_TO_COMPARE() As Byte = line_svf.MASK
-                    If MASK_TO_COMPARE Is Nothing Then
-                        If line_svf.LEN = SIR_LAST_LEN AndAlso SIR_LAST_MASK IsNot Nothing Then MASK_TO_COMPARE = SIR_LAST_MASK
-                    Else
-                        SIR_LAST_MASK = line_svf.MASK
-                    End If
-                    SIR_LAST_LEN = line_svf.LEN
-                    Dim Result As Boolean = CompareResult(TDO, line_svf.TDO, MASK_TO_COMPARE)
-                    If (Not Result) Then
-                        RaiseEvent Writeconsole("Failed sending SIR command (command number: " & line_counter & ")")
-                        Dim LineOut As String = "TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" & Utilities.Bytes.ToHexString(line_svf.TDO)
-                        If (line_svf.MASK IsNot Nothing) Then
-                            LineOut &= " Mask: 0x" & Utilities.Bytes.ToHexString(line_svf.MASK)
+            Dim LOOP_COUNTER As Integer = 0
+            Dim LOOP_CACHE As New List(Of String)
+            Try
+                For line_counter = 1 To svf_file.Count
+                    Dim line As String = svf_file(line_counter - 1)
+                    RaiseEvent Progress((line_counter / svf_file.Length) * 100)
+                    If LOOP_COUNTER = 0 Then
+                        If line.ToUpper.StartsWith("LOOP ") Then 'Lattice's Extended SVF command
+                            Dim loop_count_str As String = line.Substring(5).Trim
+                            LOOP_COUNTER = CInt(loop_count_str)
+                            LOOP_CACHE.Clear()
+                        Else
+                            If Not RunFile_Execute(line, line_counter, False) Then Return False
                         End If
-                        RaiseEvent Writeconsole(LineOut)
-                        If Not IgnoreErrors Then Return False
+                    ElseIf line.ToUpper.StartsWith("ENDLOOP") Then
+                        Dim end_loop_extra As String = line.Substring(7).Trim
+                        For i = 1 To LOOP_COUNTER
+                            Dim Loop_commands() As String = LOOP_CACHE.ToArray
+                            Dim result As Boolean = True
+                            For sub_i = 0 To Loop_commands.Length - 1
+                                result = result And RunFile_Execute(Loop_commands(sub_i), line_counter - Loop_commands.Length + sub_i, True)
+                            Next
+                            If result Then Exit For
+                        Next
+                        LOOP_COUNTER = 0
+                    Else 'We are collecting for LOOP
+                        LOOP_CACHE.Add(line)
                     End If
-                    RaiseEvent GotoState(ENDIR)
-                ElseIf line.ToUpper.StartsWith("SDR ") Then
-                    Dim line_svf As New svf_param(line)
-                    Dim TDO() As Byte = Nothing
-                    If (DR_HEAD.LEN > 0) Then RaiseEvent ShiftDR(DR_HEAD.TDI, Nothing, DR_HEAD.LEN, False)
-                    If (DR_TAIL.LEN > 0) Then
-                        RaiseEvent ShiftDR(line_svf.TDI, TDO, line_svf.LEN, False)
-                        RaiseEvent ShiftDR(DR_TAIL.TDI, Nothing, DR_TAIL.LEN, True)
-                    Else
-                        RaiseEvent ShiftDR(line_svf.TDI, TDO, line_svf.LEN, True)
-                    End If
-                    Dim MASK_TO_COMPARE() As Byte = line_svf.MASK
-                    If MASK_TO_COMPARE Is Nothing Then
-                        If line_svf.LEN = SDR_LAST_LEN AndAlso SDR_LAST_MASK IsNot Nothing Then MASK_TO_COMPARE = SDR_LAST_MASK
-                    Else
-                        SDR_LAST_MASK = line_svf.MASK
-                    End If
-                    SDR_LAST_LEN = line_svf.LEN
-                    Dim Result As Boolean = CompareResult(TDO, line_svf.TDO, MASK_TO_COMPARE)
-                    If (Not Result) Then
-                        RaiseEvent Writeconsole("Failed sending SDR command (command number: " & line_counter & ")")
-                        Dim LineOut As String = "TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" & Utilities.Bytes.ToHexString(line_svf.TDO)
-                        If (line_svf.MASK IsNot Nothing) Then
-                            LineOut &= " Mask: 0x" & Utilities.Bytes.ToHexString(line_svf.MASK)
-                        End If
-                        RaiseEvent Writeconsole(LineOut)
-                        If Not IgnoreErrors Then Return False
-                    End If
-                    RaiseEvent GotoState(ENDDR)
-                ElseIf line.ToUpper.StartsWith("ENDIR ") Then
-                    ENDIR = GetStateFromInput(Mid(line, 7).Trim)
-                ElseIf line.ToUpper.StartsWith("ENDDR ") Then
-                    ENDDR = GetStateFromInput(Mid(line, 7).Trim)
-                ElseIf line.ToUpper.StartsWith("TRST ") Then 'Disable Test Reset line
-                    Dim s As String = Mid(line, 6).Trim.ToUpper
-                    Dim EnableTrst As Boolean = False
-                    If s = "ON" OrElse s = "YES" OrElse s = "TRUE" Then EnableTrst = True
-                    RaiseEvent SetTRST(EnableTrst)
-                ElseIf line.ToUpper.StartsWith("FREQUENCY ") Then 'Sets the max freq of the device
-                    Try
-                        Dim s As String = Mid(line, 11).Trim
-                        If s.ToUpper.EndsWith("HZ") Then s = Mid(s, 1, s.Length - 2).Trim
-                        Current_Hertz = Decimal.Parse(s, Globalization.NumberStyles.Float)
-                        RaiseEvent SetFrequency(Current_Hertz)
-                    Catch ex As Exception
-                        RaiseEvent SetFrequency(1000000) 'Default 1MHz
-                    End Try
-                ElseIf line.ToUpper.StartsWith("RUNTEST ") Then
-                    DoRuntest(Mid(line, 9).Trim)
-                ElseIf line.ToUpper.StartsWith("STATE ") Then
-                    Dim Desired_State As String = Mid(line, 7).Trim.ToUpper 'Possibly a list?
-                    RaiseEvent GotoState(GetStateFromInput(Desired_State))
-                ElseIf line.ToUpper.StartsWith("TIR ") Then
-                    IR_TAIL.LoadParams(line)
-                ElseIf line.ToUpper.StartsWith("HIR ") Then
-                    IR_HEAD.LoadParams(line)
-                ElseIf line.ToUpper.StartsWith("TDR ") Then
-                    DR_TAIL.LoadParams(line)
-                ElseIf line.ToUpper.StartsWith("HDR ") Then
-                    DR_HEAD.LoadParams(line)
+                Next
+                RaiseEvent GotoState(JTAG_MACHINE_STATE.TestLogicReset)
+                Return True
+            Catch ex As Exception
+                Return False
+            End Try
+        End Function
+
+        Private Function RunFile_Execute(line As String, line_index As Integer, lattice_loop As Boolean) As Boolean
+            If line.ToUpper.StartsWith("SIR ") Then
+                Dim line_svf As New svf_param(line)
+                Dim TDO() As Byte = Nothing
+                If (IR_HEAD.LEN > 0) Then RaiseEvent ShiftIR(IR_HEAD.TDI, Nothing, IR_HEAD.LEN, False)
+                If (IR_TAIL.LEN > 0) Then
+                    RaiseEvent ShiftIR(line_svf.TDI, TDO, line_svf.LEN, False)
+                    RaiseEvent ShiftIR(IR_TAIL.TDI, Nothing, IR_TAIL.LEN, True)
                 Else
-                    RaiseEvent Writeconsole("Unknown SVF command at line " & line_counter & " : " & line)
+                    RaiseEvent ShiftIR(line_svf.TDI, TDO, line_svf.LEN, True)
                 End If
-            Next
-            RaiseEvent GotoState(JTAG_MACHINE_STATE.TestLogicReset)
+                Dim MASK_TO_COMPARE() As Byte = line_svf.MASK
+                If MASK_TO_COMPARE Is Nothing Then
+                    If line_svf.LEN = SIR_LAST_LEN AndAlso SIR_LAST_MASK IsNot Nothing Then
+                        MASK_TO_COMPARE = SIR_LAST_MASK
+                    Else
+                        SIR_LAST_LEN = -1
+                    End If
+                Else
+                    SIR_LAST_MASK = line_svf.MASK
+                    SIR_LAST_LEN = line_svf.LEN
+                End If
+                Dim Result As Boolean = CompareResult(TDO, line_svf.TDO, MASK_TO_COMPARE)
+                If (Not Result) AndAlso (Not lattice_loop) Then
+                    RaiseEvent Writeconsole("Failed sending SIR command (command number: " & line_index & ")")
+                    RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
+                    RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line_svf.TDO))
+                    If (line_svf.MASK IsNot Nothing) Then RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(line_svf.MASK))
+                End If
+                RaiseEvent GotoState(ENDIR)
+                If (Not Result) AndAlso (Not IgnoreErrors) Then Return False
+            ElseIf line.ToUpper.StartsWith("SDR ") Then
+                Dim line_svf As New svf_param(line)
+                Dim TDO() As Byte = Nothing
+                If (DR_HEAD.LEN > 0) Then RaiseEvent ShiftDR(DR_HEAD.TDI, Nothing, DR_HEAD.LEN, False)
+                If (DR_TAIL.LEN > 0) Then
+                    RaiseEvent ShiftDR(line_svf.TDI, TDO, line_svf.LEN, False)
+                    RaiseEvent ShiftDR(DR_TAIL.TDI, Nothing, DR_TAIL.LEN, True)
+                Else
+                    RaiseEvent ShiftDR(line_svf.TDI, TDO, line_svf.LEN, True)
+                End If
+                Dim MASK_TO_COMPARE() As Byte = line_svf.MASK
+                If MASK_TO_COMPARE Is Nothing Then
+                    If line_svf.LEN = SDR_LAST_LEN AndAlso SDR_LAST_MASK IsNot Nothing Then
+                        MASK_TO_COMPARE = SDR_LAST_MASK
+                    Else
+                        SDR_LAST_LEN = -1
+                    End If
+                Else
+                    SDR_LAST_MASK = line_svf.MASK
+                    SDR_LAST_LEN = line_svf.LEN
+                End If
+                Dim Result As Boolean = CompareResult(TDO, line_svf.TDO, MASK_TO_COMPARE)
+                If (Not Result) AndAlso (Not lattice_loop) Then
+                    RaiseEvent Writeconsole("Failed sending SDR command (command number: " & line_index & ")")
+                    RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
+                    RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line_svf.TDO))
+                    If (line_svf.MASK IsNot Nothing) Then RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(line_svf.MASK))
+                End If
+                RaiseEvent GotoState(ENDDR)
+                If (Not Result) AndAlso (Not IgnoreErrors) Then Return False
+            ElseIf line.ToUpper.StartsWith("ENDIR ") Then
+                ENDIR = GetStateFromInput(Mid(line, 7).Trim)
+            ElseIf line.ToUpper.StartsWith("ENDDR ") Then
+                ENDDR = GetStateFromInput(Mid(line, 7).Trim)
+            ElseIf line.ToUpper.StartsWith("TRST ") Then 'Disable Test Reset line
+                Dim s As String = Mid(line, 6).Trim.ToUpper
+                Dim EnableTrst As Boolean = False
+                If s = "ON" OrElse s = "YES" OrElse s = "TRUE" Then EnableTrst = True
+                RaiseEvent SetTRST(EnableTrst)
+            ElseIf line.ToUpper.StartsWith("FREQUENCY ") Then 'Sets the max freq of the device
+                Try
+                    Dim s As String = Mid(line, 11).Trim
+                    If s.ToUpper.EndsWith("HZ") Then s = Mid(s, 1, s.Length - 2).Trim
+                    Current_Hertz = Decimal.Parse(s, Globalization.NumberStyles.Float)
+                    RaiseEvent SetFrequency(Current_Hertz)
+                Catch ex As Exception
+                    RaiseEvent SetFrequency(1000000) 'Default 1MHz
+                End Try
+            ElseIf line.ToUpper.StartsWith("RUNTEST ") Then
+                DoRuntest(Mid(line, 9).Trim)
+            ElseIf line.ToUpper.StartsWith("STATE ") Then
+                Dim Desired_State As String = Mid(line, 7).Trim.ToUpper 'Possibly a list?
+                RaiseEvent GotoState(GetStateFromInput(Desired_State))
+            ElseIf line.ToUpper.StartsWith("TIR ") Then
+                IR_TAIL.LoadParams(line)
+            ElseIf line.ToUpper.StartsWith("HIR ") Then
+                IR_HEAD.LoadParams(line)
+            ElseIf line.ToUpper.StartsWith("TDR ") Then
+                DR_TAIL.LoadParams(line)
+            ElseIf line.ToUpper.StartsWith("HDR ") Then
+                DR_HEAD.LoadParams(line)
+            Else
+                RaiseEvent Writeconsole("Unknown SVF command at line " & line_index & " : " & line)
+                Return False
+            End If
             Return True
         End Function
 
@@ -361,6 +410,9 @@ Namespace JTAG
                 Select Case Params(Counter + 1).Trim.ToUpper
                     Case "TCK" 'Toggle test-clock
                         Dim ticks As UInt32 = CUInt(wait_time)
+                        If Me.Actual_Hertz > Me.Current_Hertz Then
+                            ticks = ticks * (CSng(Me.Actual_Hertz) / CSng(Me.Current_Hertz))
+                        End If
                         RaiseEvent ToggleClock(ticks)
                     Case "SCK" 'Toggle system-clock
                         Threading.Thread.Sleep(wait_time)
@@ -599,9 +651,9 @@ Namespace JTAG
         Public Sub LoadParams(ByVal input As String)
             input = Mid(input, InStr(input, " ") + 1) 'We remove the first part (TIR, etc)
             If Not input.Contains(" ") Then
-                LEN = input
+                LEN = CInt(input)
             Else
-                LEN = Mid(input, 1, InStr(input, " ") - 1)
+                LEN = CInt(Mid(input, 1, InStr(input, " ") - 1))
                 input = Mid(input, InStr(input, " ") + 1)
                 Do Until input = ""
                     If input.ToUpper.StartsWith("TDI") Then

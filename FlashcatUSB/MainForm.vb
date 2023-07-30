@@ -22,7 +22,7 @@ Public Class MainForm
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Serial NOR memory", FlashDatabase.PartCount(MemoryType.SERIAL_NOR)))
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Serial NAND", FlashDatabase.PartCount(MemoryType.SERIAL_NAND)))
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Parallel NOR memory (x8/x16)", FlashDatabase.PartCount(MemoryType.PARALLEL_NOR)))
-        PrintConsole(String.Format(RM.GetString("gui_database_supported"), "SLC NAND memory (x8)", FlashDatabase.PartCount(MemoryType.SLC_NAND)))
+        PrintConsole(String.Format(RM.GetString("gui_database_supported"), "SLC NAND memory (x8)", FlashDatabase.PartCount(MemoryType.NAND)))
         statuspage_progress.Visible = False
         Language_Setup()
     End Sub
@@ -437,7 +437,6 @@ Public Class MainForm
     End Sub
     'This refreshes all of the memory devices currently connected
     Private Sub StatusMessages_LoadMemoryDevices()
-
         GUI.RemoveStatusMessageStartsWith(RM.GetString("gui_memory_device"))
         Dim current_devices() As MemoryDeviceInstance = MyTabs_GetDeviceInstances()
         If current_devices Is Nothing OrElse current_devices.Count = 0 Then Exit Sub
@@ -801,6 +800,7 @@ Public Class MainForm
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Mach1 Then
             mi_1V8.Enabled = True
             mi_3V3.Enabled = True
+            mi_mode_quad.Enabled = True
             mi_mode_extio.Enabled = True
             mi_mode_hyperflash.Enabled = True
         Else
@@ -898,6 +898,11 @@ Public Class MainForm
                         DirectCast(item, ToolStripMenuItem).Enabled = True
                     End If
                 Next
+                If mi_script_selected.DropDownItems.Count = 0 Then
+                    mi_script_selected.Enabled = False
+                Else
+                    mi_script_selected.Enabled = True
+                End If
             End If
         Catch ex As Exception
         End Try
@@ -957,12 +962,13 @@ Public Class MainForm
                     mi_create_img.Enabled = True
                     mi_write_img.Enabled = True
                     mi_nand_map.Enabled = False
+                    mi_cfi_info.Enabled = False
                     If mem_instance.VendorMenu Is Nothing Then
                         mi_device_features.Enabled = False
                     Else
                         mi_device_features.Enabled = True
                     End If
-                    If mem_instance.FlashType = MemoryType.SLC_NAND Then
+                    If mem_instance.FlashType = MemoryType.NAND Then
                         mi_nand_map.Enabled = True
                         Exit Sub 'Accept the above
                     ElseIf mem_instance.FlashType = MemoryType.SERIAL_NAND Then
@@ -973,6 +979,9 @@ Public Class MainForm
                     ElseIf mem_instance.FlashType = MemoryType.SERIAL_QUAD Then
                         Exit Sub 'Accept the above
                     ElseIf mem_instance.FlashType = MemoryType.PARALLEL_NOR Then
+                        If mem_instance.FCUSB.EXT_IF.MyFlashCFI IsNot Nothing Then
+                            mi_cfi_info.Enabled = True
+                        End If
                         Exit Sub 'Accept the above
                     ElseIf mem_instance.FlashType = MemoryType.SERIAL_SWI Then
                         mi_erase_tool.Enabled = False
@@ -989,6 +998,7 @@ Public Class MainForm
         mi_write_img.Enabled = False
         mi_nand_map.Enabled = False
         mi_device_features.Enabled = False
+        mi_cfi_info.Enabled = False
     End Sub
 
 #End Region
@@ -1047,7 +1057,7 @@ Public Class MainForm
                 Dim pages_per_block As UInt32 = (nand.BLOCK_SIZE / nand.PAGE_SIZE)
                 Dim n_layout As NAND_LAYOUT_TOOL.NANDLAYOUT_STRUCTURE = FlashMemory.NANDLAYOUT_Get(nand)
                 n.SetDeviceParameters(nand.NAME, nand.PAGE_SIZE + nand.EXT_PAGE_SIZE, pages_per_block, nand.Sector_Count, n_layout)
-            ElseIf mem_dev.FlashType = MemoryType.SLC_NAND Then
+            ElseIf mem_dev.FlashType = MemoryType.NAND Then
                 Dim nand As SLC_NAND_Flash = DirectCast(mem_dev.FCUSB.EXT_IF.MyFlashDevice, SLC_NAND_Flash)
                 Dim pages_per_block As UInt32 = (nand.BLOCK_SIZE / nand.PAGE_SIZE)
                 Dim n_layout As NAND_LAYOUT_TOOL.NANDLAYOUT_STRUCTURE = FlashMemory.NANDLAYOUT_Get(nand)
@@ -1060,7 +1070,7 @@ Public Class MainForm
                 mem_dev.GuiControl.InitMemoryDevice(mem_dev.FCUSB, mem_dev.Name, mem_dev.Size, MemControl_v2.access_mode.Writable)
                 mem_dev.GuiControl.SetupLayout()
                 StatusMessages_LoadMemoryDevices()
-            ElseIf mem_dev.FlashType = MemoryType.SLC_NAND Then
+            ElseIf mem_dev.FlashType = MemoryType.NAND Then
                 Dim flash_available As UInt32 = mem_dev.FCUSB.EXT_IF.DeviceSize()
                 mem_dev.GuiControl.InitMemoryDevice(mem_dev.FCUSB, mem_dev.Name, mem_dev.Size, MemControl_v2.access_mode.Writable)
                 mem_dev.GuiControl.SetupLayout()
@@ -1166,7 +1176,7 @@ Public Class MainForm
             For i = 0 To MEM_IF.DeviceCount - 1
                 Dim dv As MemoryDeviceInstance = MEM_IF.GetDevice(i)
                 If dv IsNot Nothing Then
-                    If dv.FlashType = MemoryType.SLC_NAND Then
+                    If dv.FlashType = MemoryType.NAND Then
                         dv.GuiControl.SetupLayout()
                         StatusMessages_LoadMemoryDevices()
                     End If
@@ -1174,6 +1184,7 @@ Public Class MainForm
             Next
         End If
         LoadSettingsIntoGui()
+        ECC_LoadSettings()
     End Sub
 
     Private Sub Menu_Mode_UncheckAll()
@@ -1429,7 +1440,7 @@ Public Class MainForm
         Try
             memDev.FCUSB.USB_LEDBlink()
             Backup_Start()
-            If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND) AndAlso (memDev.FCUSB.EXT_IF.MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND) Then
+            If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND) AndAlso (memDev.FCUSB.EXT_IF.MyFlashDevice.FLASH_TYPE = MemoryType.NAND) Then
                 PrintNandFlashDetails(memDev)
                 NANDBACKUP_CreateIMG(memDev)
             ElseIf (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_NAND) Then
@@ -1476,7 +1487,7 @@ Public Class MainForm
         Try
             mem_dev.FCUSB.USB_LEDBlink()
             Backup_Start()
-            If MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND AndAlso mem_dev.FCUSB.EXT_IF.MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND Then
+            If MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND AndAlso mem_dev.FCUSB.EXT_IF.MyFlashDevice.FLASH_TYPE = MemoryType.NAND Then
                 NANDBACKUP_WriteIMG(mem_dev)
             ElseIf MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_NAND Then
                 NANDBACKUP_WriteIMG(mem_dev)
@@ -1550,7 +1561,7 @@ Public Class MainForm
             WriteConsole("Extended/Spare area: " & Format(mem_dev.FCUSB.NAND_IF.Extra_GetSize(), "#,###") & " bytes")
             WriteConsole("Page size: " & Format(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice.PAGE_SIZE, "#,###") & " bytes")
             WriteConsole("Block size: " & Format(DirectCast(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice, SPI_NAND_Flash).BLOCK_SIZE, "#,###") & " bytes")
-        ElseIf mem_dev.FlashType = MemoryType.SLC_NAND Then
+        ElseIf mem_dev.FlashType = MemoryType.NAND Then
             WriteConsole("Memory device name: " & mem_dev.FCUSB.EXT_IF.MyFlashDevice.NAME)
             WriteConsole("Flash size: " & Format(mem_dev.FCUSB.EXT_IF.MyFlashDevice.FLASH_SIZE, "#,###") & " bytes")
             WriteConsole("Extended/Spare area: " & Format(mem_dev.FCUSB.NAND_IF.Extra_GetSize(), "#,###") & " bytes")
@@ -2346,6 +2357,7 @@ Public Class MainForm
                     mem_instance.VendorMenu = New vendor_issi(flash_programmer)
                 End If
             End If
+            ResizeToFitHexViewer()
         End If
     End Sub
 
@@ -2404,5 +2416,59 @@ Public Class MainForm
         Catch ex As Exception
         End Try
     End Sub
+
+    Private Sub mi_cfi_info_Click(sender As Object, e As EventArgs) Handles mi_cfi_info.Click
+        Dim memDev As MemoryDeviceInstance = GetSelectedMemoryInterface()
+        Dim cfi_table() As Byte = memDev.FCUSB.EXT_IF.MyFlashCFI
+        Dim if_str() As String = {"X8 ONLY", "X16 ONLY", "X8/X16", "X32", "SPI"}
+        Dim frmCFI As New Form With {.Width = 330, .Height = 10}
+        frmCFI.FormBorderStyle = FormBorderStyle.FixedSingle
+        frmCFI.ShowIcon = False
+        frmCFI.ShowInTaskbar = False
+        frmCFI.MaximizeBox = False
+        frmCFI.Text = "Common Flash Interface (CFI)"
+        frmCFI.StartPosition = FormStartPosition.CenterParent
+        Dim lbl_cfg_list As New List(Of Label)
+        lbl_cfg_list.Add(New Label With {.Text = "Minimum VCC for program/erase: " & (cfi_table(11) >> 4) & "." & (cfi_table(11) And 15) & " V"})
+        lbl_cfg_list.Add(New Label With {.Text = "Maxiumum VCC for program/erase: " & (cfi_table(12) >> 4) & "." & (cfi_table(12) And 15) & " V"})
+        lbl_cfg_list.Add(New Label With {.Text = "Minimum VPP for program/erase: " & (cfi_table(13) >> 4) & "." & (cfi_table(13) And 15) & " V"})
+        lbl_cfg_list.Add(New Label With {.Text = "Maxiumum VPP for program/erase: " & (cfi_table(14) >> 4) & "." & (cfi_table(14) And 15) & " V"})
+        lbl_cfg_list.Add(New Label With {.Text = "Typical word programing time: " & (2 ^ cfi_table(15)) & " µs"})
+        lbl_cfg_list.Add(New Label With {.Text = "Typical max. buffer write time-out: " & (2 ^ cfi_table(16)) & " µs"})
+        lbl_cfg_list.Add(New Label With {.Text = "Typical block erase time-out: " & (2 ^ cfi_table(17)) & " ms"})
+        If Not cfi_table(18) = 0 Then
+            lbl_cfg_list.Add(New Label With {.Text = "Typical block erase time-out: " & (2 ^ cfi_table(17)) & " ms"})
+        End If
+        lbl_cfg_list.Add(New Label With {.Text = "Typical full chip erase time-out: " & (2 ^ cfi_table(18)) & " ms"})
+        lbl_cfg_list.Add(New Label With {.Text = "Maximum word program time-out: " & ((2 ^ cfi_table(16)) * cfi_table(19)) & " µs"})
+        lbl_cfg_list.Add(New Label With {.Text = "Maximum word program time-out: " & ((2 ^ cfi_table(16)) * (2 ^ cfi_table(19))) & " µs"})
+        lbl_cfg_list.Add(New Label With {.Text = "Maximum buffer write time-out: " & ((2 ^ cfi_table(16)) * (2 ^ cfi_table(20))) & " µs"})
+        lbl_cfg_list.Add(New Label With {.Text = "Maximum block erase time-out: " & (2 ^ cfi_table(21)) & " seconds"})
+        lbl_cfg_list.Add(New Label With {.Text = "Maximum chip erase time-out: " & (2 ^ cfi_table(22)) & " seconds"})
+        lbl_cfg_list.Add(New Label With {.Text = "Device size: " & Format(2 ^ cfi_table(23), "#,###") & " bytes"})
+        lbl_cfg_list.Add(New Label With {.Text = "Data bus interface: " & if_str(cfi_table(24))})
+        lbl_cfg_list.Add(New Label With {.Text = "Write buffer size: " & (2 ^ cfi_table(26)) & " bytes"})
+        Dim y As Integer = 8
+        For Each cfi_label In lbl_cfg_list
+            cfi_label.AutoSize = True
+            cfi_label.Location = New Point(40, y)
+            y += 18
+            frmCFI.Controls.Add(cfi_label)
+        Next
+        frmCFI.Height = y + 42
+        frmCFI.ShowDialog()
+    End Sub
+
+    Private Sub ResizeToFitHexViewer()
+        Dim highest_Addr As Integer = 0
+        Dim current_devices() As MemoryDeviceInstance = MyTabs_GetDeviceInstances()
+        For Each dev In current_devices
+            If dev.GuiControl.GetHexAddrSize() > highest_Addr Then highest_Addr = dev.GuiControl.GetHexAddrSize()
+        Next
+        If highest_Addr = 5 Then
+            If Me.Width < 560 Then Me.Width = 560
+        End If
+    End Sub
+
 
 End Class

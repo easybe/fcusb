@@ -79,15 +79,15 @@ Public Class SWI_Programmer : Implements MemoryDeviceUSB
         Return 0
     End Function
 
-    Public Function Sector_Erase(SectorIndex As UInteger, Optional area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.Sector_Erase
+    Public Function SectorErase(SectorIndex As UInteger, Optional area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.SectorErase
         Return True
     End Function
 
-    Public Function Sector_Count() As UInteger Implements MemoryDeviceUSB.Sector_Count
+    Public Function SectorCount() As UInteger Implements MemoryDeviceUSB.SectorCount
         Return 1
     End Function
 
-    Public Function Sector_Write(SectorIndex As UInteger, data() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.Sector_Write
+    Public Function SectorWrite(SectorIndex As UInteger, data() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
         Return False 'Not supported
     End Function
 

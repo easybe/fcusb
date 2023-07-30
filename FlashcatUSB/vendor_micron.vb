@@ -1,13 +1,13 @@
 ﻿Public Class vendor_micron
-    Private FCUSB_PROG As MemoryDeviceUSB
+    Private FCUSB As USB.HostClient.FCUSB_DEVICE
 
-    Sub New(ByVal mem_dev_programmer As MemoryDeviceUSB)
+    Sub New(ByVal usb_dev As USB.HostClient.FCUSB_DEVICE)
 
         ' This call is required by the designer.
         InitializeComponent()
 
         ' Add any initialization after the InitializeComponent() call.
-        FCUSB_PROG = mem_dev_programmer
+        FCUSB = usb_dev
     End Sub
 
     Private Sub vendor_micron_Load(sender As Object, e As EventArgs) Handles MyBase.Load
@@ -20,18 +20,9 @@
         Try
             cmd_read_config.Enabled = False
             WriteConsole("Reading status and non-vol registers")
-            Dim sr() As Byte '= FCUSB.SPI_NOR_IF.ReadStatusRegister(1)
-            If FCUSB_PROG.GetType Is GetType(SPI.SPI_Programmer) Then
-                sr = DirectCast(FCUSB_PROG, SPI.SPI_Programmer).ReadStatusRegister(1)
-            ElseIf FCUSB_PROG.GetType Is GetType(SPI.SQI_Programmer) Then
-                sr = DirectCast(FCUSB_PROG, SPI.SQI_Programmer).ReadStatusRegister(1)
-            End If
+            Dim sr() As Byte = FCUSB.SPI_NOR_IF.ReadStatusRegister(1)
             Dim cr(1) As Byte
-            If FCUSB_PROG.GetType Is GetType(SPI.SPI_Programmer) Then
-                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteRead({&HB5}, cr)
-            ElseIf FCUSB_PROG.GetType Is GetType(SPI.SQI_Programmer) Then
-                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteRead({&HB5}, cr)
-            End If
+            FCUSB.SPI_NOR_IF.SPIBUS_WriteRead({&HB5}, cr)
             WriteConsole("Status register: 0x" & Hex(sr(0)).PadLeft(2, "0"))
             WriteConsole("Nonvol config register: 0x" & Hex(cr(1)).PadLeft(2, "0") & Hex(cr(0)).PadLeft(2, "0"))
             SetStatus("Loaded current nonvolatile configuration settings")
@@ -46,18 +37,9 @@
     End Sub
 
     Private Sub LoadCurrentConfigBits()
-        Dim sr() As Byte = Nothing
-        If FCUSB_PROG.GetType Is GetType(SPI.SPI_Programmer) Then
-            sr = DirectCast(FCUSB_PROG, SPI.SPI_Programmer).ReadStatusRegister(1)
-        ElseIf FCUSB_PROG.GetType Is GetType(SPI.SQI_Programmer) Then
-            sr = DirectCast(FCUSB_PROG, SPI.SQI_Programmer).ReadStatusRegister(1)
-        End If
+        Dim sr() As Byte = FCUSB.SPI_NOR_IF.ReadStatusRegister(1)
         Dim cr(1) As Byte
-        If FCUSB_PROG.GetType Is GetType(SPI.SPI_Programmer) Then
-            DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteRead({&HB5}, cr)
-        ElseIf FCUSB_PROG.GetType Is GetType(SPI.SQI_Programmer) Then
-            DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteRead({&HB5}, cr)
-        End If
+        FCUSB.SPI_NOR_IF.SPIBUS_WriteRead({&HB5}, cr)
         cb_block_bp0.Checked = ((sr(0) >> 2) And 1)
         cb_block_bp1.Checked = ((sr(0) >> 3) And 1)
         cb_block_bp2.Checked = ((sr(0) >> 4) And 1)
@@ -171,31 +153,20 @@
             End Select
             cr(1) = cr(1) Or (cb_dummy.SelectedIndex << 4)
             WriteConsole("Writing status and non-vol registers")
-            Dim verify_cr(1) As Byte
+            FCUSB.SPI_NOR_IF.WriteStatusRegister(sr)
+            FCUSB.SPI_NOR_IF.WaitUntilReady()
+            FCUSB.SPI_NOR_IF.SPIBUS_WriteEnable()
+            FCUSB.SPI_NOR_IF.SPIBUS_WriteRead({&HB1, cr(0), cr(1)})
             Dim sf(0) As Byte
-            Dim verify_sr() As Byte = Nothing
-            If FCUSB_PROG.GetType Is GetType(SPI.SPI_Programmer) Then
-                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).WriteStatusRegister(sr)
-                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).WaitUntilReady()
-                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteEnable()
-                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteRead({&HB1, cr(0), cr(1)})
-                Do While ((sf(0) And &H80) = 0)
-                    DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteRead({&H70}, sf)
-                Loop
-                Utilities.Sleep(10)
-                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).WaitUntilReady()
-                verify_sr = DirectCast(FCUSB_PROG, SPI.SPI_Programmer).ReadStatusRegister(1)
-                DirectCast(FCUSB_PROG, SPI.SPI_Programmer).SPIBUS_WriteRead({&HB5}, verify_cr)
-            ElseIf FCUSB_PROG.GetType Is GetType(SPI.SQI_Programmer) Then
-                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).WriteStatusRegister(sr)
-                Utilities.Sleep(200)
-                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteEnable()
-                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteRead({&HB1, cr(0), cr(1)})
-                Utilities.Sleep(200)
-                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteRead({&HB5}, verify_cr)
-                verify_sr = DirectCast(FCUSB_PROG, SPI.SQI_Programmer).ReadStatusRegister(1)
-            End If
+            Do While ((sf(0) And &H80) = 0)
+                FCUSB.SPI_NOR_IF.SPIBUS_WriteRead({&H70}, sf)
+            Loop
+            Utilities.Sleep(10)
+            FCUSB.SPI_NOR_IF.WaitUntilReady()
             WriteConsole("Verifing the nonvolatile registers have been successfully programmed")
+            Dim verify_sr() As Byte = FCUSB.SPI_NOR_IF.ReadStatusRegister(1)
+            Dim verify_cr(1) As Byte
+            FCUSB.SPI_NOR_IF.SPIBUS_WriteRead({&HB5}, verify_cr)
             Dim Failed As Boolean = False
             If verify_sr(0) = sr(0) Then
             Else

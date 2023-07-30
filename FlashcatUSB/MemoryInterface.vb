@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2018 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2019 - ALL RIGHTS RESERVED
 'CONTACT EMAIL: contact@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: this class creates a flash memory interface that is used by the main program
@@ -50,7 +50,7 @@ Public Class MemoryInterface
         End Try
     End Function
 
-    Public Function Add(ByVal usb_if As USB.HostClient.FCUSB_DEVICE, ByVal mem_type As MemoryType, ByVal mem_name As String, ByVal mem_size As UInt32) As MemoryDeviceInstance
+    Public Function Add(ByVal usb_if As USB.HostClient.FCUSB_DEVICE, ByVal mem_type As MemoryType, ByVal mem_name As String, ByVal mem_size As Long) As MemoryDeviceInstance
         Dim memDev As New MemoryDeviceInstance(usb_if)
         memDev.Name = mem_name
         memDev.Size = mem_size
@@ -90,7 +90,7 @@ Public Class MemoryInterface
         Public WithEvents GuiControl As MemControl_v2
         Public FCUSB As USB.HostClient.FCUSB_DEVICE
         Public Property Name As String
-        Public Property Size As UInt32 'Number of bytes of the memory device
+        Public Property Size As Long 'Number of bytes of the memory device
         Public Property BaseAddress As UInt32 = 0 'Only changes for JTAG devices
         Public Property FlashType As MemoryType = MemoryType.UNSPECIFIED
         Public Property [ReadOnly] As Boolean = False 'Set to true to disable write/erase functions
@@ -143,7 +143,7 @@ Public Class MemoryInterface
                     Return "SPI NOR Flash"
                 Case MemoryType.SERIAL_NAND
                     Return "SPI NAND Flash"
-                Case MemoryType.SLC_NAND 'NAND devices
+                Case MemoryType.NAND 'NAND devices
                     Return "SLC NAND Flash"
                 Case MemoryType.JTAG_DMA_RAM  'RAM
                     Return "DRAM"
@@ -151,8 +151,10 @@ Public Class MemoryInterface
                     Return "CFI Flash"
                 Case MemoryType.JTAG_SPI
                     Return "SPI Flash"
+                Case MemoryType.JTAG_BSDL
+                    Return "CFI Flash"
                 Case MemoryType.DFU_MODE
-                    Return "DFU Mode"
+                    Return "AVR Firmware"
                 Case MemoryType.OTP_EPROM
                     Return "EPROM"
                 Case MemoryType.HYPERFLASH
@@ -257,7 +259,7 @@ Public Class MemoryInterface
 
         Private Sub OnGetEccLastResult(ByRef result As ECC_LIB.decode_result) Handles GuiControl.GetEccLastResult
             Select Case Me.FlashType
-                Case MemoryType.SLC_NAND
+                Case MemoryType.NAND
                     result = FCUSB.EXT_IF.ECC_LAST_RESULT
             End Select
         End Sub
@@ -274,7 +276,7 @@ Public Class MemoryInterface
             Return True
         End Function
 
-        Public Function ReadBytes(ByVal base_addr As UInt32, ByVal count As UInt32, memory_area As FlashArea, Optional callback As StatusCallback = Nothing) As Byte()
+        Public Function ReadBytes(ByVal base_addr As Long, ByVal count As Long, memory_area As FlashArea, Optional callback As StatusCallback = Nothing) As Byte()
             Me.NoErrors = True
             Dim data_out() As Byte = Nothing
             Using n As New IO.MemoryStream
@@ -293,7 +295,7 @@ Public Class MemoryInterface
             Return data_out
         End Function
 
-        Public Function WriteBytes(ByVal Address As UInt32, ByVal Data() As Byte, ByVal memory_area As FlashArea, ByVal verify_wr As Boolean, Optional callback As StatusCallback = Nothing) As Boolean
+        Public Function WriteBytes(ByVal Address As Long, ByVal Data() As Byte, ByVal memory_area As FlashArea, ByVal verify_wr As Boolean, Optional callback As StatusCallback = Nothing) As Boolean
             Try
                 Me.NoErrors = True
                 Dim f_params As New WriteParameters
@@ -319,11 +321,11 @@ Public Class MemoryInterface
                 Threading.Thread.CurrentThread.Name = "MemIf.ReadStream_" & td_int
             End If
             Try
-                Dim BytesTransfered As UInt32 = 0
+                Dim BytesTransfered As Long = 0
                 Dim BlockSize As UInt32 = Me.PreferredBlockSize
                 Dim Loops As Integer = CUInt(Math.Ceiling(Params.Count / BlockSize)) 'Calcuates iterations
-                Dim b() As Byte 'Temp Byte buffer
-                Dim BytesRead As UInt32 = 0 'Number of bytes read from the Flash device
+                Dim read_buffer() As Byte 'Temp Byte buffer
+                Dim BytesRead As Long = 0 'Number of bytes read from the Flash device
                 If Params.Status.UpdateOperation IsNot Nothing Then
                     Params.Status.UpdateOperation.DynamicInvoke(1) 'READ IMG
                 End If
@@ -332,12 +334,12 @@ Public Class MemoryInterface
                     Params.Status.UpdateTask.DynamicInvoke(rd_label)
                 End If
                 Params.Timer = New Stopwatch
-                Dim BytesRemaining As UInt32 = Params.Count
+                Dim BytesRemaining As Long = Params.Count
                 For i = 1 To Loops
-                    Dim BytesCountToRead As UInt32 = BytesRemaining
+                    Dim BytesCountToRead As Long = BytesRemaining
                     If (BytesCountToRead > BlockSize) Then BytesCountToRead = BlockSize
-                    ReDim b(BytesCountToRead - 1) 'Erase block data
-                    Dim FlashAddress As UInt32 = Params.Address + BytesRead
+                    ReDim read_buffer(BytesCountToRead - 1) 'Erase block data
+                    Dim FlashAddress As Long = Params.Address + BytesRead
                     If Params.Status.UpdateBase IsNot Nothing Then
                         Params.Status.UpdateBase.DynamicInvoke(FlashAddress)
                     End If
@@ -346,13 +348,11 @@ Public Class MemoryInterface
                         Params.Status.UpdatePercent.DynamicInvoke(CInt(percent_done))
                     End If
                     Params.Timer.Start()
-                    b = ReadFlash(FlashAddress, BytesCountToRead, Params.Memory_Area)
+                    read_buffer = ReadFlash(FlashAddress, BytesCountToRead, Params.Memory_Area)
                     Params.Timer.Stop()
-                    If Params.AbortOperation Then Return False
-                    If Not Me.NoErrors Then Return False
-                    If b Is Nothing Then Return False 'ERROR
+                    If Params.AbortOperation OrElse (Not Me.NoErrors) OrElse read_buffer Is Nothing Then Return False
                     BytesTransfered += BytesCountToRead
-                    data_stream.Write(b, 0, BytesCountToRead)
+                    data_stream.Write(read_buffer, 0, BytesCountToRead)
                     BytesRead += BytesCountToRead 'Increment location address
                     BytesRemaining -= BytesCountToRead
                     If i = 1 OrElse i = Loops OrElse (i Mod 4 = 0) Then
@@ -471,8 +471,28 @@ Public Class MemoryInterface
                     End If
                     Application.DoEvents()
                     Utilities.Sleep(50)
-                    Dim ReadResult As Boolean = VerifyDataSub(Params.Address, packet_data, Params.Memory_Area)
+                    If FlashType = MemoryType.OTP_EPROM Then
+                        FCUSB.EXT_IF.ReadData_EPROM(Params.Address, BlockSize) 'Before we verify, we should read the entire block once
+                    End If
+                    Dim ReadResult As Boolean = WriteBytes_VerifyWrite(Params.Address, packet_data, Params.Memory_Area)
                     If Not ReadResult Then Return False
+                    If ReadResult Then
+                        If Params.Status.UpdateTask IsNot Nothing Then
+                            Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_okay"))
+                            Application.DoEvents()
+                            Utilities.Sleep(500)
+                        End If
+                    Else
+                        RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(Params.Address)))
+                        If Params.Status.UpdateOperation IsNot Nothing Then
+                            Params.Status.UpdateOperation.DynamicInvoke(5) 'ERROR IMG
+                        End If
+                        If Params.Status.UpdateTask IsNot Nothing Then
+                            Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_failed"))
+                            Utilities.Sleep(1000)
+                            Application.DoEvents()
+                        End If
+                    End If
                 End If
                 Params.BytesWritten += PacketSize
                 Params.BytesLeft -= PacketSize
@@ -519,7 +539,7 @@ Public Class MemoryInterface
                         Dim data_segment() As Byte = ReadFlash(sector.BaseAddress + SectorEnd + 1, BytesNeeded, Params.Memory_Area)
                         Array.Copy(data_segment, 0, SectorData, SectorEnd + 1, data_segment.Length)
                     End If
-                    Dim WriteResult As Boolean = WriteDataSub(i, SectorData, Math.Floor(percent_done), Params) 'Writes data
+                    Dim WriteResult As Boolean = WriteBytes_EraseSectorAndWrite(i, SectorData, Math.Floor(percent_done), Params) 'Writes data
                     If Params.AbortOperation Then Return False
                     If Not Me.NoErrors Then Return False
                     Threading.Thread.CurrentThread.Join(10) 'Pump a message
@@ -537,7 +557,7 @@ Public Class MemoryInterface
                             Params.Status.UpdatePercent.DynamicInvoke(CInt(percent_done))
                         End If
                     Else
-                        If (FlashType = MemoryType.SLC_NAND) OrElse (FlashType = MemoryType.SERIAL_NAND) Then
+                        If (FlashType = MemoryType.NAND) OrElse (FlashType = MemoryType.SERIAL_NAND) Then
                             If MySettings.NAND_MismatchSkip Then 'Bad block
                                 If (i = TotalSectors - 1) Then Return False 'No more blocks to write
                                 data_stream.Position -= SectorData.Length 'We are going to re-write these bytes to the next block
@@ -594,7 +614,7 @@ Public Class MemoryInterface
                         If Params.Status.UpdateOperation IsNot Nothing Then
                             Params.Status.UpdateOperation.DynamicInvoke(3) 'VERIFY IMG
                         End If
-                        write_result = VerifyDataSub(Params.Address, packet_data, 0)
+                        write_result = WriteBytes_VerifyWrite(Params.Address, packet_data, 0)
                         If write_result Then
                             If Params.Status.UpdateTask IsNot Nothing Then
                                 Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_okay"))
@@ -647,9 +667,8 @@ Public Class MemoryInterface
             Dim BaseAddress As UInt32
             Dim Size As UInt32
         End Structure
-
         'Does the actual erase sector and program functions
-        Private Function WriteDataSub(ByRef sector As UInt32, ByVal data() As Byte, ByVal Percent As Integer, ByRef Params As WriteParameters) As Boolean
+        Private Function WriteBytes_EraseSectorAndWrite(ByRef sector As UInt32, ByVal data() As Byte, ByVal Percent As Integer, ByRef Params As WriteParameters) As Boolean
             Try
                 Dim FailedAttempts As Integer = 0
                 Dim ReadResult As Boolean
@@ -690,7 +709,7 @@ Public Class MemoryInterface
                         If (Me.FlashType = MemoryType.PARALLEL_NOR) Then
                             Utilities.Sleep(200) 'Some older devices need a delay here after writing data (such as AM29F040B)
                         End If
-                        ReadResult = VerifyDataSub(Params.Address, data, Params.Memory_Area)
+                        ReadResult = WriteBytes_VerifyWrite(Params.Address, data, Params.Memory_Area)
                         If Params.AbortOperation Then Return False
                         If Not Me.NoErrors Then Return False
                         If ReadResult Then
@@ -701,7 +720,7 @@ Public Class MemoryInterface
                         Else
                             FailedAttempts = FailedAttempts + 1
                             If FailedAttempts = (MySettings.VERIFY_COUNT + 1) Then
-                                If (FlashType = FlashMemory.MemoryType.SLC_NAND) Then
+                                If (FlashType = FlashMemory.MemoryType.NAND) Then
                                     Dim n_dev As SLC_NAND_Flash = DirectCast(FCUSB.EXT_IF.MyFlashDevice, SLC_NAND_Flash)
                                     Dim pages_per_block As UInt32 = (n_dev.BLOCK_SIZE / n_dev.PAGE_SIZE)
                                     Dim page_addr As UInt32 = GetNandPageAddress(n_dev, Params.Address, Params.Memory_Area)
@@ -748,7 +767,7 @@ Public Class MemoryInterface
             Return True
         End Function
 
-        Private Function VerifyDataSub(ByVal BaseAddress As UInt32, ByVal Data() As Byte, ByVal memory_area As Byte) As Boolean
+        Private Function WriteBytes_VerifyWrite(ByVal BaseAddress As UInt32, ByVal Data() As Byte, ByVal memory_area As Byte) As Boolean
             Dim Verify() As Byte 'The data to check against
             Dim MiscountCounter As Integer = 0
             Dim FirstWrongByteIs As Byte = Nothing
@@ -812,12 +831,14 @@ Public Class MemoryInterface
                     FCUSB.SPI_NAND_IF.WaitUntilReady()
                 Case MemoryType.PARALLEL_NOR
                     FCUSB.EXT_IF.WaitForReady()
-                Case MemoryType.SLC_NAND
+                Case MemoryType.NAND
                     FCUSB.EXT_IF.WaitForReady()
                 Case MemoryType.JTAG_CFI
                     FCUSB.JTAG_IF.CFI_WaitUntilReady()
                 Case MemoryType.JTAG_SPI
                     FCUSB.JTAG_IF.SPI_WaitUntilReady()
+                Case MemoryType.JTAG_BSDL
+                    FCUSB.JTAG_IF.BoundaryScan_WaitForReady()
                 Case MemoryType.SERIAL_MICROWIRE
                     FCUSB.MW_IF.WaitUntilReady()
                 Case MemoryType.OTP_EPROM
@@ -840,6 +861,7 @@ Public Class MemoryInterface
                 Case MemoryType.JTAG_CFI
                     FCUSB.JTAG_IF.CFI_ReadMode()
                 Case MemoryType.JTAG_SPI
+                Case MemoryType.JTAG_BSDL
                 Case MemoryType.OTP_EPROM
                 Case MemoryType.SERIAL_SWI
             End Select
@@ -871,7 +893,7 @@ Public Class MemoryInterface
                             data_out = FCUSB.SPI_NAND_IF.ReadData(data_offset, data_read_count, memory_area)
                         Case MemoryType.PARALLEL_NOR
                             data_out = FCUSB.EXT_IF.ReadData(data_offset, data_read_count, memory_area)
-                        Case MemoryType.SLC_NAND
+                        Case MemoryType.NAND
                             data_out = FCUSB.EXT_IF.ReadData(data_offset, data_read_count, memory_area)
                         Case MemoryType.SERIAL_I2C
                             data_out = FCUSB.I2C_IF.ReadData(data_offset, data_read_count)
@@ -883,6 +905,8 @@ Public Class MemoryInterface
                             data_out = FCUSB.JTAG_IF.CFI_ReadFlash(data_offset, data_read_count)
                         Case MemoryType.JTAG_SPI
                             data_out = FCUSB.JTAG_IF.SPI_ReadFlash(data_offset, data_read_count)
+                        Case MemoryType.JTAG_BSDL
+                            data_out = FCUSB.JTAG_IF.BoundaryScan_ReadFlash(data_offset, data_read_count)
                         Case MemoryType.FWH_NOR
                             data_out = FCUSB.EXT_IF.ReadData(data_offset, data_read_count, memory_area)
                         Case MemoryType.OTP_EPROM
@@ -929,12 +953,14 @@ Public Class MemoryInterface
                         Return FCUSB.MW_IF.EraseDevice
                     Case MemoryType.PARALLEL_NOR
                         Return FCUSB.EXT_IF.EraseDevice()
-                    Case MemoryType.SLC_NAND
+                    Case MemoryType.NAND
                         Return FCUSB.EXT_IF.EraseDevice()
                     Case MemoryType.JTAG_CFI
                         FCUSB.JTAG_IF.CFI_EraseDevice()
                     Case MemoryType.JTAG_SPI
                         FCUSB.JTAG_IF.SPI_EraseBulk()
+                    Case MemoryType.JTAG_BSDL
+                        FCUSB.JTAG_IF.BoundaryScan_EraseDevice()
                     Case MemoryType.FWH_NOR
                         Return FCUSB.EXT_IF.EraseDevice()
                     Case MemoryType.OTP_EPROM
@@ -960,27 +986,29 @@ Public Class MemoryInterface
                 Threading.Monitor.Enter(InterfaceLock)
                 Select Case Me.FlashType
                     Case MemoryType.SERIAL_NOR 'SPI
-                        Me.NoErrors = FCUSB.SPI_NOR_IF.Sector_Erase(sector_index, area)
+                        Me.NoErrors = FCUSB.SPI_NOR_IF.SectorErase(sector_index, area)
                     Case MemoryType.SERIAL_QUAD
-                        Me.NoErrors = FCUSB.SQI_NOR_IF.Sector_Erase(sector_index, area)
+                        Me.NoErrors = FCUSB.SQI_NOR_IF.SectorErase(sector_index, area)
                     Case MemoryType.SERIAL_NAND
-                        Me.NoErrors = FCUSB.SPI_NAND_IF.Sector_Erase(sector_index, area)
+                        Me.NoErrors = FCUSB.SPI_NAND_IF.SectorErase(sector_index, area)
                     Case MemoryType.PARALLEL_NOR
-                        Me.NoErrors = FCUSB.EXT_IF.Sector_Erase(sector_index, area)
-                    Case MemoryType.SLC_NAND
-                        Me.NoErrors = FCUSB.EXT_IF.Sector_Erase(sector_index, area)
+                        Me.NoErrors = FCUSB.EXT_IF.SectorErase(sector_index, area)
+                    Case MemoryType.NAND
+                        Me.NoErrors = FCUSB.EXT_IF.SectorErase(sector_index, area)
                     Case MemoryType.JTAG_CFI
                         Me.NoErrors = FCUSB.JTAG_IF.CFI_Sector_Erase(sector_index)
                     Case MemoryType.JTAG_SPI
                         Me.NoErrors = FCUSB.JTAG_IF.SPI_SectorErase(sector_index)
+                    Case MemoryType.JTAG_BSDL
+                        Me.NoErrors = FCUSB.JTAG_IF.BoundaryScan_SectorErase(sector_index)
                     Case MemoryType.SERIAL_MICROWIRE
-                        Me.NoErrors = FCUSB.MW_IF.Sector_Erase(sector_index)
+                        Me.NoErrors = FCUSB.MW_IF.SectorErase(sector_index)
                     Case MemoryType.FWH_NOR
-                        Me.NoErrors = FCUSB.EXT_IF.Sector_Erase(sector_index, area)
+                        Me.NoErrors = FCUSB.EXT_IF.SectorErase(sector_index, area)
                     Case MemoryType.OTP_EPROM
                         Me.NoErrors = True 'Not supported
                     Case MemoryType.HYPERFLASH
-                        Me.NoErrors = FCUSB.HF_IF.Sector_Erase(sector_index, area)
+                        Me.NoErrors = FCUSB.HF_IF.SectorErase(sector_index, area)
                     Case MemoryType.SERIAL_SWI
                         Me.NoErrors = True 'Not supported
                 End Select
@@ -1001,29 +1029,31 @@ Public Class MemoryInterface
                 If Params IsNot Nothing Then Params.Timer.Start()
                 Select Case Me.FlashType
                     Case MemoryType.SERIAL_NOR 'SPI
-                        Me.NoErrors = FCUSB.SPI_NOR_IF.Sector_Write(sector_index, DataToWrite, Params)
+                        Me.NoErrors = FCUSB.SPI_NOR_IF.SectorWrite(sector_index, DataToWrite, Params)
                     Case MemoryType.SERIAL_QUAD
-                        Me.NoErrors = FCUSB.SQI_NOR_IF.Sector_Write(sector_index, DataToWrite, Params)
+                        Me.NoErrors = FCUSB.SQI_NOR_IF.SectorWrite(sector_index, DataToWrite, Params)
                     Case MemoryType.SERIAL_NAND
-                        Me.NoErrors = FCUSB.SPI_NAND_IF.Sector_Write(sector_index, DataToWrite, Params)
+                        Me.NoErrors = FCUSB.SPI_NAND_IF.SectorWrite(sector_index, DataToWrite, Params)
                     Case MemoryType.PARALLEL_NOR
-                        Me.NoErrors = FCUSB.EXT_IF.Sector_Write(sector_index, DataToWrite, Params)
-                    Case MemoryType.SLC_NAND
-                        Me.NoErrors = FCUSB.EXT_IF.Sector_Write(sector_index, DataToWrite, Params)
+                        Me.NoErrors = FCUSB.EXT_IF.SectorWrite(sector_index, DataToWrite, Params)
+                    Case MemoryType.NAND
+                        Me.NoErrors = FCUSB.EXT_IF.SectorWrite(sector_index, DataToWrite, Params)
                     Case MemoryType.JTAG_CFI
-                        Me.NoErrors = FCUSB.JTAG_IF.CFI_Sector_Write(sector_index, DataToWrite)
+                        Me.NoErrors = FCUSB.JTAG_IF.CFI_SectorWrite(sector_index, DataToWrite)
                     Case MemoryType.JTAG_SPI
-                        Me.NoErrors = FCUSB.JTAG_IF.SPI_WriteSector(sector_index, DataToWrite)
+                        Me.NoErrors = FCUSB.JTAG_IF.SPI_SectorWrite(sector_index, DataToWrite)
+                    Case MemoryType.JTAG_BSDL
+                        Me.NoErrors = FCUSB.JTAG_IF.BoundaryScan_SectorWrite(sector_index, DataToWrite)
                     Case MemoryType.SERIAL_MICROWIRE
-                        Me.NoErrors = FCUSB.MW_IF.Sector_Write(sector_index, DataToWrite)
+                        Me.NoErrors = FCUSB.MW_IF.SectorWrite(sector_index, DataToWrite)
                     Case MemoryType.FWH_NOR
-                        Me.NoErrors = FCUSB.EXT_IF.Sector_Write(sector_index, DataToWrite, Params)
+                        Me.NoErrors = FCUSB.EXT_IF.SectorWrite(sector_index, DataToWrite, Params)
                     Case MemoryType.OTP_EPROM
-                        Me.NoErrors = FCUSB.EXT_IF.Sector_Write(sector_index, DataToWrite, Params)
+                        Me.NoErrors = FCUSB.EXT_IF.SectorWrite(sector_index, DataToWrite, Params)
                     Case MemoryType.HYPERFLASH
-                        Me.NoErrors = FCUSB.HF_IF.Sector_Write(sector_index, DataToWrite, Params)
+                        Me.NoErrors = FCUSB.HF_IF.SectorWrite(sector_index, DataToWrite, Params)
                     Case MemoryType.SERIAL_SWI
-                        Me.NoErrors = FCUSB.SWI_IF.Sector_Write(sector_index, DataToWrite, Params)
+                        Me.NoErrors = FCUSB.SWI_IF.SectorWrite(sector_index, DataToWrite, Params)
                 End Select
                 If Params IsNot Nothing Then Params.Timer.Stop()
             Finally
@@ -1036,29 +1066,31 @@ Public Class MemoryInterface
         Public Function GetSectorCount() As UInt32
             Select Case Me.FlashType
                 Case MemoryType.SERIAL_NOR 'SPI
-                    Return FCUSB.SPI_NOR_IF.Sector_Count()
+                    Return FCUSB.SPI_NOR_IF.SectorCount()
                 Case MemoryType.SERIAL_QUAD
-                    Return FCUSB.SQI_NOR_IF.Sector_Count()
+                    Return FCUSB.SQI_NOR_IF.SectorCount()
                 Case MemoryType.SERIAL_NAND
-                    Return FCUSB.SPI_NAND_IF.Sector_Count()
+                    Return FCUSB.SPI_NAND_IF.SectorCount()
                 Case MemoryType.PARALLEL_NOR
-                    Return FCUSB.EXT_IF.Sector_Count()
-                Case MemoryType.SLC_NAND
-                    Return FCUSB.EXT_IF.Sector_Count()
+                    Return FCUSB.EXT_IF.SectorCount()
+                Case MemoryType.NAND
+                    Return FCUSB.EXT_IF.SectorCount()
                 Case MemoryType.JTAG_CFI
-                    Return FCUSB.JTAG_IF.CFI_Sector_Count()
+                    Return FCUSB.JTAG_IF.CFI_SectorCount()
                 Case MemoryType.JTAG_SPI
-                    Return FCUSB.JTAG_IF.SPI_Sector_Count()
+                    Return FCUSB.JTAG_IF.SPI_SectorCount()
+                Case MemoryType.JTAG_BSDL
+                    Return FCUSB.JTAG_IF.BoundaryScan_SectorCount()
                 Case MemoryType.SERIAL_MICROWIRE
-                    Return FCUSB.MW_IF.Sector_Count()
+                    Return FCUSB.MW_IF.SectorCount()
                 Case MemoryType.FWH_NOR
-                    Return FCUSB.EXT_IF.Sector_Count()
+                    Return FCUSB.EXT_IF.SectorCount()
                 Case MemoryType.OTP_EPROM
-                    Return FCUSB.EXT_IF.Sector_Count()
+                    Return FCUSB.EXT_IF.SectorCount()
                 Case MemoryType.HYPERFLASH
-                    Return FCUSB.HF_IF.Sector_Count()
+                    Return FCUSB.HF_IF.SectorCount()
                 Case MemoryType.SERIAL_SWI
-                    Return FCUSB.SWI_IF.Sector_Count
+                    Return FCUSB.SWI_IF.SectorCount
                 Case Else
                     Return 1
             End Select
@@ -1074,12 +1106,14 @@ Public Class MemoryInterface
                     Return FCUSB.SPI_NAND_IF.SectorSize(sector_index, area)
                 Case MemoryType.PARALLEL_NOR
                     Return FCUSB.EXT_IF.SectorSize(sector_index, area)
-                Case MemoryType.SLC_NAND
+                Case MemoryType.NAND
                     Return FCUSB.EXT_IF.SectorSize(sector_index, area)
                 Case MemoryType.JTAG_CFI
                     Return FCUSB.JTAG_IF.CFI_GetSectorSize(sector_index)
                 Case MemoryType.JTAG_SPI
                     Return FCUSB.JTAG_IF.SPI_GetSectorSize(sector_index)
+                Case MemoryType.JTAG_BSDL
+                    Return FCUSB.JTAG_IF.BoundaryScan_GetSectorSize(sector_index)
                 Case MemoryType.SERIAL_MICROWIRE
                     Return FCUSB.MW_IF.SectorSize(sector_index)
                 Case MemoryType.FWH_NOR
@@ -1104,12 +1138,14 @@ Public Class MemoryInterface
                     Return FCUSB.SPI_NAND_IF.SectorFind(sector_index, area)
                 Case MemoryType.PARALLEL_NOR
                     Return FCUSB.EXT_IF.SectorFind(sector_index, area)
-                Case MemoryType.SLC_NAND
+                Case MemoryType.NAND
                     Return FCUSB.EXT_IF.SectorFind(sector_index, area)
                 Case MemoryType.JTAG_CFI
                     Return FCUSB.JTAG_IF.CFI_FindSectorBase(sector_index)
                 Case MemoryType.JTAG_SPI
                     Return FCUSB.JTAG_IF.CFI_FindSectorBase(sector_index)
+                Case MemoryType.JTAG_BSDL
+                    Return FCUSB.JTAG_IF.BoundaryScan_SectorFind(sector_index)
                 Case MemoryType.SERIAL_MICROWIRE
                     Return FCUSB.MW_IF.SectorFind(sector_index)
                 Case MemoryType.FWH_NOR
