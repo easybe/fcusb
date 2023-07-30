@@ -62,6 +62,7 @@ Partial Class MainForm
         Me.mi_mode_pnor = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_pnand = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_fwh = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_mode_peeprom = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_eprom_otp = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_hyperflash = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_jtag = New System.Windows.Forms.ToolStripMenuItem()
@@ -112,7 +113,6 @@ Partial Class MainForm
         Me.cmdSaveLog = New System.Windows.Forms.Button()
         Me.txtInput = New System.Windows.Forms.TextBox()
         Me.ConsoleBox = New System.Windows.Forms.ListBox()
-        Me.mi_mode_peeprom = New System.Windows.Forms.ToolStripMenuItem()
         Me.MenuBar.SuspendLayout()
         Me.FlashStatus.SuspendLayout()
         Me.MyTabs.SuspendLayout()
@@ -368,6 +368,12 @@ Partial Class MainForm
         Me.mi_mode_fwh.Name = "mi_mode_fwh"
         Me.mi_mode_fwh.Size = New System.Drawing.Size(222, 22)
         Me.mi_mode_fwh.Text = "FWH Flash"
+        '
+        'mi_mode_peeprom
+        '
+        Me.mi_mode_peeprom.Name = "mi_mode_peeprom"
+        Me.mi_mode_peeprom.Size = New System.Drawing.Size(222, 22)
+        Me.mi_mode_peeprom.Text = "Parallel EEPROM"
         '
         'mi_mode_eprom_otp
         '
@@ -785,12 +791,6 @@ Partial Class MainForm
         Me.ConsoleBox.ScrollAlwaysVisible = True
         Me.ConsoleBox.Size = New System.Drawing.Size(527, 264)
         Me.ConsoleBox.TabIndex = 1
-        '
-        'mi_mode_peeprom
-        '
-        Me.mi_mode_peeprom.Name = "mi_mode_peeprom"
-        Me.mi_mode_peeprom.Size = New System.Drawing.Size(222, 22)
-        Me.mi_mode_peeprom.Text = "Parallel EEPROM"
         '
         'MainForm
         '

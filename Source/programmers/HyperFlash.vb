@@ -15,10 +15,13 @@ Public Class HF_Programmer : Implements MemoryDeviceUSB
     End Sub
 
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
-        FCUSB.USB_VCC_OFF()
         MyFlashDevice = Nothing
+
+        Dim CurrentVoltage As Voltage = FCUSB.CurrentVCC
+        FCUSB.USB_VCC_OFF()
         EXPIO_SETUP_USB(MEM_PROTOCOL.HYPERFLASH)
-        FCUSB.USB_VCC_ON(MySettings.VOLT_SELECT)
+        FCUSB.USB_VCC_ON(CurrentVoltage)
+
         Utilities.Sleep(200)
         Dim HF_DETECT As FlashDetectResult = DetectFlash()
         If HF_DETECT.Successful Then
@@ -195,8 +198,6 @@ Public Class HF_Programmer : Implements MemoryDeviceUSB
 
 #End Region
 
-#Region "EXPIO_SETUP"
-
     Private Function EXPIO_SETUP_USB(mode As MEM_PROTOCOL) As Boolean
         Try
             Dim result_data(0) As Byte
@@ -206,8 +207,6 @@ Public Class HF_Programmer : Implements MemoryDeviceUSB
         End Try
         Return False
     End Function
-
-#End Region
 
     Private Function DetectFlash() As FlashDetectResult
         Dim result As New FlashDetectResult

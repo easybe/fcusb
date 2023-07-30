@@ -12,7 +12,7 @@ Public Enum DeviceMode As Byte
     HyperFlash = 10
     Microwire = 11
     SQI = 12
-    SD_MMC_EMMC = 13
+    EMMC = 13
     FWH = 14
     DFU = 15
     P_EEPROM = 16
@@ -58,12 +58,8 @@ Public Enum Voltage As Integer
     V3_3 = 2 'Default
 End Enum
 
-Public Enum BadBlockMode As Integer
-    Disabled = 1
-    Enabled = 2
-End Enum
-
 Public Enum BadBlockMarker As Integer
+    Disabled = 0
     _1stByte_FirstPage = (1 << 1)
     _1stByte_SecondPage = (1 << 2)
     _1stByte_LastPage = (1 << 3)
@@ -88,13 +84,6 @@ Public Enum BitSwapMode
     Bits_8 = 1 '0x01 = 0x80
     Bits_16 = 2 '0x0102 = 0x4080
     Bits_32 = 3 '0x00010203 = 0x20C04080
-End Enum
-
-Public Enum BitEndianMode
-    BigEndian32 = 0 '0x01020304 = 0x01020304 (default)
-    BigEndian16 = 1 '0x01020304 = 0x02010403
-    LittleEndian32_8bit = 2 '0x01020304 = 0x03040102
-    LittleEndian32_16bit = 3 '0x01020304 = 0x02010403
 End Enum
 
 Public Enum I2C_SPEED_MODE As Integer

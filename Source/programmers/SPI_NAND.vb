@@ -16,6 +16,11 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
     Public Property DIE_SELECTED As Integer = 0
     Public Property MemoryArea As FlashArea = FlashArea.All
+    Public Property MAX_CLOCK As SPI.SPI_SPEED = SPI.SPI_SPEED.MHZ_8
+    Public Property SPI_MODE As SPI.SPI_CLOCK_POLARITY = SPI.SPI_CLOCK_POLARITY.SPI_MODE_0
+    Public Property BadBlockMode As BadBlockMarker = BadBlockMarker.Disabled
+    Public Property DisableECC As Boolean = False
+    Public Property NAND_Preserve As Boolean = False
 
     Private Delegate Function USB_Readages(page_addr As Integer, page_offset As UInt16, data_count As Integer, memory_area As FlashArea) As Byte()
 
@@ -30,9 +35,8 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Dim sr(0) As Byte
         Dim MFG As Byte
         Dim PART As UInt16
-        Dim clk_speed As UInt32 = CUInt(GetMaxSpiClock(FCUSB.HWBOARD, MySettings.SPI_CLOCK_MAX))
-        Me.FCUSB.USB_SPI_INIT(CUInt(MySettings.SPI_MODE), clk_speed)
-
+        Dim clk_speed As UInt32 = CUInt(GetMaxSpiClock(FCUSB.HWBOARD, MAX_CLOCK))
+        Me.FCUSB.USB_SPI_INIT(CUInt(SPI_MODE), clk_speed)
         SPIBUS_WriteRead({SPI_OPCODES.RDID}, rdid) 'Perform a standard SPI read ID
         If (rdid(0) = &HC8) Then 'GigaDevice device
         ElseIf (rdid(0) = &HEF And rdid(1) = &H40 And rdid(2) = &H18) Then 'Winbond W25M121AV
@@ -58,8 +62,8 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         If MyFlashDevice IsNot Nothing Then
             MyFlashStatus = DeviceStatus.Supported
             RaiseEvent PrintConsole(String.Format(RM.GetString("flash_detected"), MyFlashDevice.NAME, Format(MyFlashDevice.FLASH_SIZE, "#,###")))
-            RaiseEvent PrintConsole(String.Format(RM.GetString("ext_page_size"), MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT))
-            Me.ECC_ENABLED = Not MySettings.SPI_NAND_DISABLE_ECC
+            PrintPageAndBlockInformation()
+            Me.ECC_ENABLED = Not Me.DisableECC
             If MFG = &HEF AndAlso PART = &HAA21 Then 'W25M01GV/W25M121AV
                 SPIBUS_WriteRead({OPCMD_GETFEAT, &HB0}, sr)
                 SPIBUS_WriteRead({OPCMD_SETFEAT, &HB0, CByte(sr(0) Or 8)}) 'Set bit 3 to ON (BUF=1)
@@ -83,12 +87,12 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                 SPIBUS_WriteRead({OPCMD_SETFEAT, &HA0, 0}) 'Remove block protection
             End If
             BlockManager = New NAND_BLOCK_IF(MyFlashDevice)
-            If (MySettings.NAND_BadBlockManager = BadBlockMode.Disabled) Then
+            If (Me.BadBlockMode = BadBlockMarker.Disabled) Then
                 RaiseEvent PrintConsole(RM.GetString("nand_block_manager_disabled"))
             Else
                 SetStatus(RM.GetString("nand_mem_device_detected"))
                 RaiseEvent PrintConsole(RM.GetString("nand_mem_map_loading"))
-                BlockManager.EnableBlockManager(MySettings.NAND_BadBlockMarkers)
+                BlockManager.EnableBlockManager(Me.BadBlockMode)
                 Dim TotalBadBlocks As Integer = (MyFlashDevice.BLOCK_COUNT - BlockManager.VALID_BLOCKS)
                 RaiseEvent PrintConsole(String.Format("Total bad blocks: {0}", TotalBadBlocks))
                 RaiseEvent PrintConsole(String.Format(RM.GetString("nand_mem_map_complete"), Format(BlockManager.MAPPED_PAGES, "#,###")))
@@ -122,6 +126,21 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             SPIBUS_WriteRead({OPCMD_SETFEAT, &HB0, config_reg})
         End Set
     End Property
+
+    Private Sub PrintPageAndBlockInformation()
+        Dim page_info As String = "Page Information: {0} total pages; {1} bytes per page; {2} bytes extended size"
+        Dim block_info As String = "Block Information: {0} total blocks; {1} bytes per block"
+
+        Dim page_count = Me.MyFlashDevice.PAGE_COUNT
+        Dim page_count_str = page_count.ToString("#,###")
+        Dim page_size_str = Me.MyFlashDevice.PAGE_SIZE.ToString("#,###")
+        Dim page_ext_str = Me.MyFlashDevice.PAGE_EXT.ToString("#,###")
+        Dim block_count_str = Me.MyFlashDevice.BLOCK_COUNT.ToString("#,###")
+        Dim block_size_str = Me.MyFlashDevice.Block_Size.ToString("#,###")
+
+        RaiseEvent PrintConsole(String.Format(page_info, page_count_str, page_size_str, page_ext_str))
+        RaiseEvent PrintConsole(String.Format(block_info, block_count_str, block_size_str))
+    End Sub
 
     Public Sub NAND_ReadPages(page_addr As Integer, page_offset As UInt16, data_count As Integer, memory_area As FlashArea, ByRef data() As Byte) Handles BlockManager.ReadPages
         data = PageRead_Physical(page_addr, page_offset, data_count, memory_area)
@@ -206,7 +225,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Dim page_logical As Integer = CInt(MyFlashDevice.PAGE_COUNT) * sector_index
         Dim page_addr_phy As Integer = Me.BlockManager.GetPhysical(page_logical)
         MEMORY_AREA_ERASED = Nothing
-        If MySettings.NAND_Preserve AndAlso Not Me.MemoryArea = FlashArea.All Then
+        If Me.NAND_Preserve AndAlso Not Me.MemoryArea = FlashArea.All Then
             If Me.MemoryArea = FlashArea.Main Then
                 Dim mem_size As Integer = CInt(MyFlashDevice.PAGE_COUNT) * MyFlashDevice.PAGE_EXT
                 MEMORY_AREA_ERASED = PageRead_Physical(page_addr_phy, 0, mem_size, FlashArea.OOB)

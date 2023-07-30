@@ -28,13 +28,18 @@ Public Class ReadParameters
     Public AbortOperation As Boolean = False
 End Class
 
+Public Enum SettingsMode
+    FromRegistry
+    FromIniFile
+End Enum
+
 Public Class FlashcatSettings
     Public Property LanguageName As String
     Public Property VOLT_SELECT As Voltage 'Selects output voltage and level
     Public Property OPERATION_MODE As DeviceMode = DeviceMode.SPI
     Public Property VERIFY_WRITE As Boolean 'Read back written data to compare write was successful
     Public Property RETRY_WRITE_ATTEMPTS As Integer 'Number of times to retry a write operation
-    Public Property BIT_ENDIAN As BitEndianMode = BitEndianMode.BigEndian32 'Mirrors bits (not saved)
+    Public Property BIT_ENDIAN As Utilities.BitEndianMode = Utilities.BitEndianMode.BigEndian32 'Mirrors bits (not saved)
     Public Property BIT_SWAP As BitSwapMode = BitSwapMode.None 'Swaps nibbles/bytes/words (not saved)
     Public Property MULTI_CE As Integer '0 (do not use), else A=1<<CE_VALUE
     'SPI Settings
@@ -54,8 +59,7 @@ Public Class FlashcatSettings
     'NAND Settings
     Public Property NAND_Preserve As Boolean = True 'We want to copy SPARE data before erase
     Public Property NAND_Verify As Boolean = False
-    Public Property NAND_BadBlockManager As BadBlockMode 'Indicates how BAD BLOCKS are detected
-    Public Property NAND_BadBlockMarkers As BadBlockMarker
+    Public Property NAND_BadBlockMode As BadBlockMarker 'Indicates how BAD BLOCKS are detected
     Public Property NAND_SkipBadBlock As Boolean = True 'If a block fails to program, skip block and write data to the next block
     Public Property NAND_Layout As NandMemLayout = NandMemLayout.Separated
     Public Property NAND_Speed As NandMemSpeed = NandMemSpeed._20MHz
@@ -76,15 +80,16 @@ Public Class FlashcatSettings
     Public Property LICENSE_KEY As String
     Public Property LICENSED_TO As String
     Public Property LICENSE_EXP As DateTime
+    Public Property PLUGIN_DEFAULT_DIR As String
 
+    Private SettingsFile As SettingsIO
 
-#If NET5_0 Then
-    Private SettingsFile As SettingsIO = New SettingsIO_INI()
-#Else
-    Private SettingsFile As SettingsIO = New SettingsIO_Registry()
-#End If
-
-    Sub New()
+    Sub New(load_settings_from As SettingsMode)
+        If load_settings_from = SettingsMode.FromRegistry Then
+            SettingsFile = New SettingsIO_Registry()
+        ElseIf load_settings_from = SettingsMode.FromIniFile Then
+            SettingsFile = New SettingsIO_INI()
+        End If
         Threading.Thread.CurrentThread.CurrentCulture = Globalization.CultureInfo.CreateSpecificCulture("en-US")
         LoadLanguageSettings(SettingsFile.GetValue("Language", "English"))
         Me.LICENSE_KEY = SettingsFile.GetValue("LICENSE_KEY", "")
@@ -100,7 +105,7 @@ Public Class FlashcatSettings
         Me.OPERATION_MODE = CType(SettingsFile.GetValue("OPERATION", 1), DeviceMode) 'Default is normal
         Me.VERIFY_WRITE = SettingsFile.GetValue("VERIFY", True)
         Me.RETRY_WRITE_ATTEMPTS = SettingsFile.GetValue("VERIFY_COUNT", 2)
-        Me.BIT_ENDIAN = BitEndianMode.BigEndian32
+        Me.BIT_ENDIAN = Utilities.BitEndianMode.BigEndian32
         Me.BIT_SWAP = BitSwapMode.None
         Me.SPI_CLOCK_MAX = CType(SettingsFile.GetValue("SPI_CLOCK_MAX", CInt(SPI.SPI_SPEED.MHZ_8)), SPI.SPI_SPEED)
         Me.SQI_CLOCK_MAX = CType(SettingsFile.GetValue("SPI_QUAD_SPEED", CInt(SPI.SQI_SPEED.MHZ_10)), SPI.SQI_SPEED)
@@ -115,8 +120,7 @@ Public Class FlashcatSettings
         Me.SWI_ADDRESS = CByte(SettingsFile.GetValue("SWI_ADDR", CInt(&H0)))
         Me.NAND_Preserve = SettingsFile.GetValue("NAND_Preserve", True)
         Me.NAND_Verify = SettingsFile.GetValue("NAND_Verify", False)
-        Me.NAND_BadBlockManager = CType(SettingsFile.GetValue("NAND_BadBlockMode", BadBlockMode.Disabled), BadBlockMode)
-        Me.NAND_BadBlockMarkers = CType(SettingsFile.GetValue("NAND_BadBlockMarker", (BadBlockMarker._1stByte_FirstPage Or BadBlockMarker._1stByte_SecondPage Or BadBlockMarker._1stByte_LastPage)), BadBlockMarker)
+        Me.NAND_BadBlockMode = CType(SettingsFile.GetValue("NAND_BadBlockFeature", BadBlockMarker.Disabled), BadBlockMarker)
         Me.NAND_SkipBadBlock = SettingsFile.GetValue("NAND_Mismatch", True)
         Me.NAND_Layout = CType(SettingsFile.GetValue("NAND_Layout", NandMemLayout.Separated), NandMemLayout)
         Me.NAND_Speed = CType(SettingsFile.GetValue("NAND_Speed", NandMemSpeed._20MHz), NandMemSpeed)
@@ -129,6 +133,7 @@ Public Class FlashcatSettings
         Me.JTAG_SPEED = CType(SettingsFile.GetValue("JTAG_FREQ", JTAG.JTAG_SPEED._10MHZ), JTAG.JTAG_SPEED)
         Me.NOR_READ_ACCESS = SettingsFile.GetValue("NOR_READ_ACCESS", 200)
         Me.NOR_WE_PULSE = SettingsFile.GetValue("NOR_WE_PULSE", 125)
+        Me.PLUGIN_DEFAULT_DIR = SettingsFile.GetValue("PLUGIN_DIR", "C:\")
         Validate_SerialEEPROM()
         Validate_ParallelEEPROM()
         SettingsFile.ECC_Load()
@@ -158,8 +163,7 @@ Public Class FlashcatSettings
         SettingsFile.SetValue("SWI_ADDR", CInt(SWI_ADDRESS))
         SettingsFile.SetValue("NAND_Preserve", Me.NAND_Preserve)
         SettingsFile.SetValue("NAND_Verify", Me.NAND_Verify)
-        SettingsFile.SetValue("NAND_BadBlockMode", Me.NAND_BadBlockManager)
-        SettingsFile.SetValue("NAND_BadBlockMarker", Me.NAND_BadBlockMarkers)
+        SettingsFile.SetValue("NAND_BadBlockFeature", Me.NAND_BadBlockMode)
         SettingsFile.SetValue("NAND_Mismatch", Me.NAND_SkipBadBlock)
         SettingsFile.SetValue("NAND_Layout", Me.NAND_Layout)
         SettingsFile.SetValue("NAND_Speed", Me.NAND_Speed)
@@ -173,6 +177,7 @@ Public Class FlashcatSettings
         SettingsFile.SetValue("JTAG_FREQ", Me.JTAG_SPEED)
         SettingsFile.SetValue("NOR_READ_ACCESS", Me.NOR_READ_ACCESS)
         SettingsFile.SetValue("NOR_WE_PULSE", Me.NOR_WE_PULSE)
+        SettingsFile.SetValue("PLUGIN_DIR", Me.PLUGIN_DEFAULT_DIR)
         SettingsFile.ECC_Save()
     End Sub
 
@@ -211,7 +216,6 @@ Public Class FlashcatSettings
             Me.PARALLEL_EEPROM = ""
         End Try
     End Sub
-
 
     Public Shared Function NandMemSpeedToString(speed As NandMemSpeed) As String
         Select Case speed
@@ -252,6 +256,47 @@ Public Class FlashcatSettings
         End Select
     End Sub
 
+    Public Shared Function DeviceModetoString(mode As DeviceMode) As String
+        Select Case mode
+            Case DeviceMode.SPI
+                Return "SPI"
+            Case DeviceMode.JTAG
+                Return "JTAG"
+            Case DeviceMode.I2C_EEPROM
+                Return "I2C EEPROM"
+            Case DeviceMode.SPI_EEPROM
+                Return "SPI EEPROM"
+            Case DeviceMode.PNOR
+                Return "Parallel NOR"
+            Case DeviceMode.PNAND
+                Return "Parallel NAND"
+            Case DeviceMode.ONE_WIRE
+                Return "One-Wire"
+            Case DeviceMode.SPI_NAND
+                Return "SPI NAND"
+            Case DeviceMode.EPROM
+                Return "EPROM"
+            Case DeviceMode.HyperFlash
+                Return "HyperFlash"
+            Case DeviceMode.Microwire
+                Return "Microwire"
+            Case DeviceMode.SQI
+                Return "QUAD SPI"
+            Case DeviceMode.EMMC
+                Return "EMMC"
+            Case DeviceMode.FWH
+                Return "FWH"
+            Case DeviceMode.DFU
+                Return "DFU"
+            Case DeviceMode.P_EEPROM
+                Return "Parallel EEPROM"
+            Case DeviceMode.Unspecified
+                Return "Unspecified"
+            Case Else
+                Return "Unknown"
+        End Select
+    End Function
+
     Public Sub SetPrefferedScript(name As String, id As UInt32)
         SettingsFile.SetValue("SCRIPT_" & id.ToString, name)
     End Sub
@@ -276,7 +321,6 @@ Public Interface SettingsIO
 
 End Interface
 
-#If NET5_0 Then
 Public Class SettingsIO_INI
     Implements SettingsIO
 
@@ -441,7 +485,55 @@ Public Class SettingsIO_INI
     End Function
 
 End Class
+
+#If NET6_0 Then
+
+Public Class SettingsIO_Registry
+    Implements SettingsIO
+
+    Public Sub ECC_Load() Implements SettingsIO.ECC_Load
+        Throw New NotImplementedException()
+    End Sub
+
+    Public Function ECC_Save() As Boolean Implements SettingsIO.ECC_Save
+        Throw New NotImplementedException()
+    End Function
+
+    Public Function GetValue(Name As String, DefaultValue As String) As String Implements SettingsIO.GetValue
+        Throw New NotImplementedException()
+    End Function
+
+    Public Function GetValue(Name As String, DefaultValue As Boolean) As Boolean Implements SettingsIO.GetValue
+        Throw New NotImplementedException()
+    End Function
+
+    Public Function GetValue(Name As String, DefaultValue As Integer) As Integer Implements SettingsIO.GetValue
+        Throw New NotImplementedException()
+    End Function
+
+    Public Function GetData(Name As String) As Byte() Implements SettingsIO.GetData
+        Throw New NotImplementedException()
+    End Function
+
+    Public Function SetValue(Name As String, Value As String) As Boolean Implements SettingsIO.SetValue
+        Throw New NotImplementedException()
+    End Function
+
+    Public Function SetValue(Name As String, Value As Boolean) As Boolean Implements SettingsIO.SetValue
+        Throw New NotImplementedException()
+    End Function
+
+    Public Function SetValue(Name As String, Value As Integer) As Boolean Implements SettingsIO.SetValue
+        Throw New NotImplementedException()
+    End Function
+
+    Public Function SetData(Name As String, data() As Byte) As Boolean Implements SettingsIO.SetData
+        Throw New NotImplementedException()
+    End Function
+End Class
+
 #Else
+
 Public Class SettingsIO_Registry
     Implements SettingsIO
 

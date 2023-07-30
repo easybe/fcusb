@@ -18,6 +18,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
     Public Property DIE_SELECTED As Integer = 0
     Private Property MAX_PACKET_SIZE As Integer 'Set by DeviceInit/EEPROM_Init
     Public Property ERASE_ALLOWED As Boolean = True
+    Public Property MULTI_CE As Integer = 0
 
     Private FLASH_IDENT As FlashDetectResult
 
@@ -60,10 +61,10 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
                 RaiseEvent PrintConsole(String.Format(RM.GetString("flash_detected"), MyFlashDevice.NAME, Format(MyFlashDevice.FLASH_SIZE, "#,###")))
                 RaiseEvent PrintConsole(RM.GetString("ext_prog_mode"))
                 PrintDeviceInterface()
-                If (MySettings.MULTI_CE > 0) Then
+                If (Me.MULTI_CE > 0) Then
                     RaiseEvent PrintConsole("Multi-chip select feature is enabled")
                     Me.DUALDIE_EN = True
-                    Me.DUALDIE_CE2 = MySettings.MULTI_CE
+                    Me.DUALDIE_CE2 = Me.MULTI_CE
                 ElseIf MyFlashDevice.DUAL_DIE Then 'This IC package has two-die with CE access
                     Me.DUALDIE_EN = True
                     Me.DUALDIE_CE2 = MyFlashDevice.CE2

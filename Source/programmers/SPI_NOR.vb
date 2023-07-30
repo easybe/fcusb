@@ -17,6 +17,7 @@ Namespace SPI
         Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
         Public Property DIE_SELECTED As Integer = 0
         Public Property ExtendedPage As Boolean = False 'Indicates we should use extended pages
+        Public Property SPI_FASTREAD As Boolean = False 'Uses 0xB and dummy cycle
 
         Sub New(parent_if As FCUSB_DEVICE)
             Me.FCUSB = parent_if
@@ -143,7 +144,7 @@ Namespace SPI
             Dim array_ptr As Integer = 0
             Dim read_cmd As Byte = MyFlashDevice.OP_COMMANDS.READ
             Dim dummy_clocks As Byte = 0
-            If MySettings.SPI_FASTREAD AndAlso FCUSB.HasLogic() Then
+            If Me.SPI_FASTREAD AndAlso FCUSB.HasLogic() Then
                 read_cmd = MyFlashDevice.OP_COMMANDS.FAST_READ
             End If
             If (Me.MyFlashDevice.ProgramMode = FlashMemory.SPI_PROG.Atmel45Series) Then
@@ -156,7 +157,7 @@ Namespace SPI
                 Dim setup_class As New ReadSetupPacket(read_cmd, flash_offset32, data_to_read.Length, MyFlashDevice.AddressBytes) With {.DUMMY = dummy_clocks}
                 FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_READFLASH, setup_class.ToBytes, data_to_read, 0)
             Else 'Normal SPI READ
-                If MySettings.SPI_FASTREAD AndAlso (FCUSB.HasLogic()) Then
+                If Me.SPI_FASTREAD AndAlso (FCUSB.HasLogic()) Then
                     dummy_clocks = MyFlashDevice.SPI_DUMMY
                 End If
                 If (MyFlashDevice.STACKED_DIES > 1) Then
@@ -666,9 +667,9 @@ Namespace SPI
 
 #Region "SPIBUS"
 
-        Public Sub SPIBUS_Setup(bus_speed As SPI_SPEED)
+        Public Sub SPIBUS_Setup(bus_speed As SPI_SPEED, spi_mode As SPI_CLOCK_POLARITY)
             Dim clock_speed As UInt32 = GetMaxSpiClock(FCUSB.HWBOARD, bus_speed)
-            Me.FCUSB.USB_SPI_INIT(CUInt(MySettings.SPI_MODE), clock_speed)
+            Me.FCUSB.USB_SPI_INIT(CUInt(spi_mode), clock_speed)
             Utilities.Sleep(50) 'Allow time for device to change IO
         End Sub
 
@@ -702,11 +703,11 @@ Namespace SPI
             SPIBUS_SlaveSelect_Enable()
             If (WriteBuffer IsNot Nothing) Then
                 Result = SPIBUS_WriteData(WriteBuffer)
-                If Result Then TotalBytesTransfered += CUInt(WriteBuffer.Length)
+                If Result Then TotalBytesTransfered += WriteBuffer.Length
             End If
             If (ReadBuffer IsNot Nothing) AndAlso Result Then
                 Result = SPIBUS_ReadData(ReadBuffer)
-                If Result Then TotalBytesTransfered += CUInt(ReadBuffer.Length)
+                If Result Then TotalBytesTransfered += ReadBuffer.Length
             End If
             SPIBUS_SlaveSelect_Disable()
             If Not Result Then Return -1

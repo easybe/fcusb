@@ -632,7 +632,7 @@ Namespace Utilities
 
     End Namespace
 
-    Friend Module Main
+    Public Module Main
 
         Public Sub FillByteArray(ByRef data() As Byte, value As Byte)
             If data Is Nothing Then Exit Sub
@@ -1459,6 +1459,23 @@ Namespace Utilities
 
 #End Region
 
+#Region "Gray Codes"
+
+        Public gray_code_table_reverse(255) As Byte
+        Public gray_code_table(255) As Byte
+
+        Public Sub CreateGrayCodeTable()
+            For i As Integer = 0 To 255
+                Dim data_in() As Byte = {CByte((i >> 1) Xor i)}
+                gray_code_table(i) = data_in(0)
+                Utilities.ReverseBits_Byte(data_in)
+                gray_code_table_reverse(i) = data_in(0)
+            Next
+        End Sub
+
+
+#End Region
+
         Public Function GetResourceAsBytes(ResourceName As String) As Byte()
             Dim asm_names() As String = Reflection.Assembly.GetExecutingAssembly().GetManifestResourceNames()
             Dim ns_embedded_name As String = Nothing     'Namespace.ResourceName
@@ -1655,6 +1672,28 @@ Namespace Utilities
             Return strbuild.Substring(0, strbuild.Length - 1) 'Removes the last delimeter
         End Function
 
+#If NET6_0_OR_GREATER Or NET48_OR_GREATER Then
+
+        Public Function DownloadFile(URL As String) As Byte()
+            Dim task As Task(Of Byte()) = DownloadFile_Async(URL)
+            task.Wait()
+            Return task.Result
+        End Function
+
+        Private Async Function DownloadFile_Async(URL As String) As Task(Of Byte())
+            Try
+                Using wc As New Net.Http.HttpClient
+                    Dim response As Net.Http.HttpResponseMessage = Await wc.GetAsync(URL)
+                    response.EnsureSuccessStatusCode()
+                    Dim response_data() As Byte = Await response.Content.ReadAsByteArrayAsync()
+                    Return response_data
+                End Using
+            Catch ex As Exception
+            End Try
+            Return Nothing
+        End Function
+
+#Else
         Public Function DownloadFile(URL As String) As Byte()
             Try
                 Dim myWebClient As New Net.WebClient()
@@ -1664,6 +1703,8 @@ Namespace Utilities
                 Return Nothing
             End Try
         End Function
+
+#End If
 
         Public Function FormatToDataSize(bytes As UInt64) As String
             Dim MB01 As UInt64 = 1048576UL
@@ -1752,108 +1793,144 @@ Namespace Utilities
             End If
         End Function
 
+        Public Function GetOsBitsString() As String
+            If Environment.Is64BitOperatingSystem Then
+                Return "64 bit"
+            Else
+                Return "32 bit"
+            End If
+        End Function
+
+        Public Function CreateRandomBuffer(size As Integer) As Byte()
+            Randomize()
+            Dim rnd As New Random
+            Dim new_buffer(size - 1) As Byte
+            For i = 0 To size - 1
+                new_buffer(i) = Convert.ToByte(rnd.Next(0, 255))
+            Next
+            Return new_buffer
+        End Function
+
     End Module
 
-    Namespace Encryption
+    Public Enum BitEndianMode
+        BigEndian32 = 0 '0x01020304 = 0x01020304 (default)
+        BigEndian16 = 1 '0x01020304 = 0x02010403
+        LittleEndian32_8bit = 2 '0x01020304 = 0x03040102
+        LittleEndian32_16bit = 3 '0x01020304 = 0x02010403
+    End Enum
 
-        Friend Module Bytes
+    Public Class BitSwap
+        Private MyEndianSwap As BitEndianMode
+        Private MyBitSwap As BitSwapMode
 
-            Public Function AES_Encrypt(input As String, password As String) As String
-                Dim AES As New System.Security.Cryptography.RijndaelManaged
-                Dim Hash_AES As New System.Security.Cryptography.MD5CryptoServiceProvider
-                Dim encrypted As String = ""
-                Try
-                    Dim hash(31) As Byte
-                    Dim temp As Byte() = Hash_AES.ComputeHash(ASCIIEncoding.ASCII.GetBytes(password))
-                    Array.Copy(temp, 0, hash, 0, 16)
-                    Array.Copy(temp, 0, hash, 15, 16)
-                    AES.Key = hash
-                    AES.Mode = Security.Cryptography.CipherMode.ECB
-                    Dim DESEncrypter As System.Security.Cryptography.ICryptoTransform = AES.CreateEncryptor
-                    Dim Buffer As Byte() = ASCIIEncoding.ASCII.GetBytes(input)
-                    encrypted = Convert.ToBase64String(DESEncrypter.TransformFinalBlock(Buffer, 0, Buffer.Length))
-                    Return encrypted
-                Catch ex As Exception
-                    Return Nothing
-                End Try
-            End Function
+        Sub New(endian_mode As BitEndianMode, bit_swap As BitSwapMode)
+            Me.MyEndianSwap = endian_mode
+            Me.MyBitSwap = bit_swap
+        End Sub
 
-            Public Function AES_Encrypt(input() As Byte, password As String) As Byte()
-                Dim AES As New Security.Cryptography.RijndaelManaged
-                Dim Hash_AES As New Security.Cryptography.MD5CryptoServiceProvider
-                Try
-                    Dim hash(31) As Byte
-                    Dim temp As Byte() = Hash_AES.ComputeHash(ASCIIEncoding.ASCII.GetBytes(password))
-                    Array.Copy(temp, 0, hash, 0, 16)
-                    Array.Copy(temp, 0, hash, 15, 16)
-                    AES.Key = hash
-                    AES.Mode = Security.Cryptography.CipherMode.ECB
-                    Dim DESEncrypter As Security.Cryptography.ICryptoTransform = AES.CreateEncryptor
-                    Dim encrypted() As Byte = DESEncrypter.TransformFinalBlock(input, 0, input.Length)
-                    Return encrypted
-                Catch ex As Exception
-                    Return Nothing
-                End Try
-            End Function
+        Public Sub BitSwap_Forward(ByRef data() As Byte)
+            Select Case Me.MyEndianSwap
+                Case BitEndianMode.BigEndian16
+                    ChangeEndian16_MSB(data)
+                Case BitEndianMode.LittleEndian32_8bit
+                    ChangeEndian32_LSB8(data)
+                Case BitEndianMode.LittleEndian32_16bit
+                    ChangeEndian32_LSB16(data)
+            End Select
+            Select Case Me.MyBitSwap
+                Case BitSwapMode.Bits_8
+                    ReverseBits_Byte(data)
+                Case BitSwapMode.Bits_16
+                    ReverseBits_HalfWord(data)
+                Case BitSwapMode.Bits_32
+                    ReverseBits_Word(data)
+            End Select
+        End Sub
 
-            Public Function AES_Decrypt(input As String, password As String) As String
-                Dim AES As New System.Security.Cryptography.RijndaelManaged
-                Dim Hash_AES As New System.Security.Cryptography.MD5CryptoServiceProvider
-                Try
-                    Dim hash(31) As Byte
-                    Dim temp As Byte() = Hash_AES.ComputeHash(System.Text.ASCIIEncoding.ASCII.GetBytes(password))
-                    Array.Copy(temp, 0, hash, 0, 16)
-                    Array.Copy(temp, 0, hash, 15, 16)
-                    AES.Key = hash
-                    AES.Mode = Security.Cryptography.CipherMode.ECB
-                    Dim DESDecrypter As System.Security.Cryptography.ICryptoTransform = AES.CreateDecryptor
-                    Dim Buffer As Byte() = Convert.FromBase64String(input)
-                    Return ASCIIEncoding.ASCII.GetString(DESDecrypter.TransformFinalBlock(Buffer, 0, Buffer.Length))
-                Catch ex As Exception
-                    Return Nothing
-                End Try
-            End Function
+        Public Sub BitSwap_Reverse(ByRef data() As Byte)
+            Select Case Me.MyBitSwap
+                Case BitSwapMode.Bits_8
+                    ReverseBits_Byte(data)
+                Case BitSwapMode.Bits_16
+                    ReverseBits_HalfWord(data)
+                Case BitSwapMode.Bits_32
+                    ReverseBits_Word(data)
+            End Select
+            Select Case Me.MyEndianSwap
+                Case BitEndianMode.BigEndian16
+                    ChangeEndian16_MSB(data)
+                Case BitEndianMode.LittleEndian32_8bit
+                    ChangeEndian32_LSB8(data)
+                Case BitEndianMode.LittleEndian32_16bit
+                    ChangeEndian32_LSB16(data)
+            End Select
+        End Sub
 
-            Public Function AES_Decrypt(input() As Byte, password As String) As Byte()
-                Dim AES As New System.Security.Cryptography.RijndaelManaged
-                Dim Hash_AES As New System.Security.Cryptography.MD5CryptoServiceProvider
-                Try
-                    Dim hash(31) As Byte
-                    Dim temp As Byte() = Hash_AES.ComputeHash(System.Text.ASCIIEncoding.ASCII.GetBytes(password))
-                    Array.Copy(temp, 0, hash, 0, 16)
-                    Array.Copy(temp, 0, hash, 15, 16)
-                    AES.Key = hash
-                    AES.Mode = Security.Cryptography.CipherMode.ECB
-                    Dim DESDecrypter As System.Security.Cryptography.ICryptoTransform = AES.CreateDecryptor
-                    Dim decrypted() As Byte = DESDecrypter.TransformFinalBlock(input, 0, input.Length)
-                    Return decrypted
-                Catch ex As Exception
-                    Return Nothing
-                End Try
-            End Function
+        Public Function BitSwap_Offset() As Integer
+            Dim bits_needed As Integer = 0
+            Select Case Me.MyBitSwap
+                Case BitSwapMode.Bits_16
+                    bits_needed = 2
+                Case BitSwapMode.Bits_32
+                    bits_needed = 4
+            End Select
+            Select Case Me.MyEndianSwap
+                Case BitEndianMode.BigEndian16
+                    bits_needed = 4
+                Case BitEndianMode.LittleEndian32_16bit
+                    bits_needed = 4
+                Case BitEndianMode.LittleEndian32_8bit
+                    bits_needed = 4
+            End Select
+            Return bits_needed
+        End Function
 
-
-        End Module
-
-
-    End Namespace
+    End Class
 
     Public Module IpAddressTools
 
         Public Function GetLocalIpAddress() As Net.IPAddress
-            Dim addresses() As System.Net.IPAddress
-            Dim strHostName As String = System.Net.Dns.GetHostName()
-            addresses = System.Net.Dns.GetHostAddresses(strHostName)
+            Dim addresses() As Net.IPAddress
+            Dim strHostName As String = Net.Dns.GetHostName()
+            addresses = Net.Dns.GetHostAddresses(strHostName)
             ' Find an IpV4 address
-            For Each address As System.Net.IPAddress In addresses
+            For Each address As Net.IPAddress In addresses
                 ' Return the first IpV4 IP Address we find in the list.
                 If address.AddressFamily = Net.Sockets.AddressFamily.InterNetwork Then
                     Return address
                 End If
             Next
             ' No IpV4 address? Return the loopback address.
-            Return System.Net.IPAddress.Loopback
+            Return Net.IPAddress.Loopback
         End Function
+
+#If NET6_0_OR_GREATER Or NET48_OR_GREATER Then
+
+        Public Function GetExternalIpAddress() As Net.IPAddress
+            Dim task As Task(Of Net.IPAddress) = GetExternalIpAddress_Async()
+            task.Wait()
+            Return task.Result
+        End Function
+
+        Private Async Function GetExternalIpAddress_Async() As Task(Of Net.IPAddress)
+            Try
+                Dim url As String = "http://tools.feron.it/php/ip.php"
+                Using wc As New Net.Http.HttpClient
+                    Dim response As Net.Http.HttpResponseMessage = Await wc.GetAsync(url)
+                    response.EnsureSuccessStatusCode()
+                    Dim responseBody As String = Await response.Content.ReadAsStringAsync()
+                    Dim parsed_ip As Net.IPAddress = Nothing
+                    If Net.IPAddress.TryParse(responseBody, parsed_ip) Then
+                        Return parsed_ip
+                    End If
+                End Using
+            Catch ex As Exception
+            End Try
+            Return Nothing
+        End Function
+
+#Else
 
         Public Function GetExternalIpAddress() As Net.IPAddress
             Try
@@ -1866,6 +1943,8 @@ Namespace Utilities
                 Return Nothing
             End Try
         End Function
+
+#End If
 
         Public Function GetTimeBytes(Seconds As UInt32) As Byte()
             Dim b(3) As Byte

@@ -109,7 +109,6 @@ Public Module ScriptApplication
         ScriptProcessor.AddScriptCommand("verify", {CmdPrm.Bool}, New ScriptFunction(AddressOf c_verify))
         ScriptProcessor.AddScriptCommand("mode", Nothing, New ScriptFunction(AddressOf c_mode))
         ScriptProcessor.AddScriptCommand("refresh", Nothing, New ScriptFunction(AddressOf c_refresh))
-
     End Sub
 
 #Region "Memory commands"
@@ -145,7 +144,7 @@ Public Module ScriptApplication
         Dim cb As New MemoryDeviceInstance.StatusCallback
         cb.UpdatePercent = New UpdateFunction_Progress(AddressOf MainApp.ProgressBar_Percent)
         cb.UpdateTask = New UpdateFunction_Status(AddressOf MainApp.SetStatus)
-        mem_device.DisableGuiControls()
+        mem_device.Controls_Disable()
         mem_device.FCUSB.USB_LEDBlink()
         ProgressBar_SetDevice(mem_device)
         ProgressBar_Percent(0)
@@ -158,7 +157,7 @@ Public Module ScriptApplication
             End If
         Catch ex As Exception
         Finally
-            mem_device.EnableGuiControls()
+            mem_device.Controls_Enable()
             mem_device.FCUSB.USB_LEDOn()
             ProgressBar_Dispose()
         End Try
@@ -180,7 +179,7 @@ Public Module ScriptApplication
             cb.UpdatePercent = New UpdateFunction_Progress(AddressOf MainApp.ProgressBar_Percent)
             cb.UpdateTask = New UpdateFunction_Status(AddressOf MainApp.SetStatus)
         End If
-        mem_device.DisableGuiControls()
+        mem_device.Controls_Disable()
         ProgressBar_SetDevice(mem_device)
         ProgressBar_Percent(0)
         Try
@@ -190,7 +189,7 @@ Public Module ScriptApplication
             sv.Value = data_read
         Catch ex As Exception
         Finally
-            mem_device.EnableGuiControls()
+            mem_device.Controls_Enable()
         End Try
         ProgressBar_Percent(0)
         Return sv
@@ -242,12 +241,12 @@ Public Module ScriptApplication
         Dim data() As Byte = Nothing
         Dim sv As New ScriptVariable(CreateVarName(), DataType.Data)
         ProgressBar_Percent(0)
-        mem_device.DisableGuiControls()
+        mem_device.Controls_Disable()
         Try
             data = ReadMemoryVerify(FlashAddress, CUInt(FlashLen), CType(Index, FlashArea))
         Catch ex As Exception
         Finally
-            mem_device.EnableGuiControls()
+            mem_device.Controls_Enable()
             ProgressBar_Percent(0)
         End Try
         If data Is Nothing Then
@@ -288,14 +287,14 @@ Public Module ScriptApplication
         End If
         Dim mem_sector As Int32 = CInt(arguments(0).Value)
         mem_device.EraseSector(mem_sector)
-        Dim target_addr As Long = mem_device.GetSectorBaseAddress(mem_sector)
+        Dim target_addr As Long = mem_device.GetSectorAddress(mem_sector)
         Dim target_area As String = "0x" & Hex(target_addr).PadLeft(8, "0"c) & " to 0x" & Hex(target_addr + mem_device.GetSectorSize(mem_sector) - 1).PadLeft(8, "0"c)
         If mem_device.NoErrors Then
             PrintConsole("Successfully erased sector index: " & mem_sector & " (" & target_area & ")")
         Else
             PrintConsole("Failed to erase sector index: " & mem_sector & " (" & target_area & ")")
         End If
-        mem_device.GuiControl.RefreshView()
+        mem_device.Controls_Refresh()
         mem_device.ReadMode()
         Return Nothing
     End Function
@@ -306,11 +305,11 @@ Public Module ScriptApplication
             Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Memory device not connected"}
         End If
         Try
-            MEM_IF.GetDevice(CInt(Index)).DisableGuiControls()
+            MEM_IF.GetDevice(CInt(Index)).Controls_Disable()
             mem_device.EraseFlash()
         Catch ex As Exception
         Finally
-            MEM_IF.GetDevice(CInt(Index)).EnableGuiControls()
+            MEM_IF.GetDevice(CInt(Index)).Controls_Enable()
         End Try
         Return Nothing
     End Function
@@ -818,10 +817,11 @@ Public Module ScriptApplication
         Dim table_ind As Integer = CInt(arguments(0).Value)
         If arguments.Length = 2 Then use_reserve = CBool(arguments(1).Value)
         Dim sv As New ScriptVariable(CreateVarName(), DataType.UInteger)
+        Utilities.CreateGrayCodeTable()
         If use_reserve Then
-            sv.Value = gray_code_table_reverse(table_ind)
+            sv.Value = Utilities.gray_code_table_reverse(table_ind)
         Else
-            sv.Value = gray_code_table(table_ind)
+            sv.Value = Utilities.gray_code_table(table_ind)
         End If
         Return sv
     End Function
@@ -983,10 +983,10 @@ Public Module ScriptApplication
         Select Case MAIN_FCUSB.HWBOARD
             Case USB.FCUSB_BOARD.Professional_PCB5
                 MAIN_FCUSB.LOGIC_SetVersion(&HFFFFFFFFUI)
-                FCUSBPRO_PCB5_Init(MAIN_FCUSB, MySettings.OPERATION_MODE)
+                Logic.FCUSBPRO_LoadBitstream(MAIN_FCUSB, MySettings.OPERATION_MODE, MySettings.VOLT_SELECT)
             Case USB.FCUSB_BOARD.Mach1
                 MAIN_FCUSB.LOGIC_SetVersion(&HFFFFFFFFUI)
-                FCUSBMACH1_Init(MAIN_FCUSB, MySettings.OPERATION_MODE)
+                Logic.MACH1_Init(MAIN_FCUSB, MySettings.OPERATION_MODE, MySettings.VOLT_SELECT)
             Case Else
                 Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Only available for PRO or MACH1"}
         End Select
@@ -996,18 +996,12 @@ Public Module ScriptApplication
     Friend Function c_load_erase(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Select Case MAIN_FCUSB.HWBOARD
             Case USB.FCUSB_BOARD.Mach1
-                MACH1_FPGA_ERASE(MAIN_FCUSB)
+                Logic.MACH1_EraseLogic(MAIN_FCUSB)
         End Select
         Return Nothing
     End Function
 
     Friend Function c_load_bootloader(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
-        Select Case MAIN_FCUSB.HWBOARD
-            Case USB.FCUSB_BOARD.Professional_PCB5
-            Case USB.FCUSB_BOARD.Mach1
-            Case Else
-                Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Only available for PRO or MACH1"}
-        End Select
         Dim bl_data() As Byte = CType(arguments(0).Value, Byte())
         If bl_data IsNot Nothing AndAlso bl_data.Length > 0 Then
             If MAIN_FCUSB.BootloaderUpdate(bl_data) Then
@@ -1259,15 +1253,15 @@ Public Module ScriptApplication
         Dim endian_mode As String = arguments(0).Value.ToString.ToUpper
         Select Case endian_mode
             Case "MSB"
-                MySettings.BIT_ENDIAN = BitEndianMode.BigEndian32
+                MySettings.BIT_ENDIAN = Utilities.BitEndianMode.BigEndian32
             Case "LSB"
-                MySettings.BIT_ENDIAN = BitEndianMode.LittleEndian32_16bit
+                MySettings.BIT_ENDIAN = Utilities.BitEndianMode.LittleEndian32_16bit
             Case "LSB16"
-                MySettings.BIT_ENDIAN = BitEndianMode.LittleEndian32_16bit
+                MySettings.BIT_ENDIAN = Utilities.BitEndianMode.LittleEndian32_16bit
             Case "LSB8"
-                MySettings.BIT_ENDIAN = BitEndianMode.LittleEndian32_8bit
+                MySettings.BIT_ENDIAN = Utilities.BitEndianMode.LittleEndian32_8bit
             Case Else
-                MySettings.BIT_ENDIAN = BitEndianMode.BigEndian32
+                MySettings.BIT_ENDIAN = Utilities.BitEndianMode.BigEndian32
         End Select
         Return Nothing
     End Function
@@ -1279,45 +1273,16 @@ Public Module ScriptApplication
     End Function
 
     Private Function c_mode(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
-        Dim rv As New ScriptVariable(CreateVarName(), DataType.String)
-        Select Case CURRENT_DEVICE_MODE
-            Case DeviceMode.SPI
-                rv.Value = "SPI"
-            Case DeviceMode.SPI_EEPROM
-                rv.Value = "SPI (EEPROM)"
-            Case DeviceMode.JTAG
-                rv.Value = "JTAG"
-            Case DeviceMode.I2C_EEPROM
-                rv.Value = "I2C"
-            Case DeviceMode.PNOR
-                rv.Value = "Parallel NOR"
-            Case DeviceMode.PNAND
-                rv.Value = "Parallel NAND"
-            Case DeviceMode.ONE_WIRE
-                rv.Value = "1-WIRE"
-            Case DeviceMode.SPI_NAND
-                rv.Value = "SPI-NAND"
-            Case DeviceMode.EPROM
-                rv.Value = "EPROM/OTP"
-            Case DeviceMode.HyperFlash
-                rv.Value = "HyperFlash"
-            Case DeviceMode.Microwire
-                rv.Value = "Microwire"
-            Case DeviceMode.SQI
-                rv.Value = "QUAD SPI"
-            Case DeviceMode.FWH
-                rv.Value = "Firmware HUB"
-            Case Else
-                rv.Value = "Other"
-        End Select
-        Return rv
+        Return New ScriptVariable(CreateVarName(), DataType.String, FlashcatSettings.DeviceModetoString(CURRENT_DEVICE_MODE))
     End Function
 
     Private Function c_refresh(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim count As Integer = MEM_IF.DeviceCount
         For i = 0 To count - 1
             Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(i)
-            mem_device.RefreshControls()
+            mem_device.Controls_Refresh()
+
+
         Next
         Return Nothing
     End Function
@@ -1326,7 +1291,7 @@ Public Module ScriptApplication
     Private Delegate Sub UpdateFunction_Status(msg As String)
 
     'Reads the data from flash and verifies it (returns nothing on error)
-    Private Function ReadMemoryVerify(address As UInt32, data_len As UInt32, index As FlashMemory.FlashArea) As Byte()
+    Private Function ReadMemoryVerify(address As UInt32, data_len As UInt32, index As FlashArea) As Byte()
         Dim cb As New MemoryDeviceInstance.StatusCallback
         cb.UpdatePercent = New UpdateFunction_Progress(AddressOf MainApp.ProgressBar_Percent)
         cb.UpdateTask = New UpdateFunction_Status(AddressOf MainApp.SetStatus)

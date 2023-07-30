@@ -324,7 +324,7 @@ Public Class NAND_Block_Management
                         Dim second_page() As Byte = Nothing
                         Dim last_page() As Byte = Nothing
                         Dim oob_area As Integer = NAND_LAYOUT.Layout_Main 'offset of where the oob starts
-                        Dim markers As Integer = MySettings.NAND_BadBlockMarkers
+                        Dim markers As Integer = MySettings.NAND_BadBlockMode
                         If (markers And BadBlockMarker._1stByte_FirstPage) > 0 Then
                             If first_page Is Nothing Then ReDim first_page(PAGE_SIZE_TOTAL - 1) : Utilities.FillByteArray(first_page, 255)
                             first_page(oob_area) = 0

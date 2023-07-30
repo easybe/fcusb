@@ -141,7 +141,7 @@ Namespace EC_ScriptEngine
             If CurrentScript.LoadFile(Me, script_text, line_err, line_reason) Then
                 Dim td As New Threading.Thread(AddressOf CurrentScript_Execute)
                 td.Name = "fcScript"
-#If Not NET5_0 Then
+#If Not NET6_0 Then
                 td.SetApartmentState(Threading.ApartmentState.STA)
 #End If
                 td.Start()

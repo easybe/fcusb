@@ -28,10 +28,8 @@ Public Class MemoryInterface
         Return MyDevices.ToArray()
     End Function
 
-    Public Function Add(usb_dev As USB.FCUSB_DEVICE, PRG_IF As MemoryDeviceUSB) As MemoryDeviceInstance
-        Dim memDev As New MemoryDeviceInstance(usb_dev, PRG_IF)
-        memDev.Name = PRG_IF.DeviceName
-        memDev.Size = PRG_IF.DeviceSize
+    Public Function Add(usb_dev As USB.FCUSB_DEVICE, PRG_IF As MemoryDeviceUSB, Access As FlashAccess) As MemoryDeviceInstance
+        Dim memDev As New MemoryDeviceInstance(usb_dev, PRG_IF, Access)
         If usb_dev.HWBOARD = USB.FCUSB_BOARD.ATMEL_DFU Then
             memDev.FlashType = MemoryType.DFU_MODE
         Else
@@ -45,27 +43,18 @@ Public Class MemoryInterface
         MyDevices.Remove(device)
     End Sub
 
-    Public Sub RefreshAll()
-        Try
-            For i = 0 To MyDevices.Count - 1
-                MyDevices(i).GuiControl.RefreshView()
-            Next
-        Catch ex As Exception
-        End Try
-    End Sub
-
     Public Function GetDevice(index As Integer) As MemoryDeviceInstance
         If index >= MyDevices.Count Then Return Nothing
         Return MyDevices(index)
     End Function
 
     Public Class MemoryDeviceInstance
-        Public WithEvents GuiControl As MemControl_v2
         Public FCUSB As USB.FCUSB_DEVICE
         Public MEM_IF As MemoryDeviceUSB
         Public DEV_MODE As DeviceMode
-        Public Property Name As String
-        Public Property Size As Long 'Number of bytes of the memory device
+        Public ACCESS As FlashAccess
+        Public ReadOnly Property Name As String 'Name of the flash device (mfg and part number)
+        Public ReadOnly Property Size As Long 'Number of bytes of the memory device
         Public Property BaseAddress As UInt32 = 0 'Only changes for JTAG devices
         Public Property FlashType As MemoryType = MemoryType.UNSPECIFIED
         Public Property [ReadOnly] As Boolean = False 'Set to true to disable write/erase functions
@@ -73,12 +62,14 @@ Public Class MemoryInterface
         Public Property VendorMenu As Object = Nothing 'Control
         Public Property NoErrors As Boolean = False 'Indicates there was a physical error
         Private Property IsErasing As Boolean = False
-        Private Property IsBulkErasing As Boolean = False
+        Public Property IsBulkErasing As Boolean = False
         Private Property IsReading As Boolean = False
         Private Property IsWriting As Boolean = False
         Public Property IsTaskRunning As Boolean = False
-        Public Property SkipBadBlocks As Boolean = True
         Public Property RetryWriteCount As Integer = 0
+        Public Property NAND_SkipBadBlock As Boolean = False
+
+        Public BinarySwap As Utilities.BitSwap = Nothing
 
         Public ReadOnly Property IsBusy As Boolean
             Get
@@ -94,11 +85,37 @@ Public Class MemoryInterface
 
         Private InterfaceLock As New Object
 
-        Sub New(usb_interface As USB.FCUSB_DEVICE, PRG_IF As MemoryDeviceUSB)
-            Me.GuiControl = New MemControl_v2(Me)
+        Sub New(usb_interface As USB.FCUSB_DEVICE, PRG_IF As MemoryDeviceUSB, Access As FlashAccess)
             Me.FCUSB = usb_interface
             Me.MEM_IF = PRG_IF
+            Me.ACCESS = Access
+            Me.Name = PRG_IF.DeviceName
+            Me.Size = PRG_IF.DeviceSize
         End Sub
+
+        Public Sub WriteSuccessful(x As MemControl_v2.XFER_Operation)
+            RaiseEvent WriteOperationSucceded(Me, x)
+        End Sub
+
+
+#Region "GUI Attached Controls"
+        Public Event ControlsDisable(show_cancel As Boolean)
+        Public Event ControlsEnable()
+        Public Event ControlsRefresh()
+
+        Public Sub Controls_Disable(Optional show_cancel As Boolean = False)
+            RaiseEvent ControlsDisable(show_cancel)
+        End Sub
+
+        Public Sub Controls_Enable()
+            RaiseEvent ControlsEnable()
+        End Sub
+
+        Public Sub Controls_Refresh()
+            RaiseEvent ControlsRefresh()
+        End Sub
+
+#End Region
 
         Public Class StatusCallback
             Public UpdateOperation As [Delegate] '(Int) 1=Read,2=Write,3=Verify,4=Erasing,5=Error
@@ -107,113 +124,6 @@ Public Class MemoryInterface
             Public UpdateSpeed As [Delegate] '(String) This is used to update a speed text label
             Public UpdatePercent As [Delegate] '(Integer) This is the percent complete
         End Class
-
-        Friend Sub DisableGuiControls(Optional show_cancel As Boolean = False)
-            If GuiControl IsNot Nothing Then GuiControl.DisableControls(show_cancel)
-        End Sub
-
-        Friend Sub EnableGuiControls()
-            If GuiControl IsNot Nothing Then GuiControl.EnableControls()
-        End Sub
-
-        Friend Sub RefreshControls()
-            If GuiControl IsNot Nothing Then GuiControl.RefreshView()
-        End Sub
-
-#Region "GUICONTROL EVENTS"
-
-        Private Sub OnWriteConsole(msg_out As String) Handles GuiControl.WriteConsole
-            RaiseEvent PrintConsole(msg_out)
-        End Sub
-
-        Private Sub OnSetStatus(status_text As String) Handles GuiControl.SetStatus
-            RaiseEvent SetStatus(status_text)
-        End Sub
-
-        Private Sub OnSuccessfulWrite(mydev As USB.FCUSB_DEVICE, x As MemControl_v2.XFER_Operation) Handles GuiControl.SuccessfulWrite
-            RaiseEvent WriteOperationSucceded(Me, x)
-        End Sub
-
-        Private Sub OnEraseDataRequest() Handles GuiControl.EraseMemory
-            Try
-                Me.EraseFlash()
-                Me.WaitUntilReady()
-            Catch ex As Exception
-            End Try
-        End Sub
-
-        Private Sub OnReadDataRequest(base_addr As Long, ByRef data() As Byte) Handles GuiControl.ReadMemory
-            Try
-                If Me.IsBulkErasing Then
-                    For i = 0 To data.Length - 1
-                        data(i) = 255
-                    Next
-                    Exit Sub
-                End If
-                data = ReadBytes(base_addr, data.Length)
-            Catch ex As Exception
-            End Try
-        End Sub
-
-        Private Sub OnReadStreamRequest(data_stream As IO.Stream, f_params As ReadParameters) Handles GuiControl.ReadStream
-            Try
-                If Me.IsBulkErasing Then
-                    For i As Long = 0 To f_params.Count - 1
-                        data_stream.WriteByte(255)
-                    Next
-                    Exit Sub
-                End If
-                ReadStream(data_stream, f_params)
-            Catch ex As Exception
-            End Try
-        End Sub
-
-        Private Sub OnWriteRequest(addr As Long, data() As Byte, verify_wr As Boolean, ByRef Success As Boolean) Handles GuiControl.WriteMemory
-            Try
-                Success = WriteBytes(addr, data, verify_wr)
-            Catch ex As Exception
-            End Try
-        End Sub
-
-        Private Sub OnWriteStreamRequest(data_stream As IO.Stream, f_params As WriteParameters, ByRef Success As Boolean) Handles GuiControl.WriteStream
-            Try
-                Success = WriteStream(data_stream, f_params)
-                Me.WaitUntilReady()
-            Catch ex As Exception
-            End Try
-        End Sub
-
-        Private Sub OnGetSectorSize(sector_int As Integer, ByRef sector_size As Integer) Handles GuiControl.GetSectorSize
-            sector_size = Me.GetSectorSize(sector_int)
-            If sector_size = 0 Then sector_size = CInt(Me.Size)
-        End Sub
-
-        Private Sub OnGetSectorCount(ByRef count As Integer) Handles GuiControl.GetSectorCount
-            count = Me.GetSectorCount()
-            If count = 0 Then count = 1
-        End Sub
-
-        Private Sub OnGetSectorIndex(addr As Long, ByRef sector_int As Integer) Handles GuiControl.GetSectorIndex
-            sector_int = 0
-            Dim s_count As Integer = GetSectorCount()
-            For i As Integer = 0 To CInt(s_count) - 1
-                Dim sector As SectorInfo = GetSectorInfo(i)
-                If addr >= sector.BaseAddress AndAlso addr < (sector.BaseAddress + sector.Size) Then
-                    sector_int = i
-                    Exit Sub
-                End If
-            Next
-        End Sub
-
-        Private Sub OnGetSectorAddress(sector_int As Integer, ByRef addr As Long) Handles GuiControl.GetSectorBaseAddress
-            addr = GetSectorBaseAddress(sector_int)
-        End Sub
-
-        Private Sub OnGetEccLastResult(ByRef result As Object) Handles GuiControl.GetEccLastResult
-            result = ECC_LAST_RESULT
-        End Sub
-
-#End Region
 
         Private Function WaitForNotBusy() As Boolean
             Dim i As Integer = 0
@@ -479,7 +389,7 @@ Public Class MemoryInterface
                         End If
                     Else
                         If (FlashType = MemoryType.PARALLEL_NAND) OrElse (FlashType = MemoryType.SERIAL_NAND) Then
-                            If MySettings.NAND_SkipBadBlock Then 'Bad block
+                            If Me.NAND_SkipBadBlock Then 'Bad block
                                 If (i = TotalSectors - 1) Then Return False 'No more blocks to write
                                 data_stream.Position -= StreamCount 'We are going to re-write these bytes to the next block
                                 Params.Address += SectorData.Length 'and to this base address
@@ -579,7 +489,7 @@ Public Class MemoryInterface
 
         Private Function GetSectorInfo(sector_index As Integer) As SectorInfo
             Dim si As SectorInfo
-            si.BaseAddress = GetSectorBaseAddress(sector_index)
+            si.BaseAddress = GetSectorAddress(sector_index)
             si.Size = GetSectorSize(sector_index)
             Return si
         End Function
@@ -640,7 +550,7 @@ Public Class MemoryInterface
                                 Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_okay"))
                             End If
                         Else
-                            If FailedAttempts = MySettings.RETRY_WRITE_ATTEMPTS Then
+                            If FailedAttempts = Me.RetryWriteCount Then
                                 If (FlashType = FlashMemory.MemoryType.PARALLEL_NAND) Then
                                     Dim PNAND_IF As PARALLEL_NAND = CType(Me.MEM_IF, PARALLEL_NAND)
                                     Dim n_dev As P_NAND = PNAND_IF.MyFlashDevice
@@ -754,17 +664,19 @@ Public Class MemoryInterface
             If Not WaitForNotBusy() Then Return Nothing
             Try : Me.IsReading = True
                 Dim data_out() As Byte = Nothing
-                Dim offset As Integer = BitSwap_Offset()
                 Dim data_read_count As Integer = Count
                 Dim data_offset As Long = Address
                 Dim align As Integer = 0
-                If (offset > 0) Then align = CInt(Address Mod offset)
-                If (align > 0) Then
-                    data_offset -= align
-                    data_read_count += align
-                    Do Until data_read_count Mod offset = 0
-                        data_read_count += 1
-                    Loop
+                If BinarySwap IsNot Nothing Then
+                    Dim offset As Integer = BinarySwap.BitSwap_Offset()
+                    If (offset > 0) Then align = CInt(Address Mod offset)
+                    If (align > 0) Then
+                        data_offset -= align
+                        data_read_count += align
+                        Do Until data_read_count Mod offset = 0
+                            data_read_count += 1
+                        Loop
+                    End If
                 End If
                 Try : Threading.Monitor.Enter(InterfaceLock)
                     Select Case Me.FlashType
@@ -783,7 +695,7 @@ Public Class MemoryInterface
                     Me.NoErrors = False 'We have a read operation read
                     Return Nothing
                 End If
-                BitSwap_Reverse(data_out)
+                BinarySwap?.BitSwap_Reverse(data_out)
                 If (align > 0) Then
                     Dim processed_data(Count - 1) As Byte
                     Array.Copy(data_out, align, processed_data, 0, processed_data.Length)
@@ -842,7 +754,7 @@ Public Class MemoryInterface
             Try : Threading.Monitor.Enter(InterfaceLock)
                 Dim DataToWrite(Data.Length - 1) As Byte
                 Array.Copy(Data, DataToWrite, Data.Length)
-                BitSwap_Forward(DataToWrite)
+                BinarySwap?.BitSwap_Forward(DataToWrite)
                 If Params IsNot Nothing Then Params.Timer.Start()
                 Select Case Me.FlashType
                     Case MemoryType.JTAG_CFI
@@ -882,7 +794,7 @@ Public Class MemoryInterface
             End Select
         End Function
 
-        Public Function GetSectorBaseAddress(sector_index As Integer) As Long
+        Public Function GetSectorAddress(sector_index As Integer) As Long
             Select Case Me.FlashType
                 Case MemoryType.JTAG_CFI
                     Return FCUSB.JTAG_IF.CFI_FindSectorBase(sector_index)
@@ -893,27 +805,25 @@ Public Class MemoryInterface
             End Select
         End Function
 
+        Public Function GetSectorIndex(memory_address As Long) As Integer
+            Dim s_count As Integer = Me.GetSectorCount()
+            For sector_int As Integer = 0 To CInt(s_count) - 1
+                Dim sector As SectorInfo = Me.GetSectorInfo(sector_int)
+                If memory_address >= sector.BaseAddress AndAlso memory_address < (sector.BaseAddress + sector.Size) Then
+                    Return sector_int
+                End If
+            Next
+            Return 0
+        End Function
+
 #End Region
 
     End Class
-
-    Public Sub DisabledControls(Optional show_cancel As Boolean = False)
-        For Each mem_entry In MyDevices
-            mem_entry.DisableGuiControls(show_cancel)
-        Next
-    End Sub
-
-    Public Sub EnableControls()
-        For Each mem_entry In MyDevices
-            mem_entry.EnableGuiControls()
-        Next
-    End Sub
 
     Public Sub AbortOperations()
         Try
             Dim Counter As Integer = 0
             For Each memdev In MyDevices
-                If memdev.GuiControl IsNot Nothing Then memdev.GuiControl.AbortAnyOperation()
                 Do While memdev.IsBusy
                     Utilities.Sleep(100)
                     Counter += 1

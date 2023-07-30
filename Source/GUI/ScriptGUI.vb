@@ -25,7 +25,7 @@ Module ScriptGUI
 
     Private Function c_tab_create(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim tab_name As String = CStr(arguments(0).Value)
-        GUI.CreateUserTab(" " & tab_name & " ") 'Thread-Safe
+        GUI.MyTabs_CreateUserTab(" " & tab_name & " ") 'Thread-Safe
         Dim CurrentCount As Integer = GUI.GetUserTabCount()
         Dim sv As New ScriptVariable(CreateVarName(), DataType.UInteger)
         sv.Value = CurrentCount - 1
@@ -116,13 +116,13 @@ Module ScriptGUI
     Private Function c_tab_settext(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim ctrl_name As String = CStr(arguments(0).Value)
         Dim new_text As String = CStr(arguments(1).Value)
-        GUI.SetControlText(CInt(Index), ctrl_name, new_text)
+        GUI.MyTabs_SetUserTabControlTxt(CInt(Index), ctrl_name, new_text)
         Return Nothing
     End Function
 
     Private Function c_tab_gettext(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim ctrl_name As String = CStr(arguments(0).Value)
-        Dim result_str As String = GUI.GetControlText(CInt(Index), ctrl_name)
+        Dim result_str As String = GUI.MyTabs_GetUserTabControlText(CInt(Index), ctrl_name)
         Dim sv As New ScriptVariable(CreateVarName(), DataType.String)
         sv.Value = result_str
         Return sv
@@ -155,7 +155,7 @@ Module ScriptGUI
         Dim CurrentCount As Integer = GUI.GetUserTabCount()
         If CurrentCount = 0 Then Exit Sub
         For i As Integer = 0 To CurrentCount - 1
-            Dim uTab As TabPage = GUI.GetUserTab(i)
+            Dim uTab As TabPage = GUI.MyTabs_GetUserTab(i)
             For Each user_control As Control In uTab.Controls
                 If user_control.Name.ToUpper.Equals(ctr_name.ToUpper) Then
                     uTab.Controls.Remove(user_control)

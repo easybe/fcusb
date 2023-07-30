@@ -37,7 +37,7 @@ Public Class ConsoleMode
             Dim os_ver As String = Utilities.PlatformIDToStr(Environment.OSVersion.Platform)
             PrintConsole(RM.GetString("welcome_to_flashcatusb") & ", build: " & FC_BUILD)
             PrintConsole("Copyright " & Date.Now.Year & " - Embedded Computers LLC")
-            PrintConsole("Running on: " & os_ver & " (" & MainApp.GetOsBitsString() & ")")
+            PrintConsole("Running on: " & os_ver & " (" & Utilities.GetOsBitsString() & ")")
             PrintConsole("FlashcatUSB Script Engine build: " & EC_ScriptEngine.Processor.Build)
             If MainApp.LicenseStatus = LicenseStatusEnum.LicensedValid Then
                 Me.PrintConsole("License status: valid (expires " & MainApp.MySettings.LICENSE_EXP.ToShortDateString() & ")")
@@ -50,17 +50,25 @@ Public Class ConsoleMode
                 Console_DisplayHelp()
             Else
                 MyOperation = ConsoleMode_ParseSwitches(Args)
+                If MyOperation Is Nothing Then Exit Sub
                 If MyOperation.Mode = DeviceMode.Unspecified Then
                     MyOperation.Mode = MySettings.OPERATION_MODE
+                    PrintConsole("Device mode not specified, using settings file")
+                    PrintConsole("Mode set to: " & FlashcatSettings.DeviceModetoString(MySettings.OPERATION_MODE))
                 Else
                     MySettings.OPERATION_MODE = MyOperation.Mode
                 End If
                 If MyOperation Is Nothing Then Return
                 If Not ConsoleMode_SetupOperation() Then Exit Sub
-                PrintConsole("Waiting to connect to FlashcatUSB")
+                Dim counter As Integer = 0
                 While Not device_connected
                     If MainApp.AppIsClosing Then Exit Sub
-                    Utilities.Sleep(100)
+                    Utilities.Sleep(50)
+                    counter += 1
+                    If counter = 20 Then 'Wait up to 1 second to see if the device is connected
+                        PrintConsole("FlashcatUSB is not connected")
+                        Exit Sub
+                    End If
                 End While
                 ConsoleMode_RunTask()
             End If
@@ -399,7 +407,7 @@ Public Class ConsoleMode
             PrintConsole("Error: Unable to connect to FlashcatUSB")
             Return
         End If
-        Dim supported_modes = MainApp.GetSupportedModes(MainApp.MAIN_FCUSB)
+        Dim supported_modes = GetSupportedModes(MainApp.MAIN_FCUSB)
         If Array.IndexOf(supported_modes, MyOperation.Mode) = -1 Then
             console_result = ExitValue.Error
             PrintConsole("Hardware does not support the selected MODE")
@@ -409,32 +417,34 @@ Public Class ConsoleMode
             console_result = ExitValue.Error
             Return
         End If
+
+
+
+
         Dim mem_dev As MemoryInterface.MemoryDeviceInstance = MainApp.MEM_IF.GetDevice(0)
         If mem_dev.DEV_MODE = DeviceMode.PNAND Then
             DirectCast(mem_dev.MEM_IF, PARALLEL_NAND).MemoryArea = MyOperation.FLASH_AREA
-            mem_dev.Size = mem_dev.MEM_IF.DeviceSize
+            'mem_dev.Size = mem_dev.MEM_IF.DeviceSize
         ElseIf mem_dev.DEV_MODE = DeviceMode.SPI_NAND Then
             DirectCast(mem_dev.MEM_IF, SPINAND_Programmer).MemoryArea = MyOperation.FLASH_AREA
-            mem_dev.Size = mem_dev.MEM_IF.DeviceSize
+            'mem_dev.Size = mem_dev.MEM_IF.DeviceSize
         End If
+
+
+
         Select Case MyOperation.CurrentTask
             Case ConsoleTask.ReadMemory
                 operation_success = Me.ConsoleMode_RunTask_ReadMemory(mem_dev)
-                Exit Select
             Case ConsoleTask.WriteMemory
                 operation_success = Me.ConsoleMode_RunTask_WriteMemory(mem_dev)
-                Exit Select
             Case ConsoleTask.EraseMemory
                 operation_success = Me.ConsoleMode_RunTask_EraseMemory(mem_dev)
-                Exit Select
             Case ConsoleTask.Compare
                 operation_success = Me.ConsoleMode_RunTask_CompareMemory(mem_dev)
-                Exit Select
             Case ConsoleTask.ExecuteScript
                 operation_success = Me.ConsoleMode_RunTask_ExecuteScript(mem_dev)
-                Exit Select
             Case ConsoleTask.Detect
-                operation_success = True
+                operation_success = Me.ConsoleMode_RunTask_Detect(mem_dev)
         End Select
         PrintConsole("----------------------------------------------")
         PrintConsole("Application completed")
@@ -452,28 +462,36 @@ Public Class ConsoleMode
         End If
     End Sub
 
-    Private Function ConsoleMode_RunTask_ReadMemory(ByVal mem_dev As MemoryInterface.MemoryDeviceInstance) As Boolean
+    Private Function ConsoleMode_RunTask_ReadMemory(mem_dev As MemoryInterface.MemoryDeviceInstance) As Boolean
         Try
+            PrintConsole("Beginning Read Memory Operation")
             Progress_Create()
-            If MyOperation.FLASH_OFFSET > mem_dev.Size Then
+
+            Dim available_size As Long = mem_dev.MEM_IF.DeviceSize
+
+            If MyOperation.FLASH_OFFSET > available_size Then
                 MyOperation.FLASH_OFFSET = 0UI ' Out of bounds
             End If
-            If MyOperation.DATA_LENGTH = 0 Or MyOperation.FLASH_OFFSET + MyOperation.DATA_LENGTH > mem_dev.Size Then
-                MyOperation.DATA_LENGTH = mem_dev.Size - MyOperation.FLASH_OFFSET
+            If MyOperation.DATA_LENGTH = 0 Or MyOperation.FLASH_OFFSET + MyOperation.DATA_LENGTH > available_size Then
+                MyOperation.DATA_LENGTH = available_size - MyOperation.FLASH_OFFSET
             End If
+
             Dim cb = New MemoryInterface.MemoryDeviceInstance.StatusCallback()
             cb.UpdatePercent = New UpdateFunction_Progress(AddressOf Progress_Set)
             cb.UpdateSpeed = New UpdateFunction_SpeedLabel(AddressOf Progress_UpdateSpeed)
+
             Dim f_params = New ReadParameters()
+
             Using ms = MyOperation.FILE_IO.OpenWrite()
                 f_params.Address = MyOperation.FLASH_OFFSET
                 f_params.Count = MyOperation.DATA_LENGTH
                 f_params.Status = cb
                 mem_dev.ReadStream(ms, f_params)
             End Using
+
             PrintConsole(String.Format("Saved data to: {0}", MyOperation.FILE_IO.FullName))
             Return True
-        Catch
+        Catch e As Exception
             Return False
         Finally
             Progress_Remove()
@@ -483,8 +501,9 @@ Public Class ConsoleMode
     Private Function ConsoleMode_RunTask_WriteMemory(mem_dev As MemoryInterface.MemoryDeviceInstance) As Boolean
         Try
             Progress_Create()
-            If MyOperation.FLASH_OFFSET > mem_dev.Size Then MyOperation.FLASH_OFFSET = 0UI ' Out of bounds
-            Dim max_write_count As UInt32 = CUInt(Math.Min(mem_dev.Size, MyOperation.FILE_IO.Length))
+            Dim available_size As Long = mem_dev.MEM_IF.DeviceSize
+            If MyOperation.FLASH_OFFSET > available_size Then MyOperation.FLASH_OFFSET = 0UI ' Out of bounds
+            Dim max_write_count As UInt32 = CUInt(Math.Min(available_size, MyOperation.FILE_IO.Length))
             If MyOperation.DATA_LENGTH = 0 Then
                 MyOperation.DATA_LENGTH = max_write_count
             ElseIf MyOperation.DATA_LENGTH > max_write_count Then
@@ -537,11 +556,12 @@ Public Class ConsoleMode
     Private Function ConsoleMode_RunTask_CompareMemory(mem_dev As MemoryInterface.MemoryDeviceInstance) As Boolean
         Try
             Progress_Create()
-            If MyOperation.FLASH_OFFSET > mem_dev.Size Then
+            Dim available_size As Long = mem_dev.MEM_IF.DeviceSize
+            If MyOperation.FLASH_OFFSET > available_size Then
                 MyOperation.FLASH_OFFSET = 0UI ' Out of bounds
             End If
-            If MyOperation.DATA_LENGTH = 0 OrElse MyOperation.FLASH_OFFSET + MyOperation.DATA_LENGTH > mem_dev.Size Then
-                MyOperation.DATA_LENGTH = mem_dev.Size - MyOperation.FLASH_OFFSET
+            If MyOperation.DATA_LENGTH = 0 OrElse MyOperation.FLASH_OFFSET + MyOperation.DATA_LENGTH > available_size Then
+                MyOperation.DATA_LENGTH = available_size - MyOperation.FLASH_OFFSET
             End If
             If MyOperation.DATA_LENGTH > MyOperation.FILE_IO.Length Then MyOperation.DATA_LENGTH = MyOperation.FILE_IO.Length
             Dim cmp_data() As Byte = Utilities.FileIO.ReadBytes(MyOperation.FILE_IO.FullName, MyOperation.DATA_LENGTH)
@@ -589,16 +609,21 @@ Public Class ConsoleMode
             Return False
         End If
     End Function
+
+    Private Function ConsoleMode_RunTask_Detect(mem_dev As MemoryInterface.MemoryDeviceInstance) As Boolean
+        Return True
+    End Function
+
     ' Frees up memory and exits the application and console io calls
     Private Sub Console_Exit()
-        If MyOperation.LogOutput Then
+        If MyOperation?.LogOutput Then
             If MyOperation.LogAppendFile Then
                 Utilities.FileIO.AppendFile(ConsoleLog.ToArray(), MyOperation.LogFilename)
             Else
                 Utilities.FileIO.WriteFile(ConsoleLog.ToArray(), MyOperation.LogFilename)
             End If
         End If
-        If Not MyOperation.ExitConsole Then
+        If Not MyOperation?.ExitConsole Then
             PrintConsole("----------------------------------------------")
             If Not Console.IsInputRedirected Then
                 PrintConsole("Press any key to close")

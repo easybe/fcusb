@@ -14,7 +14,7 @@ Namespace USB
         Friend Const USB_PID_ATMEGA32U4 As UInt16 = &H2FF4 'FCUSB PCB 2.3
         Friend Const USB_PID_FCUSB_PRO As UInt16 = &H5E0
         Friend Const USB_PID_FCUSB_MACH As UInt16 = &H5E1
-        Friend Const USB_PID_FCUSB As Integer = &H5DE 'Classic
+        Friend Const USB_PID_FCUSB As Integer = &H5DE 'Classic and XPORT
         Friend Const USB_OUT_DELAY As Integer = 5
 
         Friend Function GetDevicePath(device As UsbRegistry) As String
@@ -33,6 +33,19 @@ Namespace USB
             End Try
         End Function
 
+        Public Sub SetDeviceVoltage(usb_dev As FCUSB_DEVICE, TargetVoltage As Voltage)
+            Dim console_message As String
+            If (TargetVoltage = Voltage.V1_8) Then
+                console_message = String.Format(RM.GetString("voltage_set_to"), "1.8V")
+                usb_dev.USB_VCC_ON(Voltage.V1_8)
+            Else
+                console_message = String.Format(RM.GetString("voltage_set_to"), "3.3V")
+                usb_dev.USB_VCC_ON(Voltage.V3_3)
+            End If
+            PrintConsole(console_message)
+            Utilities.Sleep(200)
+        End Sub
+
     End Module
 
     Public Class HostClient
@@ -41,6 +54,7 @@ Namespace USB
 
         Private ConnectedDevices As New List(Of FCUSB_DEVICE) 'Contains all devices that are connected
 
+        Public Property IsRunning As Boolean = False
         Public Property CloseService As Boolean = False
 
         Sub New()
@@ -57,17 +71,22 @@ Namespace USB
         End Sub
 
         Private Sub ConnectionThread()
-            Do While (Not CloseService)
-                CheckConnectedDevices()
-                If Not CloseService Then ConnectToDevices()
-                Thread.Sleep(150)
-            Loop
-            DisconnectAll()
+            Try : Me.IsRunning = True
+                Do While (Not CloseService)
+                    CheckConnectedDevices()
+                    If Not CloseService Then Service_ConnectToDevices()
+                    Thread.Sleep(150)
+                Loop
+                DisconnectAll()
+            Catch ex As Exception
+            Finally
+                Me.IsRunning = False
+            End Try
         End Sub
 
-        Private Sub ConnectToDevices()
+        Private Sub Service_ConnectToDevices()
             Try
-                Dim fcusb_list() As UsbRegistry = FindUsbDevices() 'Returns a list of all FCUSB devices connected
+                Dim fcusb_list() As UsbRegistry = GetUsbDevices() 'Returns a list of all FCUSB devices connected
                 If fcusb_list IsNot Nothing AndAlso fcusb_list.Length > 0 Then
                     For Each this_fcusb In fcusb_list
                         Dim fcusb_path As String = GetDevicePath(this_fcusb)
@@ -161,7 +180,7 @@ Namespace USB
             End Try
         End Function
 
-        Private Function FindUsbDevices() As UsbRegistry()
+        Public Function GetUsbDevices() As UsbRegistry()
             Try
                 Dim devices As New List(Of UsbRegistry)
                 AddDevicesToList(USB_VID_ATMEL, USB_PID_ATMEGA32U2, devices)
@@ -171,7 +190,7 @@ Namespace USB
                 AddDevicesToList(USB_VID_EC, USB_PID_FCUSB_PRO, devices)
                 AddDevicesToList(USB_VID_EC, USB_PID_FCUSB_MACH, devices)
                 If devices.Count = 0 Then Return Nothing
-                Return devices.ToArray
+                Return devices.ToArray()
             Catch ex As Exception
             End Try
             Return Nothing
@@ -192,7 +211,7 @@ Namespace USB
         Public Function GetConnectedPaths() As String()
             Try
                 Dim paths As New List(Of String)
-                Dim cnt_devices() As UsbRegistry = FindUsbDevices()
+                Dim cnt_devices() As UsbRegistry = GetUsbDevices()
                 If cnt_devices IsNot Nothing AndAlso cnt_devices.Count > 0 Then
                     For i = 0 To cnt_devices.Count - 1
                         Dim u As UsbRegistry = cnt_devices(i)
@@ -422,6 +441,8 @@ Namespace USB
 #End Region
 
 #Region "LED, VCC, and ECHO"
+        Public Property CurrentVCC As Voltage = Voltage.OFF
+
         Public Sub USB_LEDOn()
             Try
                 If HWBOARD = FCUSB_BOARD.ATMEL_DFU Then Exit Sub 'Bootloader does not have LED
@@ -463,11 +484,12 @@ Namespace USB
         Public Sub USB_VCC_OFF()
             If (Me.HasLogic()) Then
                 USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
+                Me.CurrentVCC = Voltage.OFF
                 Utilities.Sleep(100)
             End If
         End Sub
 
-        Public Sub USB_VCC_ON(Optional vcc_level As Voltage = Voltage.V3_3)
+        Public Sub USB_VCC_ON(vcc_level As Voltage)
             If (Me.HasLogic()) Then
                 USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
                 Utilities.Sleep(250)
@@ -476,6 +498,7 @@ Namespace USB
                 Else
                     USB_CONTROL_MSG_OUT(USBREQ.LOGIC_3V3)
                 End If
+                Me.CurrentVCC = vcc_level
                 Utilities.Sleep(100)
             End If
         End Sub
@@ -495,6 +518,7 @@ Namespace USB
                     Dim b(3) As Byte
                     If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, b) Then Return False
                     Me.FW_VERSION = Text.Encoding.UTF8.GetString({b(1), Asc("."c), b(2), b(3)})
+
                     If (b(0) = Asc("B")) Then
                         Me.BOOTLOADER = True
                         If (b(1) = Asc("5")) Then 'PCB 5.0
@@ -723,6 +747,8 @@ Namespace USB
         FW_REBOOT = &H97
         TEST_READ = &HA1
         TEST_WRITE = &HA2
+        SMC_WR = &HA3 'This writes data to our SMC BUS (PRO and MACH1)
+        SMC_RD = &HA4 'And read data from SMC BUS
         SWI_DETECT = &HB0
         SWI_READ = &HB1
         SWI_WRITE = &HB2

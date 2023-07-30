@@ -101,6 +101,7 @@
     <Compile Include="CFI.vb" />
     <Compile Include="Configuration.vb" />
     <Compile Include="DetectDevice.vb" />
+    <Compile Include="Firmware.vb" />
     <Compile Include="GUI\ComboBoxPlus.vb">
       <SubType>Component</SubType>
     </Compile>
@@ -112,6 +113,19 @@
     </Compile>
     <Compile Include="ECC.vb" />
     <Compile Include="Enum.vb" />
+    <Compile Include="GUI\FrmRangeForm.Designer.vb">
+      <DependentUpon>FrmRangeForm.vb</DependentUpon>
+    </Compile>
+    <Compile Include="GUI\FrmRangeForm.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="GUI\MemIOControl.Designer.vb">
+      <DependentUpon>MemIOControl.vb</DependentUpon>
+    </Compile>
+    <Compile Include="GUI\MemIOControl.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ProgLogic.vb" />
     <Compile Include="programmers\DFU.vb" />
     <Compile Include="programmers\EPROM.vb" />
     <Compile Include="GUI\FrmECC.Designer.vb">
@@ -128,7 +142,6 @@
     </Compile>
     <Compile Include="programmers\FWH.vb" />
     <Compile Include="FileFormat_IHEX.vb" />
-    <Compile Include="ISC_LOGIC_PROG.vb" />
     <Compile Include="programmers\JTAG_BSR.vb" />
     <Compile Include="programmers\LINK.vb" />
     <Compile Include="programmers\PARALLEL_NAND.vb" />
@@ -289,6 +302,9 @@
     <EmbeddedResource Include="GUI\FrmLicense.resx">
       <DependentUpon>FrmLicense.vb</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="GUI\FrmRangeForm.resx">
+      <DependentUpon>FrmRangeForm.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="GUI\FrmSettings.resx">
       <DependentUpon>FrmSettings.vb</DependentUpon>
     </EmbeddedResource>
@@ -297,6 +313,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="GUI\HexEditor_v2.resx">
       <DependentUpon>HexEditor_v2.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="GUI\MemIOControl.resx">
+      <DependentUpon>MemIOControl.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="languages\chinese.resx">
       <CustomToolNamespace>My.Resources</CustomToolNamespace>

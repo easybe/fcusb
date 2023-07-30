@@ -108,9 +108,8 @@ Partial Class FrmSettings
         Me.cb_spinand_disable_ecc = New System.Windows.Forms.CheckBox()
         Me.cb_mismatch = New System.Windows.Forms.CheckBox()
         Me.cb_preserve = New System.Windows.Forms.CheckBox()
-        Me.TP_NAND2 = New System.Windows.Forms.TabPage()
+        Me.TabECC = New System.Windows.Forms.TabPage()
         Me.gb_nandecc_title = New System.Windows.Forms.GroupBox()
-        Me.Label25 = New System.Windows.Forms.Label()
         Me.cmdEccRemove = New System.Windows.Forms.Button()
         Me.cmdEccAdd = New System.Windows.Forms.Button()
         Me.lbl_ECC_size = New System.Windows.Forms.Label()
@@ -144,14 +143,14 @@ Partial Class FrmSettings
         Me.cb_jtag_tck_speed = New System.Windows.Forms.ComboBox()
         Me.Label22 = New System.Windows.Forms.Label()
         Me.GroupBox3 = New System.Windows.Forms.GroupBox()
+        Me.cb_parallel_eeprom = New System.Windows.Forms.ComboBox()
+        Me.Label26 = New System.Windows.Forms.Label()
         Me.Label16 = New System.Windows.Forms.Label()
         Me.cbSrec = New System.Windows.Forms.ComboBox()
         Me.cb_ce_select = New System.Windows.Forms.ComboBox()
         Me.cb_retry_write = New System.Windows.Forms.ComboBox()
         Me.Label17 = New System.Windows.Forms.Label()
         Me.Label20 = New System.Windows.Forms.Label()
-        Me.cb_parallel_eeprom = New System.Windows.Forms.ComboBox()
-        Me.Label26 = New System.Windows.Forms.Label()
         Me.MyTabs.SuspendLayout()
         Me.TP_SPI.SuspendLayout()
         Me.group_custom.SuspendLayout()
@@ -166,7 +165,7 @@ Partial Class FrmSettings
         CType(Me.nand_box, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.gb_block_manager.SuspendLayout()
         Me.gb_nand_general.SuspendLayout()
-        Me.TP_NAND2.SuspendLayout()
+        Me.TabECC.SuspendLayout()
         Me.gb_nandecc_title.SuspendLayout()
         Me.TP_GEN.SuspendLayout()
         Me.GroupBox9.SuspendLayout()
@@ -183,7 +182,7 @@ Partial Class FrmSettings
         Me.MyTabs.Controls.Add(Me.TP_SPI)
         Me.MyTabs.Controls.Add(Me.TP_I2C)
         Me.MyTabs.Controls.Add(Me.TP_NAND1)
-        Me.MyTabs.Controls.Add(Me.TP_NAND2)
+        Me.MyTabs.Controls.Add(Me.TabECC)
         Me.MyTabs.Controls.Add(Me.TP_GEN)
         Me.MyTabs.Location = New System.Drawing.Point(6, 6)
         Me.MyTabs.Name = "MyTabs"
@@ -1096,20 +1095,19 @@ Partial Class FrmSettings
         Me.cb_preserve.Text = "Preserve memory areas"
         Me.cb_preserve.UseVisualStyleBackColor = True
         '
-        'TP_NAND2
+        'TabECC
         '
-        Me.TP_NAND2.BackColor = System.Drawing.SystemColors.Control
-        Me.TP_NAND2.Controls.Add(Me.gb_nandecc_title)
-        Me.TP_NAND2.Location = New System.Drawing.Point(4, 22)
-        Me.TP_NAND2.Name = "TP_NAND2"
-        Me.TP_NAND2.Padding = New System.Windows.Forms.Padding(3)
-        Me.TP_NAND2.Size = New System.Drawing.Size(524, 328)
-        Me.TP_NAND2.TabIndex = 4
-        Me.TP_NAND2.Text = "  ECC  "
+        Me.TabECC.BackColor = System.Drawing.SystemColors.Control
+        Me.TabECC.Controls.Add(Me.gb_nandecc_title)
+        Me.TabECC.Location = New System.Drawing.Point(4, 22)
+        Me.TabECC.Name = "TabECC"
+        Me.TabECC.Padding = New System.Windows.Forms.Padding(3)
+        Me.TabECC.Size = New System.Drawing.Size(524, 328)
+        Me.TabECC.TabIndex = 4
+        Me.TabECC.Text = "  ECC  "
         '
         'gb_nandecc_title
         '
-        Me.gb_nandecc_title.Controls.Add(Me.Label25)
         Me.gb_nandecc_title.Controls.Add(Me.cmdEccRemove)
         Me.gb_nandecc_title.Controls.Add(Me.cmdEccAdd)
         Me.gb_nandecc_title.Controls.Add(Me.lbl_ECC_size)
@@ -1123,16 +1121,6 @@ Partial Class FrmSettings
         Me.gb_nandecc_title.TabIndex = 1
         Me.gb_nandecc_title.TabStop = False
         Me.gb_nandecc_title.Text = "Software ECC Feature"
-        '
-        'Label25
-        '
-        Me.Label25.AutoSize = True
-        Me.Label25.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.Label25.Location = New System.Drawing.Point(125, 20)
-        Me.Label25.Name = "Label25"
-        Me.Label25.Size = New System.Drawing.Size(341, 13)
-        Me.Label25.TabIndex = 12
-        Me.Label25.Text = "This feature is only available to commercial license holders"
         '
         'cmdEccRemove
         '
@@ -1428,6 +1416,24 @@ Partial Class FrmSettings
         Me.GroupBox3.TabStop = False
         Me.GroupBox3.Text = "General"
         '
+        'cb_parallel_eeprom
+        '
+        Me.cb_parallel_eeprom.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_parallel_eeprom.FormattingEnabled = True
+        Me.cb_parallel_eeprom.Location = New System.Drawing.Point(9, 177)
+        Me.cb_parallel_eeprom.Name = "cb_parallel_eeprom"
+        Me.cb_parallel_eeprom.Size = New System.Drawing.Size(156, 21)
+        Me.cb_parallel_eeprom.TabIndex = 55
+        '
+        'Label26
+        '
+        Me.Label26.AutoSize = True
+        Me.Label26.Location = New System.Drawing.Point(8, 160)
+        Me.Label26.Name = "Label26"
+        Me.Label26.Size = New System.Drawing.Size(125, 13)
+        Me.Label26.TabIndex = 56
+        Me.Label26.Text = "Parallel EEPROM device"
+        '
         'Label16
         '
         Me.Label16.AutoSize = True
@@ -1485,24 +1491,6 @@ Partial Class FrmSettings
         Me.Label20.TabIndex = 46
         Me.Label20.Text = "Multi-chip select (Parallel NOR)"
         '
-        'cb_parallel_eeprom
-        '
-        Me.cb_parallel_eeprom.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cb_parallel_eeprom.FormattingEnabled = True
-        Me.cb_parallel_eeprom.Location = New System.Drawing.Point(9, 177)
-        Me.cb_parallel_eeprom.Name = "cb_parallel_eeprom"
-        Me.cb_parallel_eeprom.Size = New System.Drawing.Size(156, 21)
-        Me.cb_parallel_eeprom.TabIndex = 55
-        '
-        'Label26
-        '
-        Me.Label26.AutoSize = True
-        Me.Label26.Location = New System.Drawing.Point(8, 160)
-        Me.Label26.Name = "Label26"
-        Me.Label26.Size = New System.Drawing.Size(125, 13)
-        Me.Label26.TabIndex = 56
-        Me.Label26.Text = "Parallel EEPROM device"
-        '
         'FrmSettings
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -1540,7 +1528,7 @@ Partial Class FrmSettings
         Me.gb_block_manager.PerformLayout()
         Me.gb_nand_general.ResumeLayout(False)
         Me.gb_nand_general.PerformLayout()
-        Me.TP_NAND2.ResumeLayout(False)
+        Me.TabECC.ResumeLayout(False)
         Me.gb_nandecc_title.ResumeLayout(False)
         Me.gb_nandecc_title.PerformLayout()
         Me.TP_GEN.ResumeLayout(False)
@@ -1631,7 +1619,7 @@ Partial Class FrmSettings
     Friend WithEvents cb_badmarker_6th_page2 As CheckBox
     Friend WithEvents cb_badmarker_6th_page1 As CheckBox
     Friend WithEvents lbl_6th_byte As Label
-    Friend WithEvents TP_NAND2 As TabPage
+    Friend WithEvents TabECC As TabPage
     Friend WithEvents gb_nandecc_title As GroupBox
     Friend WithEvents lbl_nandecc_changes As Label
     Friend WithEvents TP_GEN As TabPage
@@ -1680,7 +1668,6 @@ Partial Class FrmSettings
     Friend WithEvents lbl_ECC_size As Label
     Friend WithEvents cmdEccRemove As Button
     Friend WithEvents cmdEccAdd As Button
-    Friend WithEvents Label25 As Label
     Friend WithEvents rbNandWait_SR As RadioButton
     Friend WithEvents lblNandWait As Label
     Friend WithEvents rbNandWait_RBx As RadioButton

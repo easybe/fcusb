@@ -7,6 +7,9 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
     Public Event PrintConsole(message As String) Implements MemoryDeviceUSB.PrintConsole
     Public Event SetProgress(percent As Integer) Implements MemoryDeviceUSB.SetProgress
 
+    Public Property ORGANIZATION As Integer = 0 '0=8-bit,1=16-bit
+    Public Property DEVICE_SELECT As String = ""
+
     Sub New(parent_if As USB.FCUSB_DEVICE)
         FCUSB = parent_if
     End Sub
@@ -14,10 +17,9 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
         Dim s93_devices() As Device = FlashDatabase.GetFlashDevices(MemoryType.SERIAL_MICROWIRE)
         Me.MICROWIRE_DEVIE = Nothing
-        Dim org_mode As Integer = MySettings.S93_DEVICE_ORG '0=8-bit,1=16-bit
-        If Not MySettings.S93_DEVICE.Equals("") Then
+        If Not Me.DEVICE_SELECT.Equals("") Then
             For Each mem_device In s93_devices
-                If mem_device.NAME.ToUpper.Equals(MySettings.S93_DEVICE.ToUpper) Then
+                If mem_device.NAME.ToUpper.Equals(Me.DEVICE_SELECT.ToUpper) Then
                     Me.MICROWIRE_DEVIE = CType(mem_device, MICROWIRE)
                     Exit For
                 End If
@@ -29,7 +31,7 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
         End If
         Dim addr_bits As UInt32 = 0
         Dim org_str As String
-        If org_mode = 0 Then '8-bit
+        If Me.ORGANIZATION = 0 Then '8-bit
             org_str = "X8"
             addr_bits = Me.MICROWIRE_DEVIE.X8_ADDRSIZE
         Else '16-bit mode
@@ -37,7 +39,7 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
             addr_bits = Me.MICROWIRE_DEVIE.X16_ADDRSIZE
         End If
         RaiseEvent PrintConsole("Microwire device: " & Me.DeviceName & " (" & Me.MICROWIRE_DEVIE.FLASH_SIZE & " bytes) " & org_str & " mode")
-        Dim setup_data As UInt32 = CUInt((addr_bits << 8) Or (org_mode))
+        Dim setup_data As UInt32 = CUInt((addr_bits << 8) Or (Me.ORGANIZATION))
         Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.S93_INIT, Nothing, setup_data)
         Return result
     End Function

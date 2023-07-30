@@ -21,7 +21,11 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
     Public Event PrintConsole(msg As String) Implements MemoryDeviceUSB.PrintConsole
     Public Event SetProgress(percent As Integer) Implements MemoryDeviceUSB.SetProgress
 
-    Public WithEvents BlockManager As NAND_BLOCK_IF
+    Public WithEvents BlockManager As NAND_BLOCK_IF = Nothing
+    Public Property UseRBx As Boolean = True
+    Public Property Clock As NandMemSpeed = NandMemSpeed._10MHz
+    Public Property PreserveAreas As Boolean = True
+    Public Property BadBlockMode As BadBlockMarker = BadBlockMarker.Disabled
 
     Sub New(parent_if As FCUSB_DEVICE)
         FCUSB = parent_if
@@ -52,9 +56,9 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
                 MyFlashDevice_SelectBest(device_matches)
                 RaiseEvent PrintConsole(String.Format(RM.GetString("flash_detected"), MyFlashDevice.NAME, Format(MyFlashDevice.FLASH_SIZE, "#,###")))
                 RaiseEvent PrintConsole(RM.GetString("ext_prog_mode"))
-                Dim page_info As String = String.Format(RM.GetString("ext_page_size"), Strings.Format(MyFlashDevice.PAGE_SIZE, "#,###"), DirectCast(MyFlashDevice, P_NAND).PAGE_EXT)
-                RaiseEvent PrintConsole(page_info)
-                RaiseEvent PrintConsole("Block size: " & Strings.Format((DirectCast(MyFlashDevice, P_NAND).Block_Size), "#,###") & " bytes")
+
+                PrintPageAndBlockInformation()
+
                 If MyFlashDevice.IFACE = VCC_IF.X8_3V Then
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NAND (X8 3.3V)")
                 ElseIf MyFlashDevice.IFACE = VCC_IF.X8_1V8 Then
@@ -85,16 +89,16 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
                     End If
                 End If
                 FCUSB.USB_CONTROL_MSG_OUT(USBREQ.NAND_SETTYPE, Nothing, CUInt(MyFlashDevice.ADDRESS_SCHEME))
-                If Not MySettings.NAND_UseRBx Then
+                If Not Me.UseRBx Then
                     FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_DELAY, Nothing, CUInt(MFP_DELAY.NAND_SR))
                 End If
                 BlockManager = New NAND_BLOCK_IF(MyFlashDevice)
-                If (MySettings.NAND_BadBlockManager = BadBlockMode.Disabled) Then
+                If (Me.BadBlockMode = BadBlockMarker.Disabled) Then
                     RaiseEvent PrintConsole(RM.GetString("nand_block_manager_disabled"))
                 Else
                     SetStatus(RM.GetString("nand_mem_device_detected"))
                     RaiseEvent PrintConsole(RM.GetString("nand_mem_map_loading"))
-                    BlockManager.EnableBlockManager(MySettings.NAND_BadBlockMarkers)
+                    BlockManager.EnableBlockManager(Me.BadBlockMode)
                     Dim TotalBadBlocks As Integer = (MyFlashDevice.BLOCK_COUNT - BlockManager.VALID_BLOCKS)
                     RaiseEvent PrintConsole(String.Format("Total bad blocks: {0}", TotalBadBlocks))
                     RaiseEvent PrintConsole(String.Format(RM.GetString("nand_mem_map_complete"), Format(BlockManager.MAPPED_PAGES, "#,###")))
@@ -128,6 +132,21 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
             Next
         End If
         If MyFlashDevice Is Nothing Then MyFlashDevice = CType(device_matches(0), P_NAND)
+    End Sub
+
+    Private Sub PrintPageAndBlockInformation()
+        Dim page_info As String = "Page Information: {0} total pages; {1} bytes per page; {2} bytes extended size"
+        Dim block_info As String = "Block Information: {0} total blocks; {1} bytes per block"
+
+        Dim page_count = Me.MyFlashDevice.PAGE_COUNT
+        Dim page_count_str = page_count.ToString("#,###")
+        Dim page_size_str = Me.MyFlashDevice.PAGE_SIZE.ToString("#,###")
+        Dim page_ext_str = Me.MyFlashDevice.PAGE_EXT.ToString("#,###")
+        Dim block_count_str = Me.MyFlashDevice.BLOCK_COUNT.ToString("#,###")
+        Dim block_size_str = Me.MyFlashDevice.Block_Size.ToString("#,###")
+
+        RaiseEvent PrintConsole(String.Format(page_info, page_count_str, page_size_str, page_ext_str))
+        RaiseEvent PrintConsole(String.Format(block_info, block_count_str, block_size_str))
     End Sub
 
     Private Function NAND_GetSR() As Byte
@@ -216,11 +235,11 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
             Dim chip_select As UInt32 = 0
             If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
                 If mode = MEM_PROTOCOL.NAND_X16_ASYNC Then
-                    setup_data = (chip_select << 24) Or (CUInt(MySettings.NAND_Speed) << 16) Or CUInt(mode)
-                    RaiseEvent PrintConsole("NAND clock speed set to: " & FlashcatSettings.NandMemSpeedToString(MySettings.NAND_Speed))
+                    setup_data = (chip_select << 24) Or (CUInt(Me.Clock) << 16) Or CUInt(mode)
+                    RaiseEvent PrintConsole("NAND clock speed set to: " & FlashcatSettings.NandMemSpeedToString(Me.Clock))
                 ElseIf mode = MEM_PROTOCOL.NAND_X8_ASYNC Then
-                    setup_data = (chip_select << 24) Or (CUInt(MySettings.NAND_Speed) << 16) Or CUInt(mode)
-                    RaiseEvent PrintConsole("NAND clock speed set to: " & FlashcatSettings.NandMemSpeedToString(MySettings.NAND_Speed))
+                    setup_data = (chip_select << 24) Or (CUInt(Me.Clock) << 16) Or CUInt(mode)
+                    RaiseEvent PrintConsole("NAND clock speed set to: " & FlashcatSettings.NandMemSpeedToString(Me.Clock))
                 End If
             End If
             Dim result As Boolean = FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_INIT, result_data, setup_data)
@@ -323,7 +342,7 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
         Dim page_logical As Integer = CInt(MyFlashDevice.PAGE_COUNT) * sector_index
         Dim page_addr_phy As Integer = Me.BlockManager.GetPhysical(page_logical)
         MEMORY_AREA_ERASED = Nothing
-        If MySettings.NAND_Preserve AndAlso Not Me.MemoryArea = FlashArea.All Then
+        If Me.PreserveAreas AndAlso Not Me.MemoryArea = FlashArea.All Then
             If Me.MemoryArea = FlashArea.Main Then
                 Dim mem_size As Integer = CInt(MyFlashDevice.PAGE_COUNT) * MyFlashDevice.PAGE_EXT
                 MEMORY_AREA_ERASED = PageRead_Physical(page_addr_phy, 0, mem_size, FlashArea.OOB)

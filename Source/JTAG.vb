@@ -470,7 +470,7 @@ Namespace JTAG
 
         Public Sub BoundaryScan_Setup()
             SetupReady = False
-            If MySettings.LICENSED_TO.Equals("") Then
+            If Not LicenseStatus = LicenseStatusEnum.LicensedValid Then
                 PrintConsole("Boundary Scan Library only available with commercial license")
                 SetStatus("Error: commercial license required")
                 Exit Sub

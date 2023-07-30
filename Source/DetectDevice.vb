@@ -63,9 +63,10 @@ Public Module DetectDevice
         PrintConsole("Initializing SPI device mode")
         If Params.SPI_AUTO Then
             PrintConsole(RM.GetString("spi_attempting_detect"))
-            SPI_IF.SPIBUS_Setup(GetMaxSpiClock(MAIN_FCUSB.HWBOARD, SPI_SPEED.MHZ_8))
+            SPI_IF.SPIBUS_Setup(GetMaxSpiClock(MAIN_FCUSB.HWBOARD, SPI_SPEED.MHZ_8), MySettings.SPI_MODE)
             If SPI_IF.DeviceInit() Then
-                SPI_IF.SPIBUS_Setup(GetMaxSpiClock(MAIN_FCUSB.HWBOARD, Params.SPI_CLOCK))
+                SPI_IF.SPIBUS_Setup(GetMaxSpiClock(MAIN_FCUSB.HWBOARD, Params.SPI_CLOCK), MySettings.SPI_MODE)
+                SPI_IF.SPI_FASTREAD = MySettings.SPI_FASTREAD
                 Dim block_size As Integer = 65536
                 If MAIN_FCUSB.HasLogic() Then block_size = 262144
                 Connected_Event(prg_if, block_size)
@@ -127,6 +128,12 @@ Public Module DetectDevice
     Public Function DetectDevice_SPI_NAND(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
         Dim SNAND_IF As SPINAND_Programmer = CType(prg_if, SPINAND_Programmer)
         PrintConsole("Initializing SPI NAND device mode")
+
+        SNAND_IF.MAX_CLOCK = MySettings.SPI_CLOCK_MAX
+        SNAND_IF.BadBlockMode = MySettings.NAND_BadBlockMode
+        SNAND_IF.DisableECC = MySettings.SPI_NAND_DISABLE_ECC
+        SNAND_IF.NAND_Preserve = MySettings.NAND_Preserve
+
         If SNAND_IF.DeviceInit() Then
             Connected_Event(prg_if, 65536)
             PrintConsole(RM.GetString("spi_nand_detected"))
@@ -150,10 +157,9 @@ Public Module DetectDevice
             PrintConsole("ERROR: SPI EEPROM not configured correctly")
             Return False
         End If
-        Dim md As MemoryDeviceInstance = Connected_Event(prg_if, 1024)
-        If (Not SPI_IF.MyFlashDevice.ERASE_REQUIRED) Then
-            md.GuiControl.AllowFullErase = False
-        End If
+        Dim default_access As FlashAccess = FlashAccess.ReadWriteErase
+        If (Not SPI_IF.MyFlashDevice.ERASE_REQUIRED) Then default_access = FlashAccess.ReadWrite
+        Connected_Event(prg_if, 1024, default_access)
         Utilities.Sleep(100) 'Wait for device to be configured
         PrintConsole(RM.GetString("spi_eeprom_cfg"))
         Return True
@@ -163,6 +169,8 @@ Public Module DetectDevice
         Dim I2C_IF As I2C_Programmer = CType(prg_if, I2C_Programmer)
         PrintConsole("Initializing I2C EEPROM device mode")
         I2C_IF.SelectDeviceIndex(Params.I2C_INDEX)
+        I2C_IF.SPEED = MySettings.I2C_SPEED
+        I2C_IF.ADDRESS = MySettings.I2C_ADDRESS
         If Not I2C_IF.DeviceInit() Then Return False
         MainApp.PrintConsole(RM.GetString("i2c_attempt_detect"))
         MainApp.PrintConsole(String.Format(RM.GetString("i2c_addr_byte"), Hex(Params.I2C_ADDRESS)))
@@ -187,9 +195,10 @@ Public Module DetectDevice
 
     Public Function DetectDevice_ONE_WIRE(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
         PrintConsole("Initializing 1-Wire device mode")
-        If prg_if.DeviceInit() Then
-            Dim mi As MemoryDeviceInstance = Connected_Event(prg_if, 128)
-            mi.GuiControl.AllowFullErase = False
+        Dim SWI_PROG As SWI_Programmer = CType(prg_if, SWI_Programmer)
+        SWI_PROG.ADDRESS = MySettings.SWI_ADDRESS
+        If SWI_PROG.DeviceInit() Then
+            Dim mi As MemoryDeviceInstance = Connected_Event(prg_if, 128, FlashAccess.ReadWrite)
             mi.VendorMenu = New vendor_microchip_at21(MAIN_FCUSB)
             Return True
         Else
@@ -200,7 +209,10 @@ Public Module DetectDevice
 
     Public Function DetectDevice_Microwire(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
         PrintConsole("Initializing Microwire device mode")
-        If prg_if.DeviceInit() Then
+        Dim MICRO_PROG As Microwire_Programmer = CType(prg_if, Microwire_Programmer)
+        MICRO_PROG.ORGANIZATION = MySettings.S93_DEVICE_ORG
+        MICRO_PROG.DEVICE_SELECT = MySettings.S93_DEVICE
+        If MICRO_PROG.DeviceInit() Then
             MainApp.Connected_Event(prg_if, 256)
             Return True
         Else
@@ -213,15 +225,18 @@ Public Module DetectDevice
         Dim PNOR_IF As PARALLEL_NOR = CType(prg_if, PARALLEL_NOR)
         PrintConsole("Initializing Parallel NOR device mode")
         Utilities.Sleep(150) 'Wait for IO board vcc to charge
+        PNOR_IF.MULTI_CE = MySettings.MULTI_CE
         PNOR_IF.DeviceInit()
         Select Case PNOR_IF.MyFlashStatus
             Case DeviceStatus.Supported
                 PrintConsole(RM.GetString("mem_flash_supported"), True) '"Flash device successfully detected and ready for operation"
+                Dim default_access As FlashAccess = FlashAccess.ReadWriteErase
+                If Not PNOR_IF.ERASE_ALLOWED Then default_access = FlashAccess.ReadWrite
                 If MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
-                    Connected_Event(prg_if, 262144)
+                    Connected_Event(prg_if, 262144, default_access)
                     PNOR_IF.EXPIO_SetTiming(Params.NOR_READ_ACCESS, Params.NOR_WE_PULSE)
                 Else
-                    Connected_Event(prg_if, 16384)
+                    Connected_Event(prg_if, 16384, default_access)
                 End If
                 Return True
             Case DeviceStatus.NotSupported
@@ -240,6 +255,10 @@ Public Module DetectDevice
         Dim PNAND_IF As PARALLEL_NAND = CType(prg_if, PARALLEL_NAND)
         PrintConsole("Initializing Parallel NAND device mode")
         Utilities.Sleep(150) 'Wait for IO board vcc to charge
+        PNAND_IF.BadBlockMode = MySettings.NAND_BadBlockMode
+        PNAND_IF.UseRBx = MySettings.NAND_UseRBx
+        PNAND_IF.Clock = MySettings.NAND_Speed
+        PNAND_IF.PreserveAreas = MySettings.NAND_Preserve
         PNAND_IF.DeviceInit()
         Select Case PNAND_IF.MyFlashStatus
             Case DeviceStatus.Supported
@@ -327,8 +346,7 @@ Public Module DetectDevice
     Public Function DetectDevice_EPROM(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
         PrintConsole("Initializing EPROM/OTP device mode")
         If prg_if.DeviceInit() Then
-            Dim mi As MemoryDeviceInstance = Connected_Event(prg_if, 16384)
-            mi.GuiControl.AllowFullErase = False
+            Connected_Event(prg_if, 16384, FlashAccess.ReadWriteOnce)
             Return True
         Else
             PrintConsole("EPROM device not detected", True)

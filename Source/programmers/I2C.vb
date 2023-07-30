@@ -9,6 +9,9 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
     Public I2C_EEPROM_LIST As List(Of I2C_DEVICE)
     Private MyFlashDevice As I2C_DEVICE = Nothing
 
+    Public Property SPEED As I2C_SPEED_MODE = I2C_SPEED_MODE._400kHz
+    Public Property ADDRESS As Byte = &HA0
+
     Sub New(parent_if As USB.FCUSB_DEVICE)
         FCUSB = parent_if
         I2C_EEPROM_LIST = New List(Of I2C_DEVICE)
@@ -35,7 +38,7 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
     Public Sub SelectDeviceIndex(ic2_eeprom_name As String)
         Me.MyFlashDevice = Nothing
         For Each i2c_device In I2C_EEPROM_LIST
-            If i2c_device.Name.ToUpper.Equals(ic2_eeprom_name.ToUpper) Then
+            If i2c_device.NAME.ToUpper.Equals(ic2_eeprom_name.ToUpper) Then
                 Me.MyFlashDevice = i2c_device
                 Exit Sub
             End If
@@ -44,7 +47,7 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
 
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
         If MyFlashDevice Is Nothing Then Return False
-        Dim cd_value As UInt16 = (CUShort(MySettings.I2C_SPEED) << 8) Or (MySettings.I2C_ADDRESS) '02A0
+        Dim cd_value As UInt16 = (CUShort(Me.SPEED) << 8) Or (Me.ADDRESS) '02A0
         Dim cd_index As UInt16 = (CUShort(MyFlashDevice.AddressSize) << 8) Or (MyFlashDevice.PAGE_SIZE) 'addr size, page size   '0220
         Dim config_data As UInt32 = (CUInt(cd_value) << 16) Or cd_index
         Dim detect_result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.I2C_INIT, Nothing, config_data)

@@ -6,6 +6,8 @@ Public Class FrmSettings
     Private otp_devices As New List(Of FlashMemory.OTP_EPROM)
     Private one_mhz As UInt32 = 1000000
 
+    Public Property ECC_FEATURE_ENABLED As Boolean = False
+
     Sub New()
         ' This call is required by the designer.
         InitializeComponent()
@@ -45,28 +47,27 @@ Public Class FrmSettings
         CustomDevice_LoadSettings()
         cb_preserve.Checked = MySettings.NAND_Preserve
         cb_mismatch.Checked = MySettings.NAND_SkipBadBlock
-        Dim markers As Integer = MySettings.NAND_BadBlockMarkers
-        If (markers And BadBlockMarker._1stByte_FirstPage) > 0 Then
-            cb_badmarker_1st_page1.Checked = True
+        If MySettings.NAND_BadBlockMode = BadBlockMarker.Disabled Then
+            cb_badblock_disabled.Checked = True
+        Else
+            cb_badblock_enabled.Checked = True
+            Dim markers As Integer = MySettings.NAND_BadBlockMode
+            If (markers And BadBlockMarker._1stByte_FirstPage) > 0 Then
+                cb_badmarker_1st_page1.Checked = True
+            End If
+            If (markers And BadBlockMarker._1stByte_SecondPage) > 0 Then
+                cb_badmarker_1st_page2.Checked = True
+            End If
+            If (markers And BadBlockMarker._1stByte_LastPage) > 0 Then
+                cb_badmarker_1st_lastpage.Checked = True
+            End If
+            If (markers And BadBlockMarker._6thByte_FirstPage) > 0 Then
+                cb_badmarker_6th_page1.Checked = True
+            End If
+            If (markers And BadBlockMarker._6thByte_SecondPage) > 0 Then
+                cb_badmarker_6th_page2.Checked = True
+            End If
         End If
-        If (markers And BadBlockMarker._1stByte_SecondPage) > 0 Then
-            cb_badmarker_1st_page2.Checked = True
-        End If
-        If (markers And BadBlockMarker._1stByte_LastPage) > 0 Then
-            cb_badmarker_1st_lastpage.Checked = True
-        End If
-        If (markers And BadBlockMarker._6thByte_FirstPage) > 0 Then
-            cb_badmarker_6th_page1.Checked = True
-        End If
-        If (markers And BadBlockMarker._6thByte_SecondPage) > 0 Then
-            cb_badmarker_6th_page2.Checked = True
-        End If
-        Select Case MySettings.NAND_BadBlockManager
-            Case BadBlockMode.Disabled
-                cb_badblock_disabled.Checked = True
-            Case BadBlockMode.Enabled
-                cb_badblock_enabled.Checked = True
-        End Select
         Select Case MySettings.NAND_Layout
             Case NandMemLayout.Separated
                 rb_mainspare_default.Checked = True
@@ -82,26 +83,6 @@ Public Class FrmSettings
         SetupSerialEEPROM()
         SetupParallelEEPROM()
         Setup_I2C_SWI_tab()
-        If MAIN_FCUSB Is Nothing Then
-            rb_speed_100khz.Enabled = False
-            rb_speed_1mhz.Enabled = False
-            rb_speed_400khz.Checked = True
-            rb_read_op.Enabled = False
-            rb_fastread_op.Enabled = False
-            rb_read_op.Checked = True
-        Else
-            If Not MAIN_FCUSB.IS_CONNECTED Then
-            ElseIf MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
-            ElseIf MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
-            Else
-                rb_speed_100khz.Enabled = False
-                rb_speed_1mhz.Enabled = False
-                rb_speed_400khz.Checked = True
-                rb_read_op.Enabled = False
-                rb_fastread_op.Enabled = False
-                rb_read_op.Checked = True
-            End If
-        End If
         cb_spinand_disable_ecc.Checked = MySettings.SPI_NAND_DISABLE_ECC
         cb_nand_image_readverify.Checked = MySettings.NAND_Verify
         ECC_Feature_Load()
@@ -127,10 +108,11 @@ Public Class FrmSettings
                 Exit For
             End If
         Next
-        If LicenseStatus = LicenseStatusEnum.LicensedValid Then
+        If Me.ECC_FEATURE_ENABLED Then
             gb_nandecc_title.Enabled = True
         Else
             gb_nandecc_title.Enabled = False
+            MyTabs.TabPages.Remove(TabECC)
         End If
     End Sub
 
@@ -255,26 +237,24 @@ Public Class FrmSettings
         MySettings.NAND_Preserve = cb_preserve.Checked
         MySettings.NAND_SkipBadBlock = cb_mismatch.Checked
         If cb_badblock_disabled.Checked Then
-            MySettings.NAND_BadBlockManager = BadBlockMode.Disabled
-        End If
-        If cb_badblock_enabled.Checked Then
-            MySettings.NAND_BadBlockManager = BadBlockMode.Enabled
-        End If
-        MySettings.NAND_BadBlockMarkers = 0
-        If cb_badmarker_1st_page1.Checked Then
-            MySettings.NAND_BadBlockMarkers = MySettings.NAND_BadBlockMarkers Or (BadBlockMarker._1stByte_FirstPage)
-        End If
-        If cb_badmarker_1st_page2.Checked Then
-            MySettings.NAND_BadBlockMarkers = MySettings.NAND_BadBlockMarkers Or (BadBlockMarker._1stByte_SecondPage)
-        End If
-        If cb_badmarker_1st_lastpage.Checked Then
-            MySettings.NAND_BadBlockMarkers = MySettings.NAND_BadBlockMarkers Or (BadBlockMarker._1stByte_LastPage)
-        End If
-        If cb_badmarker_6th_page1.Checked Then
-            MySettings.NAND_BadBlockMarkers = MySettings.NAND_BadBlockMarkers Or (BadBlockMarker._6thByte_FirstPage)
-        End If
-        If cb_badmarker_6th_page2.Checked Then
-            MySettings.NAND_BadBlockMarkers = MySettings.NAND_BadBlockMarkers Or (BadBlockMarker._6thByte_SecondPage)
+            MySettings.NAND_BadBlockMode = BadBlockMarker.Disabled
+        Else
+            MySettings.NAND_BadBlockMode = 0
+            If cb_badmarker_1st_page1.Checked Then
+                MySettings.NAND_BadBlockMode = MySettings.NAND_BadBlockMode Or (BadBlockMarker._1stByte_FirstPage)
+            End If
+            If cb_badmarker_1st_page2.Checked Then
+                MySettings.NAND_BadBlockMode = MySettings.NAND_BadBlockMode Or (BadBlockMarker._1stByte_SecondPage)
+            End If
+            If cb_badmarker_1st_lastpage.Checked Then
+                MySettings.NAND_BadBlockMode = MySettings.NAND_BadBlockMode Or (BadBlockMarker._1stByte_LastPage)
+            End If
+            If cb_badmarker_6th_page1.Checked Then
+                MySettings.NAND_BadBlockMode = MySettings.NAND_BadBlockMode Or (BadBlockMarker._6thByte_FirstPage)
+            End If
+            If cb_badmarker_6th_page2.Checked Then
+                MySettings.NAND_BadBlockMode = MySettings.NAND_BadBlockMode Or (BadBlockMarker._6thByte_SecondPage)
+            End If
         End If
         If rb_mainspare_default.Checked Then
             MySettings.NAND_Layout = NandMemLayout.Separated
@@ -989,7 +969,6 @@ Public Class FrmSettings
             e.Handled = True
         End If
     End Sub
-
 
 #End Region
 

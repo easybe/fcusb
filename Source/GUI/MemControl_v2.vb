@@ -3,46 +3,61 @@
 'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 
+Imports FlashcatUSB.FlashMemory
+Imports FlashcatUSB.MemoryInterface
+
 Public Class MemControl_v2
-
-    Private MemDevice As MemoryInterface.MemoryDeviceInstance
-    Private AreaSelected As FlashMemory.FlashArea = FlashMemory.FlashArea.Main
-    Private FCUSB As USB.FCUSB_DEVICE
-    Private MemInterface As MemoryDeviceUSB
-
-    Private FlashName As String 'Contains the MFG and PART NUMBER
-    Private FlashAvailable As Long  'The total bytes available for the hex editor
+    Private MemDevice As MemoryDeviceInstance
+    Private AreaSelected As FlashArea = FlashArea.Main
+    Private FlashAvailable As Long 'Changes for some devices
     Private FlashBase As Long 'Offset if this device is not at 0x0
     Private HexLock As New Object 'Used to lock the gui
-    Private EnableChipErase As Boolean = True 'EEPROM devices do not allow this
+    Private HexEditorEnabled As Boolean = True 'We can show or not show the hex editor
 
     Public LAST_WRITE_OPERATION As XFER_Operation = Nothing
+    Public IN_OPERATION As Boolean = False
+    Public USER_HIT_CANCEL As Boolean = False
 
     Public Event WriteConsole(msg As String) 'Writes the console/windows console
     Public Event SetStatus(msg As String) 'Sets the text on the status bar
-    Public Event ReadMemory(base_addr As Long, ByRef data() As Byte) 'We want to get data from the normal memory area
-    Public Event ReadStream(data_stream As IO.Stream, f_params As ReadParameters)
-    Public Event WriteMemory(base_addr As Long, data() As Byte, verify_wr As Boolean, ByRef Successful As Boolean) 'Write data to the normal area
-    Public Event WriteStream(data_stream As IO.Stream, f_params As WriteParameters, ByRef Successful As Boolean)
-    Public Event GetSectorCount(ByRef count As Integer)
-    Public Event GetSectorIndex(addr As Long, ByRef sector_int As Integer)
-    Public Event GetSectorBaseAddress(sector_int As Integer, ByRef addr As Long)
-    Public Event GetSectorSize(sector_int As Integer, ByRef sector_size As Integer)
-    Public Event EraseMemory()
-    Public Event SuccessfulWrite(mydev As USB.FCUSB_DEVICE, x As XFER_Operation)
-    Public Event GetEccLastResult(ByRef result As Object)
 
-    Public Property IN_OPERATION As Boolean = False
-    Public Property USER_HIT_CANCEL As Boolean = False
-    Public Property MY_ACCESS As access_mode = access_mode.ReadWrite
+    Public Property SREC_DATAMODE As SREC.RECORD_DATAWIDTH
+    Public Property VERIFY_WRITE As Boolean = False
+    Public Property ShowHexEditor As Boolean
+        Get
+            Return HexEditorEnabled
+        End Get
+        Set(value As Boolean)
+            HexEditorEnabled = value
+            If HexEditorEnabled Then
+                HexEditor64.Visible = True
+                txtAddress.Visible = True
+                IO_Control.AllowEdit = True
+                Me.Height = HexEditor64.Bottom + 18
+            Else
+                HexEditor64.Visible = False
+                txtAddress.Visible = False
+                IO_Control.AllowEdit = False
+                Me.Height = pbar.Bottom + 18
+            End If
+        End Set
+    End Property
+
+    Public Overrides Property Text As String
+        Get
+            Return gb_flash.Text
+        End Get
+        Set(value As String)
+            gb_flash.Text = value
+        End Set
+    End Property
 
     Public ReadingParams As ReadParameters
     Public WritingParams As WriteParameters
 
     Public StatusLabels(4) As ToolStripStatusLabel 'This contains our status labels
 
-    Sub New(dev As MemoryInterface.MemoryDeviceInstance)
-        Me.MemDevice = dev
+    Sub New()
         ' This call is required by the designer.
         InitializeComponent()
 
@@ -50,20 +65,14 @@ Public Class MemControl_v2
     End Sub
 
     Private Sub MemControl_v2_Load(sender As Object, e As EventArgs) Handles Me.Load
-        Me.menu_tip.SetToolTip(Me.cmd_read, RM.GetString("mc_button_read"))
-        Me.menu_tip.SetToolTip(Me.cmd_write, RM.GetString("mc_button_write"))
-        Me.menu_tip.SetToolTip(Me.cmd_erase, RM.GetString("mc_button_erase"))
-        Me.menu_tip.SetToolTip(Me.cmd_compare, RM.GetString("mc_button_compare"))
-        StatusBar_Create()
-        SetProgress(0)
-        cmd_cancel.Visible = False
+        Try
+            StatusBar_Create()
+            SetProgress(0)
+        Catch ex As Exception
+        End Try
     End Sub
 
 #Region "Status Bar"
-    Private Delegate Sub cbStatusBar_Index(ind As Integer)
-    Private Delegate Sub cbStatusBar_Address(ind As Long)
-    Private Delegate Sub cbStatusBar_String(value As String)
-    Private Delegate Sub cbStatusBar_Percent(value As Integer)
 
     Private Sub StatusBar_Create()
         StatusLabels(0) = New ToolStripStatusLabel 'Img
@@ -102,13 +111,11 @@ Public Class MemControl_v2
         StatusLabels(4).TextAlign = ContentAlignment.MiddleLeft
         StatusLabels(4).Width = 40
         StatusLabels(4).AutoSize = False
-
     End Sub
 
     Public Sub StatusBar_ImgIndex(ind As Integer)
         If Me.InvokeRequired Then
-            Dim d As New cbStatusBar_Index(AddressOf StatusBar_ImgIndex)
-            Me.Invoke(d, {ind})
+            Me.Invoke(Sub() StatusBar_ImgIndex(ind))
         Else
             Select Case ind
                 Case 0 'None
@@ -131,8 +138,7 @@ Public Class MemControl_v2
     Public Sub StatusBar_SetTextBaseAddress(mem_addr As Long)
         Try
             If Me.InvokeRequired Then
-                Dim d As New cbStatusBar_Address(AddressOf StatusBar_SetTextBaseAddress)
-                Me.Invoke(d, {mem_addr})
+                Me.Invoke(Sub() StatusBar_SetTextBaseAddress(mem_addr))
             Else
                 StatusLabels(1).Text = "0x" & Hex(mem_addr.ToString).PadLeft(8, "0"c)
                 Application.DoEvents()
@@ -143,8 +149,7 @@ Public Class MemControl_v2
 
     Public Sub StatusBar_SetTextTask(current_task As String)
         If Me.InvokeRequired Then
-            Dim d As New cbStatusBar_String(AddressOf StatusBar_SetTextTask)
-            Me.Invoke(d, {current_task})
+            Me.Invoke(Sub() StatusBar_SetTextTask(current_task))
         Else
             Static last_update As DateTime = DateTime.Now
             Static thead_count As Integer = 0
@@ -166,8 +171,7 @@ Public Class MemControl_v2
     Public Sub StatusBar_SetTextSpeed(speed_str As String)
         Try
             If Me.InvokeRequired Then
-                Dim d As New cbStatusBar_String(AddressOf StatusBar_SetTextSpeed)
-                Me.Invoke(d, {speed_str})
+                Me.Invoke(Sub() StatusBar_SetTextSpeed(speed_str))
             Else
                 StatusLabels(3).Text = speed_str
                 Application.DoEvents()
@@ -179,8 +183,7 @@ Public Class MemControl_v2
     Public Sub StatusBar_SetPercent(value As Integer)
         Try
             If Me.InvokeRequired Then
-                Dim d As New cbStatusBar_Percent(AddressOf StatusBar_SetPercent)
-                Me.Invoke(d, {value})
+                Me.Invoke(Sub() StatusBar_SetPercent(value))
             Else
                 StatusLabels(4).Text = (value & "%").PadLeft(4, " "c)
                 Application.DoEvents()
@@ -200,224 +203,109 @@ Public Class MemControl_v2
     End Class
 
     'Call this to setup this control
-    Public Sub InitMemoryDevice(usb_dev As USB.FCUSB_DEVICE, mem_if As MemoryDeviceUSB, access As access_mode, Optional mem_base As UInt32 = 0)
-        Me.FCUSB = usb_dev
-        Me.MemInterface = mem_if
-        Me.FlashName = MemDevice.Name
+    Public Sub InitMemoryDevice(mem_dev As MemoryDeviceInstance, Optional mem_base As UInt32 = 0)
+        Me.MemDevice = mem_dev
         Me.FlashAvailable = MemDevice.Size
         Me.FlashBase = mem_base 'Only used for devices that share the same memory base (i.e JTAG)
-        pb_ecc.Visible = False
-        cmd_area.Visible = False
-        gb_flash.Text = Me.FlashName
+        IO_Control.SREC_DATAWIDTH = Me.SREC_DATAMODE
+        IO_Control.InitialDirectory = DefaultLocation
+        IO_Control.FlashBase = mem_base
+        IO_Control.FlashName = mem_dev.MEM_IF.DeviceName
+        IO_Control.FlashAvailable = mem_dev.MEM_IF.DeviceSize
+        IO_Control.EccStatus(False)
+        IO_Control.MemAreaVisible(False)
+        Me.Text = mem_dev.MEM_IF.DeviceName
         SetProgress(0)
         HexEditor64.CreateHexViewer(Me.FlashBase, Me.FlashAvailable)
         txtAddress.Text = "0x0"
-        Select Case access
-            Case access_mode.Read
-                cmd_erase.Enabled = False
-                cmd_write.Enabled = False
-            Case access_mode.ReadWriteErase
-                cmd_erase.Enabled = True
-                cmd_write.Enabled = True
-            Case access_mode.ReadWriteOnce
-                cmd_erase.Enabled = False
-                cmd_write.Enabled = True
-            Case access_mode.ReadWrite
-                cmd_erase.Enabled = False
-                cmd_write.Enabled = True
+        Select Case mem_dev.ACCESS
+            Case FlashAccess.Read
+                IO_Control.EraseButton(False)
+                IO_Control.WriteButton(False)
+            Case FlashAccess.ReadWriteErase
+                IO_Control.EraseButton(True)
+                IO_Control.WriteButton(True)
+            Case FlashAccess.ReadWriteOnce
+                IO_Control.EraseButton(False)
+                IO_Control.WriteButton(True)
+            Case FlashAccess.ReadWrite
+                IO_Control.EraseButton(False)
+                IO_Control.WriteButton(True)
         End Select
-        Me.MY_ACCESS = access
+
+        AddHandler mem_dev.MEM_IF.SetProgress, AddressOf SetProgress
+        AddHandler mem_dev.ControlsDisable, AddressOf DisableControls
+        AddHandler mem_dev.ControlsEnable, AddressOf EnableControls
+        AddHandler mem_dev.ControlsRefresh, AddressOf RefreshView
+
         RefreshView()
     End Sub
 
-    Public Enum access_mode
-        Read 'We can read but can not write
-        ReadWriteErase 'We can read, write, and perform a full erase
-        ReadWriteOnce 'We can read but can only write once
-        ReadWrite 'We can read and write
-    End Enum
+    Public Sub UninitMemoryDevice()
+        Me.MemDevice = Nothing
+        IO_Control.MemAreaVisible(False)
+        Me.FlashAvailable = 0
+        Me.FlashBase = 0
+        Me.RefreshView()
+    End Sub
 
-    Friend Class DynamicRangeBox
-        Private BaseTxt As New TextBox
-        Private LenTxt As New TextBox
-        'Allows you to click and move the form around
-        Private MouseDownOnForm As Boolean = False
-        Private ClickPoint As Point
-        Private CurrentBase As Long
-        Private CurrentSize As Long
-        Private CurrentMax As Long
+    Public Function GetLastDirectory() As String
+        Return IO_Control.LastDirectory
+    End Function
 
-        Sub New()
 
-        End Sub
+#Region "IO Control Handlers"
 
-        Public Function ShowRangeBox(ByRef BaseAddress As Long, ByRef Size As Long, MaxData As Long) As Boolean
-            If Size > MaxData Then Size = MaxData
-            Dim InputSelectionForm As New Form With {.Width = 172, .Height = 80}
-            InputSelectionForm.FormBorderStyle = FormBorderStyle.FixedToolWindow
-            InputSelectionForm.ShowInTaskbar = False
-            InputSelectionForm.ShowIcon = False
-            InputSelectionForm.ControlBox = False
-            Dim BtnOK As New Button With {.Text = RM.GetString("mc_button_ok"), .Width = 60, .Height = 20, .Left = 90, .Top = 50}
-            Dim BtnCAN As New Button With {.Text = RM.GetString("mc_button_cancel"), .Width = 60, .Height = 20, .Left = 20, .Top = 50}
-            Dim Lbl1 As New Label With {.Text = RM.GetString("mc_rngbox_base"), .Left = 10, .Top = 5}
-            Dim Lbl2 As New Label With {.Text = RM.GetString("mc_rngbox_len"), .Left = 105, .Top = 5}
-            BaseTxt = New TextBox With {.Text = "0x" & Hex(BaseAddress), .Width = 70, .Top = 20, .Left = 10}
-            LenTxt = New TextBox With {.Text = Size.ToString, .Width = 70, .Top = 20, .Left = 90}
-            InputSelectionForm.Controls.Add(BtnOK)
-            InputSelectionForm.Controls.Add(BtnCAN)
-            InputSelectionForm.Controls.Add(BaseTxt)
-            InputSelectionForm.Controls.Add(LenTxt)
-            InputSelectionForm.Controls.Add(Lbl2)
-            InputSelectionForm.Controls.Add(Lbl1)
-            AddHandler BtnCAN.Click, AddressOf Dyn_CancelClick
-            AddHandler BtnOK.Click, AddressOf Dyn_OkClick
-            AddHandler InputSelectionForm.MouseDown, AddressOf Dyn_MouseDown
-            AddHandler InputSelectionForm.MouseUp, AddressOf Dyn_MouseUp
-            AddHandler InputSelectionForm.MouseMove, AddressOf Dyn_MouseMove
-            AddHandler Lbl2.MouseDown, AddressOf Dyn_MouseDown
-            AddHandler Lbl2.MouseUp, AddressOf Dyn_MouseUp
-            AddHandler Lbl2.MouseMove, AddressOf DynLabel_MouseMove
-            AddHandler Lbl1.MouseDown, AddressOf Dyn_MouseDown
-            AddHandler Lbl1.MouseUp, AddressOf Dyn_MouseUp
-            AddHandler Lbl1.MouseMove, AddressOf DynLabel_MouseMove
-            AddHandler InputSelectionForm.Load, AddressOf DynForm_Load
-            AddHandler LenTxt.KeyDown, AddressOf DynForm_Keydown
-            AddHandler LenTxt.LostFocus, AddressOf DynFormLength_LostFocus
-            AddHandler BaseTxt.KeyDown, AddressOf DynForm_Keydown
-            AddHandler BaseTxt.LostFocus, AddressOf DynFormBase_LostFocus
-            BtnOK.Select()
-            CurrentBase = BaseAddress
-            CurrentSize = Size
-            CurrentMax = MaxData
-            If InputSelectionForm.ShowDialog() = DialogResult.OK Then
-                BaseAddress = CurrentBase
-                Size = CurrentSize
-                Return True
-            Else
-                Return False
-            End If
-        End Function
+    Private Sub IOControl_WriteConsole(msg As String) Handles IO_Control.WriteConsole
+        RaiseEvent WriteConsole(msg)
+    End Sub
 
-        Private Sub DynFormLength_LostFocus(sender As Object, e As EventArgs)
-            Dim t As TextBox = DirectCast(sender, TextBox)
-            Try
-                If IsNumeric(t.Text) Then
-                    CurrentSize = CLng(t.Text)
-                ElseIf Utilities.IsDataType.HexString(t.Text) AndAlso t.Text.Length < 9 Then
-                    CurrentSize = Utilities.HexToLng(t.Text)
-                End If
-            Finally
-                If CurrentSize > CurrentMax Then CurrentSize = CurrentMax
-                If CurrentSize < 1 Then CurrentSize = 1
-            End Try
-            t.Text = CurrentSize.ToString()
-            If CurrentBase + CurrentSize > CurrentMax Then
-                CurrentBase = CurrentMax - CurrentSize
-                BaseTxt.Text = "0x" & Hex(CurrentBase)
-            End If
-        End Sub
+    Private Sub IOControl_SetStatus(msg As String) Handles IO_Control.SetStatus
+        RaiseEvent SetStatus(msg)
+    End Sub
 
-        Private Sub DynFormBase_LostFocus(sender As Object, e As EventArgs)
-            Dim t As TextBox = DirectCast(sender, TextBox)
-            Try
-                If IsNumeric(t.Text) AndAlso (CLng(t.Text) < (CurrentMax + 1)) Then
-                    CurrentBase = CLng(t.Text)
-                ElseIf Utilities.IsDataType.HexString(t.Text) Then
-                    CurrentBase = Utilities.HexToLng(t.Text)
-                End If
-            Finally
-                If CurrentBase > (CurrentMax + 1) Then CurrentBase = CurrentMax - 1
-            End Try
-            t.Text = "0x" & Hex(CurrentBase)
-            If CurrentBase + CurrentSize > CurrentMax Then
-                CurrentSize = CurrentMax - CurrentBase
-                LenTxt.Text = CurrentSize.ToString
-            End If
-        End Sub
+    Private Sub IOControl_AbortOperation() Handles IO_Control.AbortOperation
+        AbortAnyOperation()
+    End Sub
 
-        Private Sub DynForm_Keydown(sender As Object, e As KeyEventArgs)
-            If e.KeyCode = 13 Then 'Enter pressed
-                Dim Btn As TextBox = CType(sender, TextBox)
-                Dim SendFrm As Form = Btn.FindForm
-                SendFrm.DialogResult = DialogResult.OK
-            End If
-        End Sub
-        'Always centers the dynamic input form on top of the original form
-        Private Sub DynForm_Load(sender As Object, e As EventArgs)
-            Dim frm As Form = CType(sender, Form)
-            frm.Top = CInt(GUI.Top + ((GUI.Height / 2) - (frm.Height / 2)))
-            frm.Left = CInt(GUI.Left + ((GUI.Width / 2) - (frm.Width / 2)))
-        End Sub
-        'Handles the dynamic form for a click
-        Private Sub Dyn_OkClick(sender As Object, e As EventArgs)
-            Dim Btn As Button = CType(sender, Button)
-            Dim SendFrm As Form = Btn.FindForm
-            SendFrm.DialogResult = DialogResult.OK
-        End Sub
+    Private Sub IOControl_ReadOperation(rd As XFER_Operation) Handles IO_Control.ReadOperation
+        Dim t As New Threading.Thread(AddressOf ReadMemoryThread)
+        t.Start(rd)
+        GetFocus()
+    End Sub
 
-        Private Sub Dyn_CancelClick(sender As Object, e As EventArgs)
-            Dim Btn As Button = CType(sender, Button)
-            Dim SendFrm As Form = Btn.FindForm
-            SendFrm.DialogResult = DialogResult.Cancel
-        End Sub
+    Private Sub IOControl_WriteOperation(wr As XFER_Operation) Handles IO_Control.WriteOperation
+        PerformWriteOperation(wr)
+    End Sub
 
-        Private Sub Dyn_MouseDown(sender As Object, e As MouseEventArgs)
-            MouseDownOnForm = True
-            ClickPoint = New Point(Cursor.Position.X, Cursor.Position.Y)
-        End Sub
+    Private Sub IOControl_EraseOperation() Handles IO_Control.EraseOperation
+        Dim t As New Threading.Thread(AddressOf EraseFlashTd)
+        t.Name = "mem.eraseFlash"
+        t.Start()
+        GetFocus()
+    End Sub
 
-        Private Sub Dyn_MouseUp(sender As Object, e As MouseEventArgs)
-            MouseDownOnForm = False
-        End Sub
+    Private Sub IOControl_CompareOperation(vr As CompareParams) Handles IO_Control.CompareOperation
+        Dim td As New Threading.Thread(AddressOf CompareFlashTd)
+        td.Start(vr)
+        GetFocus()
+    End Sub
 
-        Private Sub Dyn_MouseMove(sender As Object, e As MouseEventArgs)
-            If MouseDownOnForm Then
-                Dim newPoint As New Point(Cursor.Position.X, Cursor.Position.Y)
-                Dim ThisForm As Form = CType(sender, Form)
-                ThisForm.Top = ThisForm.Top + (newPoint.Y - ClickPoint.Y)
-                ThisForm.Left = ThisForm.Left + (newPoint.X - ClickPoint.X)
-                ClickPoint = newPoint
-            End If
-        End Sub
-        'Hanldes the move if a label is being dragged
-        Private Sub DynLabel_MouseMove(sender As Object, e As MouseEventArgs)
-            If MouseDownOnForm Then
-                Dim newPoint As New Point(Cursor.Position.X, Cursor.Position.Y)
-                Dim Btn As Label = CType(sender, Label)
-                Dim Form1 As Form = Btn.FindForm
-                Form1.Top = Form1.Top + (newPoint.Y - ClickPoint.Y)
-                Form1.Left = Form1.Left + (newPoint.X - ClickPoint.X)
-                ClickPoint = newPoint
-            End If
-        End Sub
-
-    End Class
-
-    Public Sub DisableWrite()
-        If Me.InvokeRequired Then
-            Dim d As New cbInvokeControl(AddressOf DisableWrite)
-            d.Invoke()
+    Private Sub IOControl_EditModeToggle(is_checked As Boolean) Handles IO_Control.EditModeToggle
+        If is_checked Then
+            HexEditor64.EDIT_MODE = True
         Else
-            cmd_write.Enabled = False
+            If HexEditor64.HexEdit_Changes.Count > 0 Then
+                If MsgBox("Save changes and write data to Flash?", vbYesNo, "Confirm data write operation") = vbYes Then
+                    Dim t As New Threading.Thread(AddressOf WriteChangesMadeInEditMode)
+                    t.Name = "tdWriteEditChanges"
+                    t.Start()
+                End If
+            End If
+            HexEditor64.EDIT_MODE = False
         End If
     End Sub
 
-    Public Sub DisableErase()
-        If Me.InvokeRequired Then
-            Dim d As New cbInvokeControl(AddressOf DisableErase)
-            d.Invoke()
-        Else
-            cmd_erase.Enabled = False
-        End If
-    End Sub
-
-#Region "Delegates"
-    Private Delegate Sub cbSetProgress(value As Integer)
-    Private Delegate Sub cbInvokeControl()
-    Private Delegate Sub cbAddressUpdate(Address As Long)
-    Private Delegate Sub cbControls()
-    Private Delegate Sub cbDisableControls(show_cancel As Boolean)
 #End Region
 
 #Region "Status Bar Hooks"
@@ -460,7 +348,7 @@ Public Class MemControl_v2
 
 #Region "Extended Page Support"
     Private Delegate Sub cbAddExtendedArea(page_count As Integer, page_size As UInt16, ext_size As UInt16, pages_per_block As Integer)
-    Private Delegate Sub cbSetSelectedArea(area As FlashMemory.FlashArea)
+    Private Delegate Sub cbSetSelectedArea(area As FlashArea)
 
     Private Property EXTAREA_PAGECOUNT As Integer  'Total number of pages
     Private Property EXTAREA_BLOCK_PAGES As Integer 'Number of pages in a block/sector
@@ -468,6 +356,24 @@ Public Class MemControl_v2
     Private Property EXTAREA_EXT_PAGE As UInt16 'Number of bytes per page in the oob area
     Private Property HAS_EXTAREA As Boolean = False 'Indicates we have split memory (main/spare)
 
+    'Sets up the memory control for devices with main/extended areas
+    Public Sub SetupExtendedLayout()
+        If Me.MemDevice.MEM_IF.GetType() Is GetType(SPINAND_Programmer) Then
+            Dim SNAND_IF As SPINAND_Programmer = CType(Me.MemDevice.MEM_IF, SPINAND_Programmer)
+            Dim NandDevice As SPI_NAND = SNAND_IF.MyFlashDevice
+            Dim pages_per_block As Integer = (NandDevice.Block_Size \ NandDevice.PAGE_SIZE)
+            Dim available_pages As Integer = SNAND_IF.BlockManager.MAPPED_PAGES
+            Me.FlashAvailable = SNAND_IF.DeviceSize
+            Me.AddExtendedArea(available_pages, NandDevice.PAGE_SIZE, NandDevice.PAGE_EXT, pages_per_block)
+        ElseIf Me.MemDevice.MEM_IF.GetType() Is GetType(PARALLEL_NAND) Then
+            Dim PNAND_IF As PARALLEL_NAND = CType(Me.MemDevice.MEM_IF, PARALLEL_NAND)
+            Dim NandDevice As P_NAND = PNAND_IF.MyFlashDevice
+            Dim pages_per_block As Integer = (NandDevice.Block_Size \ NandDevice.PAGE_SIZE)
+            Dim available_pages As Integer = PNAND_IF.BlockManager.MAPPED_PAGES
+            Me.FlashAvailable = PNAND_IF.DeviceSize
+            Me.AddExtendedArea(available_pages, NandDevice.PAGE_SIZE, NandDevice.PAGE_EXT, pages_per_block)
+        End If
+    End Sub
     'This setups the editor to use a Flash with an extended area (such as spare data)
     Private Sub AddExtendedArea(page_count As Integer, page_size As UInt16, ext_size As UInt16, pages_per_block As Integer)
         If Me.InvokeRequired Then
@@ -479,64 +385,51 @@ Public Class MemControl_v2
             Me.EXTAREA_MAIN_PAGE = page_size 'i.e. 2048
             Me.EXTAREA_EXT_PAGE = ext_size
             Me.HAS_EXTAREA = True
-            cmd_area.Visible = True
-            SetSelectedArea(FlashMemory.FlashArea.Main)
+            IO_Control.MemAreaVisible(True)
+            SetSelectedArea(FlashArea.Main)
             Me.RefreshView()
         End If
     End Sub
 
-    Private Sub SetSelectedArea(area As FlashMemory.FlashArea)
+    Private Sub SetSelectedArea(area As FlashArea)
         If Me.InvokeRequired Then
             Dim d As New cbSetSelectedArea(AddressOf SetSelectedArea)
             Me.Invoke(d, area)
         Else
             Me.AreaSelected = area
-            pb_ecc.Visible = False
+            IO_Control.EccStatus(False)
+            IO_Control.MemoryArea = area
             If Me.HAS_EXTAREA Then
-                If Me.MemInterface.GetType() Is GetType(PARALLEL_NAND) Then
-                    Dim PNAND_IF As PARALLEL_NAND = CType(Me.MemInterface, PARALLEL_NAND)
+                If Me.MemDevice.MEM_IF.GetType() Is GetType(PARALLEL_NAND) Then
+                    Dim PNAND_IF As PARALLEL_NAND = CType(Me.MemDevice.MEM_IF, PARALLEL_NAND)
                     PNAND_IF.MemoryArea = area
                     Me.FlashAvailable = PNAND_IF.DeviceSize
-                ElseIf Me.MemInterface.GetType() Is GetType(SPINAND_Programmer) Then
-                    Dim SNAND_IF As SPINAND_Programmer = CType(Me.MemInterface, SPINAND_Programmer)
+                ElseIf Me.MemDevice.MEM_IF.GetType() Is GetType(SPINAND_Programmer) Then
+                    Dim SNAND_IF As SPINAND_Programmer = CType(Me.MemDevice.MEM_IF, SPINAND_Programmer)
                     SNAND_IF.MemoryArea = area
                     Me.FlashAvailable = SNAND_IF.DeviceSize
                 End If
-                Select Case area
-                    Case FlashMemory.FlashArea.Main
-                        cmd_area.Text = RM.GetString("mc_button_main")
-                        UpdateEccResultImg()
-                    Case FlashMemory.FlashArea.OOB
-                        cmd_area.Text = RM.GetString("mc_button_spare")
-                    Case FlashMemory.FlashArea.All
-                        cmd_area.Text = RM.GetString("mc_button_all")
-                End Select
             End If
+            IO_Control.FlashAvailable = Me.FlashAvailable
             HexEditor64.CreateHexViewer(Me.FlashBase, Me.FlashAvailable)
             txtAddress.Text = "0x0"
             RefreshView()
         End If
     End Sub
-    'Sets up the memory control for devices with main/extended areas
-    Public Sub SetupLayout()
-        Me.AreaSelected = FlashMemory.FlashArea.Main 'Lets always default to the main area
-        If Me.MemInterface.GetType() Is GetType(SPINAND_Programmer) Then
-            Dim SNAND_IF As SPINAND_Programmer = CType(Me.MemInterface, SPINAND_Programmer)
-            Dim NandDevice As FlashMemory.SPI_NAND = SNAND_IF.MyFlashDevice
-            Dim pages_per_block As Integer = (NandDevice.Block_Size \ NandDevice.PAGE_SIZE)
-            Dim available_pages As Integer = SNAND_IF.BlockManager.MAPPED_PAGES
-            Me.FlashAvailable = SNAND_IF.DeviceSize
-            Me.MemDevice.Size = Me.FlashAvailable
-            Me.AddExtendedArea(available_pages, NandDevice.PAGE_SIZE, NandDevice.PAGE_EXT, pages_per_block)
-        ElseIf Me.MemInterface.GetType() Is GetType(PARALLEL_NAND) Then
-            Dim PNAND_IF As PARALLEL_NAND = CType(Me.MemInterface, PARALLEL_NAND)
-            Dim NandDevice As FlashMemory.P_NAND = PNAND_IF.MyFlashDevice
-            Dim pages_per_block As Integer = (NandDevice.Block_Size \ NandDevice.PAGE_SIZE)
-            Dim available_pages As Integer = PNAND_IF.BlockManager.MAPPED_PAGES
-            Me.FlashAvailable = PNAND_IF.DeviceSize
-            Me.MemDevice.Size = Me.FlashAvailable
-            Me.AddExtendedArea(available_pages, NandDevice.PAGE_SIZE, NandDevice.PAGE_EXT, pages_per_block)
-        End If
+
+    Private Sub SelectedArea_Changed(new_area As FlashArea) Handles IO_Control.MemoryAreaChanged
+        Dim top_addr As Long = HexEditor64.TopAddress
+        Dim new_addr As Long
+        SetSelectedArea(new_area)
+        Select Case new_area
+            Case FlashArea.Main
+                new_addr = (top_addr \ (Me.EXTAREA_MAIN_PAGE + Me.EXTAREA_EXT_PAGE)) * Me.EXTAREA_MAIN_PAGE
+            Case FlashArea.OOB
+                new_addr = (top_addr \ Me.EXTAREA_MAIN_PAGE) * Me.EXTAREA_EXT_PAGE
+            Case FlashArea.All
+                new_addr = (top_addr \ Me.EXTAREA_EXT_PAGE) * (Me.EXTAREA_MAIN_PAGE + Me.EXTAREA_EXT_PAGE)
+        End Select
+        HexEditor64.GotoAddress(new_addr)
     End Sub
 
     Private Sub ReadingMem_Status_Start(ByRef Params As ReadParameters)
@@ -564,38 +457,18 @@ Public Class MemControl_v2
         End Try
     End Sub
 
-    Private Sub cmd_area_Click(sender As Object, e As EventArgs) Handles cmd_area.Click
-        Select Case Me.AreaSelected
-            Case FlashMemory.FlashArea.Main
-                Dim top_addr As Long = HexEditor64.TopAddress
-                SetSelectedArea(FlashMemory.FlashArea.OOB)
-                Dim new_addr As Long = (top_addr \ Me.EXTAREA_MAIN_PAGE) * Me.EXTAREA_EXT_PAGE
-                HexEditor64.GotoAddress(new_addr)
-            Case FlashMemory.FlashArea.OOB
-                Dim top_addr As Long = HexEditor64.TopAddress
-                SetSelectedArea(FlashMemory.FlashArea.All)
-                Dim new_addr As Long = (top_addr \ Me.EXTAREA_EXT_PAGE) * (Me.EXTAREA_MAIN_PAGE + Me.EXTAREA_EXT_PAGE)
-                HexEditor64.GotoAddress(new_addr)
-            Case FlashMemory.FlashArea.All
-                Dim top_addr As Long = HexEditor64.TopAddress
-                SetSelectedArea(FlashMemory.FlashArea.Main)
-                Dim new_addr As Long = (top_addr \ (Me.EXTAREA_MAIN_PAGE + Me.EXTAREA_EXT_PAGE)) * Me.EXTAREA_MAIN_PAGE
-                HexEditor64.GotoAddress(new_addr)
-        End Select
-    End Sub
-
 #End Region
 
     Private Sub UpdateEccResultImg()
         If NAND_ECC IsNot Nothing AndAlso Me.AreaSelected = FlashMemory.FlashArea.Main Then
-            pb_ecc.Visible = True
+            IO_Control.EccStatus(True)
             Dim return_obj As Object = Nothing
-            RaiseEvent GetEccLastResult(return_obj)
+            return_obj = ECC_LAST_RESULT
             Dim result As ECC_LIB.ECC_DECODE_RESULT = DirectCast(return_obj, ECC_LIB.ECC_DECODE_RESULT)
             If result = ECC_LIB.ECC_DECODE_RESULT.NoErrors Then
-                pb_ecc.Image = My.Resources.ecc_valid
+                IO_Control.EccImage(My.Resources.ecc_valid)
             Else
-                pb_ecc.Image = My.Resources.ecc_blue
+                IO_Control.EccImage(My.Resources.ecc_blue)
             End If
         End If
     End Sub
@@ -612,8 +485,7 @@ Public Class MemControl_v2
     Public Sub SetProgress(Percent As Integer)
         Try
             If Me.InvokeRequired Then
-                Dim d As New cbSetProgress(AddressOf SetProgress)
-                Me.Invoke(d, New Object() {Percent})
+                Me.Invoke(Sub() SetProgress(Percent))
             Else
                 If (Percent > 100) Then Percent = 100
                 pbar.Value = Percent
@@ -622,96 +494,52 @@ Public Class MemControl_v2
         End Try
     End Sub
 
-    Public Property AllowFullErase As Boolean
-        Get
-            Return EnableChipErase
-        End Get
-        Set(value As Boolean)
-            EnableChipErase = value
-            SetChipEraseButton()
-        End Set
-    End Property
-
-    Private Sub SetChipEraseButton()
-        If Me.InvokeRequired Then
-            Dim d As New cbControls(AddressOf SetChipEraseButton)
-            Me.Invoke(d)
-        Else
-            If Me.EnableChipErase Then
-                If Me.MY_ACCESS = access_mode.ReadWriteErase Then cmd_erase.Enabled = True
-            Else
-                cmd_erase.Enabled = False
-            End If
-        End If
-    End Sub
-
     Public Sub EnableControls()
-        If Me.InvokeRequired Then
-            Dim d As New cbControls(AddressOf EnableControls)
-            Me.Invoke(d)
-        Else
-            cmd_read.Enabled = True
-            If Me.MY_ACCESS = access_mode.ReadWriteErase Then
-                cmd_write.Enabled = True
-            ElseIf Me.MY_ACCESS = access_mode.ReadWriteOnce Then
-                cmd_write.Enabled = True
-            ElseIf Me.MY_ACCESS = access_mode.ReadWrite Then
-                cmd_write.Enabled = True
-            End If
-            SetChipEraseButton()
-            cmd_compare.Enabled = True
-            cmd_edit.Enabled = True
-            HexEditor64.EDIT_MODE = cmd_edit.Checked
-            cmd_read.Visible = True
-            cmd_write.Visible = True
-            cmd_erase.Visible = True
-            cmd_edit.Visible = True
-            cmd_compare.Visible = True
-            cmd_area.Enabled = True
-            cmd_cancel.Visible = False
-            Me.USER_HIT_CANCEL = False
-        End If
+        IO_Control.CancelButton(False)
+        IO_Control.ReadButton(True)
+        IO_Control.CompareButton(True)
+        IO_Control.EditButton(True)
+        IO_Control.MemAreaButton(True)
+        Select Case Me.MemDevice.ACCESS
+            Case FlashAccess.Read
+            Case FlashAccess.ReadWriteErase
+                IO_Control.WriteButton(True)
+                IO_Control.EraseButton(True)
+            Case FlashAccess.ReadWriteOnce
+                IO_Control.WriteButton(True)
+                IO_Control.EraseButton(False)
+            Case FlashAccess.ReadWrite
+                IO_Control.WriteButton(True)
+                IO_Control.EraseButton(False)
+        End Select
+        HexEditor64.EDIT_MODE = IO_Control.GetEditButtonStatus()
+        HexEditor_Enabled(True)
+        Me.USER_HIT_CANCEL = False
     End Sub
     'We want to disable read/write/erase controls
     Public Sub DisableControls(show_cancel As Boolean)
-        If Me.InvokeRequired Then
-            Dim d As New cbDisableControls(AddressOf DisableControls)
-            Me.Invoke(d, {show_cancel})
-        Else
-            HexEditor64.EDIT_MODE = False
-            cmd_read.Enabled = False
-            cmd_write.Enabled = False
-            cmd_erase.Enabled = False
-            cmd_compare.Enabled = False
-            cmd_area.Enabled = False
-            cmd_edit.Enabled = False
-            If show_cancel Then
-                cmd_cancel.Visible = True
-                cmd_cancel.Enabled = True
-                cmd_read.Visible = False
-                cmd_write.Visible = False
-                cmd_erase.Visible = False
-                cmd_edit.Visible = False
-                cmd_compare.Visible = False
-            Else
-                cmd_cancel.Visible = False
-                cmd_cancel.Enabled = False
-                cmd_read.Visible = True
-                cmd_write.Visible = True
-                cmd_erase.Visible = True
-                cmd_edit.Visible = True
-                cmd_compare.Visible = True
-            End If
-            HexEditor64.Focus()
-        End If
+        HexEditor64.EDIT_MODE = False
+        IO_Control.Buttons(False)
+        IO_Control.CancelButton(show_cancel)
+        HexEditor_Enabled(False)
+        GetFocus()
     End Sub
 
     Public Sub GetFocus()
         If Me.InvokeRequired Then
-            Dim d As New cbControls(AddressOf GetFocus)
-            Me.Invoke(d)
+            Me.Invoke(Sub() GetFocus())
         Else
+            Application.DoEvents()
             HexEditor64.Focus()
+        End If
+    End Sub
+
+    Private Sub HexEditor_Enabled(is_enabled As Boolean)
+        If Me.InvokeRequired Then
+            Me.Invoke(Sub() HexEditor_Enabled(is_enabled))
+        Else
+            txtAddress.Enabled = is_enabled
+            HexEditor64.Enabled = is_enabled
         End If
     End Sub
 
@@ -719,8 +547,7 @@ Public Class MemControl_v2
 
     Private Sub AddressUpdate(Address As Long) Handles HexEditor64.AddressUpdate
         If txtAddress.InvokeRequired Then
-            Dim d As New cbAddressUpdate(AddressOf AddressUpdate)
-            Me.Invoke(d, New Object() {Address})
+            Me.Invoke(Sub() AddressUpdate(Address))
         Else
             txtAddress.Text = "0x" & Hex(Address).ToUpper
             txtAddress.SelectionStart = txtAddress.Text.Length
@@ -774,7 +601,7 @@ Public Class MemControl_v2
             editor_reader.Address = address
             editor_reader.Count = data_buffer.Length
             Using m As New IO.MemoryStream()
-                RaiseEvent ReadStream(m, editor_reader)
+                ReadStream(m, editor_reader)
                 data_buffer = m.GetBuffer
                 ReDim Preserve data_buffer(data_buffer.Length - 1)
             End Using
@@ -784,107 +611,12 @@ Public Class MemControl_v2
         End Try
     End Sub
 
-    Private Function CreateFileForRead(DefaultName As String, ByRef file As IO.FileInfo, ByRef file_type As FileFilterIndex) As Boolean
-        Try
-            Dim SaveMe As New SaveFileDialog
-            SaveMe.AddExtension = True
-            SaveMe.InitialDirectory = DefaultLocation
-            SaveMe.Title = RM.GetString("mc_io_save_type")
-            SaveMe.CheckPathExists = True
-            SaveMe.FileName = DefaultName.Replace("/", "-")
-            Dim BinFile As String = "Binary Files (*.bin)|*.bin"
-            Dim IntelHexFormat As String = "Intel Hex Format (*.hex)|*.hex"
-            Dim SrecFormat As String = "S-REC Format (*.srec)|*.srec"
-            Dim AllFiles As String = "All files (*.*)|*.*"
-            SaveMe.Filter = BinFile & "|" & IntelHexFormat & "|" & SrecFormat & "|" & AllFiles
-            If SaveMe.ShowDialog = DialogResult.OK Then
-                file = New IO.FileInfo(SaveMe.FileName)
-                If file.Exists Then file.Delete()
-                Select Case SaveMe.FilterIndex
-                    Case 1
-                        file_type = FileFilterIndex.Binary
-                    Case 2
-                        file_type = FileFilterIndex.IntelHex
-                    Case 3
-                        file_type = FileFilterIndex.SRecord
-                    Case 4
-                        file_type = FileFilterIndex.Binary
-                End Select
-                Return True
-            End If
-        Catch ex As Exception
-        End Try
-        Return False
-    End Function
-
-    Private Function OpenFileForWrite(ByRef file As IO.FileInfo, ByRef file_type As FileFilterIndex) As Boolean
-        Dim BinFile As String = "Binary Files (*.bin)|*.bin"
-        Dim IntelHexFormat As String = "Intel Hex Format (*.hex)|*.hex"
-        Dim SrecFormat As String = "S-REC Format (*.srec)|*.srec"
-        Dim AllFiles As String = "All files (*.*)|*.*"
-        Dim OpenMe As New OpenFileDialog
-        OpenMe.AddExtension = True
-        OpenMe.InitialDirectory = DefaultLocation
-        OpenMe.Title = String.Format(RM.GetString("mc_io_file_choose"), FlashName)
-        OpenMe.CheckPathExists = True
-        OpenMe.Filter = BinFile & "|" & IntelHexFormat & "|" & SrecFormat & "|" & AllFiles 'Bin Files, Hex Files, SREC, All Files
-        If OpenMe.ShowDialog = DialogResult.OK Then
-            file = New IO.FileInfo(OpenMe.FileName)
-            Select Case OpenMe.FilterIndex
-                Case 1
-                    file_type = FileFilterIndex.Binary
-                Case 2
-                    file_type = FileFilterIndex.IntelHex
-                Case 3
-                    file_type = FileFilterIndex.SRecord
-                Case 4
-                    file_type = FileFilterIndex.Binary
-            End Select
-            RaiseEvent SetStatus(String.Format(RM.GetString("mc_io_file_writing"), FlashName))
-            Return True
-        Else
-            RaiseEvent SetStatus(String.Format(RM.GetString("mc_io_file_cancel_to"), FlashName))
-            Return False
-        End If
-    End Function
-
-    Private Function OpenFileForCompare(ByRef file As IO.FileInfo, ByRef file_type As FileFilterIndex) As Boolean
-        Dim BinFile As String = "Binary Files (*.bin)|*.bin"
-        Dim IntelHexFormat As String = "Intel Hex Format (*.hex)|*.hex"
-        Dim SrecFormat As String = "S-REC Format (*.srec)|*.srec"
-        Dim AllFiles As String = "All files (*.*)|*.*"
-        Dim OpenMe As New OpenFileDialog
-        OpenMe.AddExtension = True
-        OpenMe.InitialDirectory = DefaultLocation
-        OpenMe.Title = String.Format(RM.GetString("mc_compare_selected"), FlashName) '"File selected, verifying {0}"
-        OpenMe.CheckPathExists = True
-        OpenMe.Filter = BinFile & "|" & IntelHexFormat & "|" & SrecFormat & "|" & AllFiles
-        If OpenMe.ShowDialog = DialogResult.OK Then
-            file = New IO.FileInfo(OpenMe.FileName)
-            Select Case OpenMe.FilterIndex
-                Case 1
-                    file_type = FileFilterIndex.Binary
-                Case 2
-                    file_type = FileFilterIndex.IntelHex
-                Case 3
-                    file_type = FileFilterIndex.SRecord
-                Case 4
-                    file_type = FileFilterIndex.Binary
-            End Select
-            RaiseEvent SetStatus(String.Format(RM.GetString("mc_compare_selected"), FlashName)) ' "File selected, verifying {0}"
-            Return True
-        Else
-            RaiseEvent SetStatus(String.Format(RM.GetString("mc_compare_canceled"), FlashName)) '"User canceled compare"
-            Return False
-        End If
-    End Function
-
-    Public Sub ReadMemoryThread(o As Object)
+    Private Sub ReadMemoryThread(o As Object)
         Dim read_params As XFER_Operation = CType(o, XFER_Operation)
         Try
             GUI.OperationStarted(Me) 'This adds the status bar at the bottom
             Me.IN_OPERATION = True
-            FCUSB.USB_LEDBlink()
+            Me.MemDevice.FCUSB.USB_LEDBlink()
             SetProgress(0)
             DisableControls(True)
             Try
@@ -893,7 +625,7 @@ Public Class MemControl_v2
                     If n.Exists Then n.Delete()
                 Catch ex As Exception
                 End Try
-                RaiseEvent WriteConsole(String.Format(RM.GetString("mc_mem_read_begin"), FlashName))
+                RaiseEvent WriteConsole(String.Format(RM.GetString("mc_mem_read_begin"), Me.MemDevice.Name))
                 RaiseEvent WriteConsole(String.Format(RM.GetString("mc_mem_start_addr"), read_params.Offset, "0x" & Utilities.Pad(Hex((read_params.Offset))), Format(read_params.Size, "#,###")))
                 ReadingParams = New ReadParameters
                 ReadingParams.Address = read_params.Offset
@@ -918,11 +650,11 @@ Public Class MemControl_v2
                         Else
                             addr_byte = 2
                         End If
-                        output_stream = New SREC.StreamWriter(New IO.StreamWriter(read_params.FileName.Open(IO.FileMode.Create)), addr_byte, MySettings.SREC_DATAMODE)
+                        output_stream = New SREC.StreamWriter(New IO.StreamWriter(read_params.FileName.Open(IO.FileMode.Create)), addr_byte, Me.SREC_DATAMODE)
                     Case FileFilterIndex.IntelHex
                         output_stream = New IHEX.StreamWriter(New IO.StreamWriter(read_params.FileName.Open(IO.FileMode.Create)))
                 End Select
-                RaiseEvent ReadStream(output_stream, ReadingParams)
+                ReadStream(output_stream, ReadingParams)
                 output_stream.Close()
                 If ReadingParams.AbortOperation Then
                     RaiseEvent SetStatus(RM.GetString("mc_mem_user_cancel"))
@@ -942,7 +674,7 @@ Public Class MemControl_v2
         Catch ex As Exception
         Finally
             If read_params.DataStream IsNot Nothing Then read_params.DataStream.Dispose()
-            FCUSB.USB_LEDOn()
+            Me.MemDevice.FCUSB.USB_LEDOn()
             EnableControls()
             SetProgress(0)
             GetFocus()
@@ -952,21 +684,20 @@ Public Class MemControl_v2
         End Try
     End Sub
 
-    Public Sub WriteMemoryThread(o As Object)
+    Private Sub WriteMemoryThread(o As Object)
         Dim file_out As XFER_Operation = CType(o, XFER_Operation)
         Try
             GUI.OperationStarted(Me)
             Me.IN_OPERATION = True
-            FCUSB.USB_LEDBlink()
+            Me.MemDevice.FCUSB.USB_LEDBlink()
             SetProgress(0)
             DisableControls(True)
             Try
-                Dim write_success As Boolean = False
                 WritingParams = New WriteParameters
                 WritingParams.Address = file_out.Offset
                 WritingParams.BytesLeft = file_out.Size
                 WritingParams.BytesTotal = file_out.Size
-                WritingParams.Verify = MySettings.VERIFY_WRITE
+                WritingParams.Verify = Me.VERIFY_WRITE
                 WritingParams.EraseSector = True
                 WritingParams.Status.UpdateOperation = New cbStatus_UpdateOper(AddressOf Status_UpdateOper)
                 WritingParams.Status.UpdateBase = New cbStatus_UpdateBase(AddressOf Status_UpdateBase)
@@ -979,7 +710,8 @@ Public Class MemControl_v2
                 Status_UpdateTask("")
                 Status_UpdateSpeed("")
                 Status_UpdatePercent(0)
-                RaiseEvent WriteStream(file_out.DataStream, WritingParams, write_success)
+                Dim write_success As Boolean = Me.MemDevice.WriteStream(file_out.DataStream, WritingParams)
+                If write_success Then Me.MemDevice.WaitUntilReady()
                 file_out.DataStream.Dispose()
                 file_out.DataStream = Nothing
                 If WritingParams.AbortOperation Then
@@ -992,7 +724,7 @@ Public Class MemControl_v2
                     Dim Speed As String = CStr(Format(Math.Round(file_out.Size / (WritingParams.Timer.ElapsedMilliseconds / 1000)), "#,###"))
                     RaiseEvent SetStatus(String.Format(RM.GetString("mc_wr_oper_complete"), Format(file_out.Size, "#,###")))
                     RaiseEvent WriteConsole(String.Format(RM.GetString("mc_wr_oper_result"), Format(file_out.Size, "#,###"), (WritingParams.Timer.ElapsedMilliseconds / 1000), Speed))
-                    RaiseEvent SuccessfulWrite(Me.FCUSB, LAST_WRITE_OPERATION)
+                    Me.MemDevice.WriteSuccessful(Me.LAST_WRITE_OPERATION)
                 End If
             Catch ex As Exception
             End Try
@@ -1000,79 +732,12 @@ Public Class MemControl_v2
         Finally
             SetProgress(0)
             HexEditor64.UpdateScreen()
-            FCUSB.USB_LEDOn()
+            Me.MemDevice.FCUSB.USB_LEDOn()
             EnableControls()
             Me.IN_OPERATION = False
             GUI.OperationStopped(Me)
             WritingParams = Nothing
         End Try
-    End Sub
-
-    Private Sub cmd_cancel_Click(sender As Object, e As EventArgs) Handles cmd_cancel.Click
-        Try
-            Me.cmd_cancel.Enabled = False
-            AbortAnyOperation()
-        Catch ex As Exception
-        End Try
-    End Sub
-
-    Private Sub cmd_read_Click(sender As Object, e As EventArgs) Handles cmd_read.Click
-        Try
-            Dim BaseOffset As Long = 0 'The starting address to read the from data
-            Dim UserCount As Long = FlashAvailable 'The total number of bytes to read
-            RaiseEvent SetStatus(String.Format(RM.GetString("mc_mem_read_from"), FlashName))
-            Dim dbox As New DynamicRangeBox
-            If Not dbox.ShowRangeBox(BaseOffset, UserCount, FlashAvailable) Then
-                RaiseEvent SetStatus(RM.GetString("mc_mem_read_canceled"))
-                Exit Sub
-            End If
-            RaiseEvent SetStatus(RM.GetString("mc_mem_read_start"))
-            If UserCount = 0 Then Exit Sub
-            Dim DefaultName As String = FlashName.Replace(" ", "_") & "_" & Utilities.Pad(Hex((BaseOffset))) & "-" & Utilities.Pad(Hex((BaseOffset + UserCount - 1)))
-            Dim TargetIO As IO.FileInfo = Nothing
-            Dim create_file_type As FileFilterIndex
-            If CreateFileForRead(DefaultName, TargetIO, create_file_type) Then
-                Dim read_params As New XFER_Operation 'We want to remember the last operation
-                read_params.FileType = create_file_type
-                read_params.FileName = TargetIO
-                read_params.Offset = BaseOffset
-                read_params.Size = UserCount
-                Dim t As New Threading.Thread(AddressOf ReadMemoryThread)
-                t.Start(read_params)
-                HexEditor64.Focus()
-            Else
-                RaiseEvent SetStatus(RM.GetString("mc_io_save_canceled"))
-                Exit Sub
-            End If
-        Catch ex As Exception
-        End Try
-    End Sub
-
-    Private Sub cmd_compare_Click(sender As Object, e As EventArgs) Handles cmd_compare.Click
-        Dim v_parm As New CompareParams
-        If OpenFileForCompare(v_parm.local_file, v_parm.file_type) Then
-            Select Case v_parm.file_type
-                Case FileFilterIndex.Binary
-                    v_parm.CompareData = v_parm.local_file.OpenRead()
-                    v_parm.Count = v_parm.local_file.Length
-                Case FileFilterIndex.IntelHex
-                    Dim sr As New IHEX.StreamReader(v_parm.local_file.OpenText)
-                    v_parm.CompareData = sr
-                    v_parm.Count = sr.Length
-                Case FileFilterIndex.SRecord
-                    Dim sr As New SREC.StreamReader(v_parm.local_file.OpenText, MySettings.SREC_DATAMODE)
-                    v_parm.CompareData = sr
-                    v_parm.Count = sr.Length
-            End Select
-            Dim dbox As New DynamicRangeBox
-            If Not dbox.ShowRangeBox(v_parm.BaseOffset, v_parm.Count, Me.FlashAvailable) Then
-                RaiseEvent SetStatus(RM.GetString("mc_io_compare_canceled"))
-                Exit Sub
-            End If
-            HexEditor64.Focus()
-            Dim td As New Threading.Thread(AddressOf CompareFlashTd)
-            td.Start(v_parm)
-        End If
     End Sub
 
     Private Sub CompareFlashTd(o As Object)
@@ -1085,7 +750,7 @@ Public Class MemControl_v2
         Try
             GUI.OperationStarted(Me) 'This adds the status bar at the bottom
             Me.IN_OPERATION = True
-            FCUSB.USB_LEDBlink()
+            Me.MemDevice.FCUSB.USB_LEDBlink()
             SetProgress(0)
             DisableControls(True)
             Status_UpdateOper(MEM_OPERATION.VerifyData)
@@ -1096,13 +761,14 @@ Public Class MemControl_v2
             Dim ReadTimer As New Stopwatch
             Dim sector_count As Integer = 0
             Dim sector_ind As Integer
-            RaiseEvent GetSectorCount(sector_count)
+            sector_count = Me.MemDevice.GetSectorCount()
             Do While (param.Count > 0)
                 Dim packet_size As Integer
                 If sector_count = 1 Then 'single sector
                     packet_size = 65536 '64KB section
                 Else
-                    RaiseEvent GetSectorSize(sector_ind, packet_size)
+                    packet_size = Me.MemDevice.GetSectorSize(sector_ind)
+                    If packet_size = 0 Then packet_size = CInt(Me.MemDevice.Size)
                 End If
                 packet_size = Math.Min(packet_size, CInt(param.Count))
                 Dim file_data() As Byte = local_stream.ReadBytes(packet_size)
@@ -1142,7 +808,7 @@ Public Class MemControl_v2
         Finally
             local_stream.Close()
             local_stream.Dispose()
-            FCUSB.USB_LEDOn()
+            Me.MemDevice.FCUSB.USB_LEDOn()
             EnableControls()
             SetProgress(0)
             GetFocus()
@@ -1198,7 +864,7 @@ Public Class MemControl_v2
         End Try
     End Sub
 
-    Private Class CompareParams
+    Public Class CompareParams
         Public file_type As FileFilterIndex
         Public BaseOffset As Long = 0
         Public Count As Long = 0
@@ -1206,7 +872,7 @@ Public Class MemControl_v2
         Public CompareData As IO.Stream
     End Class
 
-    Private Class CompareDifference
+    Public Class CompareDifference
         Public SECTOR As UInt32 'Index of the sector
         Public BASR_ADR As Long = 0 'Start of the sector
         Public MISMATCH As UInt32 = 0 'Number of bytes that don't match in this sector
@@ -1230,7 +896,7 @@ Public Class MemControl_v2
             ReadingParams.Status.UpdateBase = New cbStatus_UpdateBase(AddressOf Status_UpdateBase)
             ReadingParams.Status.UpdateTask = New cbStatus_UpdateTask(AddressOf Status_UpdateTask)
             Using data_stream As New IO.MemoryStream
-                RaiseEvent ReadStream(data_stream, ReadingParams)
+                ReadStream(data_stream, ReadingParams)
                 If ReadingParams.AbortOperation Then Return Nothing
                 data_stream.Position = 0
                 Dim data_out(count - 1) As Byte
@@ -1255,63 +921,32 @@ Public Class MemControl_v2
         Return speed_str
     End Function
 
-    Private Sub cmd_write_Click(sender As Object, e As EventArgs) Handles cmd_write.Click
-        Try
-            Dim BaseOffset As UInt32 = 0 'The starting address to write data to
-            Dim fn As IO.FileInfo = Nothing
-            Dim open_file_type As FileFilterIndex
-            If Not OpenFileForWrite(fn, open_file_type) Then Exit Sub
-            If (Not fn.Exists) OrElse (fn.Length = 0) Then
-                RaiseEvent SetStatus(RM.GetString("mc_wr_oper_file_err")) : Exit Sub
-            End If
-            RaiseEvent SetStatus(RM.GetString("mc_wr_oper_start"))
-            LAST_WRITE_OPERATION = New XFER_Operation
-            LAST_WRITE_OPERATION.FileType = open_file_type
-            LAST_WRITE_OPERATION.FileName = fn
-            LAST_WRITE_OPERATION.Offset = BaseOffset
-            LAST_WRITE_OPERATION.Size = 0
-            PerformWriteOperation(LAST_WRITE_OPERATION)
-            HexEditor64.Focus()
-        Catch ex As Exception
-        End Try
-    End Sub
-
-    Private Sub cmd_erase_Click(sender As Object, e As EventArgs) Handles cmd_erase.Click
-        If MsgBox(RM.GetString("mc_erase_warning"), MsgBoxStyle.YesNo, String.Format(RM.GetString("mc_erase_confirm"), FlashName)) = MsgBoxResult.Yes Then
-            RaiseEvent WriteConsole(String.Format(RM.GetString("mc_erase_command_sent"), FlashName))
-            RaiseEvent SetStatus(RM.GetString("mem_erasing_device"))
-            Dim t As New Threading.Thread(AddressOf EraseFlashTd)
-            t.Name = "mem.eraseFlash"
-            t.Start()
-            Application.DoEvents()
-            HexEditor64.Focus()
-        End If
-    End Sub
-
     Private Sub EraseFlashTd()
         Try
             DisableControls(False) 'You can not cancel this
             GUI.OperationStarted(Me)
             Me.IN_OPERATION = True
-            FCUSB.USB_LEDBlink()
+            Me.MemDevice.FCUSB.USB_LEDBlink()
             Status_UpdateOper(MEM_OPERATION.EraseSector)
             Status_UpdateBase(0)
             Status_UpdatePercent(0)
             Status_UpdateSpeed("")
             Status_UpdateTask(RM.GetString("mem_erase_device"))
-            RaiseEvent EraseMemory()
+            Me.MemDevice.EraseFlash()
+            Me.MemDevice.WaitUntilReady()
             RaiseEvent SetStatus(RM.GetString("mem_erase_device_success"))
         Catch ex As Exception
         Finally
             Me.IN_OPERATION = False
             GUI.OperationStopped(Me)
             HexEditor64.UpdateScreen()
-            FCUSB.USB_LEDOn()
+            Me.MemDevice.FCUSB.USB_LEDOn()
             EnableControls()
         End Try
     End Sub
 
     Public Sub PerformWriteOperation(ByRef x As XFER_Operation)
+        LAST_WRITE_OPERATION = x
         Select Case x.FileType
             Case FileFilterIndex.Binary
                 x.DataStream = x.FileName.OpenRead()
@@ -1320,26 +955,14 @@ Public Class MemControl_v2
             Case FileFilterIndex.SRecord
                 x.DataStream = New SREC.StreamReader(x.FileName.OpenText)
         End Select
-        Dim BaseAddress As Long = 0 'The starting address to write the data
-        If (x.Size = 0) Then
-            RaiseEvent SetStatus(String.Format(RM.GetString("mc_select_range"), FlashName))
-            Dim dbox As New DynamicRangeBox
-            Dim NumberToWrite As Long = x.DataStream.Length 'The total number of bytes to write
-            If Not dbox.ShowRangeBox(BaseAddress, NumberToWrite, FlashAvailable) Then
-                RaiseEvent SetStatus(RM.GetString("mc_wr_user_canceled"))
-                Exit Sub
-            End If
-            If NumberToWrite = 0 Then Exit Sub
-            x.Offset = BaseAddress
-            x.Size = NumberToWrite
-        End If
-        RaiseEvent SetStatus(String.Format(RM.GetString("mc_wr_oper_status"), x.FileName.Name, FlashName, Format(x.Size, "#,###")))
+        RaiseEvent SetStatus(String.Format(RM.GetString("mc_wr_oper_status"), x.FileName.Name, Me.MemDevice.Name, Format(x.Size, "#,###")))
         RaiseEvent WriteConsole(String.Format(RM.GetString("mc_io_open_file"), x.FileName.Name, Format(x.DataStream.Length, "#,###")))
         RaiseEvent WriteConsole(String.Format(RM.GetString("mc_io_destination"), Hex(x.Offset).PadLeft(8, "0"c), Format(x.Size, "#,###")))
         x.DataStream.Position = 0
         Dim t As New Threading.Thread(AddressOf WriteMemoryThread)
         t.Name = "memWriteTd"
         t.Start(x)
+        GetFocus()
     End Sub
 
     Public Sub AbortAnyOperation()
@@ -1354,23 +977,6 @@ Public Class MemControl_v2
         Catch ex As Exception
         End Try
     End Sub
-
-    Private Sub cmd_edit_CheckedChanged(sender As Object, e As EventArgs) Handles cmd_edit.CheckedChanged
-        If cmd_edit.Checked AndAlso cmd_edit.Enabled Then
-            HexEditor64.EDIT_MODE = True
-        Else
-            If cmd_edit.Enabled Then
-                If HexEditor64.HexEdit_Changes.Count > 0 Then
-                    If MsgBox("Save changes and write data to Flash?", vbYesNo, "Confirm data write operation") = vbYes Then
-                        Dim t As New Threading.Thread(AddressOf WriteChangesMadeInEditMode)
-                        t.Name = "tdWriteEditChanges"
-                        t.Start()
-                    End If
-                End If
-            End If
-            HexEditor64.EDIT_MODE = False
-        End If
-    End Sub
     'Number of bytes shown on the left hand side of the control
     Public Function GetHexAddrSize() As Integer
         Return HexEditor64.HexDataByteSize
@@ -1382,19 +988,19 @@ Public Class MemControl_v2
         Try
             DisableControls(False) 'You can not cancel this
             Me.IN_OPERATION = True
-            FCUSB.USB_LEDBlink()
+            Me.MemDevice.FCUSB.USB_LEDBlink()
             em_sector_list = New List(Of editmode_sector)
             RaiseEvent SetStatus("Programming changes to Flash device")
             For Each change In HexEditor64.HexEdit_Changes
                 editmode_addchange(change.address, change.new_byte)
             Next
             For Each sector In em_sector_list
-                RaiseEvent WriteMemory(sector.sector_addr, sector.sector_data, False, True)
+                Me.MemDevice.WriteBytes(sector.sector_addr, sector.sector_data, False)
             Next
         Catch ex As Exception
         Finally
             RaiseEvent SetStatus("Flash program operation has completed")
-            FCUSB.USB_LEDOn()
+            Me.MemDevice.FCUSB.USB_LEDOn()
             EnableControls()
             GetFocus()
             HexEditor64.UpdateScreen()
@@ -1411,30 +1017,50 @@ Public Class MemControl_v2
         Public sector_data() As Byte
     End Class
 
-    Private Function editmode_getitem(sec_index As Integer) As editmode_sector
+    Private Function editmode_getitem(sector_int As Integer) As editmode_sector
         For Each item As editmode_sector In em_sector_list
-            If item.sector_index = sec_index Then Return item
+            If item.sector_index = sector_int Then Return item
         Next
         Dim new_item As New editmode_sector
-        new_item.sector_index = sec_index
-        RaiseEvent GetSectorBaseAddress(sec_index, new_item.sector_addr)
-        RaiseEvent GetSectorSize(sec_index, new_item.sector_size)
-        ReDim new_item.sector_data(new_item.sector_size - 1)
-        RaiseEvent ReadMemory(new_item.sector_addr, new_item.sector_data) 'Preload data into sector
+        new_item.sector_index = sector_int
+        new_item.sector_addr = Me.MemDevice.GetSectorAddress(sector_int)
+        new_item.sector_size = Me.MemDevice.GetSectorSize(sector_int)
+        If new_item.sector_size = 0 Then new_item.sector_size = CInt(Me.MemDevice.Size)
+        new_item.sector_data = ReadMemory(new_item.sector_addr, new_item.sector_size)
         em_sector_list.Add(new_item)
         Return new_item
     End Function
 
     Private Sub editmode_addchange(addr As Long, dt As Byte)
-        Dim sector_index As Integer = 0
         Dim base_addr As Long = 0 'base of the sector address
-        RaiseEvent GetSectorIndex(addr, sector_index)
-        RaiseEvent GetSectorBaseAddress(sector_index, base_addr)
+        Dim sector_index As Integer = Me.MemDevice.GetSectorIndex(addr)
+        base_addr = Me.MemDevice.GetSectorAddress(sector_index)
         Dim item As editmode_sector = editmode_getitem(sector_index)
         item.sector_data(CInt(addr - base_addr)) = dt
     End Sub
 
 
 #End Region
+
+    Private Function ReadMemory(base_addr As Long, count As Integer) As Byte()
+        If Me.MemDevice.IsBulkErasing Then
+            Dim blank_data(count - 1) As Byte
+            Utilities.FillByteArray(blank_data, 255)
+            Return blank_data
+        Else
+            Return Me.MemDevice.ReadBytes(base_addr, count)
+        End If
+    End Function
+
+    Private Sub ReadStream(data_stream As IO.Stream, f_params As ReadParameters)
+        If Me.MemDevice.IsBulkErasing Then
+            Dim blank_data(CInt(f_params.Count - 1)) As Byte
+            Utilities.FillByteArray(blank_data, 255)
+            data_stream.Write(blank_data, 0, blank_data.Length)
+        Else
+            Me.MemDevice.ReadStream(data_stream, f_params)
+        End If
+    End Sub
+
 
 End Class
