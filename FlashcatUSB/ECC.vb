@@ -415,7 +415,8 @@ Namespace ECC_LIB
         Private ecc_reedsolomon As New RS_ECC
         Private ecc_bhc As New BinaryBHC
 
-        Public Property ECC_DATA_LOCATION As ecc_location_opt = ecc_location_opt.half_of_oob_page
+        Public Property ECC_DATA_LOCATION As Byte '= ecc_location_opt.half_of_oob_page
+        Public Property ECC_SEPERATE As Boolean 'We need to seperate each spare into sections
         Public Property REVERSE_ARRAY As Boolean = False 'RS option allows to reverse the input byte array
 
         Sub New(ByVal mode As ecc_algorithum, ByVal parity_level As Integer)
@@ -445,6 +446,7 @@ Namespace ECC_LIB
         Public Function ReadData(ByRef data_in() As Byte, ByVal ecc() As Byte) As decode_result
             Dim result As decode_result
             Try
+                If Utilities.IsByteArrayFilled(ecc, 255) Then Return decode_result.NoErrors 'ECC area does not contain ECC data
                 If Not (data_in.Length Mod 512 = 0) Then Return decode_result.data_input_error
                 If Me.REVERSE_ARRAY Then Array.Reverse(data_in)
                 Dim ecc_byte_size As Integer = GetEccByteSize()
@@ -514,42 +516,45 @@ Namespace ECC_LIB
             Dim bytes_per_ecc As Integer = Me.GetEccByteSize
             Dim ecc_count As Integer = (spare.Length / oob_per_ecc)
             Dim ecc_data((ecc_count * bytes_per_ecc) - 1) As Byte
-            For i = 0 To ecc_count - 1
-                Dim base_ptr As Integer = (i * oob_per_ecc)
-                Dim ecc_ptr As Integer = (i * bytes_per_ecc)
-                Dim ecc_start As Integer = 0 'the index of where the ecc data starts
-                Select Case ECC_DATA_LOCATION
-                    Case ecc_location_opt.half_of_oob_page
-                        ecc_start = oob_per_ecc / 2
-                    Case ecc_location_opt.end_of_obb_page
-                        ecc_start = oob_per_ecc - bytes_per_ecc
-                    Case ecc_location_opt.start_of_obb_page
-                        ecc_start = 0
-                End Select
-                If (ecc_start + bytes_per_ecc) > oob_per_ecc Then ecc_start = oob_per_ecc - bytes_per_ecc
-                Array.Copy(spare, base_ptr + ecc_start, ecc_data, ecc_ptr, bytes_per_ecc)
-            Next
+            Utilities.FillByteArray(ecc_data, 255)
+            Dim seperate_ecc As Boolean = True
+            If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Seperated Then
+                If Not Me.ECC_SEPERATE Then seperate_ecc = False
+            End If
+            If seperate_ecc Then
+                For i = 0 To ecc_count - 1
+                    Dim base_ptr As Integer = (i * oob_per_ecc)
+                    Dim ecc_ptr As Integer = (i * bytes_per_ecc)
+                    Dim ecc_start As Integer = ECC_DATA_LOCATION 'the index of where the ecc data starts
+                    If (ecc_start + bytes_per_ecc) > oob_per_ecc Then Return ecc_data
+                    Array.Copy(spare, base_ptr + ecc_start, ecc_data, ecc_ptr, bytes_per_ecc)
+                Next
+            Else
+                If (spare.Length - ECC_DATA_LOCATION) < ecc_data.Length Then Return ecc_data 'Returning all 0xFF
+                Array.Copy(spare, ECC_DATA_LOCATION, ecc_data, 0, ecc_data.Length)
+            End If
             Return ecc_data
         End Function
         'Writes the ECC bytes into the spare area
-        Public Sub SetEccToSpare(ByRef spare() As Byte, ecc() As Byte, oob_per_ecc As UInt16)
+        Public Sub SetEccToSpare(ByRef spare() As Byte, ecc_data() As Byte, oob_per_ecc As UInt16)
             Dim bytes_per_ecc As Integer = Me.GetEccByteSize
             Dim ecc_count As Integer = (spare.Length / oob_per_ecc)
-            For i = 0 To ecc_count - 1
-                Dim base_ptr As Integer = (i * oob_per_ecc)
-                Dim ecc_ptr As Integer = (i * bytes_per_ecc)
-                Dim ecc_start As Integer = 0 'the index of where the ecc data starts
-                Select Case ECC_DATA_LOCATION
-                    Case ecc_location_opt.half_of_oob_page
-                        ecc_start = oob_per_ecc / 2
-                    Case ecc_location_opt.end_of_obb_page
-                        ecc_start = oob_per_ecc - bytes_per_ecc
-                    Case ecc_location_opt.start_of_obb_page
-                        ecc_start = 0
-                End Select
-                If (ecc_start + bytes_per_ecc) > oob_per_ecc Then ecc_start = oob_per_ecc - bytes_per_ecc
-                Array.Copy(ecc, ecc_ptr, spare, base_ptr + ecc_start, bytes_per_ecc)
-            Next
+            Dim seperate_ecc As Boolean = True
+            If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Seperated Then
+                If Not Me.ECC_SEPERATE Then seperate_ecc = False
+            End If
+            If seperate_ecc Then
+                For i = 0 To ecc_count - 1
+                    Dim base_ptr As Integer = (i * oob_per_ecc)
+                    Dim ecc_ptr As Integer = (i * bytes_per_ecc)
+                    Dim ecc_start As Integer = ECC_DATA_LOCATION 'the index of where the ecc data starts
+                    If (ecc_start + bytes_per_ecc) > oob_per_ecc Then Exit Sub
+                    Array.Copy(ecc_data, ecc_ptr, spare, base_ptr + ecc_start, bytes_per_ecc)
+                Next
+            Else
+                If (spare.Length - ECC_DATA_LOCATION) < ecc_data.Length Then Exit Sub
+                Array.Copy(ecc_data, 0, spare, ECC_DATA_LOCATION, ecc_data.Length)
+            End If
         End Sub
 
         Public Sub SetSymbolWidth(ByVal bit_width As Integer)
@@ -566,12 +571,6 @@ Namespace ECC_LIB
         EccError 'the error is in the ecc
         Uncorractable 'more errors than are correctable
         data_input_error 'User sent data that was not in 512 byte segments
-    End Enum
-
-    Public Enum ecc_location_opt As Integer
-        half_of_oob_page = 1
-        end_of_obb_page = 2
-        start_of_obb_page = 3
     End Enum
 
     Public Enum ecc_algorithum As Integer

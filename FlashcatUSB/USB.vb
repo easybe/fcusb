@@ -57,6 +57,7 @@ Namespace USB
             Public I2C_IF As New I2C_Programmer(Me)
             Public DFU_IF As New DFU_API(Me)
             Public NAND_IF As New NAND_BLOCK_IF 'BAD block management system
+            Public MW_IF As New Microwire_Programmer(Me)
 
             Public Property HWBOARD As FCUSB_BOARD = FCUSB_BOARD.NotConnected
 
@@ -65,6 +66,7 @@ Namespace USB
                 AddHandler SPI_NAND_IF.PrintConsole, AddressOf WriteConsole
                 AddHandler I2C_IF.PrintConsole, AddressOf WriteConsole
                 AddHandler EXT_IF.PrintConsole, AddressOf WriteConsole
+                AddHandler MW_IF.PrintConsole, AddressOf WriteConsole
             End Sub
 
             Public ReadOnly Property IsAlive() As Boolean
@@ -194,9 +196,7 @@ Namespace USB
                         Return True
                     Else
                         result = USB_CONTROL_MSG_OUT(RQ, SETUP, control_dt) 'Sends setup command and data
-                        If Not result Then
-                            Return False
-                        End If
+                        If Not result Then Return False
                         result = USB_BULK_IN(DATA_IN)
                         Return result
                     End If
@@ -867,6 +867,11 @@ Namespace USB
         SPI_READFLASH = &H46
         SPI_WRITEFLASH = &H47
         SPI_WRITEDATA_AAI = &H48
+        '3-Wire
+        S93_INIT = &H49
+        S93_READEEPROM = &H4A
+        S93_WRITEEEPROM = &H4B
+        S93_ERASE = &H4C
         'SQI
         SQI_SETUP = &H50
         SQI_SS_ENABLE = &H51
@@ -911,6 +916,10 @@ Namespace USB
         EXPIO_DELAY = &H78
         EXPIO_RESET = &H79 'Issue device reset/read mode
         EXPIO_WAIT = &H7A   'Uses the currently assigned WAIT mode
+        CPLD_STATUS = &HC0  '0=OFF,1=3V3,2=1V8
+        CPLD_OFF = &HC1 'Turns off CPLD circuit
+        CPLD_1V8 = &HC2 'Turns On 1.8V And Then CPLD
+        CPLD_3V3 = &HC3 'Turns On 3.3V And Then CPLD
     End Enum
 
     Public Enum DeviceStatus

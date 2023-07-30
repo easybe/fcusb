@@ -29,7 +29,7 @@ Public Class CFI_FLASH_INTERFACE
         Next
     End Sub
     'Returns the base address given the sector
-    Public Function FindSectorBase(ByVal sector As Integer) As UInt32
+    Public Function FindSectorBase(ByVal sector As UInt32) As UInt32
         Try
             Return CUInt(Flash_Address(sector))
         Catch ex As Exception
@@ -81,7 +81,8 @@ Public Class CFI_FLASH_INTERFACE
     'Erases a sector on the flash device (byte mode only)
     Public Sub Sector_Erase(ByVal Sector As Integer)
         Try
-            Dim SA As Integer = CInt(FindSectorBase(Sector)) 'Sector Address
+            MyDeviceBus = DeviceBus.X16
+            Dim SA As UInt32 = FindSectorBase(Sector) 'Sector Address
             If MyDeviceMode = DeviceAlgorithm.Intel Or MyDeviceMode = DeviceAlgorithm.Intel_Sharp Then
                 write_command(SA, &H50) 'clear register
                 write_command(SA, &H60) 'Unlock block (just in case)
@@ -161,7 +162,8 @@ Public Class CFI_FLASH_INTERFACE
         Flash_Supported = False
         Me.MyDeviceBase = BaseAddress
         Read_Mode()
-        If Enable_CFI_Mode(DeviceBus.X8) OrElse Enable_CFI_Mode(DeviceBus.X16) OrElse Enable_CFI_Mode(DeviceBus.X32) Then
+        'If Enable_CFI_Mode(DeviceBus.X8) OrElse Enable_CFI_Mode(DeviceBus.X16) OrElse Enable_CFI_Mode(DeviceBus.X32) Then
+        If Enable_CFI_Mode(DeviceBus.X32) OrElse Enable_CFI_Mode(DeviceBus.X16) OrElse Enable_CFI_Mode(DeviceBus.X8) Then
             Load_CFI_Data() 'HERE
         ElseIf Enable_CFI_Mode_ForSST() Then
             Load_CFI_Data()

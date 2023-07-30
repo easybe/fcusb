@@ -104,6 +104,9 @@ Partial Class FrmSettings
         Me.cb_preserve = New System.Windows.Forms.CheckBox()
         Me.TP_NAND2 = New System.Windows.Forms.TabPage()
         Me.gb_nandecc_title = New System.Windows.Forms.GroupBox()
+        Me.txt_ecc_location = New System.Windows.Forms.TextBox()
+        Me.cb_ecc_seperate = New System.Windows.Forms.CheckBox()
+        Me.lbl_ECC_size = New System.Windows.Forms.Label()
         Me.rb_ECC_BHC = New System.Windows.Forms.RadioButton()
         Me.rb_ECC_ReedSolomon = New System.Windows.Forms.RadioButton()
         Me.rb_ECC_Hamming = New System.Windows.Forms.RadioButton()
@@ -112,7 +115,6 @@ Partial Class FrmSettings
         Me.cb_rs_reverse_data = New System.Windows.Forms.CheckBox()
         Me.cb_sym_width = New System.Windows.Forms.ComboBox()
         Me.lbl_sym_width = New System.Windows.Forms.Label()
-        Me.cb_ecc_loc = New System.Windows.Forms.ComboBox()
         Me.lbl_nandecc_location = New System.Windows.Forms.Label()
         Me.cb_ECC_WriteEnable = New System.Windows.Forms.CheckBox()
         Me.cb_ECC_ReadEnable = New System.Windows.Forms.CheckBox()
@@ -120,9 +122,15 @@ Partial Class FrmSettings
         Me.cb_ECC_BITERR = New System.Windows.Forms.ComboBox()
         Me.lbl_nandecc_biterror = New System.Windows.Forms.Label()
         Me.TP_GEN = New System.Windows.Forms.TabPage()
-        Me.GroupBox2 = New System.Windows.Forms.GroupBox()
+        Me.GroupBox3 = New System.Windows.Forms.GroupBox()
+        Me.Label19 = New System.Windows.Forms.Label()
+        Me.cb_s93_org = New System.Windows.Forms.ComboBox()
+        Me.Label18 = New System.Windows.Forms.Label()
+        Me.cb_s93_devices = New System.Windows.Forms.ComboBox()
         Me.Label2 = New System.Windows.Forms.Label()
         Me.cb_otp_device_list = New System.Windows.Forms.ComboBox()
+        Me.Label17 = New System.Windows.Forms.Label()
+        Me.cb_retry_write = New System.Windows.Forms.ComboBox()
         Me.MyTabs.SuspendLayout()
         Me.TP_SPI.SuspendLayout()
         Me.group_custom.SuspendLayout()
@@ -139,7 +147,7 @@ Partial Class FrmSettings
         Me.TP_NAND2.SuspendLayout()
         Me.gb_nandecc_title.SuspendLayout()
         Me.TP_GEN.SuspendLayout()
-        Me.GroupBox2.SuspendLayout()
+        Me.GroupBox3.SuspendLayout()
         Me.SuspendLayout()
         '
         'MyTabs
@@ -1009,6 +1017,9 @@ Partial Class FrmSettings
         '
         'gb_nandecc_title
         '
+        Me.gb_nandecc_title.Controls.Add(Me.txt_ecc_location)
+        Me.gb_nandecc_title.Controls.Add(Me.cb_ecc_seperate)
+        Me.gb_nandecc_title.Controls.Add(Me.lbl_ECC_size)
         Me.gb_nandecc_title.Controls.Add(Me.rb_ECC_BHC)
         Me.gb_nandecc_title.Controls.Add(Me.rb_ECC_ReedSolomon)
         Me.gb_nandecc_title.Controls.Add(Me.rb_ECC_Hamming)
@@ -1017,7 +1028,6 @@ Partial Class FrmSettings
         Me.gb_nandecc_title.Controls.Add(Me.cb_rs_reverse_data)
         Me.gb_nandecc_title.Controls.Add(Me.cb_sym_width)
         Me.gb_nandecc_title.Controls.Add(Me.lbl_sym_width)
-        Me.gb_nandecc_title.Controls.Add(Me.cb_ecc_loc)
         Me.gb_nandecc_title.Controls.Add(Me.lbl_nandecc_location)
         Me.gb_nandecc_title.Controls.Add(Me.cb_ECC_WriteEnable)
         Me.gb_nandecc_title.Controls.Add(Me.cb_ECC_ReadEnable)
@@ -1026,10 +1036,37 @@ Partial Class FrmSettings
         Me.gb_nandecc_title.Controls.Add(Me.lbl_nandecc_biterror)
         Me.gb_nandecc_title.Location = New System.Drawing.Point(6, 6)
         Me.gb_nandecc_title.Name = "gb_nandecc_title"
-        Me.gb_nandecc_title.Size = New System.Drawing.Size(512, 200)
+        Me.gb_nandecc_title.Size = New System.Drawing.Size(512, 237)
         Me.gb_nandecc_title.TabIndex = 1
         Me.gb_nandecc_title.TabStop = False
         Me.gb_nandecc_title.Text = "Software ECC Feature"
+        '
+        'txt_ecc_location
+        '
+        Me.txt_ecc_location.Location = New System.Drawing.Point(366, 137)
+        Me.txt_ecc_location.Name = "txt_ecc_location"
+        Me.txt_ecc_location.Size = New System.Drawing.Size(64, 20)
+        Me.txt_ecc_location.TabIndex = 33
+        Me.txt_ecc_location.Text = "0x00"
+        '
+        'cb_ecc_seperate
+        '
+        Me.cb_ecc_seperate.AutoSize = True
+        Me.cb_ecc_seperate.Location = New System.Drawing.Point(9, 139)
+        Me.cb_ecc_seperate.Name = "cb_ecc_seperate"
+        Me.cb_ecc_seperate.Size = New System.Drawing.Size(237, 17)
+        Me.cb_ecc_seperate.TabIndex = 32
+        Me.cb_ecc_seperate.Text = "Seperate OOB area for each 512 byte sector"
+        Me.cb_ecc_seperate.UseVisualStyleBackColor = True
+        '
+        'lbl_ECC_size
+        '
+        Me.lbl_ECC_size.AutoSize = True
+        Me.lbl_ECC_size.Location = New System.Drawing.Point(257, 210)
+        Me.lbl_ECC_size.Name = "lbl_ECC_size"
+        Me.lbl_ECC_size.Size = New System.Drawing.Size(186, 13)
+        Me.lbl_ECC_size.TabIndex = 31
+        Me.lbl_ECC_size.Text = "ECC data per 512 byte sector: 0 bytes"
         '
         'rb_ECC_BHC
         '
@@ -1077,7 +1114,7 @@ Partial Class FrmSettings
         'lbl_nandecc_changes
         '
         Me.lbl_nandecc_changes.AutoSize = True
-        Me.lbl_nandecc_changes.Location = New System.Drawing.Point(6, 171)
+        Me.lbl_nandecc_changes.Location = New System.Drawing.Point(6, 210)
         Me.lbl_nandecc_changes.Name = "lbl_nandecc_changes"
         Me.lbl_nandecc_changes.Size = New System.Drawing.Size(223, 13)
         Me.lbl_nandecc_changes.TabIndex = 11
@@ -1113,21 +1150,11 @@ Partial Class FrmSettings
         Me.lbl_sym_width.TabIndex = 29
         Me.lbl_sym_width.Text = "Symbol width"
         '
-        'cb_ecc_loc
-        '
-        Me.cb_ecc_loc.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cb_ecc_loc.FormattingEnabled = True
-        Me.cb_ecc_loc.Items.AddRange(New Object() {"OOB Middle", "OOB End", "OOB Start"})
-        Me.cb_ecc_loc.Location = New System.Drawing.Point(366, 137)
-        Me.cb_ecc_loc.Name = "cb_ecc_loc"
-        Me.cb_ecc_loc.Size = New System.Drawing.Size(102, 21)
-        Me.cb_ecc_loc.TabIndex = 9
-        '
         'lbl_nandecc_location
         '
         Me.lbl_nandecc_location.AutoSize = True
         Me.lbl_nandecc_location.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lbl_nandecc_location.Location = New System.Drawing.Point(363, 120)
+        Me.lbl_nandecc_location.Location = New System.Drawing.Point(363, 118)
         Me.lbl_nandecc_location.Name = "lbl_nandecc_location"
         Me.lbl_nandecc_location.Size = New System.Drawing.Size(80, 13)
         Me.lbl_nandecc_location.TabIndex = 10
@@ -1186,42 +1213,105 @@ Partial Class FrmSettings
         'TP_GEN
         '
         Me.TP_GEN.BackColor = System.Drawing.SystemColors.Control
-        Me.TP_GEN.Controls.Add(Me.GroupBox2)
+        Me.TP_GEN.Controls.Add(Me.GroupBox3)
         Me.TP_GEN.Location = New System.Drawing.Point(4, 22)
         Me.TP_GEN.Name = "TP_GEN"
         Me.TP_GEN.Padding = New System.Windows.Forms.Padding(3)
         Me.TP_GEN.Size = New System.Drawing.Size(524, 328)
         Me.TP_GEN.TabIndex = 5
-        Me.TP_GEN.Text = "  OTHER  "
+        Me.TP_GEN.Text = "MISC"
         '
-        'GroupBox2
+        'GroupBox3
         '
-        Me.GroupBox2.Controls.Add(Me.Label2)
-        Me.GroupBox2.Controls.Add(Me.cb_otp_device_list)
-        Me.GroupBox2.Location = New System.Drawing.Point(6, 6)
-        Me.GroupBox2.Name = "GroupBox2"
-        Me.GroupBox2.Size = New System.Drawing.Size(512, 91)
-        Me.GroupBox2.TabIndex = 0
-        Me.GroupBox2.TabStop = False
-        Me.GroupBox2.Text = "EPROM (OTP)"
+        Me.GroupBox3.Controls.Add(Me.Label19)
+        Me.GroupBox3.Controls.Add(Me.cb_s93_org)
+        Me.GroupBox3.Controls.Add(Me.Label18)
+        Me.GroupBox3.Controls.Add(Me.cb_s93_devices)
+        Me.GroupBox3.Controls.Add(Me.Label2)
+        Me.GroupBox3.Controls.Add(Me.cb_otp_device_list)
+        Me.GroupBox3.Controls.Add(Me.Label17)
+        Me.GroupBox3.Controls.Add(Me.cb_retry_write)
+        Me.GroupBox3.Location = New System.Drawing.Point(6, 6)
+        Me.GroupBox3.Name = "GroupBox3"
+        Me.GroupBox3.Size = New System.Drawing.Size(507, 188)
+        Me.GroupBox3.TabIndex = 1
+        Me.GroupBox3.TabStop = False
+        Me.GroupBox3.Text = "General"
+        '
+        'Label19
+        '
+        Me.Label19.AutoSize = True
+        Me.Label19.Location = New System.Drawing.Point(209, 134)
+        Me.Label19.Name = "Label19"
+        Me.Label19.Size = New System.Drawing.Size(66, 13)
+        Me.Label19.TabIndex = 44
+        Me.Label19.Text = "Organization"
+        '
+        'cb_s93_org
+        '
+        Me.cb_s93_org.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_s93_org.FormattingEnabled = True
+        Me.cb_s93_org.Items.AddRange(New Object() {"8-bit", "16-bit"})
+        Me.cb_s93_org.Location = New System.Drawing.Point(212, 152)
+        Me.cb_s93_org.Name = "cb_s93_org"
+        Me.cb_s93_org.Size = New System.Drawing.Size(63, 21)
+        Me.cb_s93_org.TabIndex = 43
+        '
+        'Label18
+        '
+        Me.Label18.AutoSize = True
+        Me.Label18.Location = New System.Drawing.Point(19, 134)
+        Me.Label18.Name = "Label18"
+        Me.Label18.Size = New System.Drawing.Size(152, 13)
+        Me.Label18.TabIndex = 42
+        Me.Label18.Text = "Microwire EEPROM (series 93)"
+        '
+        'cb_s93_devices
+        '
+        Me.cb_s93_devices.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_s93_devices.FormattingEnabled = True
+        Me.cb_s93_devices.Items.AddRange(New Object() {"(Not Selected)", "93xx46  128 bytes (1Kbit)", "93xx56  256 bytes (2Kbit)", "93xx66  512 bytes (4Kbit)", "93xx76  1024 bytes (8Kbit)", "93xx86  2048 bytes (16Kbit)"})
+        Me.cb_s93_devices.Location = New System.Drawing.Point(19, 152)
+        Me.cb_s93_devices.Name = "cb_s93_devices"
+        Me.cb_s93_devices.Size = New System.Drawing.Size(187, 21)
+        Me.cb_s93_devices.TabIndex = 41
         '
         'Label2
         '
         Me.Label2.AutoSize = True
-        Me.Label2.Location = New System.Drawing.Point(16, 29)
+        Me.Label2.Location = New System.Drawing.Point(19, 83)
         Me.Label2.Name = "Label2"
-        Me.Label2.Size = New System.Drawing.Size(41, 13)
+        Me.Label2.Size = New System.Drawing.Size(122, 13)
         Me.Label2.TabIndex = 38
-        Me.Label2.Text = "Device"
+        Me.Label2.Text = "OTP EPROM (series 27)"
         '
         'cb_otp_device_list
         '
         Me.cb_otp_device_list.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_otp_device_list.FormattingEnabled = True
-        Me.cb_otp_device_list.Location = New System.Drawing.Point(16, 47)
+        Me.cb_otp_device_list.Location = New System.Drawing.Point(19, 101)
         Me.cb_otp_device_list.Name = "cb_otp_device_list"
         Me.cb_otp_device_list.Size = New System.Drawing.Size(187, 21)
         Me.cb_otp_device_list.TabIndex = 37
+        '
+        'Label17
+        '
+        Me.Label17.AutoSize = True
+        Me.Label17.Location = New System.Drawing.Point(19, 29)
+        Me.Label17.Name = "Label17"
+        Me.Label17.Size = New System.Drawing.Size(109, 13)
+        Me.Label17.TabIndex = 40
+        Me.Label17.Text = "Re-attemp write verify"
+        '
+        'cb_retry_write
+        '
+        Me.cb_retry_write.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_retry_write.FormattingEnabled = True
+        Me.cb_retry_write.Items.AddRange(New Object() {"One time", "Two times", "Three times", "Four times", "Five times"})
+        Me.cb_retry_write.Location = New System.Drawing.Point(19, 47)
+        Me.cb_retry_write.Name = "cb_retry_write"
+        Me.cb_retry_write.Size = New System.Drawing.Size(117, 21)
+        Me.cb_retry_write.TabIndex = 39
         '
         'FrmSettings
         '
@@ -1262,8 +1352,8 @@ Partial Class FrmSettings
         Me.gb_nandecc_title.ResumeLayout(False)
         Me.gb_nandecc_title.PerformLayout()
         Me.TP_GEN.ResumeLayout(False)
-        Me.GroupBox2.ResumeLayout(False)
-        Me.GroupBox2.PerformLayout()
+        Me.GroupBox3.ResumeLayout(False)
+        Me.GroupBox3.PerformLayout()
         Me.ResumeLayout(False)
 
     End Sub
@@ -1359,14 +1449,22 @@ Partial Class FrmSettings
     Friend WithEvents rb_ECC_ReedSolomon As RadioButton
     Friend WithEvents rb_ECC_Hamming As RadioButton
     Friend WithEvents lbl_nandecc_enabled As Label
-    Friend WithEvents cb_ecc_loc As ComboBox
     Friend WithEvents lbl_nandecc_location As Label
     Friend WithEvents lbl_nandecc_changes As Label
     Friend WithEvents cb_rs_reverse_data As CheckBox
     Friend WithEvents cb_sym_width As ComboBox
     Friend WithEvents lbl_sym_width As Label
     Friend WithEvents TP_GEN As TabPage
-    Friend WithEvents GroupBox2 As GroupBox
     Friend WithEvents Label2 As Label
     Friend WithEvents cb_otp_device_list As ComboBox
+    Friend WithEvents lbl_ECC_size As Label
+    Friend WithEvents cb_ecc_seperate As CheckBox
+    Friend WithEvents txt_ecc_location As TextBox
+    Friend WithEvents GroupBox3 As GroupBox
+    Friend WithEvents Label17 As Label
+    Friend WithEvents cb_retry_write As ComboBox
+    Friend WithEvents Label18 As Label
+    Friend WithEvents cb_s93_devices As ComboBox
+    Friend WithEvents Label19 As Label
+    Friend WithEvents cb_s93_org As ComboBox
 End Class

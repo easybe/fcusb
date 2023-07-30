@@ -55,9 +55,11 @@ Partial Class MainForm
         Me.mi_mode_spieeprom = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_i2c = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_1wire = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_mode_3wire = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_extio = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_eprom_otp = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_jtag = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_mode_mach1 = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_script_menu = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_script_selected = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_script_load = New System.Windows.Forms.ToolStripMenuItem()
@@ -114,6 +116,16 @@ Partial Class MainForm
         Me.lbl_gang1 = New System.Windows.Forms.Label()
         Me.cmd_gang_erase = New System.Windows.Forms.Button()
         Me.cmd_gang_write = New System.Windows.Forms.Button()
+        Me.TabMach1 = New System.Windows.Forms.TabPage()
+        Me.cmdMach1CpldOn = New System.Windows.Forms.Button()
+        Me.cmdMach1CpldOff = New System.Windows.Forms.Button()
+        Me.Label4 = New System.Windows.Forms.Label()
+        Me.pbMachProgress = New System.Windows.Forms.ProgressBar()
+        Me.cmdMach1Jedec = New System.Windows.Forms.Button()
+        Me.cmdMach1Program = New System.Windows.Forms.Button()
+        Me.Label1 = New System.Windows.Forms.Label()
+        Me.cbMachDownloadSize = New System.Windows.Forms.ComboBox()
+        Me.cmdMach1DnTest = New System.Windows.Forms.Button()
         Me.MenuStrip1.SuspendLayout()
         Me.FlashStatus.SuspendLayout()
         Me.MyTabs.SuspendLayout()
@@ -123,6 +135,7 @@ Partial Class MainForm
         Me.TabConsole.SuspendLayout()
         Me.TabMultiDevice.SuspendLayout()
         Me.GroupBox1.SuspendLayout()
+        Me.TabMach1.SuspendLayout()
         Me.SuspendLayout()
         '
         'MenuStrip1
@@ -184,7 +197,7 @@ Partial Class MainForm
         '
         'mi_mode_menu
         '
-        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.ToolStripSeparator9, Me.mi_1V8, Me.mi_3V3, Me.mi_5V0, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_extio, Me.mi_mode_eprom_otp, Me.mi_mode_jtag})
+        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.ToolStripSeparator9, Me.mi_1V8, Me.mi_3V3, Me.mi_5V0, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_3wire, Me.mi_mode_extio, Me.mi_mode_eprom_otp, Me.mi_mode_jtag, Me.mi_mode_mach1})
         Me.mi_mode_menu.Name = "mi_mode_menu"
         Me.mi_mode_menu.Size = New System.Drawing.Size(50, 20)
         Me.mi_mode_menu.Text = "Mode"
@@ -327,7 +340,13 @@ Partial Class MainForm
         '
         Me.mi_mode_1wire.Name = "mi_mode_1wire"
         Me.mi_mode_1wire.Size = New System.Drawing.Size(182, 22)
-        Me.mi_mode_1wire.Text = "1-Wire EEPROM"
+        Me.mi_mode_1wire.Text = "DOW EEPROM"
+        '
+        'mi_mode_3wire
+        '
+        Me.mi_mode_3wire.Name = "mi_mode_3wire"
+        Me.mi_mode_3wire.Size = New System.Drawing.Size(182, 22)
+        Me.mi_mode_3wire.Text = "Microwire EEPROM"
         '
         'mi_mode_extio
         '
@@ -346,6 +365,12 @@ Partial Class MainForm
         Me.mi_mode_jtag.Name = "mi_mode_jtag"
         Me.mi_mode_jtag.Size = New System.Drawing.Size(182, 22)
         Me.mi_mode_jtag.Text = "JTAG Mode"
+        '
+        'mi_mode_mach1
+        '
+        Me.mi_mode_mach1.Name = "mi_mode_mach1"
+        Me.mi_mode_mach1.Size = New System.Drawing.Size(182, 22)
+        Me.mi_mode_mach1.Text = "Mach¹"
         '
         'mi_script_menu
         '
@@ -511,6 +536,7 @@ Partial Class MainForm
         Me.MyTabs.Controls.Add(Me.TabStatus)
         Me.MyTabs.Controls.Add(Me.TabConsole)
         Me.MyTabs.Controls.Add(Me.TabMultiDevice)
+        Me.MyTabs.Controls.Add(Me.TabMach1)
         Me.MyTabs.Location = New System.Drawing.Point(2, 24)
         Me.MyTabs.Name = "MyTabs"
         Me.MyTabs.SelectedIndex = 0
@@ -841,6 +867,105 @@ Partial Class MainForm
         Me.cmd_gang_write.Text = "Write"
         Me.cmd_gang_write.UseVisualStyleBackColor = True
         '
+        'TabMach1
+        '
+        Me.TabMach1.BackColor = System.Drawing.SystemColors.Control
+        Me.TabMach1.Controls.Add(Me.cmdMach1CpldOn)
+        Me.TabMach1.Controls.Add(Me.cmdMach1CpldOff)
+        Me.TabMach1.Controls.Add(Me.Label4)
+        Me.TabMach1.Controls.Add(Me.pbMachProgress)
+        Me.TabMach1.Controls.Add(Me.cmdMach1Jedec)
+        Me.TabMach1.Controls.Add(Me.cmdMach1Program)
+        Me.TabMach1.Controls.Add(Me.Label1)
+        Me.TabMach1.Controls.Add(Me.cbMachDownloadSize)
+        Me.TabMach1.Controls.Add(Me.cmdMach1DnTest)
+        Me.TabMach1.Location = New System.Drawing.Point(4, 22)
+        Me.TabMach1.Name = "TabMach1"
+        Me.TabMach1.Padding = New System.Windows.Forms.Padding(3)
+        Me.TabMach1.Size = New System.Drawing.Size(459, 296)
+        Me.TabMach1.TabIndex = 3
+        Me.TabMach1.Text = "  Mach1 Development  "
+        '
+        'cmdMach1CpldOn
+        '
+        Me.cmdMach1CpldOn.Location = New System.Drawing.Point(91, 115)
+        Me.cmdMach1CpldOn.Name = "cmdMach1CpldOn"
+        Me.cmdMach1CpldOn.Size = New System.Drawing.Size(70, 27)
+        Me.cmdMach1CpldOn.TabIndex = 10
+        Me.cmdMach1CpldOn.Text = "ON"
+        Me.cmdMach1CpldOn.UseVisualStyleBackColor = True
+        '
+        'cmdMach1CpldOff
+        '
+        Me.cmdMach1CpldOff.Location = New System.Drawing.Point(15, 115)
+        Me.cmdMach1CpldOff.Name = "cmdMach1CpldOff"
+        Me.cmdMach1CpldOff.Size = New System.Drawing.Size(70, 27)
+        Me.cmdMach1CpldOff.TabIndex = 9
+        Me.cmdMach1CpldOff.Text = "OFF"
+        Me.cmdMach1CpldOff.UseVisualStyleBackColor = True
+        '
+        'Label4
+        '
+        Me.Label4.AutoSize = True
+        Me.Label4.Location = New System.Drawing.Point(12, 89)
+        Me.Label4.Name = "Label4"
+        Me.Label4.Size = New System.Drawing.Size(73, 13)
+        Me.Label4.TabIndex = 8
+        Me.Label4.Text = "CPLD control:"
+        '
+        'pbMachProgress
+        '
+        Me.pbMachProgress.Location = New System.Drawing.Point(6, 273)
+        Me.pbMachProgress.Name = "pbMachProgress"
+        Me.pbMachProgress.Size = New System.Drawing.Size(445, 17)
+        Me.pbMachProgress.TabIndex = 7
+        '
+        'cmdMach1Jedec
+        '
+        Me.cmdMach1Jedec.Location = New System.Drawing.Point(167, 115)
+        Me.cmdMach1Jedec.Name = "cmdMach1Jedec"
+        Me.cmdMach1Jedec.Size = New System.Drawing.Size(84, 27)
+        Me.cmdMach1Jedec.TabIndex = 5
+        Me.cmdMach1Jedec.Text = "Read ID"
+        Me.cmdMach1Jedec.UseVisualStyleBackColor = True
+        '
+        'cmdMach1Program
+        '
+        Me.cmdMach1Program.Location = New System.Drawing.Point(257, 115)
+        Me.cmdMach1Program.Name = "cmdMach1Program"
+        Me.cmdMach1Program.Size = New System.Drawing.Size(84, 27)
+        Me.cmdMach1Program.TabIndex = 3
+        Me.cmdMach1Program.Text = "Program"
+        Me.cmdMach1Program.UseVisualStyleBackColor = True
+        '
+        'Label1
+        '
+        Me.Label1.AutoSize = True
+        Me.Label1.Location = New System.Drawing.Point(24, 19)
+        Me.Label1.Name = "Label1"
+        Me.Label1.Size = New System.Drawing.Size(75, 13)
+        Me.Label1.TabIndex = 2
+        Me.Label1.Text = "Download test"
+        '
+        'cbMachDownloadSize
+        '
+        Me.cbMachDownloadSize.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cbMachDownloadSize.FormattingEnabled = True
+        Me.cbMachDownloadSize.Items.AddRange(New Object() {"100MB", "200MB", "300MB", "400MB", "500MB"})
+        Me.cbMachDownloadSize.Location = New System.Drawing.Point(15, 40)
+        Me.cbMachDownloadSize.Name = "cbMachDownloadSize"
+        Me.cbMachDownloadSize.Size = New System.Drawing.Size(84, 21)
+        Me.cbMachDownloadSize.TabIndex = 1
+        '
+        'cmdMach1DnTest
+        '
+        Me.cmdMach1DnTest.Location = New System.Drawing.Point(105, 36)
+        Me.cmdMach1DnTest.Name = "cmdMach1DnTest"
+        Me.cmdMach1DnTest.Size = New System.Drawing.Size(84, 27)
+        Me.cmdMach1DnTest.TabIndex = 0
+        Me.cmdMach1DnTest.Text = "Start"
+        Me.cmdMach1DnTest.UseVisualStyleBackColor = True
+        '
         'MainForm
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -868,6 +993,8 @@ Partial Class MainForm
         Me.TabMultiDevice.PerformLayout()
         Me.GroupBox1.ResumeLayout(False)
         Me.GroupBox1.PerformLayout()
+        Me.TabMach1.ResumeLayout(False)
+        Me.TabMach1.PerformLayout()
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
@@ -964,4 +1091,16 @@ Partial Class MainForm
     Friend WithEvents mi_mode_eprom_otp As ToolStripMenuItem
     Friend WithEvents mi_language_chinese As ToolStripMenuItem
     Friend WithEvents mi_language_italian As ToolStripMenuItem
+    Friend WithEvents TabMach1 As TabPage
+    Friend WithEvents Label1 As Label
+    Friend WithEvents cbMachDownloadSize As ComboBox
+    Friend WithEvents cmdMach1DnTest As Button
+    Friend WithEvents mi_mode_mach1 As ToolStripMenuItem
+    Friend WithEvents cmdMach1Jedec As Button
+    Friend WithEvents cmdMach1Program As Button
+    Friend WithEvents pbMachProgress As ProgressBar
+    Friend WithEvents cmdMach1CpldOn As Button
+    Friend WithEvents cmdMach1CpldOff As Button
+    Friend WithEvents Label4 As Label
+    Friend WithEvents mi_mode_3wire As ToolStripMenuItem
 End Class

@@ -618,7 +618,7 @@ Public Class MemoryInterface
                             End If
                         Else
                             FailedAttempts = FailedAttempts + 1
-                            If FailedAttempts = 3 Then
+                            If FailedAttempts = (MySettings.VERIFY_COUNT + 1) Then
                                 If (FlashType = FlashMemory.MemoryType.SLC_NAND) Then
                                     Dim n_dev As NAND_Flash = DirectCast(FCUSB.EXT_IF.MyFlashDevice, NAND_Flash)
                                     Dim pages_per_block As UInt32 = (n_dev.BLOCK_SIZE / n_dev.PAGE_SIZE)
@@ -633,7 +633,7 @@ Public Class MemoryInterface
                                     Dim block_addr As UInt32 = Math.Floor(page_addr / pages_per_block)
                                     RaiseEvent PrintConsole(String.Format(RM.GetString("mem_bad_nand_block"), Hex(page_addr).PadLeft(6, "0"), block_addr))
                                     Return False
-                                ElseIf (flashtype = FlashMemory.MemoryType.PARALLEL_NOR) AndAlso (FCUSB.EXT_IF.MyFlashDevice.GetType Is GetType(OTP_EPROM)) Then
+                                ElseIf (FlashType = FlashMemory.MemoryType.PARALLEL_NOR) AndAlso (FCUSB.EXT_IF.MyFlashDevice.GetType Is GetType(OTP_EPROM)) Then
                                     RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(Params.Address)))
                                     If Params.Status.UpdateOperation IsNot Nothing Then
                                         Params.Status.UpdateOperation.DynamicInvoke(5) 'ERROR IMG
@@ -728,6 +728,8 @@ Public Class MemoryInterface
                     FCUSB.EJ_IF.CFI_WaitUntilReady()
                 Case MemoryType.JTAG_SPI
                     FCUSB.EJ_IF.SPI_WaitUntilReady()
+                Case MemoryType.SERIAL_MICROWIRE
+                    FCUSB.MW_IF.WaitUntilReady()
                 Case Else 'Including I2C
                     Utilities.Sleep(100)
             End Select
@@ -774,6 +776,8 @@ Public Class MemoryInterface
                             data_out = FCUSB.EXT_IF.ReadData(data_offset, data_read_count, memory_area)
                         Case MemoryType.SERIAL_I2C
                             data_out = FCUSB.I2C_IF.ReadData(data_offset, data_read_count)
+                        Case MemoryType.SERIAL_MICROWIRE
+                            data_out = FCUSB.MW_IF.ReadData(data_offset, data_read_count)
                         Case MemoryType.JTAG_DMA_RAM
                             data_out = FCUSB.EJ_IF.ReadMemory(Me.BaseAddress + data_offset, data_read_count)
                         Case MemoryType.JTAG_DMA_CFI
@@ -812,6 +816,8 @@ Public Class MemoryInterface
                         Return FCUSB.SPI_NOR_IF.EraseDevice()
                     Case MemoryType.SERIAL_NAND
                         Return FCUSB.SPI_NAND_IF.EraseDevice
+                    Case MemoryType.SERIAL_MICROWIRE
+                        Return FCUSB.MW_IF.EraseDevice
                     Case MemoryType.PARALLEL_NOR
                         Return FCUSB.EXT_IF.EraseDevice()
                     Case MemoryType.SLC_NAND
@@ -848,6 +854,8 @@ Public Class MemoryInterface
                         Me.NoErrors = FCUSB.EJ_IF.CFI_Sector_Erase(sector_index)
                     Case MemoryType.JTAG_SPI
                         Me.NoErrors = FCUSB.EJ_IF.SPI_SectorErase(sector_index)
+                    Case MemoryType.SERIAL_MICROWIRE
+                        Me.NoErrors = FCUSB.MW_IF.Sector_Erase(sector_index)
                 End Select
             Finally
                 Threading.Monitor.Exit(InterfaceLock)
@@ -877,6 +885,8 @@ Public Class MemoryInterface
                         Me.NoErrors = FCUSB.EJ_IF.CFI_Sector_Write(sector_index, DataToWrite)
                     Case MemoryType.JTAG_SPI
                         Me.NoErrors = FCUSB.EJ_IF.SPI_WriteSector(sector_index, DataToWrite)
+                    Case MemoryType.SERIAL_MICROWIRE
+                        Me.NoErrors = FCUSB.MW_IF.Sector_Write(sector_index, DataToWrite)
                 End Select
                 If Params IsNot Nothing Then Params.Timer.Stop()
             Finally
@@ -900,6 +910,8 @@ Public Class MemoryInterface
                     Return FCUSB.EJ_IF.CFI_Sector_Count()
                 Case MemoryType.JTAG_SPI
                     Return FCUSB.EJ_IF.SPI_Sector_Count()
+                Case MemoryType.SERIAL_MICROWIRE
+                    Return FCUSB.MW_IF.Sector_Count()
                 Case Else
                     Return 1
             End Select
@@ -919,6 +931,8 @@ Public Class MemoryInterface
                     Return FCUSB.EJ_IF.CFI_GetSectorSize(sector_index)
                 Case MemoryType.JTAG_SPI
                     Return FCUSB.EJ_IF.SPI_GetSectorSize(sector_index)
+                Case MemoryType.SERIAL_MICROWIRE
+                    Return FCUSB.MW_IF.SectorSize(sector_index)
             End Select
             Return 0
         End Function
@@ -937,6 +951,8 @@ Public Class MemoryInterface
                     Return FCUSB.EJ_IF.CFI_FindSectorBase(sector_index)
                 Case MemoryType.JTAG_SPI
                     Return FCUSB.EJ_IF.CFI_FindSectorBase(sector_index)
+                Case MemoryType.SERIAL_MICROWIRE
+                    Return FCUSB.MW_IF.SectorFind(sector_index)
                 Case Else
                     Return 0
             End Select

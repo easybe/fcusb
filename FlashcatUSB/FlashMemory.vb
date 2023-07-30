@@ -22,7 +22,8 @@ Namespace FlashMemory
         Public Const Gb002 As UInt32 = 268435456
         Public Const Gb004 As UInt32 = 536870912
         Public Const Gb008 As UInt32 = 1073741824
-        Public Const Gb016 As UInt32 = 2147483648
+        Public Const Gb016 As UInt32 = &H80000000UI
+        Public Const Gb032 As UInt64 = &H100000000L
     End Module
 
     Public Enum MemoryType
@@ -30,11 +31,13 @@ Namespace FlashMemory
         PARALLEL_NOR 'CFI devices
         SERIAL_NOR 'SPI devices
         SERIAL_I2C 'I2C EEPROMs
+        SERIAL_MICROWIRE
         SERIAL_NAND 'SPI NAND devices
         SLC_NAND 'NAND devices
         JTAG_DMA_RAM 'Vol memory attached to a MCU with DMA access
         JTAG_DMA_CFI 'Non-Vol memory attached to a MCU with DMA access
         JTAG_SPI    'SPI devices connected to an MCU with a SPI access register
+
         'HYPERFLASH
         'MLC_NAND
         'TLC_NAND
@@ -162,7 +165,7 @@ Namespace FlashMemory
     Public Interface Device
         ReadOnly Property NAME As String 'Manufacturer and part number
         ReadOnly Property FLASH_TYPE As MemoryType
-        ReadOnly Property FLASH_SIZE As UInt32 'Size of this flash device (without spare area)
+        ReadOnly Property FLASH_SIZE As Long 'Size of this flash device (without spare area)
         ReadOnly Property MFG_CODE As Byte 'The manufaturer byte ID
         ReadOnly Property ID1 As UInt16
         Property ID2 As UInt16
@@ -180,7 +183,7 @@ Namespace FlashMemory
         Public ReadOnly Property ID1 As UInt16 Implements Device.ID1
         Public Property ID2 As UInt16 = 0 Implements Device.ID2 'Not used
         Public ReadOnly Property FLASH_TYPE As MemoryType = MemoryType.PARALLEL_NOR Implements Device.FLASH_TYPE
-        Public ReadOnly Property FLASH_SIZE As UInt32 Implements Device.FLASH_SIZE
+        Public ReadOnly Property FLASH_SIZE As Long Implements Device.FLASH_SIZE
         Public ReadOnly Property Sector_Count As UInt32 = 1 Implements Device.Sector_Count 'We will have to write the entire array
         Public Property PAGE_SIZE As UInt32 = 0 Implements Device.PAGE_SIZE 'Not used
         Public Property ERASE_REQUIRED As Boolean = False Implements Device.ERASE_REQUIRED
@@ -205,7 +208,7 @@ Namespace FlashMemory
         Public ReadOnly Property ID1 As UInt16 Implements Device.ID1
         Public Property ID2 As UInt16 Implements Device.ID2
         Public ReadOnly Property FLASH_TYPE As MemoryType = MemoryType.PARALLEL_NOR Implements Device.FLASH_TYPE
-        Public ReadOnly Property FLASH_SIZE As UInt32 Implements Device.FLASH_SIZE
+        Public ReadOnly Property FLASH_SIZE As Long Implements Device.FLASH_SIZE
         Public Property PAGE_SIZE As UInt32 = 32 Implements Device.PAGE_SIZE 'Only used for WRITE_PAGE mode of certain flash devices
         Public Property ERASE_REQUIRED As Boolean = True Implements Device.ERASE_REQUIRED
         Public Property WriteMode As MFP_PROG = MFP_PROG.Standard 'This indicates the perfered programing method
@@ -353,7 +356,7 @@ Namespace FlashMemory
         Public Property ID2 As UInt16 Implements Device.ID2
         Public Property FAMILY As Byte 'SPI Extended byte
         Public ReadOnly Property FLASH_TYPE As MemoryType Implements Device.FLASH_TYPE
-        Public Property FLASH_SIZE As UInt32 Implements Device.FLASH_SIZE
+        Public Property FLASH_SIZE As Long Implements Device.FLASH_SIZE
         Public Property ERASE_REQUIRED As Boolean Implements Device.ERASE_REQUIRED
         'These are properties unique to SPI devices
         Public Property ADDRESSBITS As UInt32 = 24 'Number of bits the address space takes up (16/24/32)
@@ -506,7 +509,7 @@ Namespace FlashMemory
         Public ReadOnly Property ID1 As UShort Implements Device.ID1
         Public Property ID2 As UShort Implements Device.ID2
         Public Property ERASE_REQUIRED As Boolean Implements Device.ERASE_REQUIRED
-        Public ReadOnly Property FLASH_SIZE As UInteger Implements Device.FLASH_SIZE
+        Public ReadOnly Property FLASH_SIZE As Long Implements Device.FLASH_SIZE
         Public ReadOnly Property FLASH_TYPE As MemoryType Implements Device.FLASH_TYPE
         Public ReadOnly Property PAGE_SIZE As UInteger Implements Device.PAGE_SIZE 'The number of bytes in the main area
         Public ReadOnly Property EXT_PAGE_SIZE As UInt16 'The number of bytes in the extended page area
@@ -543,8 +546,9 @@ Namespace FlashMemory
         Public ReadOnly Property ID1 As UInt16 Implements Device.ID1
         Public Property ID2 As UInt16 Implements Device.ID2
         Public ReadOnly Property FLASH_TYPE As MemoryType Implements Device.FLASH_TYPE
-        Public ReadOnly Property FLASH_SIZE As UInt32 Implements Device.FLASH_SIZE
+        Public ReadOnly Property FLASH_SIZE As Long Implements Device.FLASH_SIZE
         Public ReadOnly Property PAGE_SIZE As UInt32 Implements Device.PAGE_SIZE 'Total number of bytes per page (not including OOB)
+        Public Property STACKED_DIES As UInt32 = 1 'If device has more than one die, set this value
         Public Property ERASE_REQUIRED As Boolean Implements Device.ERASE_REQUIRED
         Public Property EXT_PAGE_SIZE As UInt32 'The number of bytes in the spare area
         Public Property BLOCK_SIZE As UInt32 'Number of bytes per block (not including extended pages)
@@ -554,7 +558,7 @@ Namespace FlashMemory
             End Get
         End Property
 
-        Sub New(FlashName As String, MFG As Byte, ID As UInt32, m_size As UInt32, PageSize As UInt16, SpareSize As UInt16, BlockSize As UInt32)
+        Sub New(FlashName As String, MFG As Byte, ID As UInt32, m_size As Long, PageSize As UInt16, SpareSize As UInt16, BlockSize As UInt32)
             Me.NAME = FlashName
             Me.FLASH_TYPE = MemoryType.SLC_NAND
             Me.PAGE_SIZE = PageSize 'Does not include extended / spare pages
@@ -1175,6 +1179,10 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Cypress S29GL256P", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.PAGE_SIZE = 64})
             FlashDB.Add(New MFP_Flash("Cypress S29GL512P", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2301) With {.PAGE_SIZE = 64})
             FlashDB.Add(New MFP_Flash("Cypress S29GL01GP", &H1, &H227E, Gb001, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2801) With {.PAGE_SIZE = 64})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL128S", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.PAGE_SIZE = 512})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL256S", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.PAGE_SIZE = 512})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL512S", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.PAGE_SIZE = 512})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL01GS", &H1, &H227E, Gb001, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.PAGE_SIZE = 512})
             FlashDB.Add(New MFP_Flash("Cypress S29GL512T", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.SR1, &H2301) With {.PAGE_SIZE = 512})
             FlashDB.Add(New MFP_Flash("Cypress S29GL01GT", &H1, &H227E, Gb001, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.SR1, &H2801) With {.PAGE_SIZE = 512}) '(CHIP-VAULT)
             FlashDB.Add(New MFP_Flash("Cypress S70GL02G", &H1, &H227E, Gb002, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.SR1, &H4801) With {.PAGE_SIZE = 512})
@@ -1368,6 +1376,7 @@ Namespace FlashMemory
             'Samsung SLC x8 NAND devices
             FlashDB.Add(New NAND_Flash("Samsung K9F5608U0D", &HEC, &H75A5BDECUI, Mb256, 512, 16, Kb128))
             FlashDB.Add(New NAND_Flash("Samsung K9F1208U0C", &HEC, &H765A3F74UI, Mb512, 512, 16, Kb128))
+            FlashDB.Add(New NAND_Flash("Samsung K9F1G08U0A", &HEC, &HF1801540UI, Gb001, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Samsung K9F1G08U0D", &HEC, &HF1001540UI, Gb001, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Samsung K9F1G08U0B", &HEC, &HF1009540UI, Gb001, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Samsung K9F1G08X0", &HEC, &HF1009540UI, Gb001, 2048, 64, Mb001)) 'K9F1G08U0C K9F1G08B0C K9F1G08U0B
@@ -1380,6 +1389,13 @@ Namespace FlashMemory
             FlashDB.Add(New NAND_Flash("Samsung K9F4G08U0B", &HEC, &HDC109554UI, Gb004, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Samsung K9GAG08U0E", &HEC, &HD5847250UI, Gb016, 8192, 436, Mb008)) 'MLC 2-bit
             FlashDB.Add(New NAND_Flash("Samsung K9GAG08U0M", &HEC, &HD514B674UI, Gb016, 4096, 128, Mb004))
+
+            FlashDB.Add(New NAND_Flash("Samsung K9K8G08U0A", &HEC, &HD3519558UI, Gb008, 2048, 64, Mb001))
+            FlashDB.Add(New NAND_Flash("Samsung K9WAG08U1A", &HEC, &HD3519558UI, Gb016, 2048, 64, Mb001) With {.STACKED_DIES = 2}) 'Dual die (CE1#/CE2#)
+            FlashDB.Add(New NAND_Flash("Samsung K9NBG08U5A", &HEC, &HD3519558UI, Gb032, 2048, 64, Mb001) With {.STACKED_DIES = 4}) 'Quad die (CE1#/CE2#/CE3#/CE4#)
+
+
+
             'Hynix SLC x8 devices
             FlashDB.Add(New NAND_Flash("Hynix HY27US08121B", &HAD, &H76AD76ADUI, Mb512, 512, 16, Kb128))
             FlashDB.Add(New NAND_Flash("Hynix HY27US08561A", &HAD, &H75AD75ADUI, Mb256, 512, 16, Kb128))

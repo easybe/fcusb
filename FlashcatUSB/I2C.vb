@@ -199,16 +199,16 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
     Public Function WriteData(flash_offset As UInteger, data_to_write() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
         Try
             Dim setup_data(6) As Byte
-            Dim count As UInt32 = data_to_write.Length
+            Dim data_count As UInt32 = data_to_write.Length
             Dim result As Boolean = False
             setup_data(0) = ((flash_offset >> 24) And 255)
             setup_data(1) = ((flash_offset >> 16) And 255)
             setup_data(2) = ((flash_offset >> 8) And 255)
             setup_data(3) = (flash_offset And 255)
-            setup_data(4) = ((count >> 16) And 255)
-            setup_data(5) = ((count >> 8) And 255)
-            setup_data(6) = (count And 255)
-            result = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.I2C_WRITEEEPROM, setup_data, data_to_write, count)
+            setup_data(4) = ((data_count >> 16) And 255)
+            setup_data(5) = ((data_count >> 8) And 255)
+            setup_data(6) = (data_count And 255)
+            result = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.I2C_WRITEEEPROM, setup_data, data_to_write, data_count)
             If Not result Then Return False
             FCUSB.USB_WaitForComplete() 'It may take a few microseconds to complete
             If GetResultStatus() = I2C_STATUS.NOERROR Then Return True

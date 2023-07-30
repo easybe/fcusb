@@ -11,6 +11,7 @@ Public Class MainForm
         Me.MinimumSize = Me.Size
         Me.MyTabs.DrawMode = TabDrawMode.OwnerDrawFixed
         MyTabs.TabPages.Remove(TabMultiDevice)
+        MyTabs.TabPages.Remove(TabMach1)
         InitStatusMessage()
         LoadSettingsIntoGui()
         ScriptEngine.PrintInformation() 'Script Engine
@@ -23,6 +24,7 @@ Public Class MainForm
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Parallel NOR memory (x8/x16)", FlashDatabase.PartCount(MemoryType.PARALLEL_NOR)))
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "SLC NAND memory (x8)", FlashDatabase.PartCount(MemoryType.SLC_NAND)))
         mi_mode_1wire.Visible = False
+        mi_mode_mach1.Enabled = False
         Language_Setup()
     End Sub
 
@@ -700,7 +702,10 @@ Public Class MainForm
             mi_mode_spi.Enabled = False
             mi_mode_spieeprom.Enabled = False
             mi_mode_spi_nand.Enabled = False
+            mi_mode_mach1.Enabled = False
             mi_mode_i2c.Enabled = False
+            mi_mode_1wire.Enabled = False
+            mi_mode_3wire.Enabled = False
             mi_mode_extio.Enabled = False
             mi_mode_eprom_otp.Enabled = False
             mi_mode_jtag.Enabled = False
@@ -715,9 +720,12 @@ Public Class MainForm
         mi_mode_spieeprom.Checked = False
         mi_mode_spi_nand.Checked = False
         mi_mode_i2c.Checked = False
+        mi_mode_1wire.Checked = False
+        mi_mode_3wire.Checked = False
         mi_mode_extio.Checked = False
         mi_mode_eprom_otp.Checked = False
         mi_mode_jtag.Checked = False
+        mi_mode_spi.Checked = False
         mi_bitswap_none.Checked = False
         mi_bitswap_8bit.Checked = False
         mi_bitswap_16bit.Checked = False
@@ -747,21 +755,6 @@ Public Class MainForm
             Case BitEndianMode.LittleEndian32_8bit
                 mi_bitendian_little_8.Checked = True
         End Select
-        If MySettings.I2C_SIZE = 0 Then
-            mi_mode_i2c.Enabled = False
-        Else
-            mi_mode_i2c.Enabled = True
-        End If
-        If MySettings.OTP_MFG = 0 Then
-            mi_mode_eprom_otp.Enabled = False
-        Else
-            mi_mode_eprom_otp.Enabled = True
-        End If
-        If MySettings.SPI_EEPROM = SPI_EEPROM.None Then
-            mi_mode_spieeprom.Enabled = False
-        Else
-            mi_mode_spieeprom.Enabled = True
-        End If
         Enable_Mode_Menu(False)
         If USBCLIENT.HW_MODE = FCUSB_BOARD.Professional Then
             mi_mode_spi.Enabled = True
@@ -770,6 +763,8 @@ Public Class MainForm
             mi_mode_i2c.Enabled = True
             mi_mode_eprom_otp.Enabled = True
             mi_mode_extio.Enabled = True
+            mi_mode_1wire.Enabled = True
+            mi_mode_3wire.Enabled = True
             mi_mode_jtag.Enabled = True 'We now support JTAG!
             Enable_VCC_Menu(True)
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Classic_XPORT Then
@@ -786,12 +781,46 @@ Public Class MainForm
             mi_mode_spieeprom.Enabled = True
             mi_mode_spi_nand.Enabled = True
             mi_mode_i2c.Enabled = True
+            mi_mode_1wire.Enabled = True
+            mi_mode_3wire.Enabled = True
             mi_mode_eprom_otp.Enabled = True
             mi_mode_extio.Enabled = True
+        ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Mach1 Then
+            mi_mode_spi.Enabled = False
+            mi_mode_spieeprom.Enabled = False
+            mi_mode_spi_nand.Enabled = False
+            mi_mode_i2c.Enabled = False
+            mi_mode_1wire.Enabled = False
+            mi_mode_3wire.Enabled = False
+            mi_mode_eprom_otp.Enabled = False
+            mi_mode_extio.Enabled = False
+            mi_mode_jtag.Enabled = False
+            mi_mode_mach1.Enabled = True
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Classic_BL Then
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.NotConnected Then
             Enable_VCC_Menu(True)
             Enable_Mode_Menu(True)
+            mi_mode_mach1.Enabled = False
+        End If
+        If MySettings.I2C_SIZE = 0 Then
+            mi_mode_i2c.Enabled = False
+        Else
+            mi_mode_i2c.Enabled = True
+        End If
+        If MySettings.OTP_MFG = 0 Then
+            mi_mode_eprom_otp.Enabled = False
+        Else
+            mi_mode_eprom_otp.Enabled = True
+        End If
+        If MySettings.SPI_EEPROM = SPI_EEPROM.None Then
+            mi_mode_spieeprom.Enabled = False
+        Else
+            mi_mode_spieeprom.Enabled = True
+        End If
+        If MySettings.S93_DEVICE_INDEX = 0 Then
+            mi_mode_3wire.Enabled = False
+        Else
+            mi_mode_3wire.Enabled = True
         End If
         Select Case MySettings.OPERATION_MODE
             Case FlashcatSettings.DeviceMode.SPI
@@ -804,10 +833,16 @@ Public Class MainForm
                 mi_mode_i2c.Checked = True
             Case FlashcatSettings.DeviceMode.NOR_NAND
                 mi_mode_extio.Checked = True
+            Case FlashcatSettings.DeviceMode.DOW
+                mi_mode_1wire.Checked = True
+            Case FlashcatSettings.DeviceMode.Microwire
+                mi_mode_3wire.Checked = True
             Case FlashcatSettings.DeviceMode.EPROM_OTP
                 mi_mode_eprom_otp.Checked = True
             Case FlashcatSettings.DeviceMode.JTAG
                 mi_mode_jtag.Checked = True
+            Case FlashcatSettings.DeviceMode.Mach1
+                mi_mode_mach1.Checked = True
         End Select
     End Sub
 
@@ -830,14 +865,20 @@ Public Class MainForm
             mi_mode_spi_nand.Enabled = True
             mi_mode_i2c.Enabled = True
             mi_mode_extio.Enabled = True
+            mi_mode_1wire.Enabled = True
+            mi_mode_3wire.Enabled = True
             mi_mode_jtag.Enabled = True
+            mi_mode_mach1.Enabled = True
         Else
             mi_mode_spi.Enabled = False
             mi_mode_spieeprom.Enabled = False
             mi_mode_spi_nand.Enabled = False
             mi_mode_i2c.Enabled = False
             mi_mode_extio.Enabled = False
+            mi_mode_1wire.Enabled = False
+            mi_mode_3wire.Enabled = False
             mi_mode_jtag.Enabled = False
+            mi_mode_mach1.Enabled = False
         End If
     End Sub
 
@@ -1041,6 +1082,10 @@ Public Class MainForm
                 mi_mode_extio.Checked = True
             Case FlashcatSettings.DeviceMode.EPROM_OTP
                 mi_mode_eprom_otp.Checked = True
+            Case FlashcatSettings.DeviceMode.Microwire
+                mi_mode_3wire.Checked = True
+            Case FlashcatSettings.DeviceMode.Mach1
+                mi_mode_mach1.Checked = True
         End Select
         If MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_EEPROM Then
             If MySettings.SPI_EEPROM = SPI_EEPROM.None Then
@@ -1108,9 +1153,11 @@ Public Class MainForm
             mi_mode_i2c.Checked = False
             mi_mode_extio.Checked = False
             mi_mode_1wire.Checked = False
+            mi_mode_3wire.Checked = False
             mi_mode_eprom_otp.Checked = False
             mi_mode_jtag.Checked = False
             mi_mode_spi_nand.Checked = False
+            mi_mode_mach1.Checked = False
         Catch ex As Exception
         End Try
     End Sub
@@ -1169,6 +1216,20 @@ Public Class MainForm
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_NAND
         MySettings.Save()
+    End Sub
+
+    Private Sub mi_mode_3wire_Click(sender As Object, e As EventArgs) Handles mi_mode_3wire.Click
+        Menu_Mode_UncheckAll()
+        DirectCast(sender, ToolStripMenuItem).Checked = True
+        MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.Microwire
+        MySettings.Save()
+    End Sub
+
+    Private Sub MachToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles mi_mode_mach1.Click
+        'Menu_Mode_UncheckAll()
+        'DirectCast(sender, ToolStripMenuItem).Checked = True
+        'MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.Mach1
+        'MySettings.Save()
     End Sub
 
     Private Sub mi_verify_Click(sender As Object, e As EventArgs) Handles mi_verify.Click
@@ -1800,41 +1861,55 @@ Public Class MainForm
 
 #Region "Script Menu"
 
+    Private Class script_option
+        Public file_name As String
+        Public jedec_id As UInt32
+    End Class
+
+    Private Delegate Sub onLoadScripts(JEDEC_ID As UInt32)
     Public Sub LoadScripts(ByVal JEDEC_ID As UInt32)
-        mi_script_selected.DropDownItems.Clear()
-        WriteConsole(RM.GetString("gui_script_checking"))
-        Dim MyScripts(,) As String = GetCompatibleScripts(JEDEC_ID)
-        Dim SelectScript As Integer = 0
-        Dim i As Integer
-        If MyScripts Is Nothing Then
-            WriteConsole(RM.GetString("gui_script_non_available"))
-        ElseIf (MyScripts.Length / 2) = 1 Then
-            WriteConsole(String.Format(RM.GetString("gui_script_loading"), MyScripts(0, 0)))
-            If ScriptEngine.LoadFile(New IO.FileInfo(ScriptPath & MyScripts(0, 0))) Then
-                GUI.UpdateStatusMessage(RM.GetString("gui_active_script"), MyScripts(0, 1))
+        If Me.InvokeRequired Then
+            Dim n As New onLoadScripts(AddressOf LoadScripts)
+            Me.Invoke(n, {JEDEC_ID})
+        Else
+            mi_script_selected.DropDownItems.Clear()
+            WriteConsole(RM.GetString("gui_script_checking"))
+            Dim MyScripts(,) As String = GetCompatibleScripts(JEDEC_ID)
+            Dim SelectScript As Integer = 0
+            If MyScripts Is Nothing Then
+                WriteConsole(RM.GetString("gui_script_non_available"))
+            ElseIf (MyScripts.Length / 2) = 1 Then
+                WriteConsole(String.Format(RM.GetString("gui_script_loading"), MyScripts(0, 0)))
+                If ScriptEngine.LoadFile(New IO.FileInfo(ScriptPath & MyScripts(0, 0))) Then
+                    GUI.UpdateStatusMessage(RM.GetString("gui_active_script"), MyScripts(0, 1))
+                    mi_script_selected.Enabled = True
+                    mi_script_load.Enabled = True
+                    mi_script_unload.Enabled = True
+                    Dim tsi As ToolStripMenuItem = mi_script_selected.DropDownItems.Add(MyScripts(0, 0))
+                    tsi.Tag = New script_option With {.file_name = MyScripts(0, 0), .jedec_id = JEDEC_ID}
+                    AddHandler tsi.Click, AddressOf LoadSelectedScript
+                    tsi.Checked = True
+                End If
+            Else 'Multiple scripts (choose preferrence)
+                Dim pre_script_name As String = MySettings.GetPrefferedScript(JEDEC_ID)
                 mi_script_selected.Enabled = True
                 mi_script_load.Enabled = True
                 mi_script_unload.Enabled = True
-                Dim tsi As ToolStripMenuItem = mi_script_selected.DropDownItems.Add(MyScripts(0, 0))
-                tsi.Tag = MyScripts(0, 0)
-                AddHandler tsi.Click, AddressOf LoadSelectedScript
-                tsi.Checked = True
+                For i = 0 To CInt((MyScripts.Length / 2) - 1)
+                    Dim tsi As ToolStripMenuItem = mi_script_selected.DropDownItems.Add(MyScripts(i, 1))
+                    tsi.Tag = New script_option With {.file_name = MyScripts(i, 0), .jedec_id = JEDEC_ID}
+                    AddHandler tsi.Click, AddressOf LoadSelectedScript
+                    If pre_script_name = "" AndAlso i = 0 Then
+                        tsi.Checked = True
+                    ElseIf pre_script_name.ToUpper = MyScripts(i, 0).ToUpper Then
+                        tsi.Checked = True
+                        SelectScript = i
+                    End If
+                Next
+                UpdateStatusMessage(RM.GetString("gui_active_script"), MyScripts(SelectScript, 0))
+                Dim df As New IO.FileInfo(ScriptPath & MyScripts(SelectScript, 0))
+                ScriptEngine.LoadFile(df)
             End If
-        Else 'Multiple scripts (choose preferrence)
-            mi_script_selected.Enabled = True
-            mi_script_load.Enabled = True
-            mi_script_unload.Enabled = True
-            For i = 0 To CInt((MyScripts.Length / 2) - 1)
-                Dim tsi As ToolStripMenuItem = mi_script_selected.DropDownItems.Add(MyScripts(i, 1))
-                tsi.Tag = MyScripts(i, 0)
-                AddHandler tsi.Click, AddressOf LoadSelectedScript
-                If SelectScript = i Then
-                    tsi.Checked = True
-                End If
-            Next
-            UpdateStatusMessage(RM.GetString("gui_active_script"), MyScripts(SelectScript, 0))
-            Dim df As New IO.FileInfo(ScriptPath & MyScripts(SelectScript, 0))
-            ScriptEngine.LoadFile(df)
         End If
     End Sub
 
@@ -1931,11 +2006,12 @@ Public Class MainForm
 
     Private Sub LoadSelectedScript(ByVal sender As Object, ByVal e As EventArgs)
         Dim tsi As ToolStripMenuItem = sender
-        If Not tsi.Checked Then
-            Dim ScriptName As String = tsi.Tag
-            LoadScriptFile(Application.StartupPath & "\Scripts\" & ScriptName)
+        If (Not tsi.Checked) Then
+            Dim scr_obj As script_option = tsi.Tag
+            LoadScriptFile(Application.StartupPath & "\Scripts\" & scr_obj.file_name)
             RemoveScriptChecks()
             tsi.Checked = True
+            MySettings.SetPrefferedScript(scr_obj.file_name, scr_obj.jedec_id)
         End If
     End Sub
 
@@ -2210,6 +2286,155 @@ Public Class MainForm
         n.StartPosition = FormStartPosition.CenterParent
         n.ShowDialog()
     End Sub
+
+
+#Region "Mach1 Development"
+    Private Delegate Sub onMachCallback()
+    Private Delegate Sub cbMach1Progress(ByVal percent As Integer)
+    Private MB_DN_INDEX As Integer = 0
+    Private MachDev As FCUSB_DEVICE
+    Private mach1_svf_file() As String = Nothing
+
+    Public Sub Mach1Connected()
+        If Me.InvokeRequired Then
+            Dim n As New onMachCallback(AddressOf Mach1Connected)
+            Me.Invoke(n)
+        Else
+            MachDev = USBCLIENT.FCUSB(0)
+            CpldUpdateStatus()
+            MyTabs.TabPages.Add(TabMach1)
+            cbMachDownloadSize.SelectedIndex = 0
+        End If
+    End Sub
+
+    Private Sub CpldUpdateStatus()
+        If Me.InvokeRequired Then
+            Dim n As New onMachCallback(AddressOf CpldUpdateStatus)
+            Me.Invoke(n)
+        Else
+            Dim status(3) As Byte
+            MachDev.USB_CONTROL_MSG_IN(USB.USBREQ.CPLD_STATUS, status)
+            If (status(0) = 0) Then
+                cmdMach1CpldOff.Enabled = False
+                cmdMach1Program.Enabled = False
+                cmdMach1Jedec.Enabled = False
+                cmdMach1CpldOn.Enabled = True
+            Else
+                cmdMach1CpldOff.Enabled = True
+                cmdMach1Program.Enabled = True
+                cmdMach1Jedec.Enabled = True
+                cmdMach1CpldOn.Enabled = False
+            End If
+        End If
+    End Sub
+
+    Public Sub Mach1Disconnected()
+        If Me.InvokeRequired Then
+            Dim n As New onMachCallback(AddressOf Mach1Disconnected)
+            Me.Invoke(n)
+        Else
+            MyTabs.TabPages.Remove(TabMach1)
+        End If
+    End Sub
+
+    Private Sub Mach1TestComplete()
+        If Me.InvokeRequired Then
+            Dim n As New onMachCallback(AddressOf Mach1TestComplete)
+            Me.Invoke(n)
+        Else
+            pbMachProgress.Value = 0
+            cmdMach1DnTest.Enabled = True
+        End If
+    End Sub
+
+    Public Sub Mach1Progress(ByVal percent As Integer)
+        If Me.InvokeRequired Then
+            Dim n As New cbMach1Progress(AddressOf Mach1Progress)
+            Me.Invoke(n, {percent})
+        Else
+            pbMachProgress.Value = percent
+        End If
+    End Sub
+
+    Private Sub cmdMach1DnTest_Click(sender As Object, e As EventArgs) Handles cmdMach1DnTest.Click
+        MB_DN_INDEX = cbMachDownloadSize.SelectedIndex
+        cmdMach1DnTest.Enabled = False
+        Dim t As New Threading.Thread(AddressOf Mach1DnTest)
+        t.Start()
+    End Sub
+
+    Private Sub Mach1DnTest()
+        Dim t As New Stopwatch
+        Dim mb_count As Integer = 100 * (MB_DN_INDEX + 1)
+        Dim data_count As UInt32 = 1048576
+        Dim data_test(data_count - 1) As Byte
+        Dim read_counter As Integer = 0
+        SetStatus("Starting transfer of " & mb_count & "MB")
+        t.Start()
+        Do
+            Dim result As Boolean = MachDev.USB_SETUP_BULKIN(&HA1, Nothing, data_test, data_test.Length)
+            read_counter += 1
+            Mach1Progress(CSng(read_counter / mb_count) * 100)
+            If (read_counter) = mb_count Then Exit Do
+        Loop
+        t.Stop()
+        Dim bytesRead As UInt32 = (data_count * mb_count)
+        Dim speed_str As String = Format(Math.Round(bytesRead / (t.ElapsedMilliseconds / 1000)), "#,###") & " Bytes/s"
+        Dim msg_out As String = "Successfully transfered " & mb_count & "MB in " & t.Elapsed.TotalSeconds & " seconds (" & speed_str & ")"
+        SetStatus(msg_out)
+        Mach1TestComplete()
+    End Sub
+
+    Private Sub cmdMach1Jedec_Click(sender As Object, e As EventArgs) Handles cmdMach1Jedec.Click
+        If MachDev.EJ_IF.Init() Then
+            SetStatus("JEDEC ID: 0x" & Hex(MachDev.EJ_IF.TargetDevice.IDCODE).PadLeft(8, "0"))
+        Else
+            SetStatus("ERROR: Unable to detect CPLD via ISP JTAG")
+        End If
+    End Sub
+
+    Private Sub cmdMach1Program_Click(sender As Object, e As EventArgs) Handles cmdMach1Program.Click
+        Dim OpenMe As New OpenFileDialog
+        OpenMe.AddExtension = True
+        OpenMe.InitialDirectory = Application.StartupPath
+        OpenMe.Title = "Select SVF file to program into CPLD"
+        OpenMe.CheckPathExists = True
+        OpenMe.Filter = "Serial vector file (*.svf)|*.svf" & "|" & "All files (*.*)|*.*"
+        If (OpenMe.ShowDialog = DialogResult.OK) Then
+            mach1_svf_file = Utilities.FileIO.ReadFile(OpenMe.FileName)
+            cmdMach1Program.Enabled = False
+            Dim t As New Threading.Thread(AddressOf Mach1ProgramSVF)
+            t.Start()
+        End If
+    End Sub
+
+    Private Sub Mach1ProgramSVF()
+        Try
+            RemoveHandler MachDev.EJ_IF.JSP.Progress, AddressOf Mach1Progress
+            AddHandler MachDev.EJ_IF.JSP.Progress, AddressOf Mach1Progress
+            MachDev.EJ_IF.JSP.RunFile_SVF(mach1_svf_file)
+            CpldUpdateStatus()
+            Mach1Progress(0)
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub cmdMach1CpldOn_Click(sender As Object, e As EventArgs) Handles cmdMach1CpldOn.Click
+        MachDev.USB_CONTROL_MSG_OUT(USB.USBREQ.CPLD_3V3)
+        Utilities.Sleep(4)
+        CpldUpdateStatus()
+    End Sub
+
+    Private Sub cmdMach1CpldOff_Click(sender As Object, e As EventArgs) Handles cmdMach1CpldOff.Click
+        MachDev.USB_CONTROL_MSG_OUT(USB.USBREQ.CPLD_OFF)
+        Utilities.Sleep(4)
+        CpldUpdateStatus()
+    End Sub
+
+
+
+#End Region
+
 
 
 End Class

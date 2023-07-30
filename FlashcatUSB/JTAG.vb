@@ -32,13 +32,15 @@ Public Class JTAG_IF
             TAP = New JTAG_STATE_CONTROLLER
             AddHandler TAP.ShiftBits, AddressOf Tap_ShiftBits
             TAP.Reset()
-            If (ReadWriteData(1) <> 0) Then 'IDCODE used by most devices
-                TargetDevice.LoadDevice(ReadWriteData(1))
-            ElseIf (ReadWriteData(6) <> 0) Then 'IDCODE used by Altera
-                TargetDevice.LoadDevice(ReadWriteData(6))
+            Dim IMPCODE As UInt32 = ReadWriteData(EJTAG_OPCODE.IMPCODE)
+            Dim id_readback As UInt32 = ReadWriteData(1)
+            If (id_readback <> 0) AndAlso (id_readback <> &HFFFFFFFFUI) Then 'IDCODE used by most devices
+                TargetDevice.LoadDevice(id_readback, ChipIrLen, IMPCODE)
+            Else
+                id_readback = ReadWriteData(6) 'IDCODE used by Altera
+                If (id_readback <> 0) AndAlso (id_readback <> &HFFFFFFFFUI) Then TargetDevice.LoadDevice(id_readback, ChipIrLen, IMPCODE)
             End If
             If (TargetDevice.CONTROLLER = JTAG_CONTROLLER.Broadcom) Then
-                Dim IMPCODE As UInt32 = ReadWriteData(EJTAG_OPCODE.IMPCODE)
                 EJTAG_LoadCapabilities(IMPCODE) 'Only supported by MIPS/EJTAG devices
             End If
             If Me.DMA_SUPPORTED Then
@@ -71,9 +73,9 @@ Public Class JTAG_IF
 
     Public Enum EJTAG_CTRL As UInt32
         '/* EJTAG 3.1 Control Register Bits */
-        VPED = (1 << 23)       '/* R    */
+        VPED = (1 <<23)       '/* R    */
         '/* EJTAG 2.6 Control Register Bits */
-        Rocc = (1UI << 31)     '/* R/W0 */
+                           Rocc = (1UI << 31)     '/* R/W0 */
         Psz1 = (1 << 30)       '/* R    */
         Psz0 = (1 << 29)       '/* R    */
         Doze = (1 << 22)       '/* R    */
@@ -246,20 +248,17 @@ Public Class JTAG_IF
     Friend SPI_JTAG_IF As SPI_API
     'Returns TRUE if the JTAG can detect a connected flash to the SPI port
     Public Function SPI_Detect() As Boolean
+        If (Not TargetDevice.SPI_SUPPORTED) Then
+            WriteConsole("JTAG: target device does not support SPI direct-access")
+            Return False
+        End If
         Dim reg As UInt32 = 0
-        Select Case TargetDevice.CONTROLLER
-            Case JTAG_CONTROLLER.Broadcom
-            Case JTAG_CONTROLLER.Atheros
-            Case Else
-                WriteConsole("JTAG: target JTAG device does not support SPI direct-access")
-                Return False
-        End Select
         SPI_JTAG_IF = New SPI_API(TargetDevice.CONTROLLER)
-        SPI_SendCommand(SPI_JTAG_IF.READ_ID, 1, 3)
+        reg = SPI_SendCommand(SPI_JTAG_IF.READ_ID, 1, 3)
         WriteConsole(String.Format("JTAG: SPI register returned {0}", "0x" & Hex(reg)))
         Dim ReadBack() As Byte = Utilities.Bytes.FromUInt32(reg, False) 'Returns 4 bytes
         Dim PartNum As UInt16 = (CUInt(ReadBack(1)) << 8) + ReadBack(2)
-        SPI_Part = FlashDatabase.FindDevice(ReadBack(0), PartNum, 0, False, FlashMemory.MemoryType.PARALLEL_NOR)
+        SPI_Part = FlashDatabase.FindDevice(ReadBack(0), PartNum, 0, False, FlashMemory.MemoryType.SERIAL_NOR)
         If SPI_Part IsNot Nothing Then
             WriteConsole(String.Format("JTAG: SPI flash detected ({0})", SPI_Part.NAME))
             If TargetDevice.CONTROLLER = JTAG_CONTROLLER.Broadcom Then
@@ -387,21 +386,22 @@ Public Class JTAG_IF
         End Try
     End Function
 
-    Public Function SPI_SendCommand(ByVal SPI_OPCODE As UShort, ByVal BytesToWrite As UInt32, ByVal BytesToRead As UInt32) As UInt32
+    Public Function SPI_SendCommand(ByVal SPI_OPCODE As UInt16, ByVal BytesToWrite As UInt32, ByVal BytesToRead As UInt32) As UInt32
+        Memory_Write_W(&HBF000000UI, 0)
         If TargetDevice.CONTROLLER = JTAG_CONTROLLER.Broadcom Then
             Memory_Write_W(SPI_JTAG_IF.REG_CNTR, 0)
         End If
         Dim reg As UInt32 = SPI_GetControlReg() 'Zero
         Select Case TargetDevice.CONTROLLER
             Case JTAG_CONTROLLER.Broadcom
-                reg = (reg And &HFFFFFF00) Or SPI_OPCODE Or SPI_JTAG_IF.CTL_Start
+                reg = (reg And &HFFFFFF00UI) Or SPI_OPCODE Or SPI_JTAG_IF.CTL_Start
             Case JTAG_CONTROLLER.Atheros
-                reg = (reg And &HFFFFFF00) Or BytesToWrite Or (BytesToRead << 4) Or SPI_JTAG_IF.CTL_Start
+                reg = (reg And &HFFFFFF00UI) Or BytesToWrite Or (BytesToRead << 4) Or SPI_JTAG_IF.CTL_Start
         End Select
         Memory_Write_W(SPI_JTAG_IF.REG_OPCODE, SPI_OPCODE)
         Memory_Write_W(SPI_JTAG_IF.REG_CNTR, reg)
-        SPI_GetControlReg()
-        If BytesToRead > 0 Then
+        reg = SPI_GetControlReg()
+        If (BytesToRead > 0) Then
             reg = Memory_Read_W(SPI_JTAG_IF.REG_DATA)
             Select Case BytesToRead
                 Case 1
@@ -411,7 +411,7 @@ Public Class JTAG_IF
                 Case 3
                     reg = (reg And &HFFFFFF)
             End Select
-            Return reg 'CMD = 0
+            Return reg
         End If
         Return 0
     End Function
@@ -437,13 +437,13 @@ Public Class JTAG_IF
     End Function
 
     Public Function SPI_GetControlReg() As UInt32
-        Dim i As Integer
+        Dim i As Integer = 0
         Dim reg As UInt32
         Do
-            If Not i = 0 Then Thread.Sleep(50)
+            If Not i = 0 Then Thread.Sleep(25)
             reg = Memory_Read_W(SPI_JTAG_IF.REG_CNTR)
             i = i + 1
-            If i = 10 Then Return 0
+            If i = 20 Then Return 0
         Loop While ((reg And SPI_JTAG_IF.CTL_Busy) > 0)
         Return reg
     End Function
@@ -768,7 +768,7 @@ Public Class JTAG_IF
         Property DMA_SUPPORTED As Boolean = False
         Property SPI_SUPPORTED As Boolean = False 'Supports SPI-DMA
 
-        Friend Sub LoadDevice(ByVal ID As UInt32)
+        Friend Sub LoadDevice(ByVal ID As UInt32, IR As Integer, IMPCODE As UInt32)
             Me.DMA_SUPPORTED = False
             Me.SPI_SUPPORTED = False
             Me.IDCODE = ID
@@ -784,6 +784,7 @@ Public Class JTAG_IF
                 Me.IR_EXTTEST = EJTAG_OPCODE.EXTEST
             ElseIf Me.MANUID = &H70 Then
                 Me.CONTROLLER = JTAG_CONTROLLER.Atheros
+                Me.DMA_SUPPORTED = True
                 Me.SPI_SUPPORTED = True
                 Me.IR_SAMPLE = EJTAG_OPCODE.SAMPLE
                 Me.IR_BYPASS = EJTAG_OPCODE.BYPASS
@@ -798,6 +799,13 @@ Public Class JTAG_IF
                 Me.IR_SAMPLE = XILINX_OPCODE.SAMPLE
                 Me.IR_BYPASS = XILINX_OPCODE.BYPASS
                 Me.IR_EXTTEST = XILINX_OPCODE.EXTEST
+            ElseIf ID = 1 AndAlso IR = 5 AndAlso IMPCODE = &H60414000UI Then 'Atheros_AR9331
+                Me.CONTROLLER = JTAG_CONTROLLER.Atheros
+                Me.DMA_SUPPORTED = True
+                Me.SPI_SUPPORTED = True
+                Me.IR_SAMPLE = EJTAG_OPCODE.SAMPLE
+                Me.IR_BYPASS = EJTAG_OPCODE.BYPASS
+                Me.IR_EXTTEST = EJTAG_OPCODE.EXTEST
             Else
                 Me.CONTROLLER = JTAG_CONTROLLER.Unknown
             End If

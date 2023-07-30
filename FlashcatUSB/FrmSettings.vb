@@ -130,6 +130,7 @@ Public Class FrmSettings
         cb_nand_image_readverify.Checked = MySettings.NAND_Verify
         cb_ECC_ReadEnable.Checked = MySettings.ECC_READ_ENABLED
         cb_ECC_WriteEnable.Checked = MySettings.ECC_WRITE_ENABLED
+        cb_ecc_seperate.Checked = MySettings.ECC_Seperate
         Select Case MySettings.ECC_Algorithum
             Case 0
                 rb_ECC_Hamming.Checked = True
@@ -138,29 +139,8 @@ Public Class FrmSettings
             Case 2
                 rb_ECC_BHC.Checked = True
         End Select
-        If MySettings.ECC_BitError = 1 Then
-            cb_ECC_BITERR.SelectedIndex = 0
-        ElseIf MySettings.ECC_BitError = 2 Then
-            cb_ECC_BITERR.SelectedIndex = 1
-        ElseIf MySettings.ECC_BitError = 4 Then
-            cb_ECC_BITERR.SelectedIndex = 2
-        ElseIf MySettings.ECC_BitError = 8 Then
-            cb_ECC_BITERR.SelectedIndex = 3
-        ElseIf MySettings.ECC_BitError = 10 Then
-            cb_ECC_BITERR.SelectedIndex = 4
-        ElseIf MySettings.ECC_BitError = 14 Then
-            cb_ECC_BITERR.SelectedIndex = 5
-        Else
-            cb_ECC_BITERR.SelectedIndex = 0
-        End If
-        Select Case MySettings.ECC_Location
-            Case ecc_location_opt.half_of_oob_page
-                cb_ecc_loc.SelectedIndex = 0
-            Case ecc_location_opt.end_of_obb_page
-                cb_ecc_loc.SelectedIndex = 1
-            Case ecc_location_opt.start_of_obb_page
-                cb_ecc_loc.SelectedIndex = 2
-        End Select
+        SetBitErrorLevel(MySettings.ECC_BitError)
+        txt_ecc_location.Text = "0x" & Hex(MySettings.ECC_Location).PadLeft(2, "0")
         Select Case MySettings.ECC_SymWidth
             Case 8
                 cb_sym_width.SelectedIndex = 0
@@ -170,7 +150,6 @@ Public Class FrmSettings
                 cb_sym_width.SelectedIndex = 2
         End Select
         ECC_CheckIfEnabled()
-
         Dim otp_index As Integer = 0
         Dim otp_counter As Integer = 1
         cb_otp_device_list.Items.Add("(Not Selected)")
@@ -194,7 +173,9 @@ Public Class FrmSettings
             End If
         Next
         cb_otp_device_list.SelectedIndex = otp_index
-
+        cb_s93_devices.SelectedIndex = MySettings.S93_DEVICE_INDEX
+        cb_s93_org.SelectedIndex = MySettings.S93_DEVICE_ORG
+        cb_retry_write.SelectedIndex = (MySettings.VERIFY_COUNT - 1)
         'BETA VERSION ONLY - DISABLE THESE
         MyTabs.TabPages.Remove(TP_JTAG)
     End Sub
@@ -232,20 +213,11 @@ Public Class FrmSettings
         gb_nandecc_title.Text = RM.GetString("nandecc_groupbox") '"Software ECC Feature"
         cb_rs_reverse_data.Text = RM.GetString("nandecc_revbyteorder") '"Reverse byte order"
         lbl_sym_width.Text = RM.GetString("nandecc_symwidth") '"Symbol width"
-
-
-
-
         If MySettings.LanguageName = "Spanish" Then
             cb_badmarker_1st_page1.Location = New Point(64, 45)
             cb_badmarker_6th_page1.Location = New Point(64, 66)
-
             cb_badmarker_1st_lastpage.Location = New Point(362, 45)
-
         End If
-
-
-
     End Sub
 
     Private Sub FrmSettings_Closing(sender As Object, e As CancelEventArgs) Handles Me.Closing
@@ -357,6 +329,7 @@ Public Class FrmSettings
         MySettings.NAND_Verify = cb_nand_image_readverify.Checked
         MySettings.ECC_READ_ENABLED = cb_ECC_ReadEnable.Checked
         MySettings.ECC_WRITE_ENABLED = cb_ECC_WriteEnable.Checked
+        MySettings.ECC_Seperate = cb_ecc_seperate.Checked
         If rb_ECC_Hamming.Checked Then
             MySettings.ECC_Algorithum = 0
         ElseIf rb_ECC_ReedSolomon.Checked Then
@@ -364,28 +337,7 @@ Public Class FrmSettings
         ElseIf rb_ECC_BHC.Checked Then
             MySettings.ECC_Algorithum = 2
         End If
-        Select Case cb_ECC_BITERR.SelectedIndex
-            Case 0
-                MySettings.ECC_BitError = 1
-            Case 1
-                MySettings.ECC_BitError = 2
-            Case 2
-                MySettings.ECC_BitError = 4
-            Case 3
-                MySettings.ECC_BitError = 8
-            Case 4
-                MySettings.ECC_BitError = 10
-            Case 5
-                MySettings.ECC_BitError = 14
-        End Select
-        Select Case cb_ecc_loc.SelectedIndex
-            Case 0
-                MySettings.ECC_Location = ecc_location_opt.half_of_oob_page
-            Case 1
-                MySettings.ECC_Location = ecc_location_opt.end_of_obb_page
-            Case 2
-                MySettings.ECC_Location = ecc_location_opt.start_of_obb_page
-        End Select
+        MySettings.ECC_BitError = GetBitErrorLevel()
         Select Case cb_sym_width.SelectedIndex
             Case 0
                 MySettings.ECC_SymWidth = 8
@@ -403,6 +355,9 @@ Public Class FrmSettings
                 MySettings.OTP_MFG = o.MFG_CODE
                 MySettings.OTP_ID = o.ID1
         End Select
+        MySettings.VERIFY_COUNT = cb_retry_write.SelectedIndex + 1
+        MySettings.S93_DEVICE_INDEX = cb_s93_devices.SelectedIndex
+        MySettings.S93_DEVICE_ORG = cb_s93_org.SelectedIndex
     End Sub
 
     Private Sub CustomDevice_LoadSettings()
@@ -780,6 +735,8 @@ Public Class FrmSettings
         If rb_mainspare_default.Checked Then
             nand_box.Image = My.Resources.nand_page_seperate
             gb_block_manager.Enabled = True
+            cb_ecc_seperate.Enabled = True
+            gb_nandecc_title.Enabled = True
         End If
     End Sub
 
@@ -787,6 +744,9 @@ Public Class FrmSettings
         If rb_mainspare_segmented.Checked Then
             nand_box.Image = My.Resources.nand_page_segmented
             gb_block_manager.Enabled = True
+            cb_ecc_seperate.Enabled = False
+        Else
+            cb_ecc_seperate.Enabled = True
         End If
     End Sub
 
@@ -794,8 +754,10 @@ Public Class FrmSettings
         If rb_mainspare_all.Checked Then
             nand_box.Image = My.Resources.nand_page_combined
             gb_block_manager.Enabled = False
+            gb_nandecc_title.Enabled = False
         Else
             gb_block_manager.Enabled = True
+            gb_nandecc_title.Enabled = True
         End If
     End Sub
 
@@ -826,6 +788,7 @@ Public Class FrmSettings
             cb_ECC_BITERR.SelectedIndex = 0
             cb_ECC_BITERR.Enabled = False 'Only 1-bit ECC supported
             cb_sym_width.Enabled = False
+            UpdateEccEngine()
         End If
     End Sub
 
@@ -833,6 +796,7 @@ Public Class FrmSettings
         If rb_ECC_ReedSolomon.Checked Then
             cb_ECC_BITERR.Enabled = True
             cb_sym_width.Enabled = True
+            UpdateEccEngine()
         End If
     End Sub
 
@@ -840,6 +804,7 @@ Public Class FrmSettings
         If rb_ECC_BHC.Checked Then
             cb_ECC_BITERR.Enabled = True
             cb_sym_width.Enabled = False
+            UpdateEccEngine()
         End If
     End Sub
 
@@ -856,9 +821,10 @@ Public Class FrmSettings
             rb_ECC_Hamming.Enabled = True
             rb_ECC_ReedSolomon.Enabled = True
             rb_ECC_BHC.Enabled = True
-            cb_ecc_loc.Enabled = True
+            txt_ecc_location.Enabled = True
             If cb_ECC_ReadEnable.Checked Then cb_sym_width.Enabled = True
             cb_rs_reverse_data.Enabled = True
+            cb_ecc_seperate.Enabled = True
             If rb_ECC_Hamming.Checked Then
                 cb_ECC_BITERR.Enabled = False
                 cb_ECC_BITERR.SelectedIndex = 0
@@ -870,14 +836,106 @@ Public Class FrmSettings
             rb_ECC_ReedSolomon.Enabled = False
             rb_ECC_BHC.Enabled = False
             cb_ECC_BITERR.Enabled = False
-            cb_ecc_loc.Enabled = False
+            txt_ecc_location.Enabled = False
             cb_sym_width.Enabled = False
             cb_rs_reverse_data.Enabled = False
+            cb_ecc_seperate.Enabled = False
         End If
     End Sub
 
+    Private Sub UpdateEccEngine()
+        Dim bit_lvl As UInt16 = GetBitErrorLevel()
+        If bit_lvl = 0 Then
+            lbl_ECC_size.Text = "ECC data size: 0 bytes"
+            Exit Sub
+        End If
+        If rb_ECC_Hamming.Checked Then
+            NAND_ECC_ENG = New Engine(ecc_algorithum.hamming, bit_lvl)
+        ElseIf rb_ECC_ReedSolomon.Checked Then
+            NAND_ECC_ENG = New Engine(ecc_algorithum.reedsolomon, bit_lvl)
+            Select Case cb_sym_width.SelectedIndex
+                Case 0
+                    NAND_ECC_ENG.SetSymbolWidth(8)
+                Case 1
+                    NAND_ECC_ENG.SetSymbolWidth(9)
+                Case 2
+                    NAND_ECC_ENG.SetSymbolWidth(10)
+            End Select
+        ElseIf rb_ECC_BHC.Checked Then
+            NAND_ECC_ENG = New Engine(ecc_algorithum.bhc, bit_lvl)
+        End If
+        Dim ecc_data_size As UInt16 = NAND_ECC_ENG.GetEccByteSize
+        Dim ecc_offset As UInt16 = MySettings.ECC_Location
+        lbl_ECC_size.Text = "ECC data per 512 byte sector: " & ecc_data_size.ToString & " bytes"
+    End Sub
 
+    Private Function GetBitErrorLevel() As UInt16
+        Select Case cb_ECC_BITERR.SelectedIndex
+            Case 0
+                Return 1
+            Case 1
+                Return 2
+            Case 2
+                Return 4
+            Case 3
+                Return 8
+            Case 4
+                Return 10
+            Case 5
+                Return 14
+            Case Else
+                Return 0
+        End Select
+    End Function
 
+    Private Sub SetBitErrorLevel(ByVal value As UInt16)
+        Select Case value
+            Case 1
+                cb_ECC_BITERR.SelectedIndex = 0
+            Case 2
+                cb_ECC_BITERR.SelectedIndex = 1
+            Case 4
+                cb_ECC_BITERR.SelectedIndex = 2
+            Case 8
+                cb_ECC_BITERR.SelectedIndex = 3
+            Case 10
+                cb_ECC_BITERR.SelectedIndex = 4
+            Case 14
+                cb_ECC_BITERR.SelectedIndex = 5
+            Case Else
+                cb_ECC_BITERR.SelectedIndex = 0
+        End Select
+    End Sub
+
+    Private Sub cb_ECC_BITERR_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cb_ECC_BITERR.SelectedIndexChanged
+        UpdateEccEngine()
+    End Sub
+
+    Private Sub cb_sym_width_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cb_sym_width.SelectedIndexChanged
+        UpdateEccEngine()
+    End Sub
+
+    Private Sub txt_ecc_location_LostFocus(sender As Object, e As EventArgs) Handles txt_ecc_location.LostFocus
+        Try
+            Dim current_value As String = txt_ecc_location.Text.Trim
+            If (current_value = "") Then
+                MySettings.ECC_Location = 0
+            Else
+                If current_value.ToUpper.StartsWith("0X") Then
+                    If Utilities.IsDataType.Hex(current_value) Then
+                        Dim d() As Byte = Utilities.Bytes.FromHexString(current_value)
+                        If d IsNot Nothing AndAlso d.Length = 1 Then
+                            MySettings.ECC_Location = d(0)
+                        End If
+                    End If
+                ElseIf IsNumeric(current_value) AndAlso CInt(current_value) < 256 Then
+                    MySettings.ECC_Location = CInt(current_value)
+                End If
+            End If
+        Catch ex As Exception
+        End Try
+        txt_ecc_location.Text = "0x" & Hex(MySettings.ECC_Location).PadLeft(2, "0")
+    End Sub
 
 #End Region
 

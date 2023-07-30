@@ -17,10 +17,10 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 525
-    Public PRO_CURRENT_FW As Single = 1.25F 'This is the embedded firmware version for pro
-    Public CLASSIC_CURRENT_FW_SPI As Single = 4.35F 'Min revision allowed for classic, xport
-    Public CLASSIC_CURRENT_FW_JTAG As Single = 7.09F 'Min version for JTAG support
+    Public Const Build As Integer = 527
+    Public PRO_CURRENT_FW As Single = 1.26F 'This is the embedded firmware version for pro
+    Public CLASSIC_CURRENT_FW_SPI As Single = 4.36F 'Min revision allowed for classic, xport
+    Public CLASSIC_CURRENT_FW_JTAG As Single = 7.1F 'Min version for JTAG support
     Public VCC_OPTION As USB.Voltage = USB.Voltage.V3_3 'Only Pro supports software VCC changing
     Public AppIsClosing As Boolean = False
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
@@ -1119,9 +1119,11 @@ Public Module MainApp
         Public Property LanguageName As String
         Public Property VOLT_SELECT As USB.Voltage 'Selects which voltage the SPI port is at (Pro only)
         Public Property OPERATION_MODE As DeviceMode = DeviceMode.SPI
-        Public Property VERIFY_WRITE As Boolean = False 'Holds the verify data flag
+        Public Property VERIFY_WRITE As Boolean 'Read back written data to compare write was successful
+        Public Property VERIFY_COUNT As Integer 'Number of times to retry a write operation
         Public Property BIT_ENDIAN As BitEndianMode = BitEndianMode.BigEndian32 'Mirrors bits
         Public Property BIT_SWAP As BitSwapMode = BitSwapMode.None 'Swaps nibbles/bytes/words
+        'SPI Settings
         Public Property SPI_CLOCK_PRO As SPI_CLOCK_SPEED
         Public Property SPI_CLOCK_CLASSIC As SPI_CLOCK_SPEED 'The speed the SPI hardware runs at
         Public Property SPI_BIT_ORDER As SPI_ORDER 'MSB/LSB
@@ -1147,17 +1149,22 @@ Public Module MainApp
         Public Property ECC_WRITE_ENABLED As Boolean
         Public Property ECC_Algorithum As Integer '0=Hamming,1=Reed-Solomon,2=BHC
         Public Property ECC_BitError As Integer 'Number of bits to correct (1,2,4,8,10,14)
-        Public Property ECC_Location As ECC_LIB.ecc_location_opt
+        Public Property ECC_Location As Byte
         Public Property ECC_SymWidth As Integer '8/9/10
+        Public Property ECC_Seperate As Boolean
         'GENERAL
         Public Property OTP_MFG As Byte
         Public Property OTP_ID As UShort
+        Public Property S93_DEVICE_INDEX As Integer 'The index of which Series 93 EEPROM to use
+        Public Property S93_DEVICE_ORG As Integer '0=8-bit,1=16-bit
+
 
         Sub New()
             LoadLanguageSettings()
             VOLT_SELECT = GetRegistryValue("VOLTAGE", USB.Voltage.V3_3)
             OPERATION_MODE = CInt(GetRegistryValue("OPERATION", "1")) 'Default is normal
             VERIFY_WRITE = GetRegistryValue("VERIFY", True)
+            VERIFY_COUNT = GetRegistryValue("VERIFY_COUNT", 2)
             'BIT_ENDIAN = GetRegistryValue("ENDIAN", BitEndianMode.BigEndian32)
             'BIT_SWAP = GetRegistryValue("BITSWAP", BitSwapMode.None)
             BIT_ENDIAN = BitEndianMode.BigEndian32
@@ -1185,10 +1192,13 @@ Public Module MainApp
             Me.ECC_WRITE_ENABLED = GetRegistryValue("ECC_WRITE", False)
             Me.ECC_Algorithum = GetRegistryValue("ECC_ALG", 0)
             Me.ECC_BitError = GetRegistryValue("ECC_BITERR", 1)
-            Me.ECC_Location = GetRegistryValue("ECC_LOCATION", 1)
+            Me.ECC_Location = GetRegistryValue("ECC_LOCATION", 2)
             Me.ECC_SymWidth = GetRegistryValue("ECC_SYMWIDTH", 9)
+            Me.ECC_Seperate = GetRegistryValue("ECC_SEPERATE", True)
             Me.OTP_MFG = GetRegistryValue("OTP_MFG", 0)
             Me.OTP_ID = GetRegistryValue("OTP_ID", 0)
+            Me.S93_DEVICE_INDEX = GetRegistryValue("S93_DEVICE", 0)
+            Me.S93_DEVICE_ORG = GetRegistryValue("S93_ORG", 0)
             LoadCustomSPI()
         End Sub
 
@@ -1196,6 +1206,7 @@ Public Module MainApp
             SetRegistryValue("VOLTAGE", VOLT_SELECT)
             SetRegistryValue("OPERATION", OPERATION_MODE)
             SetRegistryValue("VERIFY", VERIFY_WRITE)
+            SetRegistryValue("VERIFY_COUNT", VERIFY_COUNT)
             SetRegistryValue("ENDIAN", BIT_ENDIAN)
             SetRegistryValue("BITSWAP", BIT_SWAP)
             SetRegistryValue("SPI_CLOCK_PRO", SPI_CLOCK_PRO)
@@ -1223,8 +1234,11 @@ Public Module MainApp
             SetRegistryValue("ECC_BITERR", Me.ECC_BitError)
             SetRegistryValue("ECC_LOCATION", Me.ECC_Location)
             SetRegistryValue("ECC_SYMWIDTH", Me.ECC_SymWidth)
+            SetRegistryValue("ECC_SEPERATE", Me.ECC_Seperate)
             SetRegistryValue("OTP_MFG", Me.OTP_MFG)
             SetRegistryValue("OTP_ID", Me.OTP_ID)
+            SetRegistryValue("S93_DEVICE", Me.S93_DEVICE_INDEX)
+            SetRegistryValue("S93_ORG", Me.S93_DEVICE_ORG)
             SaveCustomSPI()
         End Sub
 
@@ -1255,7 +1269,7 @@ Public Module MainApp
                 s.Close()
                 If data_out IsNot Nothing AndAlso data_out.Length > 0 Then
                     Dim reg_data() As Byte = Utilities.CompressGzip(data_out)
-                    SetRegistryValue("SPI_CUSTOM", reg_data)
+                    SetRegisteryData("SPI_CUSTOM", reg_data)
                 End If
             End Using
         End Sub
@@ -1288,7 +1302,9 @@ Public Module MainApp
             DOW = 6 '1-Wire
             SPI_NAND = 7
             EPROM_OTP = 8 '27-series one-time programmable
-            Unspecified = 10
+            Mach1 = 9 'High performance SLC/NAND programmer
+            Microwire = 10
+            Unspecified = 20
         End Enum
 
         Private Sub LoadLanguageSettings()
@@ -1322,6 +1338,14 @@ Public Module MainApp
             _1MHz = 3
         End Enum
 
+        Public Sub SetPrefferedScript(ByVal name As String, ByVal id As UInt32)
+            SetRegistryValue("SCRIPT_" & id.ToString, name)
+        End Sub
+
+        Public Function GetPrefferedScript(ByVal id As UInt32) As String
+            Return GetRegistryValue("SCRIPT_" & id.ToString, "")
+        End Function
+
 #Region "Registry"
         Private Const REGKEY As String = "Software\EmbComputers\FlashcatUSB\"
 
@@ -1334,46 +1358,6 @@ Public Module MainApp
         End Function
 
         Public Function SetRegistryValue(ByVal Name As String, ByVal Value As String) As Boolean
-            Try
-                Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY, RegistryKeyPermissionCheck.ReadWriteSubTree)
-                key.SetValue(Name, Value)
-                Return True
-            Catch ex As Exception
-                Return False
-            End Try
-        End Function
-
-        Public Function SetRegistryValue(ByVal Name As String, ByVal data() As Byte) As Boolean
-            Try
-                Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY, RegistryKeyPermissionCheck.ReadWriteSubTree)
-                key.SetValue(Name, data)
-                Return True
-            Catch ex As Exception
-                Return False
-            End Try
-        End Function
-
-        Public Function GetRegistryValue(ByVal Name As String, ByVal DefaultValue As Integer) As Integer
-            Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY)
-            If key Is Nothing Then Return DefaultValue
-            Dim o As Object = key.GetValue(Name)
-            If o Is Nothing Then Return DefaultValue
-            Return CInt(o)
-        End Function
-
-        Public Function GetRegisteryData(ByVal Name As String) As Byte()
-            Try
-                Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY)
-                If key Is Nothing Then Return Nothing
-                Dim o As Object = key.GetValue(Name)
-                If o Is Nothing Then Return Nothing
-                Return o
-            Catch ex As Exception
-                Return Nothing
-            End Try
-        End Function
-
-        Public Function SetRegistryValue(ByVal Name As String, ByVal Value As Integer) As Boolean
             Try
                 Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY, RegistryKeyPermissionCheck.ReadWriteSubTree)
                 key.SetValue(Name, Value)
@@ -1402,6 +1386,46 @@ Public Module MainApp
                     Registry.CurrentUser.CreateSubKey(REGKEY)
                     key = Registry.CurrentUser.OpenSubKey(REGKEY, True)
                 End If
+                key.SetValue(Name, Value)
+                Return True
+            Catch ex As Exception
+                Return False
+            End Try
+        End Function
+
+        Public Function GetRegisteryData(ByVal Name As String) As Byte()
+            Try
+                Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY)
+                If key Is Nothing Then Return Nothing
+                Dim o As Object = key.GetValue(Name)
+                If o Is Nothing Then Return Nothing
+                Return o
+            Catch ex As Exception
+                Return Nothing
+            End Try
+        End Function
+
+        Public Function SetRegisteryData(ByVal Name As String, ByVal data() As Byte) As Boolean
+            Try
+                Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY, RegistryKeyPermissionCheck.ReadWriteSubTree)
+                key.SetValue(Name, data)
+                Return True
+            Catch ex As Exception
+                Return False
+            End Try
+        End Function
+
+        Public Function GetRegistryValue(ByVal Name As String, ByVal DefaultValue As Integer) As Integer
+            Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY)
+            If key Is Nothing Then Return DefaultValue
+            Dim o As Object = key.GetValue(Name)
+            If o Is Nothing Then Return DefaultValue
+            Return CInt(o)
+        End Function
+
+        Public Function SetRegistryValue(ByVal Name As String, ByVal Value As Integer) As Boolean
+            Try
+                Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY, RegistryKeyPermissionCheck.ReadWriteSubTree)
                 key.SetValue(Name, Value)
                 Return True
             Catch ex As Exception
@@ -1657,8 +1681,11 @@ Public Module MainApp
             Dim msg_out As String
             If usb_dev.HWBOARD = FCUSB_BOARD.Professional Then
                 msg_out = String.Format(RM.GetString("disconnected_from_device"), "FlashcatUSB Pro") '"Disconnected from FlashcatUSB Pro device"
+            ElseIf usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
+                msg_out = String.Format(RM.GetString("disconnected_from_device"), "FlashcatUSB Mach¹")
+                If GUI IsNot Nothing Then GUI.Mach1Disconnected()
             Else
-                msg_out = String.Format(RM.GetString("disconnected_from_device"), "FlashcatUSB Classic") '"Disconnected from FlashcatUSB Classic device"
+                msg_out = String.Format(RM.GetString("disconnected_from_device"), "FlashcatUSB Classic") '"Disconnected from FlashcatUSB Classic device" 
             End If
             GUI.SetStatus(msg_out)
             WriteConsole(msg_out)
@@ -1770,27 +1797,9 @@ Public Module MainApp
                         Utilities.Sleep(100)
                 End Select
             Case FCUSB_BOARD.Mach1 'Designed for high-density/high-speed devices (such as 1Gbit+ NOR/MLC NAND)
+                MySettings.OPERATION_MODE = DeviceMode.Mach1
                 GUI.PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Mach¹", fw_str}))
-                'Check fimrware
-                'Turn off CPLD
-                'Turn off VCC
-                Dim t As New Stopwatch
-                Dim mb_count As Integer = 100
-                Dim data_count As UInt32 = 1048576
-                Dim data_test(data_count - 1) As Byte
-                Dim mb_counter As Integer = 0
-                MsgBox("Starting transfer of " & mb_count & "MB")
-                t.Start()
-                Do
-                    Dim result As Boolean = usb_dev.USB_SETUP_BULKIN(&HA1, Nothing, data_test, data_test.Length)
-                    mb_counter += 1
-                    If mb_counter = mb_count Then Exit Do
-                Loop
-                t.Stop()
-                Dim bytesRead As UInt32 = (data_count * mb_count)
-                Dim speed_str As String = Format(Math.Round(bytesRead / (t.ElapsedMilliseconds / 1000)), "#,###") & " Bytes/s"
-                Dim msg_out As String = "Successfully transfered " & mb_count & "MB in " & t.Elapsed.TotalSeconds & " seconds (" & speed_str & ")"
-                MsgBox(msg_out)
+                GUI.Mach1Connected()
         End Select
         If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI) Then
             GUI.UpdateStatusMessage(RM.GetString("device_mode"), "Serial Programmable Interface (SPI)")
@@ -1812,6 +1821,9 @@ Public Module MainApp
             Else
                 DetectDevice(usb_dev)
             End If
+        ElseIf (MySettings.OPERATION_MODE = DeviceMode.Microwire) Then
+            GUI.UpdateStatusMessage(RM.GetString("device_mode"), "Microwire (3-wire EEPROM)")
+            DetectDevice(usb_dev)
         ElseIf (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND) Then
             GUI.UpdateStatusMessage(RM.GetString("device_mode"), "Parallel NOR / NAND mode")
             DetectDevice(usb_dev)
@@ -1830,7 +1842,11 @@ Public Module MainApp
                 Exit Sub
             End If
             If (Not (usb_dev.EJ_IF.TargetDevice.IDCODE = 0)) Then
-                GUI.UpdateStatusMessage(RM.GetString("device_mode"), GetManu(usb_dev.EJ_IF.TargetDevice.MANUID) & " " & Hex(usb_dev.EJ_IF.TargetDevice.PARTNU))
+                If usb_dev.EJ_IF.TargetDevice.MANUID = 0 AndAlso usb_dev.EJ_IF.TargetDevice.CONTROLLER = JTAG_IF.JTAG_CONTROLLER.Atheros Then
+                    GUI.UpdateStatusMessage(RM.GetString("device_mode"), "Atheros chipset")
+                Else
+                    GUI.UpdateStatusMessage(RM.GetString("device_mode"), GetManu(usb_dev.EJ_IF.TargetDevice.MANUID) & " " & Hex(usb_dev.EJ_IF.TargetDevice.PARTNU))
+                End If
                 GUI.PrintConsole("Detected CPU ID: 0x" & Hex(usb_dev.EJ_IF.TargetDevice.IDCODE))
                 GUI.PrintConsole("Manufacturer ID: 0x" & Hex(usb_dev.EJ_IF.TargetDevice.MANUID) & " Part ID: 0x" & Hex(usb_dev.EJ_IF.TargetDevice.PARTNU))
                 If Not usb_dev.EJ_IF.TargetDevice.DMA_SUPPORTED Then
@@ -1895,15 +1911,6 @@ Public Module MainApp
                 GUI.PrintConsole(String.Format(RM.GetString("spi_set_clock"), GetSpiClockString(usb_dev)))
                 usb_dev.USB_SPI_SETSPEED(SPI_Programmer.SPIBUS_PORT.Port_A, GetCurrentSpiClock(usb_dev))
             End If
-        ElseIf MySettings.OPERATION_MODE = DeviceMode.SPI_EEPROM Then
-            SPIEEPROM_Configure(usb_dev, MySettings.SPI_EEPROM)
-            Dim md As MemoryDeviceInstance = Connected_Event(usb_dev, MemoryType.SERIAL_NOR, "SPI EEPROM", 1024)
-            If (Not usb_dev.SPI_NOR_IF.MyFlashDevice.ERASE_REQUIRED) Then
-                md.GuiControl.AllowFullErase = False
-            End If
-            Utilities.Sleep(100) 'Wait for device to be configured
-            GUI.PrintConsole(RM.GetString("spi_eeprom_cfg"))
-            'GUI.PrintConsole(String.Format(RM.GetString("spi_set_clock"), "2 MHz"))
         ElseIf MySettings.OPERATION_MODE = DeviceMode.SPI_NAND Then
             GUI.PrintConsole(RM.GetString("spi_nand_attempt_detect"))
             If usb_dev.SPI_NAND_IF.DeviceInit Then
@@ -1942,6 +1949,14 @@ Public Module MainApp
                 Case USB.DeviceStatus.ExtIoNotConnected
                     GUI.SetStatus(RM.GetString("ext_board_not_detected")) '"Unable to connect to the Extension I/O board"
             End Select
+        ElseIf MySettings.OPERATION_MODE = DeviceMode.SPI_EEPROM Then
+            SPIEEPROM_Configure(usb_dev, MySettings.SPI_EEPROM)
+            Dim md As MemoryDeviceInstance = Connected_Event(usb_dev, MemoryType.SERIAL_NOR, "SPI EEPROM", 1024)
+            If (Not usb_dev.SPI_NOR_IF.MyFlashDevice.ERASE_REQUIRED) Then
+                md.GuiControl.AllowFullErase = False
+            End If
+            Utilities.Sleep(100) 'Wait for device to be configured
+            GUI.PrintConsole(RM.GetString("spi_eeprom_cfg"))
         ElseIf MySettings.OPERATION_MODE = DeviceMode.I2C_EEPROM Then
             GUI.PrintConsole(RM.GetString("i2c_attempt_detect"))
             GUI.PrintConsole(String.Format(RM.GetString("i2c_addr_byte"), Hex(MySettings.I2C_ADDRESS)))
@@ -1961,6 +1976,11 @@ Public Module MainApp
             Else
                 GUI.PrintConsole(RM.GetString("i2c_unable_to_connect"))
                 GUI.SetStatus(RM.GetString("i2c_not_detected"))
+            End If
+        ElseIf MySettings.OPERATION_MODE = DeviceMode.Microwire Then
+            GUI.PrintConsole("Connecting to Microwire EEPROM device")
+            If usb_dev.MW_IF.DeviceInit() Then
+                Connected_Event(usb_dev, MemoryType.SERIAL_MICROWIRE, "Microwire EEPROM", 256)
             End If
         ElseIf MySettings.OPERATION_MODE = DeviceMode.EPROM_OTP Then
             GUI.PrintConsole(RM.GetString("ext_init"))
@@ -2000,6 +2020,7 @@ Public Module MainApp
                     If MySettings.ECC_READ_ENABLED Or MySettings.ECC_WRITE_ENABLED Then
                         NAND_ECC_ENG = New ECC_LIB.Engine(MySettings.ECC_Algorithum, MySettings.ECC_BitError)
                         NAND_ECC_ENG.ECC_DATA_LOCATION = MySettings.ECC_Location
+                        NAND_ECC_ENG.ECC_SEPERATE = MySettings.ECC_Seperate
                         NAND_ECC_ENG.SetSymbolWidth(MySettings.ECC_SymWidth)
                         usb_dev.EXT_IF.ECC_READ_ENABLED = MySettings.ECC_READ_ENABLED
                         usb_dev.EXT_IF.ECC_WRITE_ENABLED = MySettings.ECC_WRITE_ENABLED
@@ -2010,6 +2031,8 @@ Public Module MainApp
                     End If
                 Case MemoryType.SERIAL_I2C
                     mem_dev = usb_dev.I2C_IF
+                Case MemoryType.SERIAL_MICROWIRE
+                    mem_dev = usb_dev.MW_IF
             End Select
             Dim dev_inst As MemoryDeviceInstance = MEM_IF.Add(usb_dev, mem_type, mem_dev.DeviceName, mem_dev.DeviceSize)
             dev_inst.PreferredBlockSize = block_size
