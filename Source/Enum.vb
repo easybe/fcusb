@@ -18,19 +18,21 @@ Public Enum DeviceMode As Byte
     P_EEPROM = 16
     Unspecified = 20
 End Enum
-
+' Protocols for parallel NOR/NAND devices
 Public Enum MEM_PROTOCOL As Byte
     SETUP = 0
     NOR_X8 = 1
-    NOR_X16 = 2
-    NOR_X16_X8 = 3
-    NAND_X8_ASYNC = 4
-    NAND_X16_ASYNC = 5
-    FWH = 6
-    HYPERFLASH = 7
-    EPROM_X8 = 8
-    EPROM_X16 = 9
-    AT90C = 10
+    NOR_X8_DQ15 = 2     'X8 device that uses DQ15 for A0
+    NOR_X16_BYTE = 3    'X16 device in byte mode (uses DQ15 for LSB)
+    NOR_X16_WORD = 4
+    NOR_X16_LEGACY = 5
+    NAND_X8_ASYNC = 6
+    NAND_X16_ASYNC = 7
+    FWH = 8
+    HYPERFLASH = 9
+    EPROM_X8 = 10
+    EPROM_X16 = 11
+    AT90C = 12
 End Enum
 
 Public Enum ConsoleTask As Byte

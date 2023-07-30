@@ -8,6 +8,7 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
 
     Public I2C_EEPROM_LIST As List(Of I2C_DEVICE)
     Private MyFlashDevice As I2C_DEVICE = Nothing
+    Private DeviceDetected As Boolean = False
 
     Public Property SPEED As I2C_SPEED_MODE = I2C_SPEED_MODE._400kHz
     Public Property ADDRESS As Byte = &HA0
@@ -27,8 +28,8 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX128", 16384, 2, 32))
         I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX256", 32768, 2, 32))
         I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX512", 65536, 2, 32))
-        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XXM01", 131072, 2, 32))
-        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XXM02", 262144, 2, 32))
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XXM01", 131072, 2, 128))
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XXM02", 262144, 2, 256) With {.Delay = 10})
     End Sub
 
     Public Sub SelectDeviceIndex(ic2_eeprom_index As Integer)
@@ -46,13 +47,21 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
     End Sub
 
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
+        DeviceDetected = False
         If MyFlashDevice Is Nothing Then Return False
-        Dim cd_value As UInt16 = (CUShort(Me.SPEED) << 8) Or (Me.ADDRESS) '02A0
-        Dim cd_index As UInt16 = (CUShort(MyFlashDevice.AddressSize) << 8) Or (MyFlashDevice.PAGE_SIZE) 'addr size, page size   '0220
-        Dim config_data As UInt32 = (CUInt(cd_value) << 16) Or cd_index
-        Dim detect_result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.I2C_INIT, Nothing, config_data)
+        Dim setup_data(5) As Byte
+        setup_data(0) = Me.ADDRESS
+        setup_data(1) = MyFlashDevice.AddressSize
+        setup_data(2) = CByte(Me.SPEED)
+        setup_data(3) = CByte(MyFlashDevice.Delay And 255)
+        setup_data(4) = CByte((MyFlashDevice.PAGE_SIZE >> 8) And 255)
+        setup_data(5) = CByte(MyFlashDevice.PAGE_SIZE And 255)
+        If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.I2C_INIT, setup_data) Then Return False
         Utilities.Sleep(50) 'Wait for IO VCC to charge up
-        Return detect_result
+        If (GetResultStatus() = I2C_STATUS.CONNECTED) Then
+            DeviceDetected = True
+        End If
+        Return True
     End Function
 
     Public ReadOnly Property GetDevice As Device Implements MemoryDeviceUSB.GetDevice
@@ -63,7 +72,7 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
 
     Public ReadOnly Property DeviceName As String Implements MemoryDeviceUSB.DeviceName
         Get
-            If MyFlashDevice Is Nothing Then Return ""
+            If MyFlashDevice Is Nothing Then Return String.Empty
             Return MyFlashDevice.Name
         End Get
     End Property
@@ -81,9 +90,7 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
 
     Public Function IsConnected() As Boolean
         Try
-            Dim test_data() As Byte = Me.ReadData(0, 16) 'This does a test read to see if data is read
-            If test_data Is Nothing Then Return False
-            Return True
+            Return DeviceDetected
         Catch ex As Exception
         End Try
         Return False
@@ -103,6 +110,8 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         USBFAIL = 0
         NOERROR = &H50
         [ERROR] = &H51
+        CONNECTED = &H52
+        NOTDETECTED = &H53
     End Enum
 
     Public Function ReadData(flash_offset As Long, data_count As Integer) As Byte() Implements MemoryDeviceUSB.ReadData
@@ -140,7 +149,8 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
             result = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.I2C_WRITEEEPROM, setup_data, data_to_write, CUInt(data_count))
             If Not result Then Return False
             FCUSB.USB_WaitForComplete() 'It may take a few microseconds to complete
-            If GetResultStatus() = I2C_STATUS.NOERROR Then Return True
+            Dim WriteStatus As I2C_STATUS = GetResultStatus()
+            If WriteStatus = I2C_STATUS.NOERROR Then Return True
         Catch ex As Exception
         End Try
         Return False

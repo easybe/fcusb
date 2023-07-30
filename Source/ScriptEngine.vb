@@ -57,6 +57,8 @@ Namespace EC_ScriptEngine
             DATA_CMD.Add("word", {CmdPrm.Data, CmdPrm.Integer}, New ScriptFunction(AddressOf c_data_word))
             DATA_CMD.Add("tostr", {CmdPrm.Data}, New ScriptFunction(AddressOf c_data_tostr))
             DATA_CMD.Add("copy", {CmdPrm.Data, CmdPrm.Integer, CmdPrm.Integer_Optional}, New ScriptFunction(AddressOf c_data_copy))
+            DATA_CMD.Add("toint", {CmdPrm.Data}, New ScriptFunction(AddressOf c_data_toint))
+            DATA_CMD.Add("touint", {CmdPrm.Data}, New ScriptFunction(AddressOf c_data_touint))
             AddScriptNest(DATA_CMD)
             Dim IO_CMD As New ScriptCmd("IO")
             IO_CMD.Add("open", {CmdPrm.String_Optional, CmdPrm.String_Optional}, New ScriptFunction(AddressOf c_io_open))
@@ -252,15 +254,13 @@ Namespace EC_ScriptEngine
                         Dim current_var As ScriptVariable = CurrentVars.GetVariable(e.TARGET_NAME)
                         If current_var Is Nothing Then Return New ExecuteResult("Target index used on a variable that does not exist")
                         If current_var.Data.VarType = DataType.NULL Then Return New ExecuteResult("Target index used on a variable that does not yet exist")
-                        If Not current_var.Data.VarType = DataType.Data Then Return New ExecuteResult("Target index used on a variable that is not a DATA array")
-                        Dim data_out() As Byte = CType(current_var.Value, Byte())
-                        If sv.Data.VarType = DataType.UInteger Then
-                            Dim byte_out As Byte = CByte(CUInt(sv.Value) And 255)
-                            data_out(e.TARGET_INDEX) = byte_out
+                        If sv.Data.VarType = DataType.Data Then
+                            Dim dst_data() As Byte = CType(current_var.Value, Byte())
+                            Dim src_data() As Byte = DirectCast(sv.Value, Byte())
+                            DataArray_Asignment(src_data, dst_data, e.TARGET_INDEX, e.TARGET_NAME)
+                        Else
+                            Return New ExecuteResult("Target index used on a variable that is not a DATA array")
                         End If
-                        Dim set_var As New ScriptVariable(e.TARGET_NAME, DataType.Data)
-                        set_var.Value = data_out
-                        CurrentVars.SetVariable(set_var)
                     Else 'No Target Index
                         Dim new_var As New ScriptVariable(e.TARGET_NAME, sv.Data.VarType)
                         new_var.Value = sv.Value
@@ -279,7 +279,7 @@ Namespace EC_ScriptEngine
                         ElseIf Not existing_var.Data.VarType = new_var.Data.VarType Then
                             CurrentVars.SetVariable(new_var)
                         Else
-                            Dim result_var As ScriptVariable = CompileSVars(existing_var, new_var, var_op)
+                            Dim result_var As ScriptVariable = VariablesCompile(existing_var, new_var, var_op)
                             If result_var.Data.VarType = DataType.Error Then Return New ExecuteResult(CStr(result_var.Data.Value))
                             Dim compiled_var As New ScriptVariable(e.TARGET_NAME, result_var.Data.VarType)
                             compiled_var.Value = result_var.Value
@@ -291,6 +291,30 @@ Namespace EC_ScriptEngine
             Catch ex As Exception
                 Return New ExecuteResult("General purpose error")
             End Try
+        End Function
+        'This function copies data from the src to the dest
+        Private Function DataArray_Asignment(src_data() As Byte, dst_data() As Byte, dst_index As Integer, sv_name As String) As ExecuteResult
+            Try
+                Dim copy_count As Integer = src_data.Length
+                If src_data Is Nothing OrElse src_data.Length = 0 Then
+                    Return New ExecuteResult("Data array source can not be nothing")
+                End If
+                If dst_data Is Nothing OrElse dst_data.Length = 0 Then
+                    Return New ExecuteResult("Data array destination can not be nothing")
+                End If
+                If (copy_count + dst_index) > dst_data.Length Then
+                    Return New ExecuteResult("Data array assignment is more data than destination array")
+                End If
+                For i = 0 To copy_count - 1
+                    dst_data(dst_index + i) = src_data(i)
+                Next
+                Dim set_var As New ScriptVariable(sv_name, DataType.Data)
+                set_var.Value = dst_data
+                CurrentVars.SetVariable(set_var)
+            Catch ex As Exception
+                Return New ExecuteResult("Data array assignment error")
+            End Try
+            Return Nothing 'No Error
         End Function
 
         Public Function Execute_ForLoop(se As ScriptForLoop) As ExecuteResult
@@ -687,6 +711,20 @@ Namespace EC_ScriptEngine
             Return sv
         End Function
 
+        Friend Function c_data_toint(arguments() As ScriptVariable, Index As Integer) As ScriptVariable
+            Dim data1() As Byte = CType(arguments(0).Value, Byte())
+            Dim sv As New ScriptVariable(CurrentVars.GetNewName(), DataType.Integer)
+            sv.Value = CInt(data1(0))
+            Return sv
+        End Function
+
+        Friend Function c_data_touint(arguments() As ScriptVariable, Index As Integer) As ScriptVariable
+            Dim data1() As Byte = CType(arguments(0).Value, Byte())
+            Dim sv As New ScriptVariable(CurrentVars.GetNewName(), DataType.UInteger)
+            sv.Value = CUInt(data1(0))
+            Return sv
+        End Function
+
 #End Region
 
 #Region "IO commands"
@@ -1043,7 +1081,10 @@ Namespace EC_ScriptEngine
                     If String.IsNullOrEmpty(main_element) Then
                         Return New ExecuteResult("Unknown function or command: " & text_input)
                     ElseIf MyParent.CmdFunctions.IsScriptFunction(main_element) Then
-                        OPERANDS.Add(ParseFunctionInput(main_element))
+                        Dim ErrTest As String = "" 'Contains a message if an error occured
+                        Dim p As ScriptElementOperandEntry = ParseFunctionInput(main_element, ErrTest)
+                        If Not String.IsNullOrEmpty(ErrTest) Then Return New ExecuteResult(ErrTest)
+                        If p IsNot Nothing Then OPERANDS.Add(p)
                     ElseIf MyParent.IsScriptEvent(main_element) Then
                         OPERANDS.Add(ParseEventInput(main_element))
                     ElseIf MyParent.CurrentVars.IsVariable(main_element) Then
@@ -1092,13 +1133,16 @@ Namespace EC_ScriptEngine
             Return True
         End Function
 
-        Private Function ParseFunctionInput(to_parse As String) As ScriptElementOperandEntry
+        Private Function ParseFunctionInput(to_parse As String, ByRef ErrorResponse As String) As ScriptElementOperandEntry
             Dim new_fnc As New ScriptElementOperandEntry(MyParent, ScriptElementDataType.Function)
             Dim arguments As String = ""
             ParseToFunctionAndSub(to_parse, new_fnc.FUNC_NAME, new_fnc.FUNC_SUB, new_fnc.FUNC_IND, arguments)
             If (Not arguments.Equals("")) Then
                 new_fnc.FUNC_ARGS = ParseArguments(arguments)
-                If Me.ParsingResult.IsError Then Return Nothing
+                If Me.ParsingResult.IsError Then
+                    ErrorResponse = Me.ParsingResult.ErrorMsg
+                    Return Nothing
+                End If
             End If
             Return new_fnc
         End Function
@@ -1183,7 +1227,7 @@ Namespace EC_ScriptEngine
                 Dim new_var As ScriptVariable = OPERANDS(x).Compile()
                 If new_var IsNot Nothing AndAlso new_var.Data.VarType = DataType.Error Then Return new_var
                 If (Not current_oper = OperandOper.NOTSPECIFIED) Then
-                    current_var = CompileSVars(current_var, new_var, current_oper)
+                    current_var = VariablesCompile(current_var, new_var, current_oper)
                 Else
                     current_var = new_var
                 End If
@@ -1295,7 +1339,7 @@ Namespace EC_ScriptEngine
                 Case ScriptElementDataType.SubItems
                     Return "Sub Items: " & SubOperands.OPERANDS.Count
             End Select
-            Return ""
+            Return String.Empty
         End Function
 
         Friend Function Compile() As ScriptVariable
@@ -1565,7 +1609,7 @@ Namespace EC_ScriptEngine
             Next
         End Sub
 
-        Public Function ProcessText(lines() As String, line_index() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement()
+        Private Function ProcessText(lines() As String, line_index() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement()
             If lines Is Nothing Then Return Nothing
             If Not lines.Length = line_index.Length Then Return Nothing
             For i = 0 To lines.Length - 1
@@ -1626,7 +1670,7 @@ Namespace EC_ScriptEngine
                     End If
                     line_pointer += 1
                 End While
-                Return Processed.ToArray
+                Return Processed.ToArray()
             Catch ex As Exception
                 ErrInd = line_index(line_pointer)
                 ErrorMsg = "General statement evaluation error"
@@ -1634,7 +1678,7 @@ Namespace EC_ScriptEngine
             End Try
         End Function
 
-        Public Function CreateIfCondition(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
+        Private Function CreateIfCondition(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
             Dim this_if As New ScriptCondition(Me.MyParent) 'Also loads NOT modifier
             this_if.INDEX = ind(Pointer)
             Dim result As ExecuteResult = this_if.Parse(lines(Pointer))
@@ -1658,9 +1702,9 @@ Namespace EC_ScriptEngine
             While (Pointer < lines.Length)
                 Dim eval As String = Utilities.RemoveComment(lines(Pointer).Replace(vbTab, " ")).Trim
                 If (Not eval = "") Then
-                    If eval.ToUpper.StartsWith("IF ") OrElse eval.ToUpper.StartsWith("IF(") Then
+                    If IsCodeBlock(eval) Then
                         level += 1
-                    ElseIf eval.ToUpper.StartsWith("ENDIF") OrElse eval.ToUpper.StartsWith("END IF") Then
+                    ElseIf eval.ToUpper.StartsWith("END") Then
                         level -= 1
                         If (level = 0) Then EndIfTrigger = True : Exit While
                     ElseIf eval.ToUpper.StartsWith("ELSE") AndAlso level = 1 Then
@@ -1685,7 +1729,7 @@ Namespace EC_ScriptEngine
             End While
             If (Not EndIfTrigger) Then
                 ErrInd = ind(Pointer)
-                ErrorMsg = "IF condition: EndIf statement not present"
+                ErrorMsg = "IF condition: End statement not present"
                 Return Nothing
             End If
             this_if.IF_MAIN = ProcessText(IFMain.ToArray, IFMain_Index.ToArray, ErrInd, ErrorMsg)
@@ -1695,7 +1739,7 @@ Namespace EC_ScriptEngine
             Return this_if
         End Function
 
-        Public Function CreateForLoop(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
+        Private Function CreateForLoop(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
             Dim this_for As New ScriptForLoop(Me.MyParent) 'Also loads NOT modifier
             this_for.INDEX = ind(Pointer)
             Dim success As ExecuteResult = this_for.Parse(lines(Pointer))
@@ -1711,12 +1755,10 @@ Namespace EC_ScriptEngine
             While (Pointer < lines.Length)
                 Dim eval As String = Utilities.RemoveComment(lines(Pointer).Replace(vbTab, " ")).Trim
                 If (Not eval = "") Then
-                    If eval.ToUpper.StartsWith("FOR ") OrElse eval.ToUpper.StartsWith("FOR(") Then
+                    If IsCodeBlock(eval) Then
                         level += 1
-                        If Not level = 1 Then
-                            LoopMain.Add(eval) : LoopMain_Index.Add(ind(Pointer))
-                        End If
-                    ElseIf eval.ToUpper.StartsWith("ENDFOR") OrElse eval.ToUpper.StartsWith("END FOR") Then
+                        If Not level = 1 Then LoopMain.Add(eval) : LoopMain_Index.Add(ind(Pointer))
+                    ElseIf eval.ToUpper.StartsWith("END") Then
                         level -= 1
                         If (level = 0) Then EndForTrigger = True : Exit While
                         LoopMain.Add(eval) : LoopMain_Index.Add(ind(Pointer))
@@ -1728,7 +1770,7 @@ Namespace EC_ScriptEngine
             End While
             If (Not EndForTrigger) Then
                 ErrInd = ind(Pointer)
-                ErrorMsg = "FOR Loop: EndFor statement not present"
+                ErrorMsg = "FOR Loop: End statement not present"
                 Return Nothing
             End If
             Dim loopvar As New ScriptVariable(this_for.VAR_NAME, DataType.UInteger)
@@ -1738,7 +1780,7 @@ Namespace EC_ScriptEngine
             Return this_for
         End Function
 
-        Public Function CreateWhileLoop(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
+        Private Function CreateWhileLoop(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
             Dim this_for As New ScriptWhileLoop(Me.MyParent) 'Also loads NOT modifier
             this_for.INDEX = ind(Pointer)
             Dim success As ExecuteResult = this_for.Parse(lines(Pointer))
@@ -1754,10 +1796,10 @@ Namespace EC_ScriptEngine
             While (Pointer < lines.Length)
                 Dim eval As String = Utilities.RemoveComment(lines(Pointer).Replace(vbTab, " ")).Trim
                 If (Not eval = "") Then
-                    If eval.ToUpper.StartsWith("WHILE ") OrElse eval.ToUpper.StartsWith("WHILE(") Then
+                    If IsCodeBlock(eval) Then
                         level += 1
                         If Not level = 1 Then LoopMain.Add(eval) : LoopMain_Index.Add(ind(Pointer))
-                    ElseIf eval.ToUpper.StartsWith("ENDWHILE") OrElse eval.ToUpper.StartsWith("END WHILE") Then
+                    ElseIf eval.ToUpper.StartsWith("END") Then
                         level -= 1
                         If (level = 0) Then EndWhileTrigger = True : Exit While
                         LoopMain.Add(eval) : LoopMain_Index.Add(ind(Pointer))
@@ -1769,12 +1811,24 @@ Namespace EC_ScriptEngine
             End While
             If (Not EndWhileTrigger) Then
                 ErrInd = ind(Pointer)
-                ErrorMsg = "WHILE Loop: EndWhile statement not present"
+                ErrorMsg = "WHILE Loop: End statement not present"
                 Return Nothing
             End If
             this_for.LOOP_MAIN = ProcessText(LoopMain.ToArray, LoopMain_Index.ToArray, ErrInd, ErrorMsg)
             If Not ErrorMsg = "" Then Return Nothing
             Return this_for
+        End Function
+
+        Private Function IsCodeBlock(eval As String) As Boolean
+            If eval.ToUpper.StartsWith("IF ") OrElse eval.ToUpper.StartsWith("IF(") Then
+                Return True
+            ElseIf eval.ToUpper.StartsWith("WHILE ") OrElse eval.ToUpper.StartsWith("WHILE(") Then
+                Return True
+            ElseIf eval.ToUpper.StartsWith("FOR ") OrElse eval.ToUpper.StartsWith("FOR(") Then
+                Return True
+            Else
+                Return False
+            End If
         End Function
 
         Public Function CreateGoto(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
@@ -1861,10 +1915,10 @@ Namespace EC_ScriptEngine
             While (Pointer < lines.Length)
                 Dim eval As String = Utilities.RemoveComment(lines(Pointer).Replace(vbTab, " ")).Trim
                 If (Not eval = "") Then
-                    If eval.ToUpper.StartsWith("CREATEEVENT") Then
+                    If eval.ToUpper().StartsWith("CREATEEVENT") Then
                         ErrInd = ind(Pointer)
                         ErrorMsg = "Error: CreateEvent statement within event"
-                    ElseIf eval.ToUpper.StartsWith("ENDEVENT") OrElse eval.ToUpper.StartsWith("END EVENT") Then
+                    ElseIf eval.ToUpper().StartsWith("ENDEVENT") Then
                         EndEventTrigger = True : Exit While
                     Else
                         EventBody.Add(eval)
@@ -1979,6 +2033,7 @@ Namespace EC_ScriptEngine
 
         Sub New(new_name As String, data As DataTypeObject)
             Me.Name = new_name
+            Me.Data = data
         End Sub
 
         Public Property Value() As Object
@@ -1992,6 +2047,10 @@ Namespace EC_ScriptEngine
 
         Public Overrides Function ToString() As String
             Return Me.Name & " = " & Me.Value.ToString
+        End Function
+
+        Public Function Clone() As ScriptVariable
+            Return New ScriptVariable(Name, Data)
         End Function
 
     End Class
@@ -2140,7 +2199,7 @@ Namespace EC_ScriptEngine
     End Class
 
     Public MustInherit Class ScriptLineElement
-        Friend MyParent As Processor
+        Public MyParent As Processor
 
         Public Property INDEX As Integer 'This is the line index of this element
         Public Property ElementType As ScriptFileElementType '[IF_CONDITION] [FOR_LOOP] [LABEL] [GOTO] [EVENT] [ELEMENT]
@@ -2151,13 +2210,11 @@ Namespace EC_ScriptEngine
 
     End Class
 
-    Public Class ScriptElement
-        Inherits ScriptLineElement
-
-        Friend Property TARGET_OPERATION As TargetOper = TargetOper.NONE 'What to do with the compiled variable
-        Friend Property TARGET_NAME As String = "" 'This is the name of the variable to create
-        Friend Property TARGET_INDEX As Integer = -1 'For DATA arrays, this is the index within the array
-        Friend Property TARGET_VAR As String = "" 'Instead of INDEX, a variable (int) can be used instead
+    Public Class ScriptElement : Inherits ScriptLineElement
+        Public Property TARGET_OPERATION As TargetOper = TargetOper.NONE 'What to do with the compiled variable
+        Public Property TARGET_NAME As String = "" 'This is the name of the variable to create
+        Public Property TARGET_INDEX As Integer = -1 'For DATA arrays, this is the index within the array
+        Public Property TARGET_VAR As String = "" 'Instead of INDEX, a variable (int) can be used instead
 
         Private OPERLIST As ScriptElementOperand '(Element)(+/-)(Element) etc.
 
@@ -2237,7 +2294,7 @@ Namespace EC_ScriptEngine
             Return New ExecuteResult
         End Function
 
-        Friend Function Compile() As ScriptVariable
+        Public Function Compile() As ScriptVariable
             Return OPERLIST.CompileToVariable()
         End Function
 
@@ -2259,9 +2316,7 @@ Namespace EC_ScriptEngine
 
     End Class
 
-    Public Class ScriptCondition
-        Inherits ScriptLineElement
-
+    Public Class ScriptCondition : Inherits ScriptLineElement
         Public Property CONDITION As ScriptElement
         Public Property NOT_MODIFIER As Boolean = False
 
@@ -2294,13 +2349,11 @@ Namespace EC_ScriptEngine
 
     End Class
 
-    Public Class ScriptForLoop
-        Inherits ScriptLineElement
-
-        Friend Property VAR_NAME As String 'This is the name of the variable
-        Friend Property START_IND As UInt32 = 0
-        Friend Property END_IND As UInt32 = 0
-        Friend Property STEP_VAL As UInt32 = 1
+    Public Class ScriptForLoop : Inherits ScriptLineElement
+        Public Property VAR_NAME As String 'This is the name of the variable
+        Public Property START_IND As UInt32 = 0
+        Public Property END_IND As UInt32 = 0
+        Public Property STEP_VAL As UInt32 = 1
 
         Private LOOPSTART_OPER As ScriptElementOperand 'The argument for the first part (pre TO)
         Private LOOPSTOP_OPER As ScriptElementOperand 'Argument for the stop part (post TO)
@@ -2312,27 +2365,41 @@ Namespace EC_ScriptEngine
             MyBase.ElementType = ScriptFileElementType.FOR_LOOP
         End Sub
 
-        Public Function Parse(next_part As String) As ExecuteResult
+        Public Function Parse(input As String) As ExecuteResult
             Try
-                next_part = next_part.Substring(4).Trim
-                If next_part.StartsWith("(") AndAlso next_part.EndsWith(")") Then
-                    next_part = next_part.Substring(1, next_part.Length - 2).Trim()
-                    Me.VAR_NAME = FeedWord(next_part, {"="})
+                input = input.Substring(3).Trim
+                If input.StartsWith("(") AndAlso input.EndsWith(")") Then
+                    Dim main_part As String = input.Substring(1, input.Length - 2).Trim()
+                    Me.VAR_NAME = FeedWord(main_part, {"="})
                     If Me.VAR_NAME = "" Then Return New ExecuteResult("FOR loop syntax is invalid")
-                    next_part = next_part.Substring(1).Trim
-                    Dim first_part As String = FeedElement(next_part)
-                    next_part = next_part.Trim
-                    If next_part = "" Then Return New ExecuteResult("FOR loop syntax is invalid")
-                    Dim to_part As String = FeedElement(next_part)
-                    next_part = next_part.Trim
-                    If next_part = "" Then Return New ExecuteResult("FOR loop syntax is invalid")
-                    If Not to_part.ToUpper = "TO" Then Return New ExecuteResult("FOR loop syntax is invalid")
+                    main_part = main_part.Substring(1).Trim
+                    Dim first_part As String = FeedElement(main_part)
+                    main_part = main_part.Trim
+                    If main_part = "" Then Return New ExecuteResult("FOR loop syntax is invalid")
+                    Dim to_part As String = FeedElement(main_part)
+                    main_part = main_part.Trim
+                    If main_part = "" Then Return New ExecuteResult("FOR loop syntax is invalid")
+                    If Not to_part.ToUpper.Equals("TO") Then Return New ExecuteResult("FOR loop syntax is invalid")
                     Me.LOOPSTART_OPER = New ScriptElementOperand(MyBase.MyParent)
                     Me.LOOPSTOP_OPER = New ScriptElementOperand(MyBase.MyParent)
+                    Dim to_value As String
+                    If main_part.Contains(",") Then
+                        to_value = main_part.Substring(0, main_part.IndexOf(","c)).Trim()
+                        main_part = main_part.Substring(main_part.IndexOf(","c) + 1).Trim()
+                    Else
+                        to_value = main_part
+                        main_part = ""
+                    End If
                     Dim p1 As ExecuteResult = Me.LOOPSTART_OPER.Parse(first_part)
-                    Dim p2 As ExecuteResult = Me.LOOPSTOP_OPER.Parse(next_part)
+                    Dim p2 As ExecuteResult = Me.LOOPSTOP_OPER.Parse(to_value)
                     If p1.IsError Then Return p1
                     If p2.IsError Then Return p2
+                    If (Not main_part = "") Then
+                        If (Not IsNumeric(main_part)) Then
+                            Return New ExecuteResult("For loop step value must be a positive integer constant")
+                        End If
+                        Me.STEP_VAL = CUInt(main_part)
+                    End If
                     Return New ExecuteResult()
                 Else
                     Return New ExecuteResult("For loop syntax requires a parameter")
@@ -2340,7 +2407,6 @@ Namespace EC_ScriptEngine
             Catch ex As Exception
                 Return New ExecuteResult("Exception in FOR loop")
             End Try
-
         End Function
         'Compiles the FROM TO variables
         Public Function Evaluate() As Boolean
@@ -2349,10 +2415,11 @@ Namespace EC_ScriptEngine
                 Dim sv2 As ScriptVariable = LOOPSTOP_OPER.CompileToVariable()
                 If sv1 Is Nothing Then Return False
                 If sv2 Is Nothing Then Return False
-                If Not sv1.Data.VarType = DataType.UInteger Then Return False
-                If Not sv2.Data.VarType = DataType.UInteger Then Return False
+                If Not sv1.Data.VarType = DataType.Integer Then Return False
+                If Not sv2.Data.VarType = DataType.Integer Then Return False
                 Me.START_IND = CUInt(sv1.Value)
                 Me.END_IND = CUInt(sv2.Value)
+                If (Me.START_IND > Me.END_IND) Then Return False
                 Return True
             Catch ex As Exception
                 Return False
@@ -2577,7 +2644,7 @@ Namespace EC_ScriptEngine
         End Function
 
         Friend Function FeedParameter(ByRef input As String) As String
-            If Not input.StartsWith("(") Then Return ""
+            If Not input.StartsWith("(") Then Return String.Empty
             Dim strout As String = ""
             Dim counter As Integer = 0
             Dim level As Integer = 0
@@ -2612,7 +2679,7 @@ Namespace EC_ScriptEngine
         End Function
 
         Friend Function FeedString(ByRef objline As String) As String
-            If Not objline.StartsWith("""") Then Return ""
+            If Not objline.StartsWith("""") Then Return String.Empty
             Dim counter As Integer = 0
             For Each c As Char In objline
                 If c = """"c And Not counter = 0 Then Exit For
@@ -2637,7 +2704,7 @@ Namespace EC_ScriptEngine
                     PARAM_LEVEL += 1
                 ElseIf pull = ")"c Then
                     PARAM_LEVEL -= 1
-                    If PARAM_LEVEL = -1 Then Return "" 'ERROR
+                    If PARAM_LEVEL = -1 Then Return String.Empty 'ERROR
                     If PARAM_LEVEL = 0 And ((x + 1 = objline.Length) OrElse Not objline.Chars(x + 1).Equals("."c)) Then
                         x += 1
                         Exit Do
@@ -2660,7 +2727,7 @@ Namespace EC_ScriptEngine
                 End If
                 x += 1
             Loop
-            If x = 0 Then Return ""
+            If x = 0 Then Return String.Empty
             Dim NewElement As String = objline.Substring(0, x)
             objline = objline.Substring(x).TrimStart()
             Return NewElement
@@ -2705,48 +2772,51 @@ Namespace EC_ScriptEngine
             End If
             Return True
         End Function
-        'Compiles two variables, returns a string if there is an error
-        Friend Function CompileSVars(var1 As ScriptVariable, var2 As ScriptVariable, oper As OperandOper) As ScriptVariable
+        'Converts two different pairs of variables into the same data type (var1 has destination type)
+        Private Sub VariableAutoCast(var1 As ScriptVariable, ByRef var2 As ScriptVariable)
             Try
-                If oper = OperandOper.AND Or oper = OperandOper.OR Then
+                If var1 Is Nothing OrElse var2 Is Nothing Then Exit Sub
+                If var1.Data.VarType = DataType.Integer AndAlso var2.Data.VarType = DataType.UInteger Then
+                    Dim new_var As New ScriptVariable(var2.Name, DataType.Integer)
+                    new_var.Value = CInt(var2.Value)
+                    var2 = new_var
+                ElseIf var1.Data.VarType = DataType.UInteger AndAlso var2.Data.VarType = DataType.Integer Then
+                    Dim new_var As New ScriptVariable(var2.Name, DataType.UInteger)
+                    new_var.Value = CUInt(var2.Value)
+                    var2 = new_var
+                End If
+            Catch ex As Exception
+            End Try
+        End Sub
+        'Compiles two variables, returns a string if there is an error
+        Public Function VariablesCompile(var1_in As ScriptVariable, var2_in As ScriptVariable, oper As OperandOper) As ScriptVariable
+            Try
+                If (oper = OperandOper.IS) Then Return VariablesCompile_IS(var1_in, var2_in)
+                Dim var1 As ScriptVariable = var1_in.Clone()
+                Dim var2 As ScriptVariable = var2_in.Clone()
+                VariableAutoCast(var1, var2) 'Mutator
+                If (oper = OperandOper.AND Or oper = OperandOper.OR) Then
                     If Not var1.Data.VarType = DataType.Bool Then
                         Return CreateError("OR / AND bitwise operators only valid for Bool data types")
                     End If
                 End If
+                Dim OperationType As DataType
+                If (var1.Data.VarType = var2.Data.VarType) Then
+                    OperationType = var1.Data.VarType
+                Else
+                    Return CreateError("Operand data type mismatch")
+                End If
                 Select Case oper
                     Case OperandOper.ADD
-                        Select Case var1.Data.VarType
+                        Select Case OperationType
                             Case DataType.Integer
-                                If var2.Data.VarType = DataType.Integer Then
-                                    Return New ScriptVariable("RESULT", DataType.Integer, CInt(var1.Value) + CInt(var2.Value))
-                                ElseIf var2.Data.VarType = DataType.UInteger Then
-                                    Return New ScriptVariable("RESULT", DataType.Integer, CInt(var1.Value) + CUInt(var2.Value))
-                                Else
-                                    Return CreateError("Operand data type mismatch")
-                                End If
+                                Return New ScriptVariable("RESULT", DataType.Integer, CInt(var1.Value) + CInt(var2.Value))
                             Case DataType.UInteger
-                                If var2.Data.VarType = DataType.UInteger Then
-                                    Return New ScriptVariable("RESULT", DataType.UInteger, CUInt(var1.Value) + CUInt(var2.Value))
-                                ElseIf var2.Data.VarType = DataType.UInteger Then
-                                    Return New ScriptVariable("RESULT", DataType.UInteger, CUInt(var1.Value) + CInt(var2.Value))
-                                Else
-                                    Return CreateError("Operand data type mismatch")
-                                End If
+                                Return New ScriptVariable("RESULT", DataType.UInteger, CUInt(var1.Value) + CUInt(var2.Value))
                             Case DataType.String
-                                Dim new_result As New ScriptVariable("RESULT", DataType.String)
-                                If var2.Data.VarType = DataType.UInteger Then
-                                    new_result.Value = CStr(var1.Value) & CUInt(var2.Value).ToString
-                                ElseIf var2.Data.VarType = DataType.String Then
-                                    new_result.Value = CStr(var1.Value) & CStr(var2.Value)
-                                Else
-                                    Return CreateError("Operand data type mismatch")
-                                End If
-                                Return new_result
+                                Return New ScriptVariable("RESULT", DataType.String, CStr(var1.Value) & CStr(var2.Value))
                             Case DataType.Data
                                 Dim new_result As New ScriptVariable("RESULT", DataType.Data)
-                                If Not var1.Data.VarType = var2.Data.VarType Then
-                                    Return CreateError("Operand data type mismatch")
-                                End If
                                 Dim data1() As Byte = CType(var1.Value, Byte())
                                 Dim data2() As Byte = CType(var2.Value, Byte())
                                 Dim new_size As Integer = data1.Length + data2.Length
@@ -2759,126 +2829,54 @@ Namespace EC_ScriptEngine
                                 Return CreateError("Add operand not valid for Bool data type")
                         End Select
                     Case OperandOper.SUB
-                        Select Case var1.Data.VarType
+                        Select Case OperationType
                             Case DataType.Integer
-                                If var2.Data.VarType = DataType.Integer Then
-                                    Return New ScriptVariable("RESULT", DataType.Integer, CInt(var1.Value) - CInt(var2.Value))
-                                ElseIf var2.Data.VarType = DataType.UInteger Then
-                                    Return New ScriptVariable("RESULT", DataType.Integer, CInt(var1.Value) - CUInt(var2.Value))
-                                Else
-                                    Return CreateError("Operand data type mismatch")
-                                End If
+                                Return New ScriptVariable("RESULT", DataType.Integer, CInt(var1.Value) - CInt(var2.Value))
                             Case DataType.UInteger
-                                If var2.Data.VarType = DataType.UInteger Then
-                                    Return New ScriptVariable("RESULT", DataType.UInteger, CUInt(var1.Value) - CUInt(var2.Value))
-                                ElseIf var2.Data.VarType = DataType.UInteger Then
-                                    Return New ScriptVariable("RESULT", DataType.UInteger, CUInt(var1.Value) - CInt(var2.Value))
-                                Else
-                                    Return CreateError("Operand data type mismatch")
-                                End If
+                                Return New ScriptVariable("RESULT", DataType.UInteger, CUInt(var1.Value) - CUInt(var2.Value))
                             Case Else
-                                Dim new_result As New ScriptVariable("RESULT", DataType.UInteger)
-                                If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
-                                If (Not var1.Data.VarType = DataType.UInteger) Then Return CreateError("Subtract operand only valid for Integer data type")
-                                new_result.Value = CUInt(var1.Value) - CUInt(var2.Value)
-                                Return new_result
+                                Return CreateError("Subtract operand only valid for Integer or UInteger data type")
                         End Select
                     Case OperandOper.DIV
-                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
-                        If var1.Data.VarType = DataType.Integer Then
-                            Dim new_result As New ScriptVariable("RESULT", DataType.Integer)
-                            new_result.Value = CInt(var1.Value) / CInt(var2.Value)
-                            Return new_result
-                        ElseIf var2.Data.VarType = DataType.UInteger Then
-                            Dim new_result As New ScriptVariable("RESULT", DataType.UInteger)
-                            new_result.Value = CUInt(var1.Value) / CUInt(var2.Value)
-                            Return new_result
+                        If OperationType = DataType.Integer Then
+                            Return New ScriptVariable("RESULT", DataType.Integer, CInt(var1.Value) / CInt(var2.Value))
+                        ElseIf OperationType = DataType.UInteger Then
+                            Return New ScriptVariable("RESULT", DataType.Integer, CUInt(var1.Value) / CUInt(var2.Value))
                         Else
                             Return CreateError("Division operand only valid for Integer or UInteger data type")
                         End If
                     Case OperandOper.MULT
-                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
-                        If var1.Data.VarType = DataType.Integer Then
-                            Dim new_result As New ScriptVariable("RESULT", DataType.Integer)
-                            new_result.Value = CInt(var1.Value) * CInt(var2.Value)
-                            Return new_result
-                        ElseIf var2.Data.VarType = DataType.UInteger Then
-                            Dim new_result As New ScriptVariable("RESULT", DataType.UInteger)
-                            new_result.Value = CUInt(var1.Value) * CUInt(var2.Value)
-                            Return new_result
+                        If OperationType = DataType.Integer Then
+                            Return New ScriptVariable("RESULT", DataType.Integer, CInt(var1.Value) * CInt(var2.Value))
+                        ElseIf OperationType = DataType.UInteger Then
+                            Return New ScriptVariable("RESULT", DataType.UInteger, CUInt(var1.Value) * CUInt(var2.Value))
                         Else
                             Return CreateError("Mulitple operand only valid for Integer or UInteger data type")
                         End If
                     Case OperandOper.S_LEFT
+                        If (Not OperationType = DataType.Integer) Then Return CreateError("Shift-left operand only valid for Integer data type")
                         Dim new_result As New ScriptVariable("RESULT", DataType.Integer)
-                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
-                        If (Not var1.Data.VarType = DataType.Integer) Then Return CreateError("Shift-left operand only valid for Integer data type")
+                        If (Not OperationType = DataType.Integer) Then Return CreateError("Shift-left operand only valid for Integer data type")
                         Dim shift_value As Int32 = CInt(var2.Value)
                         If shift_value > 31 Then Return CreateError("Shift-left value is greater than 31-bits")
                         new_result.Value = CUInt(var1.Value) << shift_value
                         Return new_result
                     Case OperandOper.S_RIGHT
+                        If (Not OperationType = DataType.Integer) Then Return CreateError("Shift-right operand only valid for Integer data type")
                         Dim new_result As New ScriptVariable("RESULT", DataType.Integer)
-                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
-                        If (Not var1.Data.VarType = DataType.Integer) Then Return CreateError("Shift-right operand only valid for Integer data type")
                         Dim shift_value As Int32 = CInt(var2.Value)
                         If shift_value > 31 Then Return CreateError("Shift-right value is greater than 31-bits")
                         new_result.Value = CUInt(var1.Value) >> shift_value
                         Return new_result
                     Case OperandOper.AND 'We already checked to make sure these are BOOL
-                        Dim new_result As New ScriptVariable("RESULT", DataType.Bool)
-                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
-                        new_result.Value = CBool(var1.Value) And CBool(var2.Value)
-                        Return new_result
+                        Return New ScriptVariable("RESULT", DataType.Bool, CBool(var1.Value) And CBool(var2.Value))
                     Case OperandOper.OR 'We already checked to make sure these are BOOL
-                        Dim new_result As New ScriptVariable("RESULT", DataType.Bool)
-                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
-                        new_result.Value = CBool(var1.Value) Or CBool(var2.Value)
-                        Return new_result
-                    Case OperandOper.IS 'Boolean compare operators
-                        Dim new_result As New ScriptVariable("RESULT", DataType.Bool)
-                        Dim result As Boolean = False
-                        If var1 IsNot Nothing AndAlso var1.Data.VarType = DataType.NULL Then
-                            If var2 Is Nothing Then
-                                result = True
-                            ElseIf var2.Value Is Nothing Then
-                                result = True
-                            End If
-                        ElseIf var2 IsNot Nothing AndAlso var2.Data.VarType = DataType.NULL Then
-                            If var1 Is Nothing Then
-                                result = True
-                            ElseIf var1.Value Is Nothing Then
-                                result = True
-                            End If
-                        Else
-                            If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
-                            If var1.Data.VarType = DataType.String Then
-                                Dim s1 As String = CStr(var1.Value)
-                                Dim s2 As String = CStr(var2.Value)
-                                If (s1.Equals(s2)) Then result = True Else result = False
-                            ElseIf var1.Data.VarType = DataType.Integer Then
-                                result = (CInt(var1.Value) = CInt(var2.Value))
-                            ElseIf var1.Data.VarType = DataType.UInteger Then
-                                result = (CUInt(var1.Value) = CUInt(var2.Value))
-                            ElseIf var1.Data.VarType = DataType.Data Then
-                                Dim d1() As Byte = CType(var1.Value, Byte())
-                                Dim d2() As Byte = CType(var2.Value, Byte())
-                                If d1.Length = d2.Length Then
-                                    result = True
-                                    For i = 0 To d1.Length - 1
-                                        If (Not d1(i) = d2(i)) Then result = False : Exit For
-                                    Next
-                                End If
-                            End If
-                        End If
-                        new_result.Value = result
-                        Return new_result
+                        Return New ScriptVariable("RESULT", DataType.Bool, CBool(var1.Value) Or CBool(var2.Value))
                     Case OperandOper.LESS_THAN 'Boolean compare operators 
                         Dim new_result As New ScriptVariable("RESULT", DataType.Bool)
-                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
-                        If (var1.Data.VarType = DataType.Integer) Then
+                        If (OperationType = DataType.Integer) Then
                             new_result.Value = (CInt(var1.Value) < CInt(var2.Value))
-                        ElseIf (var1.Data.VarType = DataType.UInteger) Then
+                        ElseIf (OperationType = DataType.UInteger) Then
                             new_result.Value = (CUInt(var1.Value) < CUInt(var2.Value))
                         Else
                             Return CreateError("Less-than compare operand only valid for Integer/UInteger data type")
@@ -2886,10 +2884,9 @@ Namespace EC_ScriptEngine
                         Return new_result
                     Case OperandOper.GRT_THAN 'Boolean compare operators
                         Dim new_result As New ScriptVariable("RESULT", DataType.Bool)
-                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
-                        If (var1.Data.VarType = DataType.Integer) Then
+                        If (OperationType = DataType.Integer) Then
                             new_result.Value = (CInt(var1.Value) > CInt(var2.Value))
-                        ElseIf (var1.Data.VarType = DataType.UInteger) Then
+                        ElseIf (OperationType = DataType.UInteger) Then
                             new_result.Value = (CUInt(var1.Value) > CUInt(var2.Value))
                         Else
                             Return CreateError("Greater-than compare operand only valid for Integer/UInteger data type")
@@ -2900,6 +2897,50 @@ Namespace EC_ScriptEngine
                 Return CreateError("Error compiling operands")
             End Try
             Return Nothing
+        End Function
+
+        Public Function VariablesCompile_IS(var1 As ScriptVariable, var2 As ScriptVariable) As ScriptVariable
+            Dim new_result As New ScriptVariable("RESULT", DataType.Bool)
+            Dim result As Boolean = False
+            If var1 IsNot Nothing AndAlso var1.Data.VarType = DataType.NULL Then
+                If var2 Is Nothing Then
+                    result = True
+                ElseIf var2.Value Is Nothing Then
+                    result = True
+                End If
+            ElseIf var2 IsNot Nothing AndAlso var2.Data.VarType = DataType.NULL Then
+                If var1 Is Nothing Then
+                    result = True
+                ElseIf var1.Value Is Nothing Then
+                    result = True
+                End If
+            ElseIf var1.Data.VarType = DataType.Integer AndAlso var2.Data.VarType = DataType.UInteger Then
+                result = (CInt(var1.Value) = CUInt(var2.Value))
+            ElseIf var1.Data.VarType = DataType.UInteger AndAlso var2.Data.VarType = DataType.Integer Then
+                result = (CUInt(var1.Value) = CInt(var2.Value))
+            Else
+                If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
+                If var1.Data.VarType = DataType.String Then
+                    Dim s1 As String = CStr(var1.Value)
+                    Dim s2 As String = CStr(var2.Value)
+                    If (s1.Equals(s2)) Then result = True Else result = False
+                ElseIf var1.Data.VarType = DataType.Integer Then
+                    result = (CInt(var1.Value) = CInt(var2.Value))
+                ElseIf var1.Data.VarType = DataType.UInteger Then
+                    result = (CUInt(var1.Value) = CUInt(var2.Value))
+                ElseIf var1.Data.VarType = DataType.Data Then
+                    Dim d1() As Byte = CType(var1.Value, Byte())
+                    Dim d2() As Byte = CType(var2.Value, Byte())
+                    If d1.Length = d2.Length Then
+                        result = True
+                        For i = 0 To d1.Length - 1
+                            If (Not d1(i) = d2(i)) Then result = False : Exit For
+                        Next
+                    End If
+                End If
+            End If
+            new_result.Value = result
+            Return new_result
         End Function
 
         Public Sub ParseToFunctionAndSub(to_parse As String, ByRef main_fnc As String, ByRef sub_fnc As String, ByRef ind_fnc As String, ByRef arguments As String)

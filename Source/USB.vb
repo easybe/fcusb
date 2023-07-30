@@ -29,7 +29,7 @@ Namespace USB
                 End If
                 Return dev_loc
             Catch ex As Exception
-                Return ""
+                Return String.Empty
             End Try
         End Function
 
@@ -700,7 +700,6 @@ Namespace USB
         SPINAND_READFLASH = &H5B
         SPINAND_WRITEFLASH = &H5C
         EXPIO_TIMING = &H5E
-        EXPIO_RAW = &H5F
         I2C_INIT = &H60
         I2C_READEEPROM = &H61
         I2C_WRITEEEPROM = &H62
@@ -719,7 +718,6 @@ Namespace USB
         EXPIO_MODE_DELAY = &H75
         EXPIO_CTRL = &H76
         EXPIO_DELAY = &H78
-        EXPIO_WRCMDDATA = &H7A
         EXPIO_WRMEMDATA = &H7B
         EXPIO_RDMEMDATA = &H7C
         EXPIO_WAIT = &H7D

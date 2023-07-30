@@ -653,7 +653,7 @@ Public Class MemoryInterface
             Else
                 Select Case Me.FlashType
                     Case MemoryType.PARALLEL_NOR
-                        CType(Me.MEM_IF, PARALLEL_NOR).ResetDevice()
+                        CType(Me.MEM_IF, PARALLEL_NOR).ResetDevice(0)
                     Case MemoryType.JTAG_CFI
                         FCUSB.JTAG_IF.CFI_ReadMode()
                 End Select

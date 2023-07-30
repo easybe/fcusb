@@ -121,7 +121,8 @@ Public Class MainForm
             Me.Invoke(Sub() SetStatusPageProgress(percent))
         Else
             If (percent > 100) Then percent = 100
-            If (percent = 100) Then
+            Dim InProgress As Boolean = (Me.statuspage_progress.Value > 0)
+            If (InProgress And percent = 0) Then
                 Me.statuspage_progress.Value = 0
                 Me.statuspage_progress.Visible = False
             Else
@@ -452,10 +453,6 @@ Public Class MainForm
         Return Nothing
     End Function
 
-
-
-
-
     Private Function MyTabs_GetSelectedTuple() As (mem_dev As MemoryDeviceInstance, mem_control As MemControl_v2)
         If Me.InvokeRequired Then
             Dim result = Me.Invoke(Function() MyTabs_GetSelectedTuple())
@@ -466,9 +463,6 @@ Public Class MainForm
             Return DirectCast(o, (MemoryDeviceInstance, MemControl_v2))
         End If
     End Function
-
-
-
 
     Public Sub AddControlToTable(tab_index As Integer, obj As Control)
         If Me.InvokeRequired Then
@@ -600,13 +594,13 @@ Public Class MainForm
             Return CStr(Me.Invoke(Function() MyTabs_GetUserTabControlText(usertabind, UserControl)))
         Else
             Dim usertab As TabPage = MyTabs_GetUserTab(usertabind)
-            If usertab Is Nothing Then Return ""
+            If usertab Is Nothing Then Return String.Empty
             For Each user_control As Control In usertab.Controls
-                If Not user_control.Name.ToUpper.Equals(UserControl.ToUpper) Then
+                If user_control.Name.ToUpper.Equals(UserControl.ToUpper) Then
                     Return user_control.Text
                 End If
             Next
-            Return ""
+            Return String.Empty
         End If
     End Function
 
@@ -622,7 +616,7 @@ Public Class MainForm
                 Exit For
             End If
         Next
-        Return ""
+        Return String.Empty
     End Function
 
     Public Sub HandleButtons(usertabind As Integer, Enabled As Boolean, BtnName As String)
@@ -1523,7 +1517,7 @@ Public Class MainForm
                     Return line.Substring(x)
                 End If
             Next
-            Return ""
+            Return String.Empty
         End Function
 
     End Class
@@ -1685,7 +1679,7 @@ Public Class MainForm
             If SaveMe.ShowDialog = DialogResult.OK Then
                 Return SaveMe.FileName
             Else
-                Return ""
+                Return String.Empty
             End If
         End If
     End Function
@@ -1849,14 +1843,14 @@ Public Class MainForm
                                 Dim phy_addr As Integer = PNAND_IF.BlockManager.GetPhysical(page_addr)
                                 PNAND_IF.SectorErase_Physical(phy_addr)
                                 If Not Utilities.IsByteArrayFilled(block_data, 255) Then 'We want to skip blank data
-                                    PNAND_IF.WritePage_Physical(phy_addr, block_data, FlashArea.All)
+                                    PNAND_IF.WritePages_Physical(phy_addr, block_data, FlashArea.All)
                                 End If
                             ElseIf (MySettings.OPERATION_MODE = DeviceMode.SPI_NAND) Then
                                 Dim SNAND_IF As SPINAND_Programmer = CType(mem_tuple.mem_dev.MEM_IF, SPINAND_Programmer)
                                 Dim phy_addr As Integer = SNAND_IF.BlockManager.GetPhysical(page_addr)
                                 SNAND_IF.SectorErase_Physical(phy_addr)
                                 If Not Utilities.IsByteArrayFilled(block_data, 255) Then 'We want to skip blank data
-                                    SNAND_IF.WritePage_Physical(phy_addr, block_data, FlashArea.All)
+                                    SNAND_IF.WritePages_Physical(phy_addr, block_data, FlashArea.All)
                                 End If
                             End If
                             page_addr += nand_cfg.page_count '64
@@ -2421,6 +2415,9 @@ Public Class MainForm
             ElseIf mem_dev.MEM_IF.GetType Is GetType(SPI.SQI_Programmer) Then
                 Dim SQI_IF As SPI.SQI_Programmer = CType(mem_dev.MEM_IF, SPI.SQI_Programmer)
                 flash_vendor = SQI_IF.MyFlashDevice.VENDOR_SPECIFIC
+            ElseIf mem_dev.MEM_IF.GetType Is GetType(PARALLEL_NOR) Then
+                Dim NOR_IF As PARALLEL_NOR = CType(mem_dev.MEM_IF, PARALLEL_NOR)
+                flash_vendor = NOR_IF.MyFlashDevice.VENDOR_SPECIFIC
             End If
             If Not flash_vendor = VENDOR_FEATURE.NotSupported Then
                 If (flash_vendor = FlashMemory.VENDOR_FEATURE.Micron) Then
@@ -2431,6 +2428,8 @@ Public Class MainForm
                     mem_dev.VendorMenu = New vendor_issi(mem_dev.MEM_IF)
                 ElseIf (flash_vendor = FlashMemory.VENDOR_FEATURE.Winbond) Then
                     mem_dev.VendorMenu = New vendor_winbond(mem_dev.MEM_IF)
+                ElseIf (flash_vendor = FlashMemory.VENDOR_FEATURE.Intel_01) Then
+                    mem_dev.VendorMenu = New vendor_intel_01(mem_dev.MEM_IF)
                 End If
             End If
         End If
@@ -2575,7 +2574,8 @@ Public Class MainForm
             selected_mem.mem_control.SetProgress(0)
             For i = 0 To block_count - 1
                 data_addr = i * block_size
-                selected_mem.mem_control.SetProgress((i \ block_count) * 100)
+                Dim progress As Integer = CInt((i / block_count) * 100)
+                selected_mem.mem_control.SetProgress(progress)
                 Dim d() As Byte = selected_mem.mem_dev.ReadFlash(data_addr, block_size)
                 For x = 0 To d.Length - 1
                     If (Not d(x) = 255) Then

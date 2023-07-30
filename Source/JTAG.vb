@@ -4,6 +4,7 @@
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'ACKNOWLEDGEMENT: USB driver functionality provided by LibUsbDotNet (sourceforge.net/projects/libusbdotnet)
 
+Imports System.Net.Mime.MediaTypeNames
 Imports FlashcatUSB.FlashMemory
 
 Namespace JTAG
@@ -25,11 +26,11 @@ Namespace JTAG
 
         Sub New(parent_if As USB.FCUSB_DEVICE)
             FCUSB = parent_if
-            BSDL_Init()
         End Sub
         'Connects to the target device
         Public Function Init() As Boolean
             Try
+                BSDL_Init()
                 Me.Chain_BitLength = 0
                 Me.Chain_SelectedIndex = 0
                 Me.Chain_IsValid = False
@@ -501,7 +502,7 @@ Namespace JTAG
         Public Function BoundaryScan_Init() As Boolean
             If Not SetupReady Then Return False
             PrintConsole("JTAG Boundary Scan Programmer")
-            If (Not FCUSB.HasLogic) Then
+            If (Not FCUSB.HasLogic()) Then
                 PrintConsole("This feature is only available using FlashcatUSB Professional") : Return False
             End If
             If Not BSDL_Is_Configured() Then Return False
@@ -525,17 +526,13 @@ Namespace JTAG
             ElseIf Me.BDR_DQ_SIZE = 16 Then
                 BSR_IF.CURRENT_BUS_WIDTH = BSR_Programmer.E_BSR_BUS_WIDTH.X16
             End If
-            Dim dw As UInt32 = 0 'X8
-            If BSR_IF.CURRENT_BUS_WIDTH = BSR_Programmer.E_BSR_BUS_WIDTH.X16 Then dw = 1
-            If (Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_INIT, Nothing, dw)) Then 'dw=0 X8 or dw=1 X16 mode
-                PrintConsole("Error: Boundary Scan init failed") : Return False
-            End If
             Return True
         End Function
 
         Public Function BoundaryScan_Detect() As Boolean
             If BSR_IF.DeviceInit() Then
                 MainApp.Connected_Event(BSR_IF, 4096)
+                Return True
             End If
             Return False
         End Function
@@ -1594,7 +1591,7 @@ Namespace JTAG
             For i = 0 To Me.Devices.Count - 1
                 Dim ID As String = "0x" & Hex(Devices(i).IDCODE).PadLeft(8, "0"c)
                 If Devices(i).BSDL IsNot Nothing Then
-                    PrintConsole("Index " & i.ToString() & ": JEDEC ID " & ID & " (" & Devices(i).BSDL.PART_NAME & ")")
+                    PrintConsole("Index " & i.ToString() & ": JEDEC ID " & ID & " (" & Devices(i).BSDL.ToString() & ")")
                 Else
                     PrintConsole("Index " & i.ToString() & ": JEDEC ID " & ID & " - BSDL definition not found")
                 End If
@@ -1609,10 +1606,10 @@ Namespace JTAG
             PrintConsole("JTAG chain cleared")
         End Sub
         'Sets the BSDL definition for a given device in a JTAG chain
-        Public Function Chain_Set(index As Integer, bsdl_name As String) As Boolean
+        Public Function Chain_Set(index As Integer, part_name As String) As Boolean
             If (index > (Me.Devices.Count - 1)) Then Return False
             For Each selected_device In Me.BSDL_DATABASE
-                If selected_device.PART_NAME.ToUpper.Equals(bsdl_name.ToUpper) Then
+                If selected_device.PART_NAME.ToUpper.Equals(part_name.ToUpper) Then
                     Me.Devices(index).BSDL = selected_device
                     Me.Devices(index).IR_LENGTH = selected_device.IR_LEN
                     Return True
@@ -1621,9 +1618,9 @@ Namespace JTAG
             Return False
         End Function
 
-        Public Function Chain_Add(bsdl_name As String) As Boolean
+        Public Function Chain_Add(part_name As String) As Boolean
             For Each selected_device In Me.BSDL_DATABASE
-                If selected_device.PART_NAME.ToUpper.Equals(bsdl_name.ToUpper) Then
+                If selected_device.PART_NAME.ToUpper.Equals(part_name.ToUpper) Then
                     Dim j As New JTAG_DEVICE
                     j.IDCODE = selected_device.IDCODE
                     j.BSDL = selected_device
@@ -1775,75 +1772,142 @@ Namespace JTAG
 
 #Region "BSDL"
         Private BSDL_DATABASE As New List(Of BSDL_DEF)
+        Private PrintAddedToDB As Boolean = True
 
         Private Sub BSDL_Init()
+            PrintAddedToDB = False
             BSDL_DATABASE.Clear()
-            BSDL_DATABASE.Add(ARM_CORTEXM7())
-            BSDL_DATABASE.Add(Microsemi_A3P250_FG144())
-            BSDL_DATABASE.Add(Xilinx_XC2C64A())
-            BSDL_DATABASE.Add(Xilinx_XC9572XL())
-            BSDL_DATABASE.Add(Xilinx_XC95288XL())
-            BSDL_DATABASE.Add(Xilinx_XC95144_TQ100())
-            BSDL_DATABASE.Add(Xilinx_XC4013XLA_PQ160())
-            BSDL_DATABASE.Add(Altera_5M160ZE64())
-            BSDL_DATABASE.Add(Altera_5M570ZT144())
-            BSDL_DATABASE.Add(Altera_EPM7032ST44())
-            BSDL_DATABASE.Add(Altera_EPC2L20())
-            BSDL_DATABASE.Add(Lattice_LCMXO2_4000HC_XFTG256())
-            BSDL_DATABASE.Add(Lattice_LCMXO2_7000HC_XXTG144())
-            BSDL_DATABASE.Add(Lattice_LCMXO2_1200HC())
-            BSDL_DATABASE.Add(Lattice_LC4032V_TQFP44())
-            BSDL_DATABASE.Add(Lattice_LC4064V_TQFP44())
-            BSDL_DATABASE.Add(Broadcom_BCM3348())
-            BSDL_DATABASE.Add(Motorola_MC68340())
+            Dim script_io As New IO.DirectoryInfo(ScriptPath)
+            Dim fn_out As New IO.DirectoryInfo(script_io.Parent.FullName & "\JTAG_BSDL\")
+            If fn_out.Exists Then
+                Dim device_files() = fn_out.GetFiles("*.fcs")
+                For Each bsdl In device_files
+                    Try
+                        Dim bsdl_text() As String = Utilities.FileIO.ReadFile(bsdl.FullName)
+                        ScriptProcessor.RunScript(bsdl_text)
+                    Catch ex As Exception
+                    End Try
+                Next
+            End If
+            PrintAddedToDB = True
+            PrintConsole(String.Format("BSDL database loaded: {0} total definitions", BSDL_DATABASE.Count))
         End Sub
 
-        Public Function BSDL_Add(bsdl_obj As BSDL_DEF) As Integer
+        Private Sub WriteBSDL(bsdl_name As String, d As BSDL_DEF)
+            Dim script_io As New IO.DirectoryInfo(ScriptPath)
+            Dim fn_out As New IO.DirectoryInfo(script_io.Parent.FullName & "\JTAG_BSDL\")
+            Dim fnname As String = fn_out.FullName & bsdl_name & ".fcs"
+            Dim bsdl_file As New List(Of String)
+            bsdl_file.Add(String.Format("index = BSDL.New(""{0}"",""{1}"")", d.PART_NAME, bsdl_name))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""ID_JEDEC"", {0})", "0x" & d.ID_JEDEC.ToString("X").PadLeft(8, "0"c)))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""ID_MASK"", {0})", "0x" & d.ID_MASK.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""IR_LEN"", {0})", d.IR_LEN.ToString()))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""BS_LEN"", {0})", d.BS_LEN.ToString()))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""IDCODE"", {0})", "0x" & d.IDCODE.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""BYPASS"", {0})", "0x" & d.BYPASS.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""INTEST"", {0})", "0x" & d.INTEST.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""EXTEST"", {0})", "0x" & d.EXTEST.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""SAMPLE"", {0})", "0x" & d.SAMPLE.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""CLAMP"", {0})", "0x" & d.CLAMP.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""HIGHZ"", {0})", "0x" & d.HIGHZ.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""PRELOAD"", {0})", "0x" & d.PRELOAD.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""USERCODE"", {0})", "0x" & d.USERCODE.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""SCAN_N"", {0})", "0x" & d.SCAN_N.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""ARM_ABORT"", {0})", "0x" & d.ARM_ABORT.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""ARM_DPACC"", {0})", "0x" & d.ARM_DPACC.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""ARM_APACC"", {0})", "0x" & d.ARM_APACC.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""RESTART"", {0})", "0x" & d.RESTART.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""MIPS_IMPCODE"", {0})", "0x" & d.MIPS_IMPCODE.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""MIPS_ADDRESS"", {0})", "0x" & d.MIPS_ADDRESS.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""MIPS_CONTROL"", {0})", "0x" & d.MIPS_CONTROL.ToString("X")))
+            bsdl_file.Add(String.Format("BSDL(index).parameter(""DISVAL"", {0})", Utilities.BoolToInt(d.DISVAL)))
+            Utilities.FileIO.WriteFile(bsdl_file.ToArray(), fnname)
+        End Sub
+
+        Public Function BSDL_Add(MFG As String, PART As String, PCKG As String) As Integer
+            BSDL_Remove(PART, PCKG)
+            Dim bsdl_obj As New BSDL_DEF
+            bsdl_obj.MFG_NAME = MFG
+            bsdl_obj.PART_NAME = PART
+            bsdl_obj.PACKAGE = PCKG
             BSDL_DATABASE.Add(bsdl_obj)
             Dim created_index As Integer = BSDL_DATABASE.Count - 1
-            PrintConsole("BSDL databased added device '" & bsdl_obj.PART_NAME & "' to index: " & created_index.ToString)
+            If PrintAddedToDB Then
+                PrintConsole("BSDL databased added device '" & bsdl_obj.ToString() & "' to index: " & created_index.ToString)
+            End If
             Return created_index
         End Function
 
-        Public Function BSDL_Find(bsdl_name As String) As Integer
+        Public Sub BSDL_Remove(PART As String, Optional package As String = "")
             For i = 0 To BSDL_DATABASE.Count - 1
-                If BSDL_DATABASE(i).PART_NAME.Equals(bsdl_name.ToUpper) Then Return i
+                If BSDL_DATABASE(i).PART_NAME.ToUpper().Equals(PART.ToUpper) Then
+                    If package.Equals("") OrElse BSDL_DATABASE(i).PACKAGE.Equals(package) Then
+                        BSDL_DATABASE.RemoveAt(i)
+                        Exit Sub
+                    End If
+                End If
+            Next
+        End Sub
+
+        Public Function BSDL_Find(part_name As String, Optional package As String = "") As Integer
+            For i = 0 To BSDL_DATABASE.Count - 1
+                If BSDL_DATABASE(i).PART_NAME.ToUpper().Equals(part_name.ToUpper) Then
+                    If package.Equals("") OrElse BSDL_DATABASE(i).PACKAGE.Equals(package) Then
+                        Return i
+                    End If
+                End If
             Next
             Return -1
         End Function
 
         Public Function BSDL_SetParamater(library_index As Integer, param_name As String, param_value As UInt32) As Boolean
             If library_index > BSDL_DATABASE.Count - 1 Then Return False
-            Dim dsdl As BSDL_DEF = BSDL_DATABASE(library_index)
+            Dim bsdl As BSDL_DEF = BSDL_DATABASE(library_index)
             Select Case param_name.ToUpper
                 Case "ID_JEDEC"
-                    dsdl.ID_JEDEC = param_value
+                    bsdl.ID_JEDEC = param_value
                 Case "ID_MASK"
-                    dsdl.ID_MASK = param_value
+                    bsdl.ID_MASK = param_value
                 Case "IR_LEN"
-                    dsdl.IR_LEN = CByte(param_value And &HFF)
+                    bsdl.IR_LEN = CByte(param_value And &HFF)
                 Case "BS_LEN"
-                    dsdl.BS_LEN = CUShort(param_value And &HFFFF)
+                    bsdl.BS_LEN = CUShort(param_value And &HFFFF)
                 Case "IDCODE"
-                    dsdl.IDCODE = param_value
+                    bsdl.IDCODE = param_value
                 Case "BYPASS"
-                    dsdl.BYPASS = param_value
+                    bsdl.BYPASS = param_value
                 Case "INTEST"
-                    dsdl.INTEST = param_value
+                    bsdl.INTEST = param_value
                 Case "EXTEST"
-                    dsdl.EXTEST = param_value
+                    bsdl.EXTEST = param_value
                 Case "SAMPLE"
-                    dsdl.SAMPLE = param_value
+                    bsdl.SAMPLE = param_value
                 Case "CLAMP"
-                    dsdl.CLAMP = param_value
+                    bsdl.CLAMP = param_value
                 Case "HIGHZ"
-                    dsdl.HIGHZ = param_value
+                    bsdl.HIGHZ = param_value
                 Case "PRELOAD"
-                    dsdl.PRELOAD = param_value
+                    bsdl.PRELOAD = param_value
                 Case "USERCODE"
-                    dsdl.USERCODE = param_value
+                    bsdl.USERCODE = param_value
+                Case "SCAN_N"
+                    bsdl.SCAN_N = CByte(param_value)
+                Case "ARM_ABORT"
+                    bsdl.ARM_ABORT = CByte(param_value)
+                Case "ARM_DPACC"
+                    bsdl.ARM_DPACC = CByte(param_value)
+                Case "ARM_APACC"
+                    bsdl.ARM_APACC = CByte(param_value)
+                Case "RESTART"
+                    bsdl.RESTART = CByte(param_value)
+                Case "MIPS_IMPCODE"
+                    bsdl.MIPS_IMPCODE = param_value
+                Case "MIPS_ADDRESS"
+                    bsdl.MIPS_ADDRESS = param_value
+                Case "MIPS_CONTROL"
+                    bsdl.MIPS_CONTROL = param_value
                 Case "DISVAL"
-                    dsdl.DISVAL = CBool(param_value)
+                    bsdl.DISVAL = CBool(param_value)
                 Case Else
                     Return False
             End Select
@@ -1857,436 +1921,6 @@ Namespace JTAG
                 End If
             Next
             Return Nothing
-        End Function
-
-        Private Function ARM_CORTEXM7() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "ARM-CORTEX-M7"
-            J_DEVICE.ID_JEDEC = &HBA02477UI
-            J_DEVICE.IR_LEN = 4
-            J_DEVICE.BS_LEN = 0
-            J_DEVICE.IDCODE = &HE '0b1110 - JTAG Device ID Code Register (DR width: 32)
-            J_DEVICE.BYPASS = &HF '0b1111 - JTAG Bypass Register (DR width: 1)
-            J_DEVICE.RESTART = &H4 '0b0100
-            J_DEVICE.SCAN_N = &H2 '0b0010
-            J_DEVICE.ARM_ABORT = &H8 'b1000 - JTAG-DP Abort Register (DR width: 35)
-            J_DEVICE.ARM_DPACC = &HA 'b1010 - JTAG DP Access Register (DR width: 35)
-            J_DEVICE.ARM_APACC = &HB 'b1011 - JTAG AP Access Register (DR width: 35)
-            Return J_DEVICE
-        End Function
-
-        Private Function Microsemi_A3P250_FG144() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "A3P250"
-            J_DEVICE.ID_JEDEC = &H2A141CFUI
-            J_DEVICE.ID_MASK = &H6FFFFFFUI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 708
-            J_DEVICE.BYPASS = &HFF
-            J_DEVICE.IDCODE = &HF
-            J_DEVICE.EXTEST = 0
-            J_DEVICE.SAMPLE = 1
-            J_DEVICE.HIGHZ = &H7
-            J_DEVICE.CLAMP = &H5
-            J_DEVICE.INTEST = &H6
-            J_DEVICE.USERCODE = &HE
-            J_DEVICE.DISVAL = False
-            Return J_DEVICE
-        End Function
-
-        Private Function Xilinx_XC9572XL() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "XC9572XL"
-            J_DEVICE.ID_JEDEC = &H9604093UI
-            J_DEVICE.ID_MASK = &HFFFFFFFUI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 216
-            J_DEVICE.IDCODE = &HFE
-            J_DEVICE.BYPASS = &HFF
-            J_DEVICE.INTEST = 2
-            J_DEVICE.EXTEST = 0
-            J_DEVICE.SAMPLE = 1
-            J_DEVICE.CLAMP = &HFA
-            J_DEVICE.HIGHZ = &HFC
-            J_DEVICE.USERCODE = &HFD
-            J_DEVICE.DISVAL = False
-            '"ISPEX ( 11110000)," &
-            '"FBULK ( 11101101),"&
-            '"FBLANK ( 11100101),"&
-            '"FERASE ( 11101100),"&
-            '"FPGM ( 11101010)," &
-            '"FPGMI ( 11101011)," &
-            '"FVFY ( 11101110)," &
-            '"FVFYI ( 11101111)," &
-            '"ISPEN ( 11101000)," &
-            '"ISPENC ( 11101001)," &
-            Return J_DEVICE
-        End Function
-
-        Private Function Xilinx_XC95288XL() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "XC95288XL"
-            J_DEVICE.ID_JEDEC = &H9616093UI
-            J_DEVICE.ID_MASK = &HFFFFFFFUI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 864
-            J_DEVICE.IDCODE = &HFE
-            J_DEVICE.BYPASS = &HFF
-            J_DEVICE.SAMPLE = 1
-            J_DEVICE.CLAMP = &HFA
-            J_DEVICE.EXTEST = 0
-            J_DEVICE.HIGHZ = &HFC
-            J_DEVICE.INTEST = 2
-            J_DEVICE.USERCODE = &HFD
-            J_DEVICE.DISVAL = False
-            '"ISPEX ( 11110000)," &
-            '"FBULK ( 11101101),"&
-            '"FBLANK ( 11100101),"&
-            '"FERASE ( 11101100),"&
-            '"FPGM ( 11101010)," &
-            '"FPGMI ( 11101011)," &
-            '"FVFY ( 11101110)," &
-            '"FVFYI ( 11101111)," &
-            '"ISPEN ( 11101000)," &
-            '"ISPENC ( 11101001)," &
-            Return J_DEVICE
-        End Function
-
-        Private Function Xilinx_XC2C64A() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "XC2C64A"
-            J_DEVICE.ID_JEDEC = &H6E58093UI
-            J_DEVICE.ID_MASK = &HFFF8FFFUI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 192
-            J_DEVICE.IDCODE = 1
-            J_DEVICE.BYPASS = &HFF
-            J_DEVICE.INTEST = 2
-            J_DEVICE.EXTEST = 0
-            J_DEVICE.SAMPLE = 3
-            J_DEVICE.HIGHZ = &HFC
-            J_DEVICE.USERCODE = &HFD
-            J_DEVICE.DISVAL = False
-            '"ISC_ENABLE_CLAMP (11101001)," &
-            '"ISC_ENABLEOTF  (11100100)," &
-            '"ISC_ENABLE     (11101000)," &
-            '"ISC_SRAM_READ  (11100111)," &
-            '"ISC_SRAM_WRITE (11100110)," &
-            '"ISC_ERASE      (11101101)," &
-            '"ISC_PROGRAM    (11101010)," &
-            '"ISC_READ       (11101110)," &
-            '"ISC_INIT       (11110000)," &
-            '"ISC_DISABLE    (11000000)," &
-            '"TEST_ENABLE    (00010001)," &
-            '"BULKPROG       (00010010)," &
-            '"ERASE_ALL      (00010100)," &
-            '"MVERIFY        (00010011)," &
-            '"TEST_DISABLE   (00010101)," &
-            '"ISC_NOOP       (11100000)";
-            Return J_DEVICE
-        End Function
-        'Xilinx XC95144 (100-pin TQFP)
-        Private Function Xilinx_XC95144_TQ100() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "XC95144"
-            J_DEVICE.ID_JEDEC = &H9608093UI
-            J_DEVICE.ID_MASK = &HFFFFFFFUI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 432
-            J_DEVICE.BYPASS = &HFF
-            J_DEVICE.IDCODE = &HFE
-            J_DEVICE.EXTEST = 0
-            J_DEVICE.INTEST = 2
-            J_DEVICE.HIGHZ = &HFC
-            J_DEVICE.SAMPLE = 1
-            J_DEVICE.USERCODE = &HFD
-            'J_DEVICE.ISPEX = &HF0
-            'J_DEVICE.FERASE = &HEC
-            'J_DEVICE.FBULK = &HED
-            'J_DEVICE.FPGM = &HEA
-            'J_DEVICE.FPGMI = &HEB
-            'J_DEVICE.FVFY = &HEE
-            'J_DEVICE.FVFYI = &HEF
-            'J_DEVICE.ISPEN = &HE8
-            J_DEVICE.DISVAL = False
-            Return J_DEVICE
-        End Function
-
-        Private Function Xilinx_XC4013XLA_PQ160() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "XC4013XLA"
-            J_DEVICE.ID_JEDEC = &H218093UI
-            J_DEVICE.ID_MASK = &HFFFFFFFUI
-            J_DEVICE.IR_LEN = 3
-            J_DEVICE.BS_LEN = 584
-            J_DEVICE.BYPASS = &H7
-            J_DEVICE.IDCODE = &H6
-            J_DEVICE.EXTEST = &H0
-            J_DEVICE.SAMPLE = &H1
-            'J_DEVICE.READBACK = &H4
-            'J_DEVICE.CONFIGURE = &H5
-            'J_DEVICE.USER2 = &H3
-            'J_DEVICE.USER1 = &H2
-            J_DEVICE.DISVAL = False
-            Return J_DEVICE
-        End Function
-
-        Private Function Broadcom_BCM3348() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "BCM3348"
-            J_DEVICE.ID_JEDEC = &H334817FUI
-            J_DEVICE.ID_MASK = &HFFFFFFFFUI
-            J_DEVICE.IR_LEN = 5
-            J_DEVICE.BS_LEN = 0
-            J_DEVICE.IDCODE = &H1 'Selects Device Identiﬁcation (ID) register
-            J_DEVICE.BYPASS = &H1F 'Select Bypass register
-            J_DEVICE.SAMPLE = 2
-            J_DEVICE.MIPS_IMPCODE = &H3 'Selects Implementation register
-            J_DEVICE.MIPS_ADDRESS = &H8 'Selects Address register
-            J_DEVICE.MIPS_CONTROL = &HA 'Selects EJTAG Control register
-            'DATA_IR = &H9 'Selects Data register
-            'IR_ALL = &HB 'Selects the Address, Data and EJTAG Control registers
-            'EJTAGBOOT = &HC 'Makes the processor take a debug exception after rese
-            'NORMALBOOT = &HD 'Makes the processor execute the reset handler after rese
-            'FASTDATA = &HE 'Selects the Data and Fastdata registers
-            'EJWATCH = &H1C
-            Return J_DEVICE
-        End Function
-        '44-pin TQFP
-        Private Function Altera_5M570ZT144() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "5M570ZT144"
-            J_DEVICE.ID_JEDEC = &H20A60DDUI
-            J_DEVICE.ID_MASK = &HFFFFFFFUI
-            J_DEVICE.IR_LEN = 10
-            J_DEVICE.BS_LEN = 480
-            J_DEVICE.IDCODE = 6
-            J_DEVICE.EXTEST = &HF
-            J_DEVICE.SAMPLE = 5
-            J_DEVICE.BYPASS = &H3FF
-            J_DEVICE.CLAMP = &HA
-            J_DEVICE.HIGHZ = &HB
-            J_DEVICE.USERCODE = &H7
-            J_DEVICE.DISVAL = True
-            Return J_DEVICE
-        End Function
-        '64-pin EQFP
-        Private Function Altera_5M160ZE64() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "5M160ZE64"
-            J_DEVICE.ID_JEDEC = &H20A50DDUI
-            J_DEVICE.ID_MASK = &HFFFFFFFUI
-            J_DEVICE.IR_LEN = 10
-            J_DEVICE.BS_LEN = 240
-            J_DEVICE.IDCODE = 6
-            J_DEVICE.EXTEST = &HF
-            J_DEVICE.SAMPLE = 5
-            J_DEVICE.BYPASS = &H3FF
-            J_DEVICE.CLAMP = &HA
-            J_DEVICE.HIGHZ = &HB
-            J_DEVICE.USERCODE = 7
-            J_DEVICE.DISVAL = True
-            Return J_DEVICE
-        End Function
-        '44-pin TQFP
-        Private Function Altera_EPM7032ST44() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "EPM7032"
-            J_DEVICE.ID_JEDEC = &H70320DDUI
-            J_DEVICE.ID_MASK = &HFFFFFFFUI
-            J_DEVICE.IR_LEN = 10
-            J_DEVICE.BS_LEN = 1
-            J_DEVICE.IDCODE = &H59
-            J_DEVICE.EXTEST = &H3
-            J_DEVICE.SAMPLE = &H57
-            J_DEVICE.BYPASS = &H3FF
-            Return J_DEVICE
-        End Function
-        'PLCC20
-        Private Function Altera_EPC2L20() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "EPC2L20"
-            J_DEVICE.ID_JEDEC = &H10020DDUI
-            J_DEVICE.ID_MASK = &HFFFFFFFUI
-            J_DEVICE.IR_LEN = 10
-            J_DEVICE.BS_LEN = 24
-            J_DEVICE.BYPASS = &H3FF
-            J_DEVICE.EXTEST = 0
-            J_DEVICE.SAMPLE = &H55
-            J_DEVICE.IDCODE = &H59
-            J_DEVICE.USERCODE = &H79
-            J_DEVICE.DISVAL = True
-            Return J_DEVICE
-        End Function
-
-        Private Function Lattice_LCMXO2_4000HC_XFTG256() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "LCMXO2_4000HC"
-            J_DEVICE.ID_JEDEC = &H12BC043UI
-            J_DEVICE.ID_MASK = &HFFFFFFFUI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 552
-            J_DEVICE.IDCODE = &HE0 '0b11100000
-            J_DEVICE.BYPASS = &HFF '0b11111111
-            J_DEVICE.CLAMP = &H78 '01111000
-            J_DEVICE.PRELOAD = &H1C '00011100
-            J_DEVICE.SAMPLE = &H1C '00011100
-            J_DEVICE.HIGHZ = &H18 '00011000
-            J_DEVICE.EXTEST = &H15 '00010101
-            J_DEVICE.USERCODE = 0 '(11000000)
-            J_DEVICE.DISVAL = True
-            '"          ISC_ENABLE		(11000110)," &
-            '"    ISC_PROGRAM_DONE		(01011110)," &
-            '" LSC_PROGRAM_SECPLUS		(11001111)," &
-            '"ISC_PROGRAM_USERCODE		(11000010)," &
-            '"ISC_PROGRAM_SECURITY		(11001110)," &
-            '"         ISC_PROGRAM		(01100111)," &
-            '"        LSC_ENABLE_X		(01110100)," &
-            '"      ISC_DATA_SHIFT		(00001010)," &
-            '"       ISC_DISCHARGE		(00010100)," &
-            '"      ISC_ERASE_DONE		(00100100)," &
-            '"   ISC_ADDRESS_SHIFT		(01000010)," &
-            '"            ISC_READ		(10000000)," &
-            '"         ISC_DISABLE		(00100110)," &
-            '"           ISC_ERASE		(00001110)," &
-            '"            ISC_NOOP		(00110000)," &
-            Return J_DEVICE
-        End Function
-        'TQFP-144
-        Private Function Lattice_LCMXO2_7000HC_XXTG144() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "LCMXO2-7000HC"
-            J_DEVICE.ID_JEDEC = &H12BD043UI
-            J_DEVICE.ID_MASK = &HFFFFFFFUI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 664
-            J_DEVICE.IDCODE = &HE0 '0b11100000
-            J_DEVICE.BYPASS = &HFF '0b11111111
-            J_DEVICE.CLAMP = &H78 '01111000
-            J_DEVICE.PRELOAD = &H1C '00011100
-            J_DEVICE.SAMPLE = &H1C '00011100
-            J_DEVICE.HIGHZ = &H18 '00011000
-            J_DEVICE.EXTEST = &H15 '00010101
-            J_DEVICE.USERCODE = 0 '(11000000)
-            J_DEVICE.DISVAL = True
-            '"          ISC_ENABLE		(11000110)," &
-            '"    ISC_PROGRAM_DONE		(01011110)," &
-            '" LSC_PROGRAM_SECPLUS		(11001111)," &
-            '"ISC_PROGRAM_USERCODE		(11000010)," &
-            '"ISC_PROGRAM_SECURITY		(11001110)," &
-            '"         ISC_PROGRAM		(01100111)," &
-            '"        LSC_ENABLE_X		(01110100)," &
-            '"      ISC_DATA_SHIFT		(00001010)," &
-            '"       ISC_DISCHARGE		(00010100)," &
-            '"      ISC_ERASE_DONE		(00100100)," &
-            '"   ISC_ADDRESS_SHIFT		(01000010)," &
-            '"            ISC_READ		(10000000)," &
-            '"         ISC_DISABLE		(00100110)," &
-            '"           ISC_ERASE		(00001110)," &
-            '"            ISC_NOOP		(00110000)," &
-            Return J_DEVICE
-        End Function
-
-        Private Function Lattice_LCMXO2_1200HC() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "LCMXO2-1200HC"
-            J_DEVICE.ID_JEDEC = &H12BA043UI
-            J_DEVICE.ID_MASK = &HFFFFFFFUI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 208
-            J_DEVICE.IDCODE = &HE0 '0b11100000
-            J_DEVICE.BYPASS = &HFF '0b11111111
-            J_DEVICE.CLAMP = &H78 '01111000
-            J_DEVICE.PRELOAD = &H1C '00011100
-            J_DEVICE.SAMPLE = &H1C '00011100
-            J_DEVICE.HIGHZ = &H18 '00011000
-            J_DEVICE.EXTEST = &H15 '00010101
-            J_DEVICE.USERCODE = 0 '(11000000)
-            J_DEVICE.DISVAL = True
-            Return J_DEVICE
-        End Function
-
-        Private Function Lattice_LC4032V_TQFP44() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "LC4032V"
-            J_DEVICE.ID_JEDEC = &H1805043UI
-            J_DEVICE.ID_MASK = &HFFFFFFFUI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 68
-            J_DEVICE.IDCODE = &H16 '00010110
-            J_DEVICE.BYPASS = &HFF '11111111
-            J_DEVICE.CLAMP = &H20 '00100000
-            J_DEVICE.PRELOAD = &H1C '00011100
-            J_DEVICE.SAMPLE = &H1C '00011100
-            J_DEVICE.HIGHZ = &H18 '00011000
-            J_DEVICE.EXTEST = 0 '00000000
-            J_DEVICE.USERCODE = &H17 '00010111
-            J_DEVICE.DISVAL = False
-            '-- ISC instructions
-            '"ISC_ENABLE                        (00010101),"&
-            '"ISC_DISABLE                       (00011110),"&
-            '"ISC_NOOP                          (00110000),"&
-            '"ISC_ADDRESS_SHIFT                 (00000001),"&
-            '"ISC_DATA_SHIFT                    (00000010),"&
-            '"ISC_ERASE                         (00000011),"&
-            '"ISC_DISCHARGE                     (00010100),"&
-            '"ISC_PROGRAM_INCR                  (00100111),"&
-            '"ISC_READ_INCR                     (00101010),"&
-            '"ISC_PROGRAM_SECURITY              (00001001),"&
-            '"ISC_PROGRAM_DONE                  (00101111),"&
-            '"ISC_ERASE_DONE                    (00100100),"&
-            '"ISC_PROGRAM_USERCODE              (00011010),"&
-            '"LSC_ADDRESS_INIT                  (00100001)";
-            Return J_DEVICE
-        End Function
-
-        Private Function Lattice_LC4064V_TQFP44() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "LC4064V"
-            J_DEVICE.ID_JEDEC = &H1809043UI
-            J_DEVICE.ID_MASK = &HFFFFFFFUI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 68
-            J_DEVICE.IDCODE = &H16 '00010110
-            J_DEVICE.BYPASS = &HFF '11111111
-            J_DEVICE.CLAMP = &H20 '00100000
-            J_DEVICE.PRELOAD = &H1C '00011100
-            J_DEVICE.SAMPLE = &H1C '00011100
-            J_DEVICE.HIGHZ = &H18 '00011000
-            J_DEVICE.EXTEST = 0 '00000000
-            J_DEVICE.USERCODE = &H17 '00010111
-            J_DEVICE.DISVAL = False
-            '-- ISC instructions
-            '      "ISC_ENABLE                        (00010101),"&
-            '      "ISC_DISABLE                       (00011110),"&
-            '      "ISC_NOOP                          (00110000),"&
-            '      "ISC_ADDRESS_SHIFT                 (00000001),"&
-            '      "ISC_DATA_SHIFT                    (00000010),"&
-            '      "ISC_ERASE                         (00000011),"&
-            '      "ISC_DISCHARGE                     (00010100),"&
-            '      "ISC_PROGRAM_INCR                  (00100111),"&
-            '      "ISC_READ_INCR                     (00101010),"&
-            '      "ISC_PROGRAM_SECURITY              (00001001),"&
-            '      "ISC_PROGRAM_DONE                  (00101111),"&
-            '      "ISC_ERASE_DONE                    (00100100),"&
-            '      "ISC_PROGRAM_USERCODE              (00011010),"&
-            '      "LSC_ADDRESS_INIT                  (00100001)";
-            Return J_DEVICE
-        End Function
-
-        Private Function Motorola_MC68340() As BSDL_DEF
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "MC68340"
-            J_DEVICE.ID_JEDEC = 0 'DEVICE DOES NOT SUPPORT IDCODE!
-            J_DEVICE.ID_MASK = 0
-            J_DEVICE.IR_LEN = 3
-            J_DEVICE.BS_LEN = 132
-            J_DEVICE.EXTEST = &H0
-            J_DEVICE.SAMPLE = &H1
-            J_DEVICE.HIGHZ = &H4
-            J_DEVICE.BYPASS = &H7
-            J_DEVICE.DISVAL = False
-            Return J_DEVICE
         End Function
 
 #End Region
@@ -2347,7 +1981,9 @@ Namespace JTAG
     Public Class BSDL_DEF
         Property ID_JEDEC As UInt32
         Property ID_MASK As UInt32 = &HFFFFFFFFUI
+        Property MFG_NAME As String
         Property PART_NAME As String
+        Property PACKAGE As String
         Property IR_LEN As Byte  'Number of bits the IR uses
         Property BS_LEN As UInt16 'Number of bits for PRELOAD/EXTEST
         Property IDCODE As UInt32
@@ -2370,6 +2006,14 @@ Namespace JTAG
         Property MIPS_IMPCODE As UInt32
         Property MIPS_ADDRESS As UInt32
         Property MIPS_CONTROL As UInt32
+
+        Public Overrides Function ToString() As String
+            If Me.PACKAGE = "" Then
+                Return Me.MFG_NAME & "_" & Me.PART_NAME
+            Else
+                Return Me.MFG_NAME & "_" & Me.PART_NAME & "_(" & Me.PACKAGE & ")"
+            End If
+        End Function
 
     End Class
 

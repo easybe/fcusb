@@ -198,7 +198,7 @@ Namespace Logic
             End While
             SSPI_WriteRead(ISC_PROGRAMDONE)
             SSPI_Wait()
-            RaiseEvent SetProgress(100)
+            RaiseEvent SetProgress(0) 'Done, remove bar
             status = SSPI_ReadStatus()
             If Not status.DONE_FLAG Then Return False
             SSPI_WriteRead(LSC_REFRESH)
@@ -256,7 +256,7 @@ Namespace Logic
             Dim Current_fw() As Byte = Utilities.GetResourceAsBytes(board_firmware)
             MainApp.SetStatus(String.Format(RM.GetString("fw_update_starting"), Format(Current_fw.Length, "#,###")))
             Dim result As Boolean = usb_dev.FirmwareUpdate(Current_fw, fw_ver)
-            SetProgress(100)
+            SetProgress(0)
             If result Then
                 PrintConsole("Firmware update was a success!")
             Else
@@ -408,7 +408,7 @@ Namespace Logic
                 PrintConsole("Programming SVF data into Logic device")
                 usb_dev.LOGIC_SetVersion(&HFFFFFFFFUI)
                 Dim result As Boolean = usb_dev.JTAG_IF.JSP.RunFile_SVF(svf_file)
-                SetProgress(100)
+                SetProgress(0)
                 If result Then
                     PrintConsole("FPGA successfully programmed!", True)
                     usb_dev.LOGIC_SetVersion(svf_code)

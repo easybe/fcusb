@@ -268,10 +268,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
 
     Public Function WriteData(logical_address As Long, data_to_write() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
         Dim page_addr As Integer = NAND_LayoutTool.GetNandPageAddress(MyFlashDevice, logical_address, Me.MemoryArea)
-        page_addr = Me.BlockManager.GetPhysical(page_addr) 'Adjusts the page to point to a valid page
-        Dim result As Boolean = WritePage_Physical(page_addr, data_to_write, Me.MemoryArea)
-        FCUSB.USB_WaitForComplete()
-        Return result
+        Return WritePages_Logical(page_addr, data_to_write, Me.MemoryArea)
     End Function
 
     Public Function SectorCount() As Integer Implements MemoryDeviceUSB.SectorCount
@@ -386,7 +383,14 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
 
 #End Region
 
-    Public Function WritePage_Physical(phy_page_index As Integer, data_to_write() As Byte, memory_area As FlashArea) As Boolean
+    Public Function WritePages_Logical(page_index As Integer, data_to_write() As Byte, memory_area As FlashArea) As Boolean
+        Dim page_addr As Integer = Me.BlockManager.GetPhysical(page_index) 'Adjusts the page to point to a valid page
+        Dim result As Boolean = WritePages_Physical(page_addr, data_to_write, memory_area)
+        FCUSB.USB_WaitForComplete()
+        Return result
+    End Function
+
+    Public Function WritePages_Physical(phy_page_index As Integer, data_to_write() As Byte, memory_area As FlashArea) As Boolean
         Dim main_data() As Byte = Nothing
         Dim oob_data() As Byte = Nothing
         Dim WriteResult As Boolean

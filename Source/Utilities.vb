@@ -294,7 +294,7 @@ Namespace Utilities
             End Function
 
             Public Function ToChrString(data() As Byte) As String
-                If data Is Nothing Then Return ""
+                If data Is Nothing Then Return String.Empty
                 Dim c(data.Length - 1) As Char
                 For i = 0 To data.Length - 1
                     If data(i) = 0 Then
@@ -323,7 +323,7 @@ Namespace Utilities
             End Function
 
             Public Function ToChrString(data() As Byte, StartIndex As Integer) As String
-                If StartIndex > data.Length - 1 Then Return ""
+                If StartIndex > data.Length - 1 Then Return String.Empty
                 Dim StrOut As String = ""
                 For i = StartIndex To data.Length - 1
                     If data(i) = 0 Then Return StrOut
@@ -358,7 +358,7 @@ Namespace Utilities
             End Function
             'Converts a data array {00,01,02} to its padded hexstring "00 01 02"
             Public Function ToPaddedHexString(data() As Byte) As String
-                If data Is Nothing OrElse data.Length = 0 Then Return ""
+                If data Is Nothing OrElse data.Length = 0 Then Return String.Empty
                 Dim c((data.Length * 2) + (data.Length - 1) - 1) As Char
                 Dim counter As Integer = 0
                 For i = 0 To data.Length - 2
@@ -490,7 +490,6 @@ Namespace Utilities
 
             Public Function [Hex](input As String) As Boolean
                 If input.ToUpper().StartsWith("0X") Then input = input.Substring(2)
-                Dim i As Integer
                 For i = 0 To input.Length - 1
                     Dim c As Char = CChar(input.Substring(i, 1).ToUpper())
                     If Not IsNumeric(c) Then
@@ -678,8 +677,8 @@ Namespace Utilities
         Public Function DisplayHint_ParseFromInteger(pattern As String, data() As Byte) As String
             Try
                 Dim pattern_chars() As Char = pattern.ToLower.ToCharArray
-                If pattern_chars.Length > 3 Then Return "" 'can only be max len of 3
-                If data.Length > 4 Then Return "" 'can only be 4 bytes or less
+                If pattern_chars.Length > 3 Then Return String.Empty 'can only be max len of 3
+                If data.Length > 4 Then Return String.Empty 'can only be 4 bytes or less
                 Select Case pattern_chars(0)
                     Case "x"c
                         If data Is Nothing Then data = {0}
@@ -712,7 +711,7 @@ Namespace Utilities
                 End Select
             Catch ex As Exception
             End Try
-            Return ""
+            Return String.Empty
         End Function
 
         Public Function DisplayHint_ParseToInteger(pattern As String, input As String) As Byte()
@@ -967,7 +966,7 @@ Namespace Utilities
                 Return str_out
             Catch ex As Exception
             End Try
-            Return ""
+            Return String.Empty
         End Function
 
         Public Function DecompressGzip(CompressedData() As Byte) As Byte()
@@ -1663,7 +1662,7 @@ Namespace Utilities
         End Sub
 
         Public Function ReverseSplit(input() As String, Delimeter As Char) As String
-            If input Is Nothing Then Return ""
+            If input Is Nothing Then Return String.Empty
             If input.Length = 1 Then Return input(0)
             Dim strbuild As String = ""
             For Each item In input

@@ -43,6 +43,7 @@ Public Module MainApp
         Catch ex As Exception
             Exit Sub
         End Try
+
         Thread.CurrentThread.CurrentUICulture = Globalization.CultureInfo.CreateSpecificCulture("en-US")
         Thread.CurrentThread.CurrentCulture = Globalization.CultureInfo.CreateSpecificCulture("en-US")
         LicenseSystem_Init()

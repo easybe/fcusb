@@ -285,6 +285,12 @@
     <Compile Include="programmers\SPI_NAND.vb" />
     <Compile Include="USB.vb" />
     <Compile Include="Utilities.vb" />
+    <Compile Include="vendor\vendor_intel_01.Designer.vb">
+      <DependentUpon>vendor_intel_01.vb</DependentUpon>
+    </Compile>
+    <Compile Include="vendor\vendor_intel_01.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="vendor\vendor_winbond.Designer.vb">
       <DependentUpon>vendor_winbond.vb</DependentUpon>
     </Compile>
@@ -391,6 +397,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="vendor\vendor_issi.resx">
       <DependentUpon>vendor_issi.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="vendor\vendor_intel_01.resx">
+      <DependentUpon>vendor_intel_01.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="vendor\vendor_winbond.resx">
       <DependentUpon>vendor_winbond.vb</DependentUpon>

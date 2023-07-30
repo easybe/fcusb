@@ -95,7 +95,7 @@
         Public Overrides Function ToString() As String
             Dim AddrSize As Byte = 0 'Number of bytes for bytes field 
             Dim line_out As New Text.StringBuilder(80)
-            If Not Me.IsValid Then Return ""
+            If Not Me.IsValid Then Return String.Empty
             Dim line_length As Byte = 0
             Dim DataFieldSize As Byte = 0 'Number of bytes for data field
             If Data IsNot Nothing Then DataFieldSize = CByte(Data.Length)
@@ -155,7 +155,7 @@
                     line_out.Insert(2, Hex(line_length).PadLeft(2, "0"c))
                     line_out.Insert(4, Hex(Address).PadLeft(4, "0"c))
                 Case Else
-                    Return ""
+                    Return String.Empty
             End Select
             Dim my_crc_calc As UInt32 = CUInt(line_length) + CUInt((Me.Address >> 24) And 255) + CUInt((Me.Address >> 16) And 255) + CUInt((Me.Address >> 8) And 255) + CUInt(Me.Address And 255)
             If Me.Data IsNot Nothing Then

@@ -1,26 +1,28 @@
 ﻿Public Class FrmRangeForm
     Private MouseDownOnForm As Boolean = False
     Private ClickPoint As Point
-    Public ReadOnly Property BaseAddress As Long 'The logical address base
-    Public ReadOnly Property BaseMax As Long 'The maximum number of bytes that this address contains
-    Public ReadOnly Property RangeMax As Long 'The maximum number of bytes that the range can be
-    Public Property BaseOffset As Long = 0 'Must be less than BaseMax
-    Public Property RangeSize As Long = 0 'Must be less than BaseMax
 
-    Sub New(base_addr As Long, base_size As Long, Optional range_max As Long = 0)
+    Private ReadOnly BaseAddress As Long 'The logical address base
+    Private ReadOnly MaxStream As Long 'The maximum number of bytes that can be read from/to (-1 for no limit)
+    Private ReadOnly MaxMedium As Long 'The size of the memory device
 
+    Public Property BaseOffset As Long
+    Public Property RangeSize As Long
+
+    Sub New(BaseAddress As Long, MaxMedium As Long, Optional MaxStream As Long = -1)
         ' This call is required by the designer.
         InitializeComponent()
 
         ' Add any initialization after the InitializeComponent() call.
-        Me.BaseAddress = base_addr
-        Me.BaseMax = base_size
-        If range_max = 0 Then
-            Me.RangeMax = Me.BaseMax
-        Else
-            Me.RangeMax = range_max
-        End If
-        Me.RangeSize = Me.RangeMax
+        Me.BaseAddress = BaseAddress
+        Me.MaxStream = MaxStream
+        Me.MaxMedium = MaxMedium
+
+        Me.BaseOffset = BaseAddress
+        If (MaxStream = -1) Then MaxStream = MaxMedium Else Math.Min(MaxStream, MaxMedium)
+        If (MaxStream > MaxMedium) Then MaxStream = MaxMedium
+
+        RangeSize = MaxStream
     End Sub
 
     Private Sub FrmRangeForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
@@ -91,13 +93,13 @@
             Else
                 Exit Sub
             End If
-            If (NewValue >= Me.BaseAddress) AndAlso (NewValue <= (Me.BaseAddress + Me.BaseMax)) Then
+            If (NewValue >= Me.BaseAddress) AndAlso (NewValue <= (Me.BaseAddress + Me.MaxMedium)) Then
                 Me.BaseOffset = (NewValue - Me.BaseAddress)
             End If
-            Dim available = (Me.BaseMax - Me.BaseOffset)
-            If RangeSize > available Then
-                RangeSize = available
-                txtLength.Text = RangeSize.ToString()
+            Dim available As Long = (Me.MaxMedium - Me.BaseOffset)
+            If (Me.RangeSize > available) Then
+                Me.RangeSize = available
+                txtLength.Text = Me.RangeSize.ToString()
             End If
         Finally
             txtBaseOffset.Text = "0x" & (Me.BaseAddress + Me.BaseOffset).ToString("X")
@@ -114,7 +116,8 @@
             Else
                 Exit Sub
             End If
-            Dim available = (Me.BaseMax - Me.BaseOffset)
+            If (NewValue > MaxStream) Then NewValue = MaxStream
+            Dim available As Long = (Me.MaxMedium - Me.BaseOffset)
             If NewValue <= available Then
                 RangeSize = NewValue
             Else

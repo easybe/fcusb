@@ -262,7 +262,7 @@
     <value>DIP32/PLCC32 4MBIT Gerät erkannt, aktiviere A18 auf Pin 1 (Reset)</value>
   </data>
   <data name="io_mode_initalized" xml:space="preserve">
-    <value>Parallelmodus erfolgreich initialisiert</value>
+    <value>Parallel NOR modus erfolgreich initialisiert</value>
   </data>
   <data name="ext_board_not_detected" xml:space="preserve">
     <value>Verbindung zum parallel mode Board nicht möglich</value>

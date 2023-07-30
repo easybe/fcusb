@@ -60,12 +60,12 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
         MyFlashDevice = Nothing
         If EPROM_Detect() Then
-            If MyFlashDevice.IFACE = VCC_IF.X16_5V_12VPP Then
+            If MyFlashDevice.IFACE = VCC_IF.X16_5V_VPP Then
                 EXPIO_SETUP_USB(MEM_PROTOCOL.EPROM_X16)
                 FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_WRITE, Nothing, E_DEV_MODE.EPROM_X16)
                 Me.MyAdapter = MEM_PROTOCOL.EPROM_X16
                 RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": EPROM (16-bit)")
-            ElseIf MyFlashDevice.IFACE = VCC_IF.X8_5V_12VPP Then
+            ElseIf MyFlashDevice.IFACE = VCC_IF.X8_5V_VPP Then
                 EXPIO_SETUP_USB(MEM_PROTOCOL.EPROM_X8)
                 Me.MyAdapter = MEM_PROTOCOL.EPROM_X8
                 FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_WRITE, Nothing, E_DEV_MODE.EPROM_X8)
@@ -94,12 +94,13 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
             HardwareControl(FCUSB_HW_CTRL.VPP_5V)
             HardwareControl(FCUSB_HW_CTRL.VPP_ENABLE) 'Must enable VPP for BYTEvpp=HIGH(5V)
         ElseIf MyFlashDevice Is M27C1001 Then
-            HardwareControl(FCUSB_HW_CTRL.VPP_0V)
             HardwareControl(FCUSB_HW_CTRL.VPP_DISABLE)
+            HardwareControl(FCUSB_HW_CTRL.VPP_0V)
         Else
-            HardwareControl(FCUSB_HW_CTRL.VPP_0V)
             HardwareControl(FCUSB_HW_CTRL.VPP_DISABLE)
+            HardwareControl(FCUSB_HW_CTRL.VPP_0V)
         End If
+        Utilities.Sleep(100)
         HardwareControl(FCUSB_HW_CTRL.WE_LOW)
         Utilities.Sleep(100)
         Dim data_out() As Byte = ReadBulk(CUInt(flash_offset), CInt(data_count))
@@ -128,11 +129,12 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
                 Array.Copy(data_to_write, (i * PacketSize), data_packet, 0, data_packet.Length)
                 Dim result As Boolean = WriteBulk(CUInt(flash_offset), data_packet)
                 If (Not result) Then Return False
+                FCUSB.USB_WaitForComplete() 'Wait for TASK=APP_IDLE
                 flash_offset += data_packet.Length
                 DataToWrite -= data_packet.Length
             Next
-            HardwareControl(FCUSB_HW_CTRL.VPP_0V)
             HardwareControl(FCUSB_HW_CTRL.VPP_DISABLE)
+            HardwareControl(FCUSB_HW_CTRL.VPP_0V)
             HardwareControl(FCUSB_HW_CTRL.OE_LOW)
         Catch ex As Exception
         End Try
@@ -198,17 +200,18 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
 
     Private Function EPROM_ReadEletronicID_1() As Byte()
         Dim IDENT_DATA(1) As Byte
-        HardwareControl(FCUSB_HW_CTRL.VPP_ENABLE) 'Enables VPP on adapter (CLE=HIGH)
         HardwareControl(FCUSB_HW_CTRL.OE_LOW)
         HardwareControl(FCUSB_HW_CTRL.WE_LOW)
         HardwareControl(FCUSB_HW_CTRL.VPP_12V)
-        HardwareControl(FCUSB_HW_CTRL.RELAY_ON) 'A9=12V and VPP=12V
+        HardwareControl(FCUSB_HW_CTRL.RELAY_ON)   'A9=12V and VPP=12V
+        HardwareControl(FCUSB_HW_CTRL.VPP_ENABLE) 'Enables VPP on adapter (CLE=HIGH)
         Utilities.Sleep(300) 'Need this to be somewhat high to allow ID CODE to load
         FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, GetSetupPacket(0, 2, 0), IDENT_DATA, 0)
+        HardwareControl(FCUSB_HW_CTRL.VPP_DISABLE)
         HardwareControl(FCUSB_HW_CTRL.RELAY_OFF)
         HardwareControl(FCUSB_HW_CTRL.VPP_0V)
         HardwareControl(FCUSB_HW_CTRL.WE_HIGH)
-        HardwareControl(FCUSB_HW_CTRL.VPP_DISABLE)
+
         If IDENT_DATA(0) = 0 Or IDENT_DATA(1) = 0 Then
         ElseIf IDENT_DATA(0) = 255 Or IDENT_DATA(1) = 255 Then
         Else
@@ -277,16 +280,6 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
         data_in(8) = CByte(PageSize And 255) 'This is how many bytes to increment between operations
         data_in(9) = CByte((PageSize >> 8) And 255)
         Return data_in
-    End Function
-
-    Private Function ByteToWordArray(byte_arr() As Byte) As UInt16()
-        Dim out(byte_arr.Length \ 2 - 1) As UInt16
-        Dim ptr As Integer = 0
-        For i = 0 To out.Length - 1
-            out(i) = CUShort(byte_arr(ptr + 1)) << 8 Or byte_arr(ptr)
-            ptr += 2
-        Next
-        Return out
     End Function
 
     Private Function ReadBulk(address As UInt32, count As Integer) As Byte()

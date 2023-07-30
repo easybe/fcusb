@@ -585,7 +585,7 @@ Namespace ECC_LIB
                 Case ECC_DECODE_RESULT.InputError
                     Return "Block data was invalid"
                 Case Else
-                    Return ""
+                    Return String.Empty
             End Select
         End Function
 

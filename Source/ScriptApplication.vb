@@ -23,6 +23,9 @@ Public Module ScriptApplication
         MEM_CMD.Add("erasebulk", Nothing, New ScriptFunction(AddressOf c_mem_erasebulk))
         MEM_CMD.Add("exist", Nothing, New ScriptFunction(AddressOf c_mem_exist))
         ScriptProcessor.AddScriptNest(MEM_CMD)
+        Dim NAND_CMD As New ScriptCmd("NAND")
+        NAND_CMD.Add("writepage", {CmdPrm.Data, CmdPrm.Integer, CmdPrm.Integer_Optional, CmdPrm.Integer_Optional}, New ScriptFunction(AddressOf c_nand_writepage))
+        ScriptProcessor.AddScriptNest(NAND_CMD)
         Dim SPI_CMD As New ScriptCmd("SPI")
         SPI_CMD.Add("writeenable", Nothing, New ScriptFunction(AddressOf c_spi_writeenable)) 'Undocumented
         SPI_CMD.Add("clock", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_spi_clock))
@@ -31,6 +34,7 @@ Public Module ScriptApplication
         SPI_CMD.Add("getsr", {CmdPrm.Integer_Optional}, New ScriptFunction(AddressOf c_spi_getsr))
         SPI_CMD.Add("setsr", {CmdPrm.Data}, New ScriptFunction(AddressOf c_spi_setsr))
         SPI_CMD.Add("writeread", {CmdPrm.Data, CmdPrm.Integer_Optional}, New ScriptFunction(AddressOf c_spi_writeread))
+        SPI_CMD.Add("raw", {CmdPrm.Data, CmdPrm.Integer_Optional}, New ScriptFunction(AddressOf c_spi_raw)) 'Undocumented
         SPI_CMD.Add("prog", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_spi_prog)) 'Undocumented
         ScriptProcessor.AddScriptNest(SPI_CMD)
         Dim JTAG_CMD As New ScriptCmd("JTAG")
@@ -63,8 +67,8 @@ Public Module ScriptApplication
         JTAG_CMD.Add("epc2_erase", Nothing, New ScriptFunction(AddressOf c_jtag_epc2_erase))
         ScriptProcessor.AddScriptNest(JTAG_CMD)
         Dim BSDL_CMD As New ScriptCmd("BSDL")
-        BSDL_CMD.Add("new", {CmdPrm.String}, New ScriptFunction(AddressOf c_bsdl_new))
-        BSDL_CMD.Add("find", {CmdPrm.String}, New ScriptFunction(AddressOf c_bsdl_find))
+        BSDL_CMD.Add("new", {CmdPrm.String, CmdPrm.String, CmdPrm.String_Optional}, New ScriptFunction(AddressOf c_bsdl_new))
+        BSDL_CMD.Add("find", {CmdPrm.String, CmdPrm.String_Optional}, New ScriptFunction(AddressOf c_bsdl_find))
         BSDL_CMD.Add("parameter", {CmdPrm.String, CmdPrm.UInteger}, New ScriptFunction(AddressOf c_bsdl_param))
         ScriptProcessor.AddScriptNest(BSDL_CMD)
         Dim JTAG_BSP As New ScriptCmd("BoundaryScan")
@@ -114,9 +118,12 @@ Public Module ScriptApplication
 #Region "Memory commands"
 
     Private Function c_mem_name(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
-        Dim name_out As String = MEM_IF.GetDevice(CInt(Index)).Name
+        Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(CInt(Index))
+        If mem_device Is Nothing Then
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Memory device not connected"}
+        End If
         Dim sv As New ScriptVariable(CreateVarName(), DataType.String)
-        sv.Value = name_out
+        sv.Value = mem_device.Name
         Return sv
     End Function
 
@@ -328,6 +335,48 @@ Public Module ScriptApplication
 
 #End Region
 
+#Region "NAND commands"
+
+    Private Function c_nand_writepage(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
+        If (Not CURRENT_DEVICE_MODE = DeviceMode.PNAND) Then
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Device is not in NAND or SPI NAND mode"}
+        End If
+        If (Not MAIN_FCUSB.IS_CONNECTED) Then
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "FlashcatUSB device is not connected"}
+        End If
+        Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(CInt(Index))
+        If mem_device Is Nothing Then
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "NAND memory device not connected"}
+        End If
+        Dim NAND_Device As G_NAND = CType(mem_device.MEM_IF, PARALLEL_NAND).MyFlashDevice
+        Dim input_data() As Byte = CType(arguments(0).Value, Byte())
+        Dim page_index As Int32 = CInt(arguments(1).Value)
+        Dim area As FlashArea = FlashArea.Main
+        If (arguments.Length > 2) Then
+            Dim area_int As Int32 = CInt(arguments(2).Value)
+            Select Case area_int
+                Case 0
+                    area = FlashArea.Main
+                Case 1
+                    area = FlashArea.OOB
+                Case 2
+                    area = FlashArea.All
+                Case Else
+                    Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "NAND area value is not valid"}
+            End Select
+        End If
+        Dim page_offset As Int32 = 0
+        If (arguments.Length > 3) Then
+            page_offset = CInt(arguments(3).Value)
+        End If
+        Dim NAND_IF As PARALLEL_NAND = CType(mem_device.MEM_IF, PARALLEL_NAND)
+        Dim operation_result As Boolean = NAND_IF.WritePage(page_index, input_data, area, page_offset)
+        If operation_result Then Return Nothing 'No Error
+        Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "NAND WritePage operation was not successful"}
+    End Function
+
+#End Region
+
 #Region "SPI commands"
 
     Private Function c_spi_writeenable(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
@@ -451,13 +500,13 @@ Public Module ScriptApplication
     End Function
 
     Private Function c_spi_writeread(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
+        If Not MAIN_FCUSB.IS_CONNECTED Then
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "FlashcatUSB device is not connected"}
+        End If
         If CURRENT_DEVICE_MODE = DeviceMode.SPI Then
         ElseIf CURRENT_DEVICE_MODE = DeviceMode.SQI Then
         Else
             Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Device is not in SPI/QUAD operation mode"}
-        End If
-        If Not MAIN_FCUSB.IS_CONNECTED Then
-            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "FlashcatUSB device is not connected"}
         End If
         Dim current_if() As MemoryDeviceInstance = MEM_IF.GetDevices()
         If current_if Is Nothing Then
@@ -494,6 +543,34 @@ Public Module ScriptApplication
         Return Nothing
     End Function
 
+    Private Function c_spi_raw(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
+        If Not MAIN_FCUSB.IS_CONNECTED Then
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "FlashcatUSB device is not connected"}
+        End If
+        If CURRENT_DEVICE_MODE = DeviceMode.SPI Then
+        Else
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Device is not in SPI NOR FLASH mode"}
+        End If
+        Dim DataToWrite() As Byte = CType(arguments(0).Value, Byte())
+        Dim BytesToWrite As Integer = DataToWrite.Length
+        Dim BytesToRead As Integer = 0
+        If arguments.Length = 2 Then BytesToRead = CInt(arguments(1).Value)
+        Dim SPI_IF As New SPI.SPI_Programmer(MAIN_FCUSB)
+        SPI_IF.SPIBUS_Setup(GetMaxSpiClock(MAIN_FCUSB.HWBOARD, MySettings.SPI_CLOCK_MAX), MySettings.SPI_MODE)
+        If BytesToRead = 0 Then
+            Dim bytes_count As Integer = SPI_IF.SPIBUS_WriteRead(DataToWrite)
+            If (bytes_count = -1) Then Return New ScriptVariable(CreateVarName(), DataType.Error, "SPI Communication Error")
+        Else
+            Dim return_data(BytesToRead - 1) As Byte
+            Dim bytes_count As Integer = SPI_IF.SPIBUS_WriteRead(DataToWrite, return_data)
+            If (bytes_count = -1) Then Return New ScriptVariable(CreateVarName(), DataType.Error, "SPI Communication Error")
+            Dim sv As New ScriptVariable(CreateVarName(), DataType.Data)
+            sv.Value = return_data
+            Return sv
+        End If
+        Return Nothing
+    End Function
+
     Private Function c_spi_prog(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If Not CURRENT_DEVICE_MODE = DeviceMode.SPI Then
             Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Device is not in SPI operation mode"}
@@ -502,7 +579,7 @@ Public Module ScriptApplication
         End If
         Dim SPI_IF As New SPI.SPI_Programmer(MAIN_FCUSB)
         Dim state As Integer = CInt(arguments(0).Value)
-        If state = 1 Then 'Set the PROGPIN to HIGH
+        If (state = 1) Then 'Set the PROGPIN to HIGH
             SPI_IF.SetProgPin(True)
         Else 'Set the PROGPIN to LOW
             SPI_IF.SetProgPin(False)
@@ -888,15 +965,23 @@ Public Module ScriptApplication
 #Region "BSDL"
 
     Private Function c_bsdl_new(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
-        Dim n As New BSDL_DEF
-        n.PART_NAME = CStr(arguments(0).Value)
-        Dim index_created As Integer = MAIN_FCUSB.JTAG_IF.BSDL_Add(n)
-        Return New ScriptVariable(CreateVarName(), DataType.Integer, index_created)
+        Try
+            Dim mfg_name As String = CStr(arguments(0).Value)
+            Dim part_name As String = CStr(arguments(1).Value)
+            Dim package As String = ""
+            If arguments.Length = 3 Then package = CStr(arguments(2).Value)
+            Dim index_created As Integer = MAIN_FCUSB.JTAG_IF.BSDL_Add(mfg_name, part_name, package)
+            Return New ScriptVariable(CreateVarName(), DataType.Integer, index_created)
+        Catch ex As Exception
+        End Try
+        Return Nothing
     End Function
 
     Private Function c_bsdl_find(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
-        Dim param_name As String = CStr(arguments(0).Value)
-        Dim lib_ind As Integer = MAIN_FCUSB.JTAG_IF.BSDL_Find(param_name)
+        Dim part_name As String = CStr(arguments(0).Value)
+        Dim package As String = ""
+        If arguments.Length = 2 Then package = CStr(arguments(1).Value)
+        Dim lib_ind As Integer = MAIN_FCUSB.JTAG_IF.BSDL_Find(part_name, package)
         Return New ScriptVariable(CreateVarName(), DataType.Integer, lib_ind)
     End Function
 
@@ -1020,6 +1105,7 @@ Public Module ScriptApplication
         Dim result As Boolean = False
         Select Case MAIN_FCUSB.HWBOARD
             Case USB.FCUSB_BOARD.Classic
+            Case USB.FCUSB_BOARD.XPORT_PCB2
             Case Else
                 Return New ScriptVariable("ERROR", DataType.Error, "Only available for Classic")
         End Select

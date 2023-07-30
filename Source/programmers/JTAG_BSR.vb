@@ -8,6 +8,7 @@ Public Class BSR_Programmer : Implements MemoryDeviceUSB
     Public Property CFI As NOR_CFI 'Contains CFI table information (NOR)
 
     Private FLASH_IDENT As FlashDetectResult
+    Private ModeSelect As MEM_PROTOCOL
 
     Public Event PrintConsole(message As String) Implements MemoryDeviceUSB.PrintConsole
     Public Event SetProgress(percent As Integer) Implements MemoryDeviceUSB.SetProgress
@@ -22,11 +23,11 @@ Public Class BSR_Programmer : Implements MemoryDeviceUSB
         If DetectFlashDevice() Then
             Dim chip_id_str As String = Hex(FLASH_IDENT.MFG).PadLeft(2, "0"c) & Hex(FLASH_IDENT.PART).PadLeft(8, "0"c)
             RaiseEvent PrintConsole(String.Format(RM.GetString("ext_connected_chipid"), chip_id_str))
-            Dim device_matches() As Device
+            Dim device_matches() As Device = Nothing
             If Me.CURRENT_BUS_WIDTH = E_BSR_BUS_WIDTH.X8 Then
-                device_matches = FlashDatabase.FindDevices(FLASH_IDENT.MFG, FLASH_IDENT.ID1, 0, MemoryType.PARALLEL_NOR)
+                device_matches = FlashDatabase.FindDevice_NORX8(FLASH_IDENT.MFG, CByte(FLASH_IDENT.ID1 And 255), CByte(FLASH_IDENT.ID2 And 255))
             Else
-                device_matches = FlashDatabase.FindDevices(FLASH_IDENT.MFG, FLASH_IDENT.ID1, FLASH_IDENT.ID2, MemoryType.PARALLEL_NOR)
+                device_matches = FlashDatabase.FindDevice_NORX16(FLASH_IDENT.MFG, FLASH_IDENT.ID1, FLASH_IDENT.ID2)
             End If
             Me.CFI = New NOR_CFI(BSR_GetCFI())
             If (device_matches IsNot Nothing AndAlso device_matches.Count > 0) Then
@@ -78,19 +79,21 @@ Public Class BSR_Programmer : Implements MemoryDeviceUSB
             Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NOR_X8)
             If Me.FLASH_IDENT.Successful Then
                 Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, 0, MemoryType.PARALLEL_NOR)
-                If (d.Length > 0) AndAlso IsIFACE8X(DirectCast(d(0), P_NOR).IFACE) Then
-                    RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X8"))
-                    Return True
-                End If
+                RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X8"))
+                Return True
+            End If
+            Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NOR_X16_BYTE) 'We might have a X16 Flash in X8 mode
+            If Me.FLASH_IDENT.Successful Then
+                Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, 0, MemoryType.PARALLEL_NOR)
+                RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X16 (Byte mode)"))
+                Return True
             End If
         ElseIf Me.CURRENT_BUS_WIDTH = E_BSR_BUS_WIDTH.X16 Then
-            Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NOR_X16)
+            Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NOR_X16_WORD)
             If Me.FLASH_IDENT.Successful Then
                 Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, Me.FLASH_IDENT.ID2, MemoryType.PARALLEL_NOR)
-                If (d.Length > 0) AndAlso IsIFACE16X(DirectCast(d(0), P_NOR).IFACE) Then
-                    RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X16 (Word addressing)"))
-                    Return True
-                End If
+                RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X16 (Word mode)"))
+                Return True
             End If
         End If
         Return False 'No devices detected
@@ -99,14 +102,23 @@ Public Class BSR_Programmer : Implements MemoryDeviceUSB
     Private Function DetectFlash(mode As MEM_PROTOCOL) As FlashDetectResult
         Dim mode_name As String = ""
         Dim result As FlashDetectResult
-        Select Case mode
-            Case MEM_PROTOCOL.NOR_X16
-                mode_name = "NOR X16 (Word addressing)"
-                result = GetFlashResult(BSR_ReadIdent(True))
+        Dim dw_protocol As UInt32 = 0
+        ModeSelect = mode
+        Select Case ModeSelect
+            Case MEM_PROTOCOL.NOR_X16_WORD
+                mode_name = "NOR X16 (Word mode)"
+                dw_protocol = CUInt(E_BSR_IF.IFTYPE_X16_WORD)
+            Case MEM_PROTOCOL.NOR_X16_BYTE
+                mode_name = "NOR X16 (Byte mode)"
+                dw_protocol = CUInt(E_BSR_IF.IFTYPE_X16_BYTE)
             Case MEM_PROTOCOL.NOR_X8
                 mode_name = "NOR X8"
-                result = GetFlashResult(BSR_ReadIdent(False))
+                dw_protocol = CUInt(E_BSR_IF.IFTYPE_X8)
         End Select
+        If (Not FCUSB.USB_CONTROL_MSG_OUT(USBREQ.JTAG_BDR_INIT, Nothing, dw_protocol)) Then
+            RaiseEvent PrintConsole("Error: Boundary Scan init failed") : Return Nothing
+        End If
+        result = GetFlashResult(BSR_ReadIdent())
         If result.Successful Then
             Dim part As UInt32 = (CUInt(result.ID1) << 16) Or (result.ID2)
             Dim chip_id_str As String = Hex(result.MFG).PadLeft(2, "0"c) & Hex(part).PadLeft(8, "0"c)
@@ -145,6 +157,12 @@ Public Class BSR_Programmer : Implements MemoryDeviceUSB
         Buffer_2 = 6 '0x555=0xAA,0x2AA=0x55,SA=0x25,SA=(WC-1).. (Used by Spanion/Cypress)
         EPROM_X8 = 7 '8-BIT EPROM DEVICE
         EPROM_X16 = 8 '16-BIT EPROM DEVICE
+    End Enum
+
+    Private Enum E_BSR_IF
+        IFTYPE_X8 = 1
+        IFTYPE_X16_WORD = 2
+        IFTYPE_X16_BYTE = 3
     End Enum
 
 #End Region
@@ -304,23 +322,23 @@ Public Class BSR_Programmer : Implements MemoryDeviceUSB
         Return Nothing
     End Function
 
-    Private Function BSR_ReadIdent(X16_MODE As Boolean) As Byte()
+    Private Function BSR_ReadIdent() As Byte()
         Dim ident(7) As Byte
         Dim SHIFT As Integer = 0
-        If X16_MODE Then SHIFT = 1
+        If Me.CURRENT_BUS_WIDTH = E_BSR_BUS_WIDTH.X16 Then SHIFT = 1
         ResetDevice()
         Utilities.Sleep(1)
         BSR_WriteCmdData(&H5555, &HAA)
         BSR_WriteCmdData(&H2AAA, &H55)
         BSR_WriteCmdData(&H5555, &H90)
         Utilities.Sleep(10)
-        ident(0) = CByte(BSR_ReadWord(0) And &HFF)               'MFG
+        ident(0) = CByte(BSR_ReadWord(0) And &HFF)                'MFG
         Dim ID1 As UInt16 = BSR_ReadWord(1UI << SHIFT)
-        If Not X16_MODE Then ID1 = (ID1 And &HFFUS)               'X8 ID1
+        If (ModeSelect = MEM_PROTOCOL.NOR_X8) Then ID1 = (ID1 And &HFFUS) 'X8 ID1
         ident(1) = CByte((ID1 >> 8) And &HFF)                     'ID1(UPPER)
         ident(2) = CByte(ID1 And &HFF)                            'ID1(LOWER)
-        ident(3) = CByte(BSR_ReadWord(&HEUI << SHIFT) And &HFF)  'ID2
-        ident(4) = CByte(BSR_ReadWord(&HFUI << SHIFT) And &HFF)  'ID3
+        ident(3) = CByte(BSR_ReadWord(&HEUI << SHIFT) And &HFF)   'ID2
+        ident(4) = CByte(BSR_ReadWord(&HFUI << SHIFT) And &HFF)   'ID3
         ResetDevice()
         Utilities.Sleep(1)
         Me.CURRENT_SECTOR_ERASE = E_BSR_SECTOR.Standard
@@ -349,7 +367,7 @@ Public Class BSR_Programmer : Implements MemoryDeviceUSB
         dt_out(3) = CByte((base_addr >> 24) And 255)
         dt_out(4) = CByte(data16 And 255)
         dt_out(5) = CByte((data16 >> 8) And 255)
-        FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_WRCMD, dt_out)
+        FCUSB.USB_CONTROL_MSG_OUT(USBREQ.JTAG_BDR_WRCMD, dt_out)
     End Sub
 
     Private Sub BSR_WriteMemAddress(base_addr As UInt32, data16 As UInt16)
@@ -360,7 +378,7 @@ Public Class BSR_Programmer : Implements MemoryDeviceUSB
         dt_out(3) = CByte((base_addr >> 24) And 255)
         dt_out(4) = CByte(data16 And 255)
         dt_out(5) = CByte((data16 >> 8) And 255)
-        FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_WRMEM, dt_out)
+        FCUSB.USB_CONTROL_MSG_OUT(USBREQ.JTAG_BDR_WRMEM, dt_out)
     End Sub
 
     Private Sub BSR_EraseSector(sector_addr As UInt32)
@@ -404,34 +422,6 @@ Public Class BSR_Programmer : Implements MemoryDeviceUSB
     End Sub
 
 #End Region
-
-    Private Function IsIFACE8X(input As VCC_IF) As Boolean
-        Select Case input
-            Case VCC_IF.X8_3V
-                Return True
-            Case VCC_IF.X8_5V
-                Return True
-            Case VCC_IF.X8_5V_12VPP
-                Return True
-            Case Else
-                Return False
-        End Select
-    End Function
-
-    Private Function IsIFACE16X(input As VCC_IF) As Boolean
-        Select Case input
-            Case VCC_IF.X16_1V8
-                Return True
-            Case VCC_IF.X16_3V
-                Return True
-            Case VCC_IF.X16_5V
-                Return True
-            Case VCC_IF.X16_5V_12VPP
-                Return True
-            Case Else
-                Return False
-        End Select
-    End Function
 
     'This should mirror the same function in PARALLEL_NOR.vb
     Private Function GetSetupPacket_NOR(Address As Long, Count As Integer, PageSize As UInt16) As Byte()

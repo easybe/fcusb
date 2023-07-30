@@ -376,13 +376,17 @@ Namespace SPI
                 Me.ExtendedPage = ((sr(0) And 1) = 0)
                 Dim page_size As UInt16 = CUShort(IIf(Me.ExtendedPage, MyFlashDevice.PAGE_SIZE_EXTENDED, MyFlashDevice.PAGE_SIZE))
                 RaiseEvent PrintConsole("Device configured to page size: " & page_size & " bytes")
+                Exit Sub
             End If
             If (MyFlashDevice.MFG_CODE = &HBF) Then 'SST26VF016/SST26VF032 requires block protection to be removed in SQI only
                 If MyFlashDevice.ID1 = &H2601 Or MyFlashDevice.ID1 = &H2602 Then
                     RaiseEvent PrintConsole("SQI mode must be used to remove block protection")
                 End If
-            ElseIf (MyFlashDevice.MFG_CODE = &H9D) Then 'ISSI
+                Exit Sub
+            End If
+            If (MyFlashDevice.MFG_CODE = &H9D) Then 'ISSI
                 WriteStatusRegister({0}) 'Erase protection bits
+                Exit Sub
             End If
             'If (MyFlashDevice.MFG_CODE = &HEF) AndAlso (MyFlashDevice.ID1 = &H4018) Then
             '    SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady() 'Check to see if this device has two dies
@@ -415,7 +419,15 @@ Namespace SPI
                     SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.EWSR}) 'WRENV
                     SPIBUS_WriteRead({&H71, 0, &H80, 0, 4, &H18}) 'Enables 512-byte buffer
                 End If
+                Exit Sub
             End If
+
+            If (MyFlashDevice.MFG_CODE = &H1 AndAlso MyFlashDevice.ID1 = &H2018) Then
+                If (MyFlashDevice.ID2 = &H4D01 AndAlso MyFlashDevice.FAMILY = &H81) Then 'S25FS-S Family
+                    'Some devices has 8 blocks of 4KB at the top or bottom and you must use the 4K Erase command
+                End If
+            End If
+
         End Sub
 
         Private Function ReadDeviceID() As SPI_IDENT
@@ -455,7 +467,7 @@ Namespace SPI
         Public Function ReadStatusRegister(Optional Count As Integer = 1) As Byte()
             Try
                 Dim Output(Count - 1) As Byte
-                SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.RDSR}, Output)
+                SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.RDSR}, Output) '0x05
                 Return Output
             Catch ex As Exception
                 Return Nothing 'Erorr

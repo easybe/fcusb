@@ -234,7 +234,7 @@ Public Module DetectDevice
                 If Not PNOR_IF.ERASE_ALLOWED Then default_access = FlashAccess.ReadWrite
                 If MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
                     Connected_Event(prg_if, 262144, default_access)
-                    PNOR_IF.EXPIO_SetTiming(Params.NOR_READ_ACCESS, Params.NOR_WE_PULSE)
+                    PNOR_IF.EXPIO_SETTIMING(Params.NOR_READ_ACCESS, Params.NOR_WE_PULSE)
                 Else
                     Connected_Event(prg_if, 16384, default_access)
                 End If

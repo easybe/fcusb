@@ -265,7 +265,7 @@
     <value>Détection d'un circuit DIP32/PLCC32 de 4MBIT, activation de A18 sur la pin 1 (reset)</value>
   </data>
   <data name="io_mode_initalized" xml:space="preserve">
-    <value>La carte Parallèle Mode a été initialisée correctement</value>
+    <value>La carte Parallèle NOR Mode a été initialisée correctement</value>
   </data>
   <data name="ext_board_not_detected" xml:space="preserve">
     <value>Impossible de se connecter à la carte d'extension I/O</value>

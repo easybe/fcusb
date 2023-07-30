@@ -97,16 +97,17 @@ Public Class MemIOControl
                 RaiseEvent SetStatus(RM.GetString("mc_mem_read_canceled")) : Exit Sub
             End If
             RaiseEvent SetStatus(RM.GetString("mc_mem_read_start"))
-            Dim StartingAddr As Long = RangeBox.BaseAddress + RangeBox.BaseOffset
-            Dim DefaultName As String = FlashName.Replace(" ", "_") & "_" & Utilities.Pad(Hex(StartingAddr)) &
-                "-" & Utilities.Pad(Hex((StartingAddr + RangeBox.RangeSize - 1)))
+            Dim StartAddr As Long = (Me.FlashBase + RangeBox.BaseOffset)
+            Dim StartAddrStr As String = Utilities.Pad(Hex(StartAddr))
+            Dim EndAddrStr As String = Utilities.Pad(Hex((StartAddr + RangeBox.RangeSize - 1)))
+            Dim DefaultName As String = FlashName.Replace(" ", "_") & "_" & StartAddrStr & "-" & EndAddrStr
             Dim TargetIO As IO.FileInfo = Nothing
             Dim create_file_type As FileFilterIndex
             If CreateFileForRead(DefaultName, TargetIO, create_file_type) Then
                 Dim read_params As New XFER_Operation 'We want to remember the last operation
                 read_params.FileType = create_file_type
                 read_params.FileName = TargetIO
-                read_params.Offset = RangeBox.BaseAddress
+                read_params.Offset = StartAddr
                 read_params.Size = RangeBox.RangeSize
                 RaiseEvent ReadOperation(read_params)
             Else
@@ -139,7 +140,7 @@ Public Class MemIOControl
             If (RangeBox.ShowDialog = DialogResult.Cancel) Then
                 RaiseEvent SetStatus(RM.GetString("mc_wr_user_canceled")) : Exit Sub
             End If
-            wr_operation.Offset = (RangeBox.BaseAddress + RangeBox.BaseOffset)
+            wr_operation.Offset = (Me.FlashBase + RangeBox.BaseOffset)
             wr_operation.Size = RangeBox.RangeSize
             RaiseEvent WriteOperation(wr_operation)
         Catch ex As Exception

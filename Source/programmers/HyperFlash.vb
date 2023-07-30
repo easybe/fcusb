@@ -45,11 +45,11 @@ Public Class HF_Programmer : Implements MemoryDeviceUSB
 
     Private Function HyperFlash_GetCFI() As Byte()
         Dim cfi_data(31) As Byte
-        WriteCommandData(&H55, &H98) 'Issue Enter CFI command
+        WriteMemoryAddress(&H55, &H98) 'Issue Enter CFI command
         For i = 0 To cfi_data.Length - 1
             cfi_data(i) = CByte(ReadMemoryAddress((&H10UI + CUInt(i)) << 1) And 255)
         Next
-        WriteCommandData(0, &HF0) 'RESET
+        WriteMemoryAddress(0, &HF0) 'RESET
         Return cfi_data
     End Function
 
@@ -282,17 +282,6 @@ Public Class HF_Programmer : Implements MemoryDeviceUSB
         Catch ex As Exception
         End Try
         Return False
-    End Function
-
-    Public Function WriteCommandData(cmd_addr As UInt32, cmd_data As UInt16) As Boolean
-        Dim addr_data(5) As Byte
-        addr_data(0) = CByte((cmd_addr >> 24) And 255)
-        addr_data(1) = CByte((cmd_addr >> 16) And 255)
-        addr_data(2) = CByte((cmd_addr >> 8) And 255)
-        addr_data(3) = CByte(cmd_addr And 255)
-        addr_data(4) = CByte((cmd_data >> 8) And 255)
-        addr_data(5) = CByte(cmd_data And 255)
-        Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRCMDDATA, addr_data)
     End Function
 
     Public Function WriteMemoryAddress(mem_addr As UInt32, mem_data As UInt16) As Boolean

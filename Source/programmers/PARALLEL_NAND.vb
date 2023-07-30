@@ -378,10 +378,7 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
 
     Public Function WriteData(logical_address As Long, data_to_write() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
         Dim page_addr As Integer = NAND_LayoutTool.GetNandPageAddress(MyFlashDevice, logical_address, Me.MemoryArea)
-        page_addr = Me.BlockManager.GetPhysical(page_addr) 'Adjusts the page to point to a valid page
-        Dim result As Boolean = WritePage_Physical(page_addr, data_to_write, Me.MemoryArea)
-        FCUSB.USB_WaitForComplete()
-        Return result
+        Return WritePages_Logical(page_addr, data_to_write, Me.MemoryArea)
     End Function
 
     Public Function SectorCount() As Integer Implements MemoryDeviceUSB.SectorCount
@@ -420,8 +417,15 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
     End Function
 
 #End Region
-    'This writes the data to a page
-    Public Function WritePage_Physical(phy_page_index As Integer, data_to_write() As Byte, memory_area As FlashArea) As Boolean
+
+    Public Function WritePages_Logical(page_index As Integer, data_to_write() As Byte, memory_area As FlashArea) As Boolean
+        Dim page_addr As Integer = Me.BlockManager.GetPhysical(page_index) 'Adjusts the page to point to a valid page
+        Dim result As Boolean = WritePages_Physical(page_addr, data_to_write, memory_area)
+        FCUSB.USB_WaitForComplete()
+        Return result
+    End Function
+
+    Public Function WritePages_Physical(page_index As Integer, data_to_write() As Byte, memory_area As FlashArea) As Boolean
         Dim main_data() As Byte = Nothing
         Dim oob_data() As Byte = Nothing
         Dim WriteResult As Boolean
@@ -435,12 +439,23 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
             main_data = data_to_write
         End If
         MEMORY_AREA_ERASED = Nothing
-        WriteResult = WriteBulk(phy_page_index, main_data, oob_data, memory_area)
+        WriteResult = WriteBulk(page_index, main_data, oob_data, memory_area)
         If Not WriteResult Then Return False
-        'If MyFlashDevice.ADDRESS_SCHEME = P_NAND.PAGE_TYPE.SMALL Then Utilities.Sleep(100) No longer needed?
         Utilities.Sleep(10)
         WaitUntilReady()
         Return WriteResult
+    End Function
+
+    Public Function WritePage(page_index As Integer, data_out() As Byte, memory_area As FlashArea, Optional page_offset As Integer = 0) As Boolean
+        Try
+            Dim setup() As Byte = SetupPacket_NAND(page_index, CUShort(page_offset), data_out.Length, memory_area)
+            Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USBREQ.EXPIO_WRITEDATA, setup, data_out, 1)
+            If Not result Then Return Nothing
+            FCUSB.USB_WaitForComplete()
+            Return result
+        Catch ex As Exception
+        End Try
+        Return False
     End Function
 
     Public Function SectorErase_Physical(phy_page_index As Integer) As Boolean
@@ -467,11 +482,11 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
                 Dim total_main_bytes As Integer = (page_count * MyFlashDevice.PAGE_SIZE)
                 Dim total_oob_bytes As Integer = (page_count * MyFlashDevice.PAGE_EXT)
                 Dim main_area_data(total_main_bytes - 1) As Byte 'Data from the main page
-                Dim setup_data() As Byte = GetSetupPacket(phy_page_index, 0, main_area_data.Length, FlashArea.Main)
+                Dim setup_data() As Byte = SetupPacket_NAND(phy_page_index, 0, main_area_data.Length, FlashArea.Main)
                 result = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, main_area_data, NAND_PACKET)
                 If Not result Then Return Nothing
                 Dim oob_area_data(total_oob_bytes - 1) As Byte 'Data from the spare page, containing flags, metadata and ecc data
-                setup_data = GetSetupPacket(phy_page_index, 0, oob_area_data.Length, FlashArea.OOB)
+                setup_data = SetupPacket_NAND(phy_page_index, 0, oob_area_data.Length, FlashArea.OOB)
                 result = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, oob_area_data, NAND_PACKET)
                 If Not result Then Return Nothing
                 Dim ecc_data() As Byte = NAND_ECC.GetEccFromSpare(oob_area_data, MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT) 'This strips out the ecc data from the spare area
@@ -485,7 +500,7 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
                 Return data_out
             Else 'Normal read from device
                 Dim data_out(count - 1) As Byte 'Bytes we want to read
-                Dim setup_data() As Byte = GetSetupPacket(phy_page_index, page_offset, count, memory_area)
+                Dim setup_data() As Byte = SetupPacket_NAND(phy_page_index, page_offset, count, memory_area)
                 result = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, data_out, NAND_PACKET)
                 If Not result Then
                     Return Nothing
@@ -531,7 +546,7 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
                 Dim packet((page_count * page_size_tot) - 1) As Byte
                 Array.Copy(page_aligned, array_ptr, packet, 0, packet.Length)
                 array_ptr += packet.Length
-                Dim setup() As Byte = GetSetupPacket(page_addr, 0, packet.Length, FlashArea.All) 'We will write the entire page
+                Dim setup() As Byte = SetupPacket_NAND(page_addr, 0, packet.Length, FlashArea.All) 'We will write the entire page
                 Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USBREQ.EXPIO_WRITEDATA, setup, packet, 1)
                 If Not result Then Return Nothing
                 FCUSB.USB_WaitForComplete()
@@ -558,7 +573,7 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
         Return page_count_max
     End Function
 
-    Private Function GetSetupPacket(page_addr As Integer, page_offset As UInt16, transfer_size As Integer, memory_area As FlashArea) As Byte()
+    Private Function SetupPacket_NAND(page_addr As Integer, page_offset As UInt16, transfer_size As Integer, memory_area As FlashArea) As Byte()
         Dim nand_layout As NAND_LAYOUT_TOOL.NANDLAYOUT_STRUCTURE = NAND_LayoutTool.GetStructure(MyFlashDevice)
         Dim TX_NAND_ADDRSIZE As Byte 'Number of bytes the address command table uses
         If (MyFlashDevice.PAGE_SIZE = 512) Then 'Small page

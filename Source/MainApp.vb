@@ -6,6 +6,7 @@
 
 Option Strict On
 
+Imports System.Security.Cryptography
 Imports System.Threading
 Imports FlashcatUSB.FlashMemory
 Imports FlashcatUSB.MemoryInterface
@@ -45,20 +46,16 @@ Public Module MainApp
         Catch ex As Exception
             Exit Sub
         End Try
-
         MyLocation = Reflection.Assembly.GetEntryAssembly().FullName
         ScriptPath = (New IO.FileInfo(MyLocation)).DirectoryName & "\Scripts\"
-
         Thread.CurrentThread.CurrentUICulture = Globalization.CultureInfo.CreateSpecificCulture("en-US")
         Thread.CurrentThread.CurrentCulture = Globalization.CultureInfo.CreateSpecificCulture("en-US")
         My.Application.ChangeUICulture("en-US")
         My.Application.ChangeCulture("en-US")
-
         If args.Length = 2 AndAlso args(0).ToUpper.StartsWith("-PATH") Then
             Dim n As New IO.DirectoryInfo(args(1))
             If n.Exists Then DefaultLocation = n.FullName.ToString
         End If
-
         LicenseSystem_Init()
         CUSTOM_SPI_DEV = New SPI_NOR("User-defined", VCC_IF.SERIAL_3V, 1048576, 0, 0)
         If NAND_ECC_CFG Is Nothing Then NAND_ECC_CFG = GenerateLocalEccConfigurations()
@@ -454,7 +451,7 @@ Public Module MainApp
         If (fileio_diagbox.ShowDialog = DialogResult.OK) Then
             Return fileio_diagbox.FileName
         End If
-        Return ""
+        Return String.Empty
     End Function
 
     Public Function PromptUser_SaveFile(Optional title As String = "Choose location to save", Optional filter As String = "All files (*.*)|*.*", Optional default_file As String = "") As String
@@ -466,7 +463,7 @@ Public Module MainApp
         If fileio_diagbox.ShowDialog = DialogResult.OK Then
             Return fileio_diagbox.FileName
         End If
-        Return ""
+        Return String.Empty
     End Function
 
     Public Function PromptUser_Ask(the_question As String) As Boolean

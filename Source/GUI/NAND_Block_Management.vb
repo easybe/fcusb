@@ -292,13 +292,13 @@ Public Class NAND_Block_Management
                     If NAND_IF.GetType().Equals(GetType(PARALLEL_NAND)) Then
                         Dim PNAND_IF As PARALLEL_NAND = CType(NAND_IF, PARALLEL_NAND)
                         PNAND_IF.SectorErase_Physical(block_info.PagePhysical)
-                        PNAND_IF.WritePage_Physical(block_info.PagePhysical, test_data, FlashMemory.FlashArea.All)
+                        PNAND_IF.WritePages_Physical(block_info.PagePhysical, test_data, FlashMemory.FlashArea.All)
                         Utilities.Sleep(20)
                         verify_data = PNAND_IF.PageRead_Physical(block_info.PagePhysical, 0, test_data.Length, FlashMemory.FlashArea.All)
                     ElseIf NAND_IF.GetType().Equals(GetType(SPINAND_Programmer)) Then
                         Dim SNAND_IF As SPINAND_Programmer = CType(NAND_IF, SPINAND_Programmer)
                         SNAND_IF.SectorErase_Physical(block_info.PagePhysical)
-                        SNAND_IF.WritePage_Physical(block_info.PagePhysical, test_data, FlashMemory.FlashArea.All)
+                        SNAND_IF.WritePages_Physical(block_info.PagePhysical, test_data, FlashMemory.FlashArea.All)
                         Utilities.Sleep(20)
                         verify_data = SNAND_IF.PageRead_Physical(block_info.PagePhysical, 0, test_data.Length, FlashMemory.FlashArea.All)
                     End If
