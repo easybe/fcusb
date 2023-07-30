@@ -537,7 +537,7 @@ Namespace ECC_LIB
             Dim sub_pages As Integer = (page_size / 512)
             Dim page_count As Integer = (spare.Length / oob_size)
             Dim seperate_ecc As Boolean = False
-            If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Seperated Then
+            If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Separated Then
                 seperate_ecc = Me.ECC_SEPERATE
             End If
             Dim ecc_data(page_count * (sub_pages * bytes_per_ecc) - 1) As Byte
@@ -568,7 +568,7 @@ Namespace ECC_LIB
             Dim sub_pages As Integer = (page_size / 512)
             Dim page_count As Integer = (spare.Length / oob_size)
             Dim seperate_ecc As Boolean = False
-            If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Seperated Then
+            If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Separated Then
                 seperate_ecc = Me.ECC_SEPERATE
             End If
             Dim ptr As Integer = 0

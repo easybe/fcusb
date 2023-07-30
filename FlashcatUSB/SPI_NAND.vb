@@ -560,15 +560,16 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     End Function
 
     Public Function WritePages(page_addr As UInt32, main_data() As Byte, oob_data() As Byte, ByVal area As FlashArea) As Boolean
+        Dim write_result As Boolean = False
         Try
             If main_data Is Nothing And oob_data Is Nothing Then Return False
             Dim page_size As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE) 'Entire size
-            Dim sep_layout As Boolean = CBool(MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Seperated)
+            Dim sep_layout As Boolean = CBool(MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Separated)
             If (Not area = FlashArea.All) AndAlso (sep_layout AndAlso (main_data Is Nothing Or oob_data Is Nothing)) Then 'We only need to write one area
                 If main_data IsNot Nothing Then
-                    USB_WritePageAreaData(page_addr, main_data, FlashArea.Main)
+                    write_result = USB_WritePageAreaData(page_addr, main_data, FlashArea.Main)
                 Else
-                    USB_WritePageAreaData(page_addr, oob_data, FlashArea.OOB)
+                    write_result = USB_WritePageAreaData(page_addr, oob_data, FlashArea.OOB)
                 End If
             Else 'We need to seperate and align data
                 Dim page_aligned() As Byte = Nothing
@@ -580,11 +581,11 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                 Else
                     page_aligned = CreatePageAligned(MyFlashDevice, main_data, oob_data)
                 End If
-                Return USB_WritePageAlignedData(page_addr, page_aligned)
+                write_result = USB_WritePageAlignedData(page_addr, page_aligned)
             End If
         Catch ex As Exception
         End Try
-        Return False
+        Return write_result
     End Function
 
     Private Function USB_WritePageAlignedData(ByRef page_addr As UInt32, ByVal page_aligned() As Byte) As Boolean

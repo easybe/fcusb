@@ -12,7 +12,6 @@ Public Class MainForm
         Me.MinimumSize = Me.Size
         Me.MyTabs.DrawMode = TabDrawMode.OwnerDrawFixed
         MyTabs.TabPages.Remove(TabMultiDevice)
-        MyTabs.TabPages.Remove(TabMach1)
         InitStatusMessage()
         LoadSettingsIntoGui()
         ScriptEngine.PrintInformation() 'Script Engine
@@ -26,7 +25,6 @@ Public Class MainForm
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "SLC NAND memory (x8)", FlashDatabase.PartCount(MemoryType.SLC_NAND)))
         mi_mode_1wire.Visible = False
         statuspage_progress.Visible = False
-        mi_mode_mach1.Enabled = False
         Language_Setup()
     End Sub
 
@@ -677,6 +675,7 @@ Public Class MainForm
 #Region "Menu DropDownOpening"
 
     Private Sub mi_main_menu_DropDownOpening(sender As Object, e As EventArgs) Handles mi_main_menu.DropDownOpening
+        mi_usb_performance.Enabled = False
         If IsAnyDeviceBusy() Then
             mi_detect.Enabled = False
             mi_repeat.Enabled = False
@@ -698,6 +697,12 @@ Public Class MainForm
         Else
             mi_refresh.Enabled = False
         End If
+        If USBCLIENT.HW_MODE = FCUSB_BOARD.Mach1 Then
+            mi_usb_performance.Enabled = True
+        ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Pro_PCB4 Then
+            mi_usb_performance.Enabled = True
+        End If
+
     End Sub
 
     Private Sub mi_mode_DropDownOpening(sender As Object, e As EventArgs) Handles mi_mode_menu.DropDownOpening
@@ -709,11 +714,11 @@ Public Class MainForm
         mi_5V0.Visible = False
         mi_vcc_seperator.Visible = False
         Select Case VCC_OPTION
-            Case USB.Voltage.V1_8
+            Case Voltage.V1_8
                 mi_1V8.Checked = True
-            Case USB.Voltage.V3_3
+            Case Voltage.V3_3
                 mi_3V3.Checked = True
-            Case USB.Voltage.V5_0
+            Case Voltage.V5_0
                 mi_5V0.Checked = True
         End Select
         If IsAnyDeviceBusy() Then
@@ -727,7 +732,6 @@ Public Class MainForm
             mi_mode_spi.Enabled = False
             mi_mode_spieeprom.Enabled = False
             mi_mode_spi_nand.Enabled = False
-            mi_mode_mach1.Enabled = False
             mi_mode_i2c.Enabled = False
             mi_mode_1wire.Enabled = False
             mi_mode_3wire.Enabled = False
@@ -835,13 +839,14 @@ Public Class MainForm
             mi_mode_1wire.Enabled = False
             mi_mode_3wire.Enabled = False
             mi_mode_eprom_otp.Enabled = False
-            mi_mode_extio.Enabled = False
             mi_mode_jtag.Enabled = False
-            mi_mode_mach1.Enabled = True
+            mi_mode_extio.Enabled = True
+            mi_1V8.Visible = True
+            mi_3V3.Visible = True
+            mi_vcc_seperator.Visible = True
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Classic_BL Then
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.NotConnected Then
             Enable_Mode_Menu(True)
-            mi_mode_mach1.Enabled = False
         End If
         If mi_mode_i2c.Enabled AndAlso MySettings.I2C_SIZE = 0 Then
             mi_mode_i2c.Enabled = False
@@ -874,8 +879,6 @@ Public Class MainForm
                 mi_mode_eprom_otp.Checked = True
             Case FlashcatSettings.DeviceMode.JTAG
                 mi_mode_jtag.Checked = True
-            Case FlashcatSettings.DeviceMode.Mach1
-                mi_mode_mach1.Checked = True
         End Select
     End Sub
 
@@ -889,7 +892,6 @@ Public Class MainForm
             mi_mode_1wire.Enabled = True
             mi_mode_3wire.Enabled = True
             mi_mode_jtag.Enabled = True
-            mi_mode_mach1.Enabled = True
         Else
             mi_mode_spi.Enabled = False
             mi_mode_spieeprom.Enabled = False
@@ -899,7 +901,6 @@ Public Class MainForm
             mi_mode_1wire.Enabled = False
             mi_mode_3wire.Enabled = False
             mi_mode_jtag.Enabled = False
-            mi_mode_mach1.Enabled = False
         End If
     End Sub
 
@@ -1105,8 +1106,6 @@ Public Class MainForm
                 mi_mode_eprom_otp.Checked = True
             Case FlashcatSettings.DeviceMode.Microwire
                 mi_mode_3wire.Checked = True
-            Case FlashcatSettings.DeviceMode.Mach1
-                mi_mode_mach1.Checked = True
         End Select
         If MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_EEPROM Then
             If MySettings.SPI_EEPROM = SPI_EEPROM.None Then
@@ -1178,7 +1177,6 @@ Public Class MainForm
             mi_mode_eprom_otp.Checked = False
             mi_mode_jtag.Checked = False
             mi_mode_spi_nand.Checked = False
-            mi_mode_mach1.Checked = False
         Catch ex As Exception
         End Try
     End Sub
@@ -1253,13 +1251,6 @@ Public Class MainForm
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.Microwire
         MySettings.Save()
         detect_event()
-    End Sub
-
-    Private Sub MachToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles mi_mode_mach1.Click
-        'Menu_Mode_UncheckAll()
-        'DirectCast(sender, ToolStripMenuItem).Checked = True
-        'MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.Mach1
-        'MySettings.Save()
     End Sub
 
     Private Sub mi_verify_Click(sender As Object, e As EventArgs) Handles mi_verify.Click
@@ -1367,7 +1358,6 @@ Public Class MainForm
         End Try
     End Sub
 
-
     Private Sub mi_detect_Click(sender As Object, e As EventArgs) Handles mi_detect.Click
         detect_event()
     End Sub
@@ -1386,6 +1376,14 @@ Public Class MainForm
 
     Private Sub mi_refresh_Click(sender As Object, e As EventArgs) Handles mi_refresh.Click
         MEM_IF.RefreshAll()
+    End Sub
+
+    Private Sub mi_usb_performance_Click(sender As Object, e As EventArgs) Handles mi_usb_performance.Click
+        Try
+            Dim frm_usb As New FrmUSBPerformance
+            frm_usb.ShowDialog()
+        Catch ex As Exception
+        End Try
     End Sub
 
 #End Region
@@ -1794,7 +1792,7 @@ Public Class MainForm
             If MySettings.NAND_BadBlockManager = FlashcatSettings.BadBlockMode.Disabled Then Return True
             Dim layout_main As UInt32
             Dim layout_oob As UInt32
-            If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Seperated Then
+            If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Separated Then
                 layout_main = page_size
                 layout_oob = oob_size
             ElseIf MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then
@@ -2379,193 +2377,6 @@ Public Class MainForm
         n.StartPosition = FormStartPosition.CenterParent
         n.ShowDialog()
     End Sub
-
-
-#Region "Mach1 Development"
-    Private Delegate Sub onMachCallback()
-    Private Delegate Sub cbMach1Progress(ByVal percent As Integer)
-    Private MB_DN_INDEX As Integer = 0
-    Private MachDev As FCUSB_DEVICE
-    Private mach1_svf_file() As String = Nothing
-
-    Public Sub Mach1Connected()
-        If Me.InvokeRequired Then
-            Dim n As New onMachCallback(AddressOf Mach1Connected)
-            Me.Invoke(n)
-        Else
-            MachDev = USBCLIENT.FCUSB(0)
-            CpldUpdateStatus()
-            MyTabs.TabPages.Add(TabMach1)
-            cbMachDownloadSize.SelectedIndex = 0
-        End If
-    End Sub
-
-    Private Sub CpldUpdateStatus()
-        If Me.InvokeRequired Then
-            Dim n As New onMachCallback(AddressOf CpldUpdateStatus)
-            Me.Invoke(n)
-        Else
-            Dim status(3) As Byte
-            MachDev.USB_CONTROL_MSG_IN(USB.USBREQ.CPLD_STATUS, status)
-            If (status(0) = 0) Then
-                cmdMach1CpldOff.Enabled = False
-                cmdMach1Program.Enabled = False
-                cmdMach1Jedec.Enabled = False
-                cmdMach1CpldOn.Enabled = True
-            Else
-                cmdMach1CpldOff.Enabled = True
-                cmdMach1Program.Enabled = True
-                cmdMach1Jedec.Enabled = True
-                cmdMach1CpldOn.Enabled = False
-            End If
-        End If
-    End Sub
-
-    Public Sub Mach1Disconnected()
-        If Me.InvokeRequired Then
-            Dim n As New onMachCallback(AddressOf Mach1Disconnected)
-            Me.Invoke(n)
-        Else
-            MyTabs.TabPages.Remove(TabMach1)
-        End If
-    End Sub
-
-    Private Sub Mach1TestComplete()
-        If Me.InvokeRequired Then
-            Dim n As New onMachCallback(AddressOf Mach1TestComplete)
-            Me.Invoke(n)
-        Else
-            pbMachProgress.Value = 0
-            cmdMach1DnTest.Enabled = True
-            cmdMach1UpTest.Enabled = True
-        End If
-    End Sub
-
-    Public Sub Mach1Progress(ByVal percent As Integer)
-        If Me.InvokeRequired Then
-            Dim n As New cbMach1Progress(AddressOf Mach1Progress)
-            Me.Invoke(n, {percent})
-        Else
-            pbMachProgress.Value = percent
-        End If
-    End Sub
-
-    Private Sub cmdMach1DnTest_Click(sender As Object, e As EventArgs) Handles cmdMach1DnTest.Click
-        MB_DN_INDEX = cbMachDownloadSize.SelectedIndex
-        cmdMach1DnTest.Enabled = False
-        Dim t As New Threading.Thread(AddressOf SAM3U_SpeedTest_Read)
-        t.Start(MachDev)
-    End Sub
-
-    Private Sub cmdMach1UpTest_Click(sender As Object, e As EventArgs) Handles cmdMach1UpTest.Click
-        MB_DN_INDEX = cbMachDownloadSize.SelectedIndex
-        cmdMach1UpTest.Enabled = False
-        Dim t As New Threading.Thread(AddressOf SAM3U_SpeedTest_Write)
-        t.Start(MachDev)
-    End Sub
-
-    Public Sub SAM3U_SpeedTest_Read(ByVal usb_dev As FCUSB_DEVICE)
-        Dim t As New Stopwatch
-        Dim mb_count As Integer = 100 * (MB_DN_INDEX + 1)
-        Dim data_count As UInt32 = 1048576
-        Dim data_test(data_count - 1) As Byte
-        Dim read_counter As Integer = 0
-        MsgBox("Starting transfer of " & mb_count & "MB (Reading)")
-        t.Start()
-        Do
-            Dim result As Boolean = usb_dev.USB_SETUP_BULKIN(USB.USBREQ.SAM3U_TEST_READ, Nothing, data_test, data_test.Length)
-            If Not result Then
-                MsgBox("Error on USB Bulk In operation")
-                Exit Sub
-            End If
-            read_counter += 1
-            Mach1Progress(CSng(read_counter / mb_count) * 100)
-            If (read_counter) = mb_count Then Exit Do
-        Loop
-        t.Stop()
-        Dim bytesRead As UInt32 = (data_count * mb_count)
-        Dim speed_str As String = Format(Math.Round(bytesRead / (t.ElapsedMilliseconds / 1000)), "#,###") & " Bytes/s"
-        Dim msg_out As String = "Successfully transfered " & mb_count & "MB in " & t.Elapsed.TotalSeconds & " seconds (" & speed_str & ")"
-        MsgBox(msg_out)
-        Mach1TestComplete()
-    End Sub
-
-    Public Sub SAM3U_SpeedTest_Write(ByVal usb_dev As FCUSB_DEVICE)
-        Dim t As New Stopwatch
-        Dim mb_count As Integer = 100 * (MB_DN_INDEX + 1)
-        Dim data_count As UInt32 = 1048576
-        Dim data_test(data_count - 1) As Byte
-        Dim read_counter As Integer = 0
-        MsgBox("Starting transfer of " & mb_count & "MB (Writing)")
-        t.Start()
-        Do
-            Dim result As Boolean = usb_dev.USB_SETUP_BULKOUT(USB.USBREQ.SAM3U_TEST_WRITE, Nothing, data_test, data_test.Length)
-            If Not result Then
-                MsgBox("Error on USB Bulk Out operation")
-                Exit Sub
-            End If
-            read_counter += 1
-            Mach1Progress(CSng(read_counter / mb_count) * 100)
-            If (read_counter) = mb_count Then Exit Do
-        Loop
-        t.Stop()
-        Dim bytesRead As UInt32 = (data_count * mb_count)
-        Dim speed_str As String = Format(Math.Round(bytesRead / (t.ElapsedMilliseconds / 1000)), "#,###") & " Bytes/s"
-        Dim msg_out As String = "Successfully transfered " & mb_count & "MB in " & t.Elapsed.TotalSeconds & " seconds (" & speed_str & ")"
-        MsgBox(msg_out)
-        Mach1TestComplete()
-    End Sub
-
-    Private Sub cmdMach1Jedec_Click(sender As Object, e As EventArgs) Handles cmdMach1Jedec.Click
-        If MachDev.EJ_IF.Init() Then
-            SetStatus("JEDEC ID: 0x" & Hex(MachDev.EJ_IF.TargetDevice.IDCODE).PadLeft(8, "0"))
-        Else
-            SetStatus("ERROR: Unable to detect CPLD via ISP JTAG")
-        End If
-    End Sub
-
-    Private Sub cmdMach1Program_Click(sender As Object, e As EventArgs) Handles cmdMach1Program.Click
-        Dim OpenMe As New OpenFileDialog
-        OpenMe.AddExtension = True
-        OpenMe.InitialDirectory = Application.StartupPath
-        OpenMe.Title = "Select SVF file to program into CPLD"
-        OpenMe.CheckPathExists = True
-        OpenMe.Filter = "Serial vector file (*.svf)|*.svf" & "|" & "All files (*.*)|*.*"
-        If (OpenMe.ShowDialog = DialogResult.OK) Then
-            mach1_svf_file = Utilities.FileIO.ReadFile(OpenMe.FileName)
-            cmdMach1Program.Enabled = False
-            Dim t As New Threading.Thread(AddressOf Mach1ProgramSVF)
-            t.Start()
-        End If
-    End Sub
-
-    Private Sub Mach1ProgramSVF()
-        Try
-            RemoveHandler MachDev.EJ_IF.JSP.Progress, AddressOf Mach1Progress
-            AddHandler MachDev.EJ_IF.JSP.Progress, AddressOf Mach1Progress
-            MachDev.EJ_IF.ResetTAP()
-            MachDev.EJ_IF.JSP.RunFile_SVF(mach1_svf_file)
-            CpldUpdateStatus()
-            Mach1Progress(0)
-        Catch ex As Exception
-        End Try
-    End Sub
-
-    Private Sub cmdMach1CpldOn_Click(sender As Object, e As EventArgs) Handles cmdMach1CpldOn.Click
-        MachDev.USB_CONTROL_MSG_OUT(USB.USBREQ.CPLD_3V3)
-        Utilities.Sleep(4)
-        CpldUpdateStatus()
-    End Sub
-
-    Private Sub cmdMach1CpldOff_Click(sender As Object, e As EventArgs) Handles cmdMach1CpldOff.Click
-        MachDev.USB_CONTROL_MSG_OUT(USB.USBREQ.CPLD_OFF)
-        Utilities.Sleep(4)
-        CpldUpdateStatus()
-    End Sub
-
-
-
-#End Region
 
 
 End Class

@@ -1059,7 +1059,7 @@
     <comment>the sections are split up (main, then spare, the main, etc.)</comment>
   </data>
   <data name="settings_seperate" xml:space="preserve">
-    <value>Seperate</value>
+    <value>Separate</value>
     <comment>seperage sections of the NAND page(main/spare areas)</comment>
   </data>
   <data name="nand_writing_block" xml:space="preserve">

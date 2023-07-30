@@ -23,6 +23,10 @@ Public Class FrmSettings
         End If
         cb_ce_select.SelectedIndex = (MySettings.MULTI_CE)
         cb_sym_width.Enabled = False
+        If (Not IS_DEBUG_VER) Then
+            cb_spi_clock.Items.RemoveAt(8)
+            If MySettings.SPI_CLOCK_MAX = (one_mhz * 48) Then MySettings.SPI_CLOCK_MAX = (one_mhz * 32)
+        End If
         Select Case MySettings.SPI_CLOCK_MAX
             Case (one_mhz)
                 cb_spi_clock.SelectedIndex = 0
@@ -88,7 +92,7 @@ Public Class FrmSettings
                 cb_badblock_enabled.Checked = True
         End Select
         Select Case MySettings.NAND_Layout
-            Case FlashcatSettings.NandMemLayout.Seperated
+            Case FlashcatSettings.NandMemLayout.Separated
                 rb_mainspare_default.Checked = True
             Case FlashcatSettings.NandMemLayout.Combined
                 rb_mainspare_all.Checked = True
@@ -112,7 +116,7 @@ Public Class FrmSettings
         cb_nand_image_readverify.Checked = MySettings.NAND_Verify
         cb_ECC_ReadEnable.Checked = MySettings.ECC_READ_ENABLED
         cb_ECC_WriteEnable.Checked = MySettings.ECC_WRITE_ENABLED
-        cb_ecc_seperate.Checked = MySettings.ECC_Seperate
+        cb_ecc_seperate.Checked = MySettings.ECC_Separate
         cb_rs_reverse_data.Checked = MySettings.ECC_Reverse
         Select Case MySettings.ECC_Algorithum
             Case 0
@@ -180,7 +184,7 @@ Public Class FrmSettings
         cb_badmarker_6th_page2.Text = RM.GetString("settings_blk_2ndpage") '"Second spare page"
         cb_spinand_disable_ecc.Text = RM.GetString("settings_disable_ecc") '"Disable SPI-NAND ECC generator"
         cb_nand_image_readverify.Text = RM.GetString("settings_nand_readverify") 'Use Read-Verify on 'Create Image'
-        rb_mainspare_default.Text = RM.GetString("settings_seperate") '"Seperate"
+        rb_mainspare_default.Text = RM.GetString("settings_seperate") '"Separate"
         rb_mainspare_segmented.Text = RM.GetString("settings_segmented") '"Segmented"
         rb_mainspare_all.Text = RM.GetString("settings_combined") '"Combined"
         lbl_nandecc_enabled.Text = RM.GetString("nandecc_enabled") '"Enabled"
@@ -254,7 +258,7 @@ Public Class FrmSettings
             MySettings.NAND_BadBlockMarkers = MySettings.NAND_BadBlockMarkers Or (FlashcatSettings.BadBlockMarker._6thByte_SecondPage)
         End If
         If rb_mainspare_default.Checked Then
-            MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Seperated
+            MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Separated
         ElseIf rb_mainspare_segmented.Checked Then
             MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Segmented
         ElseIf rb_mainspare_all.Checked Then
@@ -307,7 +311,7 @@ Public Class FrmSettings
         MySettings.NAND_Verify = cb_nand_image_readverify.Checked
         MySettings.ECC_READ_ENABLED = cb_ECC_ReadEnable.Checked
         MySettings.ECC_WRITE_ENABLED = cb_ECC_WriteEnable.Checked
-        MySettings.ECC_Seperate = cb_ecc_seperate.Checked
+        MySettings.ECC_Separate = cb_ecc_seperate.Checked
         MySettings.ECC_Reverse = cb_rs_reverse_data.Checked
         If rb_ECC_Hamming.Checked Then
             MySettings.ECC_Algorithum = 0

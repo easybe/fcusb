@@ -18,15 +18,16 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 539
+    Public Const Build As Integer = 540
     Public PRO3_CURRENT_FW As Single = 1.29F 'This is the embedded firmware version for pro
     Public PRO4_CURRENT_FW As Single = 1.06F 'This is the embedded firmware version for pro
-    Public CLASSIC_CURRENT_FW_SPI As Single = 4.39F 'Min revision allowed for classic, xport
+    Public MACH1_CURRENT_FW As Single = 1.01F 'Firmware version for Mach1
+    Public CLASSIC_CURRENT_FW_SPI As Single = 4.4F 'Min revision allowed for classic, xport
     Public CLASSIC_CURRENT_FW_JTAG As Single = 7.12F 'Min version for JTAG support
     Public PRO4_CPLD_3V3 As UInt32 = &HCD330001UI 'The CPLD version code for 3.3v
     Public PRO4_CPLD_1V8 As UInt32 = &HCD180001UI 'The CPLD version code for 1.8v
     Public PRO4_CPLD_I2C As UInt32 = &HCD330002UI 'The CPLD version for I2C (3.3v)
-    Public VCC_OPTION As Voltage = Voltage.V3_3 'Only Pro supports software VCC changing
+    Public VCC_OPTION As Voltage = Voltage.OFF  'Only Pro supports software VCC changing
     Public AppIsClosing As Boolean = False
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
     Public WithEvents ScriptEngine As New FcScriptEngine
@@ -37,6 +38,7 @@ Public Module MainApp
     Public CUSTOM_SPI_DEV As SPI_NOR_FLASH
     Private FcMutex As Mutex
     Public NAND_ECC_ENG As ECC_LIB.Engine
+    Public IS_DEBUG_VER As Boolean = False
 
     Sub Main(ByVal Args() As String)
         Try 'This makes it only allow one instance
@@ -62,6 +64,7 @@ Public Module MainApp
         My.Application.ChangeUICulture("en-US")
         My.Application.ChangeCulture("en-US")
         If CUSTOM_SPI_DEV Is Nothing Then CUSTOM_SPI_DEV = New SPI_NOR_FLASH("User-defined", Mb001, 256)
+
         CreateGrayCodeTable()
         Create_SPI_EEPROM_List() 'Adds the SPI EEPROM devices
         Thread.CurrentThread.Name = "rootApp"
@@ -1096,7 +1099,7 @@ Public Module MainApp
         Public Property NAND_BadBlockManager As BadBlockMode 'Indicates how BAD BLOCKS are detected
         Public Property NAND_BadBlockMarkers As BadBlockMarker
         Public Property NAND_MismatchSkip As Boolean = True
-        Public Property NAND_Layout As NandMemLayout = NandMemLayout.Seperated
+        Public Property NAND_Layout As NandMemLayout = NandMemLayout.Separated
         'NAND ECC Settings
         Public Property ECC_READ_ENABLED As Boolean
         Public Property ECC_WRITE_ENABLED As Boolean
@@ -1104,7 +1107,7 @@ Public Module MainApp
         Public Property ECC_BitError As Integer 'Number of bits to correct (1,2,4,8,10,14)
         Public Property ECC_Location As Byte
         Public Property ECC_SymWidth As Integer '8/9/10
-        Public Property ECC_Seperate As Boolean
+        Public Property ECC_Separate As Boolean
         Public Property ECC_Reverse As Boolean
         'GENERAL
         Public Property OTP_MFG As Byte
@@ -1140,14 +1143,14 @@ Public Module MainApp
             NAND_BadBlockManager = GetRegistryValue("NAND_BadBlockMode", BadBlockMode.Disabled)
             NAND_BadBlockMarkers = GetRegistryValue("NAND_BadBlockMarker", (BadBlockMarker._1stByte_FirstPage Or BadBlockMarker._1stByte_SecondPage Or BadBlockMarker._1stByte_LastPage))
             NAND_MismatchSkip = GetRegistryValue("NAND_Mismatch", True)
-            NAND_Layout = GetRegistryValue("NAND_Layout", NandMemLayout.Seperated)
+            NAND_Layout = GetRegistryValue("NAND_Layout", NandMemLayout.Separated)
             Me.ECC_READ_ENABLED = GetRegistryValue("ECC_READ", False)
             Me.ECC_WRITE_ENABLED = GetRegistryValue("ECC_WRITE", False)
             Me.ECC_Algorithum = GetRegistryValue("ECC_ALG", 0)
             Me.ECC_BitError = GetRegistryValue("ECC_BITERR", 1)
             Me.ECC_Location = GetRegistryValue("ECC_LOCATION", 2)
             Me.ECC_SymWidth = GetRegistryValue("ECC_SYMWIDTH", 9)
-            Me.ECC_Seperate = GetRegistryValue("ECC_SEPERATE", True)
+            Me.ECC_Separate = GetRegistryValue("ECC_SEPERATE", True)
             Me.ECC_Reverse = GetRegistryValue("ECC_REVERSE", False)
             Me.OTP_MFG = GetRegistryValue("OTP_MFG", 0)
             Me.OTP_ID = GetRegistryValue("OTP_ID", 0)
@@ -1190,7 +1193,7 @@ Public Module MainApp
             SetRegistryValue("ECC_BITERR", Me.ECC_BitError)
             SetRegistryValue("ECC_LOCATION", Me.ECC_Location)
             SetRegistryValue("ECC_SYMWIDTH", Me.ECC_SymWidth)
-            SetRegistryValue("ECC_SEPERATE", Me.ECC_Seperate)
+            SetRegistryValue("ECC_SEPERATE", Me.ECC_Separate)
             SetRegistryValue("ECC_REVERSE", Me.ECC_Reverse)
             SetRegistryValue("OTP_MFG", Me.OTP_MFG)
             SetRegistryValue("OTP_ID", Me.OTP_ID)
@@ -1246,7 +1249,7 @@ Public Module MainApp
         End Enum
 
         Public Enum NandMemLayout As Integer
-            Seperated = 1 'We want to see Main or Spare data
+            Separated = 1 'We want to see Main or Spare data
             Combined = 2 'We want to see all data 
             Segmented = 3 'Main is spread across the entire page with spare area after each 512 byte chunks
         End Enum
@@ -1260,7 +1263,6 @@ Public Module MainApp
             DOW = 6 '1-Wire
             SPI_NAND = 7
             EPROM = 8 '27-series one-time programmable
-            Mach1 = 9 'High performance SLC/NAND programmer
             Microwire = 10
             Unspecified = 20
         End Enum
@@ -1637,6 +1639,7 @@ Public Module MainApp
     End Sub
 
     Private Sub OnUsbDevice_Disconnected(ByVal usb_dev As FCUSB_DEVICE) Handles USBCLIENT.DeviceDisconnected
+        VCC_OPTION = Voltage.OFF
         usb_dev.USB_LEDOff()
         MEM_IF.Clear(usb_dev) 'Remove all devices that are on this usb port
         If GUI IsNot Nothing Then
@@ -1646,7 +1649,6 @@ Public Module MainApp
                 msg_out = String.Format(RM.GetString("disconnected_from_device"), "FlashcatUSB Pro") '"Disconnected from FlashcatUSB Pro device"
             ElseIf usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
                 msg_out = String.Format(RM.GetString("disconnected_from_device"), "FlashcatUSB Mach¹")
-                If GUI IsNot Nothing Then GUI.Mach1Disconnected()
             Else
                 msg_out = String.Format(RM.GetString("disconnected_from_device"), "FlashcatUSB Classic") '"Disconnected from FlashcatUSB Classic device" 
             End If
@@ -1658,6 +1660,8 @@ Public Module MainApp
     Public Sub AppClosing()
         AppIsClosing = True
         MEM_IF.AbortOperations()
+        USBCLIENT.USB_VCC_OFF()
+        Application.DoEvents()
     End Sub
     'Called when the device connects to USB
     Public Sub OnConnectedEvent(ByVal usb_dev As FCUSB_DEVICE)
@@ -1666,12 +1670,14 @@ Public Module MainApp
         If (Not fw_str = "") Then 'Bootloader does not have FW version
             GUI.UpdateStatusMessage(RM.GetString("board_fw_version"), fw_str)
         End If
+        usb_dev.EXT_IF.FWH_SUPPORTED = False
         Select Case usb_dev.HWBOARD
             Case FCUSB_BOARD.Classic_BL
                 GUI.PrintConsole(RM.GetString("connected_bl_mode"))
                 DFU_Connected_Event(usb_dev)
                 Exit Sub 'No need to detect any device
             Case FCUSB_BOARD.Classic_JTAG
+                GUI.SetStatus("Connected to FlashcatUSB Classic (JTAG firmware)")
                 GUI.PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Classic", fw_str}))
                 GUI.PrintConsole(RM.GetString("fw_feat_supported") & ": JTAG")
                 Dim AvrVerSng As Single = Utilities.StringToSingle(fw_str)
@@ -1682,6 +1688,7 @@ Public Module MainApp
                 End If
                 MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.JTAG
             Case FCUSB_BOARD.Classic_SPI
+                GUI.SetStatus("Connected to FlashcatUSB Classic (SPI firmware)")
                 If MySettings.OPERATION_MODE = DeviceMode.JTAG Then MySettings.OPERATION_MODE = DeviceMode.SPI
                 Dim AvrVerSng As Single = Utilities.StringToSingle(fw_str)
                 If (AvrVerSng < CLASSIC_CURRENT_FW_SPI) Then
@@ -1692,6 +1699,8 @@ Public Module MainApp
                 GUI.PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Classic", fw_str}))
                 GUI.PrintConsole(RM.GetString("fw_feat_supported") & ": SPI, I2C, EXTIO")
             Case FCUSB_BOARD.Classic_XPORT
+                GUI.SetStatus("Connected to FlashcatUSB XPORT")
+                usb_dev.EXT_IF.FWH_SUPPORTED = True
                 Dim AvrVerSng As Single = Utilities.StringToSingle(fw_str)
                 If (AvrVerSng < CLASSIC_CURRENT_FW_SPI) Then
                     GUI.PrintConsole(String.Format(RM.GetString("sw_requires_fw"), CLASSIC_CURRENT_FW_SPI.ToString))
@@ -1704,6 +1713,8 @@ Public Module MainApp
                 GUI.PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB xPort", fw_str}))
                 GUI.PrintConsole(RM.GetString("fw_feat_supported") & ": SPI, I2C, EXTIO")
             Case FCUSB_BOARD.Pro_PCB3
+                GUI.SetStatus("Connected to FlashcatUSB Professional (3.x)")
+
                 If usb_dev.USB_IsBootloaderMode() Then
                     USBCLIENT.HW_BUSY = True
                     GUI.PrintConsole(RM.GetString("connected_bl_mode"))
@@ -1748,23 +1759,10 @@ Public Module MainApp
                 End If
                 FCUSBPRO_SetDeviceVoltage(usb_dev)
             Case FCUSB_BOARD.Pro_PCB4
+                GUI.SetStatus("Connected to FlashcatUSB Professional (4.x)")
                 If MySettings.OPERATION_MODE = DeviceMode.JTAG Then MySettings.OPERATION_MODE = DeviceMode.SPI 'JTAG mode not supported yet
                 If usb_dev.USB_IsBootloaderMode() Then
-                    USBCLIENT.HW_BUSY = True
-                    GUI.PrintConsole(RM.GetString("connected_bl_mode"))
-                    GUI.UpdateStatusMessage(RM.GetString("device_mode"), RM.GetString("bootloader_mode"))
-                    Application.DoEvents()
-                    GUI.SetStatus(RM.GetString("fw_update_performing")) 'Performing firmware unit update
-                    Utilities.Sleep(500)
-                    Dim Current_fw() As Byte = Utilities.GetResourceAsBytes("PCB4_Source.bin")
-                    GUI.SetStatus(String.Format(RM.GetString("fw_update_starting"), Format(Current_fw.Length, "#,###")))
-                    Dim result As Boolean = usb_dev.PCB4_FirmwareUpdate(Current_fw)
-                    If result Then
-                        WriteConsole("Firmware update was a success!")
-                    Else
-                        GUI.SetStatus(RM.GetString("fw_update_error"))
-                    End If
-                    USBCLIENT.HW_BUSY = False
+                    FCUSBPRO_Bootloader(usb_dev, "PCB4_Source.bin")
                     Exit Sub
                 End If
                 GUI.PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Pro", fw_str}))
@@ -1775,9 +1773,19 @@ Public Module MainApp
                 End If
                 If Not FCUSBPRO_PCB4_Init(usb_dev) Then Exit Sub
             Case FCUSB_BOARD.Mach1 'Designed for high-density/high-speed devices (such as 1Gbit+ NOR/MLC NAND)
-                MySettings.OPERATION_MODE = DeviceMode.Mach1
+                GUI.SetStatus("Connected to FlashcatUSB Mach¹")
+                MySettings.OPERATION_MODE = DeviceMode.NOR_NAND 'We only support this mode
+                If usb_dev.USB_IsBootloaderMode() Then
+                    FCUSBPRO_Bootloader(usb_dev, "Mach1_Source.bin")
+                    Exit Sub
+                End If
                 GUI.PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Mach¹", fw_str}))
-                GUI.Mach1Connected()
+                Dim AvrVerSng As Single = Utilities.StringToSingle(fw_str)
+                If (Not AvrVerSng = MACH1_CURRENT_FW) Then 'Current firmware is newer or different, do unit update
+                    FCUSBPRO_RebootToBootloader(usb_dev)
+                    Exit Sub
+                End If
+                If Not FCUSBPRO_Mach1_Init(usb_dev) Then Exit Sub
         End Select
         If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI) Then
             GUI.UpdateStatusMessage(RM.GetString("device_mode"), "Serial Programmable Interface (SPI)")
@@ -1934,6 +1942,8 @@ Public Module MainApp
                     GUI.SetStatus(RM.GetString("mem_flash_supported")) '"Flash device successfully detected and ready for operation"
                     If (usb_dev.EXT_IF.MyAdapter = ExtPort.AdatperType.NAND) Then
                         Connected_Event(usb_dev, MemoryType.SLC_NAND, "NAND Flash", 65536)
+                    ElseIf (usb_dev.EXT_IF.MyAdapter = ExtPort.AdatperType.FWH) Then
+                        Connected_Event(usb_dev, MemoryType.FWH_NOR, "FWH Flash", 4096)
                     Else
                         Connected_Event(usb_dev, MemoryType.PARALLEL_NOR, "NOR Flash", 16384)
                     End If
@@ -1986,7 +1996,7 @@ Public Module MainApp
             Utilities.Sleep(250) 'Wait for IO board vcc to charge
             If GUI IsNot Nothing Then
                 AddHandler usb_dev.EXT_IF.SetProgress, AddressOf GUI.SetStatusPageProgress
-                GUI.SetStatusPageProgress(0)
+                'GUI.SetStatusPageProgress(0)
             End If
             If usb_dev.EXT_IF.EPROM_Init() Then
                 Connected_Event(usb_dev, MemoryType.PARALLEL_NOR, "EPROM", 16384)
@@ -2027,7 +2037,7 @@ Public Module MainApp
                     If MySettings.ECC_READ_ENABLED Or MySettings.ECC_WRITE_ENABLED Then
                         NAND_ECC_ENG = New ECC_LIB.Engine(MySettings.ECC_Algorithum, MySettings.ECC_BitError)
                         NAND_ECC_ENG.ECC_DATA_LOCATION = MySettings.ECC_Location
-                        NAND_ECC_ENG.ECC_SEPERATE = MySettings.ECC_Seperate
+                        NAND_ECC_ENG.ECC_SEPERATE = MySettings.ECC_Separate
                         NAND_ECC_ENG.REVERSE_ARRAY = MySettings.ECC_Reverse
                         NAND_ECC_ENG.SetSymbolWidth(MySettings.ECC_SymWidth)
                         usb_dev.EXT_IF.ECC_READ_ENABLED = MySettings.ECC_READ_ENABLED
@@ -2041,6 +2051,8 @@ Public Module MainApp
                     mem_dev = usb_dev.I2C_IF
                 Case MemoryType.SERIAL_MICROWIRE
                     mem_dev = usb_dev.MW_IF
+                Case MemoryType.FWH_NOR
+                    mem_dev = usb_dev.EXT_IF
             End Select
             Dim dev_inst As MemoryDeviceInstance = MEM_IF.Add(usb_dev, mem_type, mem_dev.DeviceName, mem_dev.DeviceSize)
             dev_inst.PreferredBlockSize = block_size
@@ -2198,7 +2210,25 @@ Public Module MainApp
 
 #End Region
 
-#Region "FlashcatUSB Pro"
+#Region "FlashcatUSB Pro (PCB 4.0) and Mach1"
+
+    Private Sub FCUSBPRO_Bootloader(ByVal usb_dev As FCUSB_DEVICE, ByVal board_firmware As String)
+        USBCLIENT.HW_BUSY = True
+        GUI.PrintConsole(RM.GetString("connected_bl_mode"))
+        GUI.UpdateStatusMessage(RM.GetString("device_mode"), RM.GetString("bootloader_mode"))
+        Application.DoEvents()
+        GUI.SetStatus(RM.GetString("fw_update_performing")) 'Performing firmware unit update
+        Utilities.Sleep(500)
+        Dim Current_fw() As Byte = Utilities.GetResourceAsBytes(board_firmware)
+        GUI.SetStatus(String.Format(RM.GetString("fw_update_starting"), Format(Current_fw.Length, "#,###")))
+        Dim result As Boolean = usb_dev.PCB4_FirmwareUpdate(Current_fw)
+        If result Then
+            WriteConsole("Firmware update was a success!")
+        Else
+            GUI.SetStatus(RM.GetString("fw_update_error"))
+        End If
+        USBCLIENT.HW_BUSY = False
+    End Sub
 
     Private Sub FCUSBPRO_SetDeviceVoltage(ByVal usb_dev As FCUSB_DEVICE)
         If usb_dev.HWBOARD = FCUSB_BOARD.Pro_PCB3 AndAlso MySettings.VOLT_SELECT = Voltage.V5_0 Then
@@ -2247,11 +2277,14 @@ Public Module MainApp
     'PCB 4.x only
     Public Function FCUSBPRO_PCB4_Init(ByVal usb_dev As FCUSB_DEVICE) As Boolean
         If Not usb_dev.HWBOARD = FCUSB_BOARD.Pro_PCB4 Then Return True
-        FCUSBPRO_SetDeviceVoltage(usb_dev) 'Power on CPLD
         Dim cpld32 As UInt32 = usb_dev.CPLD_GetVersion()
+        FCUSBPRO_SetDeviceVoltage(usb_dev) 'Power on CPLD
+
         'DEBUG!
-        'cpld32 = PRO4_CPLD_3V3 
+        'cpld32 = PRO4_CPLD_3V3
         'cpld32 = PRO4_CPLD_I2C
+
+
         Dim mode_needed As CPLD_MODE = CPLD_MODE.NotSelected
         If MySettings.OPERATION_MODE = DeviceMode.I2C_EEPROM Then
             mode_needed = CPLD_MODE.I2C
@@ -2327,8 +2360,16 @@ Public Module MainApp
         I2C 'I2C only mode @ 3.3V
     End Enum
 
-#End Region
+    Public Function FCUSBPRO_Mach1_Init(ByVal usb_dev As FCUSB_DEVICE) As Boolean
+        If Not usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then Return True
+        Dim cpld32 As UInt32 = usb_dev.CPLD_GetVersion()
+        FCUSBPRO_SetDeviceVoltage(usb_dev) 'Power on CPLD
+        usb_dev.EJ_IF.VIA_CPLD = True
+        usb_dev.EJ_IF.Init()
+        Return False
+    End Function
 
+#End Region
 
 
 End Module

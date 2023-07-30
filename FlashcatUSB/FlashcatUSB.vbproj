@@ -112,6 +112,12 @@
     <Compile Include="FrmSettings.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="FrmUSBPerformance.Designer.vb">
+      <DependentUpon>FrmUSBPerformance.vb</DependentUpon>
+    </Compile>
+    <Compile Include="FrmUSBPerformance.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="HexEditor_v2.designer.vb">
       <DependentUpon>HexEditor_v2.vb</DependentUpon>
     </Compile>
@@ -230,6 +236,9 @@
     <EmbeddedResource Include="FrmSettings.resx">
       <DependentUpon>FrmSettings.vb</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="FrmUSBPerformance.resx">
+      <DependentUpon>FrmUSBPerformance.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="HexEditor_v2.resx">
       <DependentUpon>HexEditor_v2.vb</DependentUpon>
     </EmbeddedResource>
@@ -300,6 +309,7 @@
     <EmbeddedResource Include="firmware\PCB3_Boot.bin" />
     <EmbeddedResource Include="firmware\PCB3_BLUPDATE.bin" />
     <EmbeddedResource Include="firmware\PCB4_I2C.svf" />
+    <EmbeddedResource Include="firmware\Mach1_Source.bin" />
     <None Include="My Project\Application.myapp">
       <Generator>MyApplicationCodeGenerator</Generator>
       <LastGenOutput>Application.Designer.vb</LastGenOutput>
@@ -412,6 +422,8 @@
     <None Include="images\spain.png" />
     <None Include="images\russia.png" />
     <None Include="images\Italy.png" />
+    <None Include="images\rpm_16.png" />
+    <None Include="images\rpm_32.png" />
     <Content Include="Main.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />

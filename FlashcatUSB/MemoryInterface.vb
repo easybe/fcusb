@@ -794,6 +794,8 @@ Public Class MemoryInterface
                             data_out = FCUSB.EJ_IF.CFI_ReadFlash(data_offset, data_read_count)
                         Case MemoryType.JTAG_SPI
                             data_out = FCUSB.EJ_IF.SPI_ReadFlash(data_offset, data_read_count)
+                        Case MemoryType.FWH_NOR
+                            data_out = FCUSB.EXT_IF.ReadData(data_offset, data_read_count, memory_area)
                     End Select
                 Catch ex As Exception
                 Finally
@@ -836,6 +838,8 @@ Public Class MemoryInterface
                         FCUSB.EJ_IF.CFI_EraseDevice()
                     Case MemoryType.JTAG_SPI
                         FCUSB.EJ_IF.SPI_EraseBulk()
+                    Case MemoryType.FWH_NOR
+                        Return FCUSB.EXT_IF.EraseDevice()
                     Case MemoryType.DFU_MODE
                         Return True 'Not supported
                 End Select
@@ -866,6 +870,8 @@ Public Class MemoryInterface
                         Me.NoErrors = FCUSB.EJ_IF.SPI_SectorErase(sector_index)
                     Case MemoryType.SERIAL_MICROWIRE
                         Me.NoErrors = FCUSB.MW_IF.Sector_Erase(sector_index)
+                    Case MemoryType.FWH_NOR
+                        Me.NoErrors = FCUSB.EXT_IF.Sector_Erase(sector_index, area)
                 End Select
             Finally
                 Threading.Monitor.Exit(InterfaceLock)
@@ -897,6 +903,8 @@ Public Class MemoryInterface
                         Me.NoErrors = FCUSB.EJ_IF.SPI_WriteSector(sector_index, DataToWrite)
                     Case MemoryType.SERIAL_MICROWIRE
                         Me.NoErrors = FCUSB.MW_IF.Sector_Write(sector_index, DataToWrite)
+                    Case MemoryType.FWH_NOR
+                        Me.NoErrors = FCUSB.EXT_IF.Sector_Write(sector_index, DataToWrite, Params)
                 End Select
                 If Params IsNot Nothing Then Params.Timer.Stop()
             Finally
@@ -922,6 +930,8 @@ Public Class MemoryInterface
                     Return FCUSB.EJ_IF.SPI_Sector_Count()
                 Case MemoryType.SERIAL_MICROWIRE
                     Return FCUSB.MW_IF.Sector_Count()
+                Case MemoryType.FWH_NOR
+                    Return FCUSB.EXT_IF.Sector_Count()
                 Case Else
                     Return 1
             End Select
@@ -943,6 +953,8 @@ Public Class MemoryInterface
                     Return FCUSB.EJ_IF.SPI_GetSectorSize(sector_index)
                 Case MemoryType.SERIAL_MICROWIRE
                     Return FCUSB.MW_IF.SectorSize(sector_index)
+                Case MemoryType.FWH_NOR
+                    Return FCUSB.EXT_IF.SectorSize(sector_index, area)
             End Select
             Return 0
         End Function
@@ -963,6 +975,8 @@ Public Class MemoryInterface
                     Return FCUSB.EJ_IF.CFI_FindSectorBase(sector_index)
                 Case MemoryType.SERIAL_MICROWIRE
                     Return FCUSB.MW_IF.SectorFind(sector_index)
+                Case MemoryType.FWH_NOR
+                    Return FCUSB.EXT_IF.SectorFind(sector_index, area)
                 Case Else
                     Return 0
             End Select

@@ -432,30 +432,35 @@ Namespace USB
             End Function
 
             Public Sub USB_VCC_OFF()
+                VCC_OPTION = Voltage.OFF
                 If Me.HWBOARD = FCUSB_BOARD.Pro_PCB3 Then
-                ElseIf Me.HWBOARD = FCUSB_BOARD.Pro_PCB4 Then
+                ElseIf (Me.HWBOARD = FCUSB_BOARD.Pro_PCB4) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
                     USB_CONTROL_MSG_OUT(USBREQ.CPLD_OFF)
-                    VCC_OPTION = Voltage.OFF
                 End If
             End Sub
 
             Public Sub USB_VCC_1V8()
+                If VCC_OPTION = Voltage.V1_8 Then Exit Sub
+                VCC_OPTION = Voltage.V1_8
                 If Me.HWBOARD = FCUSB_BOARD.Pro_PCB3 Then
                     USB_CONTROL_MSG_OUT(USBREQ.VCC_1V8)
-                    VCC_OPTION = Voltage.V1_8
-                ElseIf Me.HWBOARD = FCUSB_BOARD.Pro_PCB4 Then
+                ElseIf (Me.HWBOARD = FCUSB_BOARD.Pro_PCB4) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    USB_CONTROL_MSG_OUT(USBREQ.CPLD_OFF)
+                    Utilities.Sleep(250)
                     USB_CONTROL_MSG_OUT(USBREQ.CPLD_1V8)
                     VCC_OPTION = Voltage.V1_8
                 End If
             End Sub
 
             Public Sub USB_VCC_3V()
+                If VCC_OPTION = Voltage.V3_3 Then Exit Sub
+                VCC_OPTION = Voltage.V3_3
                 If Me.HWBOARD = FCUSB_BOARD.Pro_PCB3 Then
                     USB_CONTROL_MSG_OUT(USBREQ.VCC_3V)
-                    VCC_OPTION = Voltage.V3_3
-                ElseIf Me.HWBOARD = FCUSB_BOARD.Pro_PCB4 Then
+                ElseIf (Me.HWBOARD = FCUSB_BOARD.Pro_PCB4) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    USB_CONTROL_MSG_OUT(USBREQ.CPLD_OFF)
+                    Utilities.Sleep(250)
                     USB_CONTROL_MSG_OUT(USBREQ.CPLD_3V3)
-                    VCC_OPTION = Voltage.V3_3
                 End If
             End Sub
 
@@ -478,6 +483,10 @@ Namespace USB
                     If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, b) Then Return False
                     If b(0) = 66 Then Return True
                     Return False
+                ElseIf Me.HWBOARD = FCUSB_BOARD.Mach1 Then
+                    Dim b(3) As Byte
+                    If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, b) Then Return False
+                    If b(0) = 66 Then Return True
                 End If
                 Return False
             End Function
@@ -570,7 +579,7 @@ Namespace USB
                         If (b(0) = &H99) Then 'Fresh install
                             Me.FW_VERSION = "1.00"
                         Else
-                            Dim fwstr As String = Utilities.Bytes.ToChrString({b(0), b(1), Asc("."), b(2), b(3)})
+                            Dim fwstr As String = Utilities.Bytes.ToChrString({b(1), Asc("."), b(2), b(3)})
                             If fwstr.StartsWith("0") Then fwstr = Mid(fwstr, 2)
                             Me.FW_VERSION = fwstr
                         End If
@@ -896,6 +905,12 @@ Namespace USB
                 Return Nothing
             End Try
         End Function
+
+        Public Sub USB_VCC_OFF()
+            For Each dev In FCUSB
+                If dev.IS_CONNECTED Then dev.USB_VCC_OFF()
+            Next
+        End Sub
 
         Public Sub USB_VCC_1V8()
             For Each dev In FCUSB

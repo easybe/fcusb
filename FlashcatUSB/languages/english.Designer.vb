@@ -2837,7 +2837,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Seperate.
+        '''  Looks up a localized string similar to Separate.
         '''</summary>
         Friend Shared ReadOnly Property settings_seperate() As String
             Get

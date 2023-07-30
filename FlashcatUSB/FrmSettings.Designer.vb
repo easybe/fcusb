@@ -822,7 +822,7 @@ Partial Class FrmSettings
         Me.rb_mainspare_default.Size = New System.Drawing.Size(68, 17)
         Me.rb_mainspare_default.TabIndex = 1
         Me.rb_mainspare_default.TabStop = True
-        Me.rb_mainspare_default.Text = "Seperate"
+        Me.rb_mainspare_default.Text = "Separate"
         Me.rb_mainspare_default.UseVisualStyleBackColor = True
         '
         'gb_block_manager
@@ -1040,7 +1040,7 @@ Partial Class FrmSettings
         Me.cb_ecc_seperate.Name = "cb_ecc_seperate"
         Me.cb_ecc_seperate.Size = New System.Drawing.Size(237, 17)
         Me.cb_ecc_seperate.TabIndex = 32
-        Me.cb_ecc_seperate.Text = "Seperate OOB area for each 512 byte sector"
+        Me.cb_ecc_seperate.Text = "Separate OOB area for each 512 byte sector"
         Me.cb_ecc_seperate.UseVisualStyleBackColor = True
         '
         'lbl_ECC_size
