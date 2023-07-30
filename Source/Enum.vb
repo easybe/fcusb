@@ -15,6 +15,7 @@ Public Enum DeviceMode As Byte
     SD_MMC_EMMC = 13
     FWH = 14
     DFU = 15
+    P_EEPROM = 16
     Unspecified = 20
 End Enum
 
@@ -29,15 +30,18 @@ Public Enum MEM_PROTOCOL As Byte
     HYPERFLASH = 7
     EPROM_X8 = 8
     EPROM_X16 = 9
+    AT90C = 10
 End Enum
 
 Public Enum ConsoleTask As Byte
     NoTask
     Help
     Check
+    Detect
     ReadMemory
     WriteMemory
     EraseMemory
+    Compare
     ExecuteScript
     License
 End Enum

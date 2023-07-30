@@ -34,7 +34,7 @@ Public Class MemControl_v2
 
     Public Property IN_OPERATION As Boolean = False
     Public Property USER_HIT_CANCEL As Boolean = False
-    Public Property MY_ACCESS As access_mode = access_mode.Writable
+    Public Property MY_ACCESS As access_mode = access_mode.ReadWrite
 
     Public ReadingParams As ReadParameters
     Public WritingParams As WriteParameters
@@ -212,24 +212,29 @@ Public Class MemControl_v2
         SetProgress(0)
         HexEditor64.CreateHexViewer(Me.FlashBase, Me.FlashAvailable)
         txtAddress.Text = "0x0"
-        If access = access_mode.Writable Then
-            cmd_erase.Enabled = True
-            cmd_write.Enabled = True
-        ElseIf access = access_mode.WriteOnce Then
-            cmd_erase.Enabled = False
-            cmd_write.Enabled = True
-        ElseIf access = access_mode.ReadOnly Then
-            cmd_erase.Enabled = False
-            cmd_write.Enabled = False
-        End If
+        Select Case access
+            Case access_mode.Read
+                cmd_erase.Enabled = False
+                cmd_write.Enabled = False
+            Case access_mode.ReadWriteErase
+                cmd_erase.Enabled = True
+                cmd_write.Enabled = True
+            Case access_mode.ReadWriteOnce
+                cmd_erase.Enabled = False
+                cmd_write.Enabled = True
+            Case access_mode.ReadWrite
+                cmd_erase.Enabled = False
+                cmd_write.Enabled = True
+        End Select
         Me.MY_ACCESS = access
         RefreshView()
     End Sub
 
     Public Enum access_mode
-        [ReadOnly] 'We can read but can not write
-        [Writable]
-        [WriteOnce]
+        Read 'We can read but can not write
+        ReadWriteErase 'We can read, write, and perform a full erase
+        ReadWriteOnce 'We can read but can only write once
+        ReadWrite 'We can read and write
     End Enum
 
     Friend Class DynamicRangeBox
@@ -389,7 +394,7 @@ Public Class MemControl_v2
 
     End Class
 
-    Friend Sub DisableWrite()
+    Public Sub DisableWrite()
         If Me.InvokeRequired Then
             Dim d As New cbInvokeControl(AddressOf DisableWrite)
             d.Invoke()
@@ -398,7 +403,7 @@ Public Class MemControl_v2
         End If
     End Sub
 
-    Friend Sub DisableErase()
+    Public Sub DisableErase()
         If Me.InvokeRequired Then
             Dim d As New cbInvokeControl(AddressOf DisableErase)
             d.Invoke()
@@ -633,7 +638,7 @@ Public Class MemControl_v2
             Me.Invoke(d)
         Else
             If Me.EnableChipErase Then
-                If Me.MY_ACCESS = access_mode.Writable Then cmd_erase.Enabled = True
+                If Me.MY_ACCESS = access_mode.ReadWriteErase Then cmd_erase.Enabled = True
             Else
                 cmd_erase.Enabled = False
             End If
@@ -646,9 +651,11 @@ Public Class MemControl_v2
             Me.Invoke(d)
         Else
             cmd_read.Enabled = True
-            If Me.MY_ACCESS = access_mode.Writable Then
+            If Me.MY_ACCESS = access_mode.ReadWriteErase Then
                 cmd_write.Enabled = True
-            ElseIf Me.MY_ACCESS = access_mode.WriteOnce Then
+            ElseIf Me.MY_ACCESS = access_mode.ReadWriteOnce Then
+                cmd_write.Enabled = True
+            ElseIf Me.MY_ACCESS = access_mode.ReadWrite Then
                 cmd_write.Enabled = True
             End If
             SetChipEraseButton()
@@ -781,7 +788,7 @@ Public Class MemControl_v2
         Try
             Dim SaveMe As New SaveFileDialog
             SaveMe.AddExtension = True
-            SaveMe.InitialDirectory = Application.StartupPath
+            SaveMe.InitialDirectory = DefaultLocation
             SaveMe.Title = RM.GetString("mc_io_save_type")
             SaveMe.CheckPathExists = True
             SaveMe.FileName = DefaultName.Replace("/", "-")
@@ -817,7 +824,7 @@ Public Class MemControl_v2
         Dim AllFiles As String = "All files (*.*)|*.*"
         Dim OpenMe As New OpenFileDialog
         OpenMe.AddExtension = True
-        OpenMe.InitialDirectory = Application.StartupPath
+        OpenMe.InitialDirectory = DefaultLocation
         OpenMe.Title = String.Format(RM.GetString("mc_io_file_choose"), FlashName)
         OpenMe.CheckPathExists = True
         OpenMe.Filter = BinFile & "|" & IntelHexFormat & "|" & SrecFormat & "|" & AllFiles 'Bin Files, Hex Files, SREC, All Files
@@ -848,7 +855,7 @@ Public Class MemControl_v2
         Dim AllFiles As String = "All files (*.*)|*.*"
         Dim OpenMe As New OpenFileDialog
         OpenMe.AddExtension = True
-        OpenMe.InitialDirectory = Application.StartupPath
+        OpenMe.InitialDirectory = DefaultLocation
         OpenMe.Title = String.Format(RM.GetString("mc_compare_selected"), FlashName) '"File selected, verifying {0}"
         OpenMe.CheckPathExists = True
         OpenMe.Filter = BinFile & "|" & IntelHexFormat & "|" & SrecFormat & "|" & AllFiles

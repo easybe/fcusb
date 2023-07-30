@@ -41,7 +41,7 @@ Public Class FlashcatSettings
     Public Property SPI_CLOCK_MAX As SPI.SPI_SPEED
     Public Property SQI_CLOCK_MAX As SPI.SQI_SPEED
     Public Property SPI_MODE As SPI.SPI_CLOCK_POLARITY 'MODE=0 
-    Public Property SPI_EEPROM As String 'Name of the EEPROM
+    Public Property SPI_EEPROM As String 'Name of the SERIAL EEPROM
     Public Property SPI_FASTREAD As Boolean
     Public Property SPI_AUTO As Boolean 'Indicates if the software will use common op commands
     Public Property SPI_NAND_DISABLE_ECC As Boolean
@@ -69,6 +69,7 @@ Public Class FlashcatSettings
     Public Property S93_DEVICE As String 'Name of the part number
     Public Property S93_DEVICE_ORG As Integer '0=8-bit,1=16-bit
     Public Property SREC_DATAMODE As SREC.RECORD_DATAWIDTH '0=8-bit,1=16-bit
+    Public Property PARALLEL_EEPROM As String 'Name of the Parallel EEPROM
     'JTAG
     Public Property JTAG_SPEED As JTAG.JTAG_SPEED
     'License
@@ -124,10 +125,12 @@ Public Class FlashcatSettings
         Me.S93_DEVICE = SettingsFile.GetValue("S93_DEVICE_NAME", "")
         Me.S93_DEVICE_ORG = SettingsFile.GetValue("S93_ORG", 0)
         Me.SREC_DATAMODE = CType(SettingsFile.GetValue("SREC_ORG", 0), SREC.RECORD_DATAWIDTH)
+        Me.PARALLEL_EEPROM = SettingsFile.GetValue("PARALLEL_EEPROM", "")
         Me.JTAG_SPEED = CType(SettingsFile.GetValue("JTAG_FREQ", JTAG.JTAG_SPEED._10MHZ), JTAG.JTAG_SPEED)
         Me.NOR_READ_ACCESS = SettingsFile.GetValue("NOR_READ_ACCESS", 200)
         Me.NOR_WE_PULSE = SettingsFile.GetValue("NOR_WE_PULSE", 125)
-        ValidateEEPROM()
+        Validate_SerialEEPROM()
+        Validate_ParallelEEPROM()
         SettingsFile.ECC_Load()
     End Sub
 
@@ -166,17 +169,18 @@ Public Class FlashcatSettings
         SettingsFile.SetValue("S93_DEVICE_NAME", Me.S93_DEVICE)
         SettingsFile.SetValue("S93_ORG", Me.S93_DEVICE_ORG)
         SettingsFile.SetValue("SREC_ORG", Me.SREC_DATAMODE)
+        SettingsFile.SetValue("PARALLEL_EEPROM", Me.PARALLEL_EEPROM)
         SettingsFile.SetValue("JTAG_FREQ", Me.JTAG_SPEED)
         SettingsFile.SetValue("NOR_READ_ACCESS", Me.NOR_READ_ACCESS)
         SettingsFile.SetValue("NOR_WE_PULSE", Me.NOR_WE_PULSE)
         SettingsFile.ECC_Save()
     End Sub
 
-    Private Sub ValidateEEPROM()
+    Private Sub Validate_SerialEEPROM()
         Try
             Dim EEPROM_FOUND As Boolean = False
             If Not Me.SPI_EEPROM.Equals("") Then
-                Dim d() As SPI_NOR = GetDevices_SPI_EEPROM()
+                Dim d() As SPI_NOR = GetDevices_SERIAL_EEPROM()
                 For Each dev In d
                     If dev.NAME.Equals(Me.SPI_EEPROM) Then
                         EEPROM_FOUND = True
@@ -189,6 +193,25 @@ Public Class FlashcatSettings
             Me.SPI_EEPROM = ""
         End Try
     End Sub
+
+    Private Sub Validate_ParallelEEPROM()
+        Try
+            Dim EEPROM_FOUND As Boolean = False
+            If Not Me.PARALLEL_EEPROM.Equals("") Then
+                Dim d() As P_NOR = GetDevices_PARALLEL_EEPROM()
+                For Each dev In d
+                    If dev.NAME.Equals(Me.PARALLEL_EEPROM) Then
+                        EEPROM_FOUND = True
+                        Exit For
+                    End If
+                Next
+            End If
+            If Not EEPROM_FOUND Then Me.PARALLEL_EEPROM = ""
+        Catch ex As Exception
+            Me.PARALLEL_EEPROM = ""
+        End Try
+    End Sub
+
 
     Public Shared Function NandMemSpeedToString(speed As NandMemSpeed) As String
         Select Case speed

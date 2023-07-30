@@ -99,6 +99,9 @@ Partial Class FrmSettings
         Me.lbl_1st_byte = New System.Windows.Forms.Label()
         Me.cb_badblock_disabled = New System.Windows.Forms.RadioButton()
         Me.gb_nand_general = New System.Windows.Forms.GroupBox()
+        Me.rbNandWait_SR = New System.Windows.Forms.RadioButton()
+        Me.lblNandWait = New System.Windows.Forms.Label()
+        Me.rbNandWait_RBx = New System.Windows.Forms.RadioButton()
         Me.cbNAND_Speed = New System.Windows.Forms.ComboBox()
         Me.Label2 = New System.Windows.Forms.Label()
         Me.cb_nand_image_readverify = New System.Windows.Forms.CheckBox()
@@ -147,9 +150,8 @@ Partial Class FrmSettings
         Me.cb_retry_write = New System.Windows.Forms.ComboBox()
         Me.Label17 = New System.Windows.Forms.Label()
         Me.Label20 = New System.Windows.Forms.Label()
-        Me.rbNandWait_RBx = New System.Windows.Forms.RadioButton()
-        Me.lblNandWait = New System.Windows.Forms.Label()
-        Me.rbNandWait_SR = New System.Windows.Forms.RadioButton()
+        Me.cb_parallel_eeprom = New System.Windows.Forms.ComboBox()
+        Me.Label26 = New System.Windows.Forms.Label()
         Me.MyTabs.SuspendLayout()
         Me.TP_SPI.SuspendLayout()
         Me.group_custom.SuspendLayout()
@@ -1003,6 +1005,38 @@ Partial Class FrmSettings
         Me.gb_nand_general.TabStop = False
         Me.gb_nand_general.Text = "General"
         '
+        'rbNandWait_SR
+        '
+        Me.rbNandWait_SR.AutoSize = True
+        Me.rbNandWait_SR.Location = New System.Drawing.Point(391, 85)
+        Me.rbNandWait_SR.Name = "rbNandWait_SR"
+        Me.rbNandWait_SR.Size = New System.Drawing.Size(92, 17)
+        Me.rbNandWait_SR.TabIndex = 8
+        Me.rbNandWait_SR.TabStop = True
+        Me.rbNandWait_SR.Text = "Status-register"
+        Me.rbNandWait_SR.UseVisualStyleBackColor = True
+        '
+        'lblNandWait
+        '
+        Me.lblNandWait.AutoSize = True
+        Me.lblNandWait.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblNandWait.Location = New System.Drawing.Point(270, 87)
+        Me.lblNandWait.Name = "lblNandWait"
+        Me.lblNandWait.Size = New System.Drawing.Size(37, 13)
+        Me.lblNandWait.TabIndex = 7
+        Me.lblNandWait.Text = "Wait:"
+        '
+        'rbNandWait_RBx
+        '
+        Me.rbNandWait_RBx.AutoSize = True
+        Me.rbNandWait_RBx.Location = New System.Drawing.Point(313, 85)
+        Me.rbNandWait_RBx.Name = "rbNandWait_RBx"
+        Me.rbNandWait_RBx.Size = New System.Drawing.Size(62, 17)
+        Me.rbNandWait_RBx.TabIndex = 6
+        Me.rbNandWait_RBx.TabStop = True
+        Me.rbNandWait_RBx.Text = "RBx pin"
+        Me.rbNandWait_RBx.UseVisualStyleBackColor = True
+        '
         'cbNAND_Speed
         '
         Me.cbNAND_Speed.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
@@ -1351,7 +1385,7 @@ Partial Class FrmSettings
         '
         Me.GroupBox2.Controls.Add(Me.cb_jtag_tck_speed)
         Me.GroupBox2.Controls.Add(Me.Label22)
-        Me.GroupBox2.Location = New System.Drawing.Point(6, 190)
+        Me.GroupBox2.Location = New System.Drawing.Point(6, 218)
         Me.GroupBox2.Name = "GroupBox2"
         Me.GroupBox2.Size = New System.Drawing.Size(244, 84)
         Me.GroupBox2.TabIndex = 52
@@ -1379,6 +1413,8 @@ Partial Class FrmSettings
         '
         'GroupBox3
         '
+        Me.GroupBox3.Controls.Add(Me.cb_parallel_eeprom)
+        Me.GroupBox3.Controls.Add(Me.Label26)
         Me.GroupBox3.Controls.Add(Me.Label16)
         Me.GroupBox3.Controls.Add(Me.cbSrec)
         Me.GroupBox3.Controls.Add(Me.cb_ce_select)
@@ -1387,7 +1423,7 @@ Partial Class FrmSettings
         Me.GroupBox3.Controls.Add(Me.Label20)
         Me.GroupBox3.Location = New System.Drawing.Point(6, 6)
         Me.GroupBox3.Name = "GroupBox3"
-        Me.GroupBox3.Size = New System.Drawing.Size(244, 178)
+        Me.GroupBox3.Size = New System.Drawing.Size(244, 206)
         Me.GroupBox3.TabIndex = 1
         Me.GroupBox3.TabStop = False
         Me.GroupBox3.Text = "General"
@@ -1395,7 +1431,7 @@ Partial Class FrmSettings
         'Label16
         '
         Me.Label16.AutoSize = True
-        Me.Label16.Location = New System.Drawing.Point(9, 126)
+        Me.Label16.Location = New System.Drawing.Point(9, 113)
         Me.Label16.Name = "Label16"
         Me.Label16.Size = New System.Drawing.Size(104, 13)
         Me.Label16.TabIndex = 49
@@ -1406,7 +1442,7 @@ Partial Class FrmSettings
         Me.cbSrec.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cbSrec.FormattingEnabled = True
         Me.cbSrec.Items.AddRange(New Object() {"8-bit (byte)", "16-bit (word)"})
-        Me.cbSrec.Location = New System.Drawing.Point(9, 144)
+        Me.cbSrec.Location = New System.Drawing.Point(9, 130)
         Me.cbSrec.Name = "cbSrec"
         Me.cbSrec.Size = New System.Drawing.Size(104, 21)
         Me.cbSrec.TabIndex = 48
@@ -1416,7 +1452,7 @@ Partial Class FrmSettings
         Me.cb_ce_select.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_ce_select.FormattingEnabled = True
         Me.cb_ce_select.Items.AddRange(New Object() {"Disabled", "A18", "A19", "A20", "A21", "A22", "A23", "A24", "A25", "A26", "A27"})
-        Me.cb_ce_select.Location = New System.Drawing.Point(9, 88)
+        Me.cb_ce_select.Location = New System.Drawing.Point(9, 84)
         Me.cb_ce_select.Name = "cb_ce_select"
         Me.cb_ce_select.Size = New System.Drawing.Size(104, 21)
         Me.cb_ce_select.TabIndex = 47
@@ -1434,7 +1470,7 @@ Partial Class FrmSettings
         'Label17
         '
         Me.Label17.AutoSize = True
-        Me.Label17.Location = New System.Drawing.Point(9, 21)
+        Me.Label17.Location = New System.Drawing.Point(9, 22)
         Me.Label17.Name = "Label17"
         Me.Label17.Size = New System.Drawing.Size(112, 13)
         Me.Label17.TabIndex = 40
@@ -1443,43 +1479,29 @@ Partial Class FrmSettings
         'Label20
         '
         Me.Label20.AutoSize = True
-        Me.Label20.Location = New System.Drawing.Point(9, 72)
+        Me.Label20.Location = New System.Drawing.Point(9, 67)
         Me.Label20.Name = "Label20"
         Me.Label20.Size = New System.Drawing.Size(153, 13)
         Me.Label20.TabIndex = 46
         Me.Label20.Text = "Multi-chip select (Parallel NOR)"
         '
-        'rbNandWait_RBx
+        'cb_parallel_eeprom
         '
-        Me.rbNandWait_RBx.AutoSize = True
-        Me.rbNandWait_RBx.Location = New System.Drawing.Point(313, 85)
-        Me.rbNandWait_RBx.Name = "rbNandWait_RBx"
-        Me.rbNandWait_RBx.Size = New System.Drawing.Size(62, 17)
-        Me.rbNandWait_RBx.TabIndex = 6
-        Me.rbNandWait_RBx.TabStop = True
-        Me.rbNandWait_RBx.Text = "RBx pin"
-        Me.rbNandWait_RBx.UseVisualStyleBackColor = True
+        Me.cb_parallel_eeprom.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_parallel_eeprom.FormattingEnabled = True
+        Me.cb_parallel_eeprom.Location = New System.Drawing.Point(9, 177)
+        Me.cb_parallel_eeprom.Name = "cb_parallel_eeprom"
+        Me.cb_parallel_eeprom.Size = New System.Drawing.Size(156, 21)
+        Me.cb_parallel_eeprom.TabIndex = 55
         '
-        'lblNandWait
+        'Label26
         '
-        Me.lblNandWait.AutoSize = True
-        Me.lblNandWait.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lblNandWait.Location = New System.Drawing.Point(270, 87)
-        Me.lblNandWait.Name = "lblNandWait"
-        Me.lblNandWait.Size = New System.Drawing.Size(37, 13)
-        Me.lblNandWait.TabIndex = 7
-        Me.lblNandWait.Text = "Wait:"
-        '
-        'rbNandWait_SR
-        '
-        Me.rbNandWait_SR.AutoSize = True
-        Me.rbNandWait_SR.Location = New System.Drawing.Point(391, 85)
-        Me.rbNandWait_SR.Name = "rbNandWait_SR"
-        Me.rbNandWait_SR.Size = New System.Drawing.Size(92, 17)
-        Me.rbNandWait_SR.TabIndex = 8
-        Me.rbNandWait_SR.TabStop = True
-        Me.rbNandWait_SR.Text = "Status-register"
-        Me.rbNandWait_SR.UseVisualStyleBackColor = True
+        Me.Label26.AutoSize = True
+        Me.Label26.Location = New System.Drawing.Point(8, 160)
+        Me.Label26.Name = "Label26"
+        Me.Label26.Size = New System.Drawing.Size(125, 13)
+        Me.Label26.TabIndex = 56
+        Me.Label26.Text = "Parallel EEPROM device"
         '
         'FrmSettings
         '
@@ -1662,4 +1684,6 @@ Partial Class FrmSettings
     Friend WithEvents rbNandWait_SR As RadioButton
     Friend WithEvents lblNandWait As Label
     Friend WithEvents rbNandWait_RBx As RadioButton
+    Friend WithEvents cb_parallel_eeprom As ComboBox
+    Friend WithEvents Label26 As Label
 End Class

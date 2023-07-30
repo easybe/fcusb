@@ -13,10 +13,11 @@ Public Class ConsoleMode
         Public Property VERIFY As Boolean = True
         Public Property FILENAME As String ' The filename to write to or read from
         Public Property FILE_IO As FileInfo
-        Public Property FILE_LENGTH As Long = 0 ' Optional file length argument
+        Public Property DATA_LENGTH As Long = 0 ' Optional file length argument
         Public Property FLASH_OFFSET As Long = 0UI
         Public Property FLASH_AREA As FlashMemory.FlashArea = FlashMemory.FlashArea.Main
         Public Property SPI_EEPROM As String
+        Public Property PARALLEL_EEPROM As String
         Public Property SPI_FREQ As SPI.SPI_SPEED = SPI.SPI_SPEED.MHZ_8
         Public Property I2C_EEPROM As Integer
         Public Property LogOutput As Boolean = False
@@ -31,7 +32,6 @@ Public Class ConsoleMode
             PrintConsole(RM.GetString("welcome_to_flashcatusb") & ", build: " & FC_BUILD)
             PrintConsole("Copyright " & Date.Now.Year & " - Embedded Computers LLC")
             PrintConsole("Running on: " & os_ver & " (" & MainApp.GetOsBitsString() & ")")
-            'PrintConsole("Running on: " & My.Computer.Info.OSFullName & " (" & GetOsBitsString() & ")")
             PrintConsole("FlashcatUSB Script Engine build: " & EC_ScriptEngine.Processor.Build)
             If MainApp.LicenseStatus = LicenseStatusEnum.LicensedValid Then
                 Me.PrintConsole("License status: valid (expires " & MainApp.MySettings.LICENSE_EXP.ToShortDateString() & ")")
@@ -96,6 +96,9 @@ Public Class ConsoleMode
             Case "-CHECK"
                 MyConsoleParams.CurrentTask = ConsoleTask.Check
                 Exit Select
+            Case "-DETECT"
+                MyConsoleParams.CurrentTask = ConsoleTask.Detect
+                Exit Select
             Case "-READ"
                 MyConsoleParams.CurrentTask = ConsoleTask.ReadMemory
                 Exit Select
@@ -105,14 +108,17 @@ Public Class ConsoleMode
             Case "-ERASE"
                 MyConsoleParams.CurrentTask = ConsoleTask.EraseMemory
                 Exit Select
-            Case "-EXECUTE"
+            Case "-SCRIPT"
                 MyConsoleParams.CurrentTask = ConsoleTask.ExecuteScript
+                Exit Select
+            Case "-COMPARE"
+                MyConsoleParams.CurrentTask = ConsoleTask.Compare
                 Exit Select
             Case "-KEY"
                 MyConsoleParams.CurrentTask = ConsoleTask.License
                 Exit Select
             Case Else
-                PrintConsole("OPERATION not specified (i.e. -READ or -WRITE)")
+                PrintConsole("OPERATION mode not specified")
                 Return Nothing
         End Select
         arg_index += 1
@@ -141,6 +147,8 @@ Public Class ConsoleMode
                 MyConsoleParams.Mode = DeviceMode.PNOR : arg_index += 1
             ElseIf Equals(args(1).ToUpper(), "-PNAND") Then
                 MyConsoleParams.Mode = DeviceMode.PNAND : arg_index += 1
+            ElseIf Equals(args(1).ToUpper(), "-PEEPROM") Then
+                MyConsoleParams.Mode = DeviceMode.P_EEPROM : arg_index += 1
             ElseIf Equals(args(1).ToUpper(), "-MICROWIRE") Then
                 MyConsoleParams.Mode = DeviceMode.Microwire : arg_index += 1
             ElseIf Equals(args(1).ToUpper(), "-FWH") Then
@@ -241,9 +249,9 @@ Public Class ConsoleMode
                             Return Nothing
                         End If
                         If Utilities.IsNumeric(offset_value) Then
-                            MyConsoleParams.FILE_LENGTH = Integer.Parse(offset_value)
+                            MyConsoleParams.DATA_LENGTH = Integer.Parse(offset_value)
                         ElseIf Utilities.IsDataType.HexString(offset_value) Then
-                            MyConsoleParams.FILE_LENGTH = Utilities.HexToLng(offset_value)
+                            MyConsoleParams.DATA_LENGTH = Utilities.HexToLng(offset_value)
                         End If
                         Exit Select
                     Case "-VERIFY_OFF"
@@ -288,12 +296,22 @@ Public Class ConsoleMode
                             index += 1
                         Next
                         If Not Device_Found Then
-                            Dim SPI_EEPROM_LIST = MainApp.GetDevices_SPI_EEPROM()
+                            Dim SPI_EEPROM_LIST = MainApp.GetDevices_SERIAL_EEPROM()
                             For Each dev In SPI_EEPROM_LIST
                                 Dim spi_part As String = dev.NAME.Substring(dev.NAME.IndexOf(" ") + 1)
-
                                 If dev.NAME.ToUpper().Equals(eeprom_str.ToUpper()) OrElse spi_part.ToUpper().Equals(eeprom_str.ToUpper()) Then
                                     MyConsoleParams.SPI_EEPROM = dev.NAME
+                                    Device_Found = True
+                                    Exit For
+                                End If
+                            Next
+                        End If
+                        If Not Device_Found Then
+                            Dim SPI_EEPROM_LIST = MainApp.GetDevices_PARALLEL_EEPROM()
+                            For Each dev In SPI_EEPROM_LIST
+                                Dim spi_part As String = dev.NAME.Substring(dev.NAME.IndexOf(" ") + 1)
+                                If dev.NAME.ToUpper().Equals(eeprom_str.ToUpper()) OrElse spi_part.ToUpper().Equals(eeprom_str.ToUpper()) Then
+                                    MyConsoleParams.PARALLEL_EEPROM = dev.NAME
                                     Device_Found = True
                                     Exit For
                                 End If
@@ -323,20 +341,19 @@ Public Class ConsoleMode
             Case ConsoleTask.Check
                 ConsoleMode_Check()
                 Return False
+            Case ConsoleTask.Detect
+                PrintConsole("Performing memory Auto-Detect")
             Case ConsoleTask.ReadMemory
                 If String.IsNullOrEmpty(MyOperation.FILENAME) Then
                     Environment.ExitCode = -1
-                    Dim msg = "Operation ReadMemory requires option -FILE to specify where to save to"
-                    PrintConsole(msg)
+                    PrintConsole("Operation ReadMemory requires option -FILE to specify where to save to")
                     Return False
                 End If
                 MyOperation.FILE_IO = New FileInfo(MyOperation.FILENAME)
-                Exit Select
             Case ConsoleTask.WriteMemory
                 If String.IsNullOrEmpty(MyOperation.FILENAME) Then
                     Environment.ExitCode = -1
-                    Dim msg = "Operation WriteMemory requires option -FILE to specify where to save to"
-                    PrintConsole(msg)
+                    PrintConsole("Operation WriteMemory requires option -FILE to specify where to save to")
                     Return False
                 End If
                 MyOperation.FILE_IO = New FileInfo(MyOperation.FILENAME)
@@ -345,12 +362,21 @@ Public Class ConsoleMode
                     PrintConsole("Error: file not found" & ": " & MyOperation.FILENAME)
                     Return False
                 End If
-                Exit Select
-            Case ConsoleTask.ExecuteScript
+            Case ConsoleTask.Compare
                 If String.IsNullOrEmpty(MyOperation.FILENAME) Then
                     Environment.ExitCode = -1
-                    Dim msg = "Operation ExecuteScript requires option -FILE to specify which script to run"
-                    PrintConsole(msg)
+                    PrintConsole("Operation Compare requires option -FILE to specify which file to compare to")
+                    Return False
+                End If
+                MyOperation.FILE_IO = New FileInfo(MyOperation.FILENAME)
+                If Not MyOperation.FILE_IO.Exists Then
+                    Environment.ExitCode = -1
+                    PrintConsole("Error: file not found" & ": " & MyOperation.FILENAME)
+                    Return False
+                End If
+            Case ConsoleTask.ExecuteScript
+                If String.IsNullOrEmpty(MyOperation.FILENAME) Then
+                    PrintConsole("Operation ExecuteScript requires option -FILE to specify which script to run")
                     Return False
                 End If
                 MyOperation.FILE_IO = New FileInfo((New IO.FileInfo(MyLocation)).DirectoryName & "\Scripts\" & MyOperation.FILENAME)
@@ -362,9 +388,7 @@ Public Class ConsoleMode
                         Return False
                     End If
                 End If
-                Exit Select
         End Select
-
         Return True
     End Function
 
@@ -383,7 +407,6 @@ Public Class ConsoleMode
         End If
         If Not DetectDevice.Device(MainApp.MAIN_FCUSB, GetDeviceParams()) Then
             Environment.ExitCode = -1
-            PrintConsole("Unable to perform any actions because there are no detected memory devices")
             Return
         End If
         Dim mem_dev As MemoryInterface.MemoryDeviceInstance = MainApp.MEM_IF.GetDevice(0)
@@ -404,9 +427,14 @@ Public Class ConsoleMode
             Case ConsoleTask.EraseMemory
                 operation_success = Me.ConsoleMode_RunTask_EraseMemory(mem_dev)
                 Exit Select
+            Case ConsoleTask.Compare
+                operation_success = Me.ConsoleMode_RunTask_CompareMemory(mem_dev)
+                Exit Select
             Case ConsoleTask.ExecuteScript
                 operation_success = Me.ConsoleMode_RunTask_ExecuteScript(mem_dev)
                 Exit Select
+            Case ConsoleTask.Detect
+                operation_success = True
         End Select
         PrintConsole("----------------------------------------------")
         PrintConsole("Application completed")
@@ -428,8 +456,8 @@ Public Class ConsoleMode
             If MyOperation.FLASH_OFFSET > mem_dev.Size Then
                 MyOperation.FLASH_OFFSET = 0UI ' Out of bounds
             End If
-            If MyOperation.FILE_LENGTH = 0 Or MyOperation.FLASH_OFFSET + MyOperation.FILE_LENGTH > mem_dev.Size Then
-                MyOperation.FILE_LENGTH = mem_dev.Size - MyOperation.FLASH_OFFSET
+            If MyOperation.DATA_LENGTH = 0 Or MyOperation.FLASH_OFFSET + MyOperation.DATA_LENGTH > mem_dev.Size Then
+                MyOperation.DATA_LENGTH = mem_dev.Size - MyOperation.FLASH_OFFSET
             End If
             Dim cb = New MemoryInterface.MemoryDeviceInstance.StatusCallback()
             cb.UpdatePercent = New UpdateFunction_Progress(AddressOf Progress_Set)
@@ -437,7 +465,7 @@ Public Class ConsoleMode
             Dim f_params = New ReadParameters()
             Using ms = MyOperation.FILE_IO.OpenWrite()
                 f_params.Address = MyOperation.FLASH_OFFSET
-                f_params.Count = MyOperation.FILE_LENGTH
+                f_params.Count = MyOperation.DATA_LENGTH
                 f_params.Status = cb
                 mem_dev.ReadStream(ms, f_params)
             End Using
@@ -455,12 +483,12 @@ Public Class ConsoleMode
             Progress_Create()
             If MyOperation.FLASH_OFFSET > mem_dev.Size Then MyOperation.FLASH_OFFSET = 0UI ' Out of bounds
             Dim max_write_count As UInt32 = CUInt(Math.Min(mem_dev.Size, MyOperation.FILE_IO.Length))
-            If MyOperation.FILE_LENGTH = 0 Then
-                MyOperation.FILE_LENGTH = max_write_count
-            ElseIf MyOperation.FILE_LENGTH > max_write_count Then
-                MyOperation.FILE_LENGTH = max_write_count
+            If MyOperation.DATA_LENGTH = 0 Then
+                MyOperation.DATA_LENGTH = max_write_count
+            ElseIf MyOperation.DATA_LENGTH > max_write_count Then
+                MyOperation.DATA_LENGTH = max_write_count
             End If
-            Dim data_out = Utilities.FileIO.ReadBytes(MyOperation.FILE_IO.FullName, MyOperation.FILE_LENGTH)
+            Dim data_out() As Byte = Utilities.FileIO.ReadBytes(MyOperation.FILE_IO.FullName, MyOperation.DATA_LENGTH)
             If data_out Is Nothing OrElse data_out.Length = 0 Then
                 Environment.ExitCode = -1
                 PrintConsole("Error: Write was not successful because there is no data to write")
@@ -468,8 +496,8 @@ Public Class ConsoleMode
             End If
             Dim verify_str = "enabled"
             If Not MyOperation.VERIFY Then verify_str = "disabled"
-            PrintConsole("Performing WRITE of " & MyOperation.FILE_LENGTH.ToString("#,###") & " bytes at offset 0x" & MyOperation.FLASH_OFFSET.ToString("X") & " with verify " & verify_str)
-            Array.Resize(data_out, CInt(MyOperation.FILE_LENGTH))
+            PrintConsole("Performing WRITE of " & MyOperation.DATA_LENGTH.ToString("#,###") & " bytes at offset 0x" & MyOperation.FLASH_OFFSET.ToString("X") & " with verify " & verify_str)
+            Array.Resize(data_out, CInt(MyOperation.DATA_LENGTH))
             Dim cb = New MemoryInterface.MemoryDeviceInstance.StatusCallback()
             cb.UpdatePercent = New UpdateFunction_Progress(AddressOf Progress_Set)
             cb.UpdateSpeed = New UpdateFunction_SpeedLabel(AddressOf Progress_UpdateSpeed)
@@ -505,12 +533,53 @@ Public Class ConsoleMode
         End Try
     End Function
 
+    Private Function ConsoleMode_RunTask_CompareMemory(mem_dev As MemoryInterface.MemoryDeviceInstance) As Boolean
+        Try
+            Progress_Create()
+            If MyOperation.FLASH_OFFSET > mem_dev.Size Then
+                MyOperation.FLASH_OFFSET = 0UI ' Out of bounds
+            End If
+            If MyOperation.DATA_LENGTH = 0 OrElse MyOperation.FLASH_OFFSET + MyOperation.DATA_LENGTH > mem_dev.Size Then
+                MyOperation.DATA_LENGTH = mem_dev.Size - MyOperation.FLASH_OFFSET
+            End If
+            If MyOperation.DATA_LENGTH > MyOperation.FILE_IO.Length Then MyOperation.DATA_LENGTH = MyOperation.FILE_IO.Length
+            Dim cmp_data() As Byte = Utilities.FileIO.ReadBytes(MyOperation.FILE_IO.FullName, MyOperation.DATA_LENGTH)
+            PrintConsole(String.Format("Performing memory compare operation of {0} bytes", cmp_data.Length.ToString("#,###")))
+            Dim err_counter As Integer = 0
+            Dim bytes_left As Integer = cmp_data.Length
+            Dim bytes_read As Integer = 0
+            Dim addr As Long = MyOperation.FLASH_OFFSET
+            Progress_Set(0)
+            While (bytes_left > 0)
+                Progress_UpdateSpeed(String.Format("{0} of {1} bytes processed", bytes_read.ToString("#,###"), cmp_data.Length.ToString("#,###")))
+                Dim count As Integer = Math.Min(bytes_left, 131072) 'Read up to 128KB per check
+                Dim block() As Byte = mem_dev.ReadFlash(addr, count)
+                If block Is Nothing Then PrintConsole("Error: while reading memory from device") : Return False
+                For i = 0 To block.Length - 1
+                    If Not block(i) = cmp_data(bytes_read + i) Then err_counter += 1
+                Next
+                bytes_left -= count : addr += count : bytes_read += count
+                Progress_Set(bytes_read / cmp_data.Length * 100)
+            End While
+            Dim valid_bytes As Integer = cmp_data.Length - err_counter
+            Dim mismatch As Integer = CInt(CSng(CSng(valid_bytes) / CSng(cmp_data.Length)) * 100)
+            PrintConsole(String.Format(RM.GetString("mc_compare_mismatch"), err_counter.ToString("#,##0"), mismatch))
+            Utilities.Sleep(100)
+            Return True
+        Catch
+            Return False
+        Finally
+            Progress_Remove()
+        End Try
+    End Function
+
     Private Function ConsoleMode_RunTask_ExecuteScript(mem_dev As MemoryInterface.MemoryDeviceInstance) As Boolean
         MainApp.CURRENT_DEVICE_MODE = MyOperation.Mode
         If Not MainApp.ScriptProcessor.LoadFile(MyOperation.FILE_IO) Then
             Environment.ExitCode = -1
             Return False
         Else
+            Utilities.Sleep(100)
             While MainApp.ScriptProcessor.IsRunning
                 Utilities.Sleep(20)
             End While
@@ -519,18 +588,18 @@ Public Class ConsoleMode
     End Function
     ' Frees up memory and exits the application and console io calls
     Private Sub Console_Exit()
-        If TypeOf MyOperation Is Object Then
-            If Not MyOperation.ExitConsole Then
-                PrintConsole("----------------------------------------------")
+        If MyOperation.LogOutput Then
+            If MyOperation.LogAppendFile Then
+                Utilities.FileIO.AppendFile(ConsoleLog.ToArray(), MyOperation.LogFilename)
+            Else
+                Utilities.FileIO.WriteFile(ConsoleLog.ToArray(), MyOperation.LogFilename)
+            End If
+        End If
+        If Not MyOperation.ExitConsole Then
+            PrintConsole("----------------------------------------------")
+            If Not Console.IsInputRedirected Then
                 PrintConsole("Press any key to close")
                 Console.ReadKey()
-                If MyOperation.LogOutput Then
-                    If MyOperation.LogAppendFile Then
-                        Utilities.FileIO.AppendFile(ConsoleLog.ToArray(), MyOperation.LogFilename)
-                    Else
-                        Utilities.FileIO.WriteFile(ConsoleLog.ToArray(), MyOperation.LogFilename)
-                    End If
-                End If
             End If
         End If
         If TypeOf MainApp.MAIN_FCUSB Is Object Then
@@ -562,17 +631,19 @@ Public Class ConsoleMode
         PrintConsole("Syntax: exe [OPERATION] [MODE] (options) ...")
         PrintConsole("")
         PrintConsole("Operations:")
+        PrintConsole("-detect           " & "Use this to detect a connected memory device")
         PrintConsole("-read             " & "Will perform a flash memory read operation")
         PrintConsole("-write            " & "Will perform a flash memory write operation")
         PrintConsole("-erase            " & "Erases the entire memory device")
-        PrintConsole("-execute          " & "Allows you to execute a FlashcatUSB script file (*.fcs)")
+        PrintConsole("-script           " & "Allows you to execute a FlashcatUSB script file (*.fcs)")
         PrintConsole("-check            " & "Display all connected FlashcatUSB devices")
         PrintConsole("-key              " & "Register your software")
+        PrintConsole("-compare          " & "Compares a local file with data from a memory device")
         PrintConsole("-help             " & "Shows this dialog")
         PrintConsole("")
         PrintConsole("Supported modes:")
         PrintConsole("-SPI -SQI -SPINAND -SPIEEPROM -I2C -SWI -PNOR -PNAND")
-        PrintConsole("-MICROWIRE -FWH -HYPERFLASH -EPROM -JTAG")
+        PrintConsole("-MICROWIRE -FWH -HYPERFLASH -EPROM -JTAG -PEEPROM")
         PrintConsole("")
         PrintConsole("Options:")
         PrintConsole("-File (filename)  " & "Specifies the file to use for read/write/execute")
@@ -589,17 +660,23 @@ Public Class ConsoleMode
     End Sub
     ' Prints the list of valid options that can be used for the -EEPROM option
     Private Sub Console_PrintEEPROMList()
-        PrintConsole("I2C/SPI EEPROM valid options are:")
+        PrintConsole("Valid EEPROM options are:")
         PrintConsole("[I2C EEPROM DEVICES]")
         Dim n As New I2C_Programmer(Nothing)
         For Each dev In n.I2C_EEPROM_LIST
             PrintConsole(dev.NAME)
         Next
-        PrintConsole("[SPI EEPROM DEVICES]")
-        Dim SPI_EEPROM_LIST = MainApp.GetDevices_SPI_EEPROM()
+        PrintConsole("[SERIAL EEPROM DEVICES]")
+        Dim SPI_EEPROM_LIST = MainApp.GetDevices_SERIAL_EEPROM()
         For Each dev In SPI_EEPROM_LIST
             Dim spi_part As String = dev.NAME.Substring(dev.NAME.IndexOf(" ") + 1)
             PrintConsole(spi_part)
+        Next
+        PrintConsole("[PARALLEL EEPROM DEVICES]")
+        Dim PAR_EEPROM_LIST = MainApp.GetDevices_PARALLEL_EEPROM()
+        For Each dev In PAR_EEPROM_LIST
+            Dim par_part As String = dev.NAME.Substring(dev.NAME.IndexOf(" ") + 1)
+            PrintConsole(par_part)
         Next
     End Sub
 
@@ -608,7 +685,6 @@ Public Class ConsoleMode
             If ProgressBarEnabled Then
                 Console.SetCursorPosition(0, Console.CursorTop - 1)
                 Console.WriteLine(Line.PadRight(80))
-                ConsoleLog.Add(Line)
                 Console.WriteLine("")
                 Progress_Set(ProgressBarLast)
                 If Not String.IsNullOrEmpty(ProgressBarLastSpeed) Then
@@ -616,8 +692,8 @@ Public Class ConsoleMode
                 End If
             Else
                 Console.WriteLine(Line)
-                ConsoleLog.Add(Line)
             End If
+            ConsoleLog.Add(Line)
         Catch
         End Try
     End Sub
@@ -628,7 +704,6 @@ Public Class ConsoleMode
     Private ProgressBarLastSpeed As String = ""
 
     Public Sub Progress_Create()
-        PrintConsole("")
         ProgressBarEnabled = True
         Progress_Set(0)
     End Sub

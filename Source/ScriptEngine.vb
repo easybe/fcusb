@@ -36,6 +36,8 @@ Namespace EC_ScriptEngine
             STR_CMD.Add("hex", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_str_hex))
             STR_CMD.Add("length", {CmdPrm.String}, New ScriptFunction(AddressOf c_str_length))
             STR_CMD.Add("toint", {CmdPrm.String}, New ScriptFunction(AddressOf c_str_toint))
+            STR_CMD.Add("fromint", {CmdPrm.String}, New ScriptFunction(AddressOf c_str_fromint))
+            STR_CMD.Add("todata", {CmdPrm.String}, New ScriptFunction(AddressOf c_str_todata))
             AddScriptNest(STR_CMD)
             Dim INT_CMD As New ScriptCmd("INT")
             INT_CMD.Add("tostr", {CmdPrm.UInteger}, New ScriptFunction(AddressOf c_int_tostr))
@@ -67,6 +69,7 @@ Namespace EC_ScriptEngine
             IO_CMD.Add("save", {CmdPrm.Data, CmdPrm.String_Optional, CmdPrm.String_Optional}, New ScriptFunction(AddressOf c_io_save))
             IO_CMD.Add("read", {CmdPrm.String}, New ScriptFunction(AddressOf c_io_read))
             IO_CMD.Add("write", {CmdPrm.Data, CmdPrm.String}, New ScriptFunction(AddressOf c_io_write))
+            IO_CMD.Add("delete", {CmdPrm.String}, New ScriptFunction(AddressOf c_io_delete))
             AddScriptNest(IO_CMD)
             'Generic functions
             AddScriptCommand("writeline", {CmdPrm.Any, CmdPrm.Bool_Optional}, New ScriptFunction(AddressOf c_writeline))
@@ -129,7 +132,6 @@ Namespace EC_ScriptEngine
             Dim err_str As String = ""
             Dim line_err As Integer = 0 'The line within the file that has the error
             If CurrentScript.LoadFile(Me, f, line_err, err_str) Then
-                RaiseEvent PrintConsole("Script successfully loaded")
                 Dim td As New Threading.Thread(AddressOf RunScript)
 #If Not NET5_0 Then
                 td.SetApartmentState(Threading.ApartmentState.STA)
@@ -486,6 +488,19 @@ Namespace EC_ScriptEngine
             Return sv
         End Function
 
+        Friend Function c_str_fromint(arguments() As ScriptVariable, Index As Integer) As ScriptVariable
+            Dim input As Integer = CInt(arguments(0).Value)
+            Dim sv As New ScriptVariable(CurrentVars.GetNewName, DataType.String)
+            sv.Value = input.ToString()
+            Return sv
+        End Function
+
+        Friend Function c_str_todata(arguments() As ScriptVariable, Index As Integer) As ScriptVariable
+            Dim input As String = CStr(arguments(0).Value)
+            Dim sv As New ScriptVariable(CurrentVars.GetNewName, DataType.Data)
+            sv.Value = Utilities.Bytes.FromChrString(input)
+            Return sv
+        End Function
 
 #End Region
 
@@ -689,6 +704,19 @@ Namespace EC_ScriptEngine
 #End Region
 
 #Region "IO commands"
+
+        Friend Function c_io_delete(arguments() As ScriptVariable, Index As Integer) As ScriptVariable
+            Try
+                Dim input As String = CStr(arguments(0).Value)
+                Dim local_file As New IO.FileInfo(input)
+                If local_file.Exists Then
+                    local_file.Delete()
+                    Return New ScriptVariable(CurrentVars.GetNewName, DataType.Bool, True)
+                End If
+            Catch ex As Exception
+            End Try
+            Return New ScriptVariable(CurrentVars.GetNewName, DataType.Bool, False)
+        End Function
 
         Friend Function c_io_open(arguments() As ScriptVariable, Index As Integer) As ScriptVariable
             Dim title As String = "Choose file to open"
@@ -2840,11 +2868,7 @@ Namespace EC_ScriptEngine
                             If var1.Data.VarType = DataType.String Then
                                 Dim s1 As String = CStr(var1.Value)
                                 Dim s2 As String = CStr(var2.Value)
-                                If s1.Length = s2.Length Then
-                                    For i = 0 To s1.Length - 1
-                                        If (Not s1.Substring(i, 1) = s2.Substring(i, 1)) Then result = False : Exit For
-                                    Next
-                                End If
+                                If (s1.Equals(s2)) Then result = True Else result = False
                             ElseIf var1.Data.VarType = DataType.Integer Then
                                 result = (CInt(var1.Value) = CInt(var2.Value))
                             ElseIf var1.Data.VarType = DataType.UInteger Then

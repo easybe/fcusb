@@ -38,21 +38,20 @@ Public Class MemControl_v2
         SRecord
     End Enum
 
-
     Friend Sub DisableControls(show_cancel As Boolean)
-        Throw New NotImplementedException()
+
     End Sub
 
     Friend Sub EnableControls()
-        Throw New NotImplementedException()
+
     End Sub
 
     Friend Sub RefreshView()
-        Throw New NotImplementedException()
+
     End Sub
 
     Friend Sub AbortAnyOperation()
-        Throw New NotImplementedException()
+
     End Sub
 
 

@@ -85,7 +85,7 @@ Namespace SPI
                     LoadVendorSpecificConfigurations() 'Some devices may need additional configurations
                     Return True
                 Else
-                    MyFlashDevice = New SPI_NOR("Unknown", VCC_IF.SERIAL_3V, 0, DEVICEID.MANU, CUShort(DEVICEID.RDID And &HFFFF))
+                    MyFlashDevice = New SPI_NOR("Unknown", VCC_IF.SERIAL_3V, 0UI, DEVICEID.MANU, CUShort(DEVICEID.RDID And &HFFFF))
                     MyFlashStatus = DeviceStatus.NotSupported
                     Return False
                 End If
@@ -343,10 +343,10 @@ Namespace SPI
         Friend Function EraseDevice() As Boolean Implements MemoryDeviceUSB.EraseDevice
             RaiseEvent PrintConsole(String.Format(RM.GetString("spi_erasing_flash_device"), Format(Me.DeviceSize, "#,###")))
             Dim erase_timer As New Stopwatch : erase_timer.Start()
-            If MyFlashDevice.ProgramMode = FlashMemory.SPI_ProgramMode.Atmel45Series Then
+            If MyFlashDevice.ProgramMode = FlashMemory.SPI_PROG.Atmel45Series Then
                 SQIBUS_WriteRead({&HC7, &H94, &H80, &H9A}, Nothing)
-            ElseIf MyFlashDevice.ProgramMode = SPI_ProgramMode.SPI_EEPROM Then
-            ElseIf MyFlashDevice.ProgramMode = SPI_ProgramMode.Nordic Then
+            ElseIf MyFlashDevice.ProgramMode = SPI_PROG.SPI_EEPROM Then
+            ElseIf MyFlashDevice.ProgramMode = SPI_PROG.Nordic Then
             Else
                 Select Case MyFlashDevice.CHIP_ERASE
                     Case EraseMethod.Standard

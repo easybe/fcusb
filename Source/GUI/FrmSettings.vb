@@ -79,7 +79,8 @@ Public Class FrmSettings
         Else
             rbNandWait_SR.Checked = True
         End If
-        SetupSpiEeprom()
+        SetupSerialEEPROM()
+        SetupParallelEEPROM()
         Setup_I2C_SWI_tab()
         If MAIN_FCUSB Is Nothing Then
             rb_speed_100khz.Enabled = False
@@ -307,6 +308,7 @@ Public Class FrmSettings
         End If
         MySettings.I2C_INDEX = (cb_i2c_device.SelectedIndex - 1)
         MySettings.SPI_EEPROM = cb_spi_eeprom.SelectedItem.ToString
+        MySettings.PARALLEL_EEPROM = cb_parallel_eeprom.SelectedItem.ToString
         MySettings.SPI_NAND_DISABLE_ECC = cb_spinand_disable_ecc.Checked
         MySettings.NAND_Verify = cb_nand_image_readverify.Checked
         MySettings.NAND_Speed = CType(cbNAND_Speed.SelectedIndex, NandMemSpeed)
@@ -389,16 +391,16 @@ Public Class FrmSettings
                 cb_page_size.SelectedIndex = 7
         End Select
         Select Case CUSTOM_SPI_DEV.ProgramMode
-            Case FlashMemory.SPI_ProgramMode.PageMode
+            Case FlashMemory.SPI_PROG.PageMode
                 cb_prog_mode.SelectedIndex = 0
                 cb_spare.Enabled = False
-            Case FlashMemory.SPI_ProgramMode.AAI_Byte
+            Case FlashMemory.SPI_PROG.AAI_Byte
                 cb_prog_mode.SelectedIndex = 1
                 cb_spare.Enabled = False
-            Case FlashMemory.SPI_ProgramMode.AAI_Word
+            Case FlashMemory.SPI_PROG.AAI_Word
                 cb_prog_mode.SelectedIndex = 2
                 cb_spare.Enabled = False
-            Case FlashMemory.SPI_ProgramMode.Atmel45Series
+            Case FlashMemory.SPI_PROG.Atmel45Series
                 cb_prog_mode.SelectedIndex = 3
                 cb_spare.Enabled = True
         End Select
@@ -489,13 +491,13 @@ Public Class FrmSettings
         End Select
         Select Case cb_prog_mode.SelectedIndex
             Case 0
-                CUSTOM_SPI_DEV.ProgramMode = FlashMemory.SPI_ProgramMode.PageMode
+                CUSTOM_SPI_DEV.ProgramMode = FlashMemory.SPI_PROG.PageMode
             Case 1
-                CUSTOM_SPI_DEV.ProgramMode = FlashMemory.SPI_ProgramMode.AAI_Byte
+                CUSTOM_SPI_DEV.ProgramMode = FlashMemory.SPI_PROG.AAI_Byte
             Case 2
-                CUSTOM_SPI_DEV.ProgramMode = FlashMemory.SPI_ProgramMode.AAI_Word
+                CUSTOM_SPI_DEV.ProgramMode = FlashMemory.SPI_PROG.AAI_Word
             Case 3
-                CUSTOM_SPI_DEV.ProgramMode = FlashMemory.SPI_ProgramMode.Atmel45Series
+                CUSTOM_SPI_DEV.ProgramMode = FlashMemory.SPI_PROG.Atmel45Series
         End Select
         CUSTOM_SPI_DEV.SEND_EWSR = cbENWS.Checked
         CUSTOM_SPI_DEV.SEND_EN4B = cbEN4B.Checked
@@ -653,7 +655,7 @@ Public Class FrmSettings
                 dev_size_str = i2c_eeprom.FLASH_SIZE.ToString
             End If
             Dim dev_name As String = (dev_size_str & " bytes ").PadRight(12, " "c)
-            cb_i2c_device.Items.Add(dev_name & " (" & i2c_eeprom.Name & ")")
+            cb_i2c_device.Items.Add(dev_name & " (" & i2c_eeprom.NAME & ")")
         Next
         cb_i2c_device.SelectedIndex = (MySettings.I2C_INDEX + 1)
         Select Case MySettings.I2C_SPEED
@@ -670,9 +672,9 @@ Public Class FrmSettings
 
     End Sub
 
-    Private Sub SetupSpiEeprom()
+    Private Sub SetupSerialEEPROM()
         cb_spi_eeprom.Items.Add("(Not selected)") 'Index 0
-        Dim SPI_EEPROM_LIST() As FlashMemory.SPI_NOR = GetDevices_SPI_EEPROM()
+        Dim SPI_EEPROM_LIST() As FlashMemory.SPI_NOR = GetDevices_SERIAL_EEPROM()
         Dim selected_index As Integer = 0
         Dim counter As Integer = 0
         For Each item In SPI_EEPROM_LIST
@@ -683,6 +685,21 @@ Public Class FrmSettings
             cb_spi_eeprom.Items.Add(item.NAME)
         Next
         cb_spi_eeprom.SelectedIndex = selected_index
+    End Sub
+
+    Private Sub SetupParallelEEPROM()
+        cb_parallel_eeprom.Items.Add("(Not selected)") 'Index 0
+        Dim EEPROM_LIST() As FlashMemory.P_NOR = GetDevices_PARALLEL_EEPROM()
+        Dim selected_index As Integer = 0
+        Dim counter As Integer = 0
+        For Each item In EEPROM_LIST
+            counter += 1
+            If item.NAME.Equals(MySettings.PARALLEL_EEPROM) Then
+                selected_index = counter
+            End If
+            cb_parallel_eeprom.Items.Add(item.NAME)
+        Next
+        cb_parallel_eeprom.SelectedIndex = selected_index
     End Sub
 
     Private Sub rb_mainspare_default_CheckedChanged(sender As Object, e As EventArgs) Handles rb_mainspare_default.CheckedChanged

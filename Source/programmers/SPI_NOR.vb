@@ -61,7 +61,7 @@ Namespace SPI
                     Utilities.Sleep(50)
                     Return True
                 Else
-                    MyFlashDevice = New SPI_NOR("Unknown", VCC_IF.SERIAL_3V, 0, DEVICEID.MANU, ID1)
+                    MyFlashDevice = New SPI_NOR("Unknown", VCC_IF.SERIAL_3V, 0UI, DEVICEID.MANU, ID1)
                     MyFlashStatus = DeviceStatus.NotSupported
                     Return False
                 End If
@@ -146,9 +146,9 @@ Namespace SPI
             If MySettings.SPI_FASTREAD AndAlso FCUSB.HasLogic() Then
                 read_cmd = MyFlashDevice.OP_COMMANDS.FAST_READ
             End If
-            If (Me.MyFlashDevice.ProgramMode = FlashMemory.SPI_ProgramMode.Atmel45Series) Then
+            If (Me.MyFlashDevice.ProgramMode = FlashMemory.SPI_PROG.Atmel45Series) Then
                 Return AT45_ReadData(flash_offset32, data_count)
-            ElseIf Me.MyFlashDevice.ProgramMode = FlashMemory.SPI_ProgramMode.SPI_EEPROM Then
+            ElseIf Me.MyFlashDevice.ProgramMode = FlashMemory.SPI_PROG.SPI_EEPROM Then
                 If MyFlashDevice.ADDRESSBITS = 8 Then 'Used on ST M95010 - M95040 (8bit) and ATMEL devices (AT25010A - AT25040A)
                     read_cmd = read_cmd Or CByte(flash_offset32 >> 5)
                     flash_offset32 = (flash_offset32 And 255UI)
@@ -182,7 +182,7 @@ Namespace SPI
             Dim buffer_size As Integer = 0
             Dim array_ptr As Integer = 0
             Select Case MyFlashDevice.ProgramMode
-                Case SPI_ProgramMode.PageMode
+                Case SPI_PROG.PageMode
                     If (MyFlashDevice.STACKED_DIES > 1) Then 'Multi-die support
                         Dim write_result As Boolean
                         Do Until bytes_left = 0
@@ -198,15 +198,15 @@ Namespace SPI
                         Dim setup_packet As New WriteSetupPacket(MyFlashDevice, flash_offset32, data_to_write.Length)
                         Return WriteData_Flash(setup_packet, data_to_write)
                     End If
-                Case SPI_ProgramMode.SPI_EEPROM 'Used on most ST M95080 and above
+                Case SPI_PROG.SPI_EEPROM 'Used on most ST M95080 and above
                     Return WriteData_SPI_EEPROM(flash_offset32, data_to_write)
-                Case SPI_ProgramMode.AAI_Byte
+                Case SPI_PROG.AAI_Byte
                     Return WriteData_AAI(flash_offset32, data_to_write, False)
-                Case SPI_ProgramMode.AAI_Word
+                Case SPI_PROG.AAI_Word
                     Return WriteData_AAI(flash_offset32, data_to_write, True)
-                Case SPI_ProgramMode.Atmel45Series
+                Case SPI_PROG.Atmel45Series
                     Return AT45_WriteData(flash_offset32, data_to_write)
-                Case SPI_ProgramMode.Nordic
+                Case SPI_PROG.Nordic
                     Dim data_left As Integer = data_to_write.Length
                     Dim ptr As Integer = 0
                     Do While (data_left > 0)
@@ -229,9 +229,9 @@ Namespace SPI
             'If W25M121AV_DETECTED Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             If (Not MyFlashDevice.ERASE_REQUIRED) Then Return True 'Erase not needed
             Dim flash_offset As UInt32 = CUInt(Me.SectorFind(sector_index))
-            If MyFlashDevice.ProgramMode = SPI_ProgramMode.Atmel45Series Then
+            If MyFlashDevice.ProgramMode = SPI_PROG.Atmel45Series Then
                 AT45_EraseSector(flash_offset)
-            ElseIf MyFlashDevice.ProgramMode = SPI_ProgramMode.Nordic Then
+            ElseIf MyFlashDevice.ProgramMode = SPI_PROG.Nordic Then
                 SPIBUS_WriteEnable()
                 Dim PageNum As Byte = CByte(flash_offset \ MyFlashDevice.ERASE_SIZE)
                 SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.SE, PageNum}, Nothing)
@@ -262,16 +262,16 @@ Namespace SPI
             RaiseEvent PrintConsole(String.Format(RM.GetString("spi_erasing_flash_device"), Format(Me.DeviceSize, "#,###")))
             Dim erase_timer As New Stopwatch : erase_timer.Start()
             'If W25M121AV_DETECTED Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
-            If MyFlashDevice.ProgramMode = FlashMemory.SPI_ProgramMode.Atmel45Series Then
+            If MyFlashDevice.ProgramMode = FlashMemory.SPI_PROG.Atmel45Series Then
                 SPIBUS_WriteRead({&HC7, &H94, &H80, &H9A}, Nothing) 'Chip erase command
                 Utilities.Sleep(100)
                 WaitUntilReady()
-            ElseIf MyFlashDevice.ProgramMode = SPI_ProgramMode.SPI_EEPROM Then
+            ElseIf MyFlashDevice.ProgramMode = SPI_PROG.SPI_EEPROM Then
                 Dim eeprom_size As Integer = CInt(MyFlashDevice.FLASH_SIZE)
                 Dim data(eeprom_size - 1) As Byte
                 Utilities.FillByteArray(data, 255)
                 WriteData(0, data)
-            ElseIf MyFlashDevice.ProgramMode = SPI_ProgramMode.Nordic Then
+            ElseIf MyFlashDevice.ProgramMode = SPI_PROG.Nordic Then
                 'This device does support chip-erase, but it will also erase the InfoPage content
                 Dim nord_timer As New Stopwatch : nord_timer.Start()
                 RaiseEvent PrintConsole(String.Format(RM.GetString("spi_erasing_flash_device"), Format(Me.DeviceSize, "#,###")))
@@ -322,7 +322,7 @@ Namespace SPI
         Friend Sub WaitUntilReady() Implements MemoryDeviceUSB.WaitUntilReady
             Try
                 Dim status As Byte
-                If MyFlashDevice.ProgramMode = SPI_ProgramMode.Atmel45Series Then
+                If MyFlashDevice.ProgramMode = SPI_PROG.Atmel45Series Then
                     Do
                         Dim sr() As Byte = ReadStatusRegister() 'Check Bit 7 (RDY/BUSY#)
                         status = sr(0)
@@ -336,7 +336,7 @@ Namespace SPI
                         If status = 255 Then Exit Do
                         If ((status And CByte(1)) = CByte(1)) Then Utilities.Sleep(5)
                     Loop While ((status And CByte(1)) = 1)
-                    If MyFlashDevice IsNot Nothing AndAlso MyFlashDevice.ProgramMode = SPI_ProgramMode.Nordic Then
+                    If MyFlashDevice IsNot Nothing AndAlso MyFlashDevice.ProgramMode = SPI_PROG.Nordic Then
                         Utilities.Sleep(50)
                     End If
                 End If
@@ -361,7 +361,7 @@ Namespace SPI
                 Next
                 SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.DIESEL, 0}) : WaitUntilReady() 'We need to make sure DIE 0 is selected
                 Me.DIE_SELECTED = 0
-            ElseIf MyFlashDevice.ProgramMode = SPI_ProgramMode.Atmel45Series Then
+            ElseIf MyFlashDevice.ProgramMode = SPI_PROG.Atmel45Series Then
                 SPIBUS_WriteRead({&H3D, &H2A, &H7F, &H9A}, Nothing) 'Disable sector protection
             Else
                 If MyFlashDevice.SEND_EN4B Then SPIBUS_SendCommand(MyFlashDevice.OP_COMMANDS.EN4B) '0xB7
@@ -370,7 +370,7 @@ Namespace SPI
         End Sub
 
         Private Sub LoadVendorSpecificConfigurations()
-            If (MyFlashDevice.ProgramMode = SPI_ProgramMode.Atmel45Series) Then 'May need to load the current page mode
+            If (MyFlashDevice.ProgramMode = SPI_PROG.Atmel45Series) Then 'May need to load the current page mode
                 Dim sr() As Byte = ReadStatusRegister() 'Some devices have 2 SR
                 Me.ExtendedPage = ((sr(0) And 1) = 0)
                 Dim page_size As UInt16 = CUShort(IIf(Me.ExtendedPage, MyFlashDevice.PAGE_SIZE_EXTENDED, MyFlashDevice.PAGE_SIZE))

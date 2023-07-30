@@ -15,7 +15,6 @@ Imports FlashcatUSB.USB
 Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public MyLocation As String = Reflection.Assembly.GetEntryAssembly().Location
-    'Public GUI As MainForm
     Public MyConsole As ConsoleMode
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
     Public MySettings As New FlashcatSettings
@@ -58,17 +57,21 @@ Public Module MainApp
         'Application.Run(GUI)
 
         'Dim arg_list As New List(Of String)
-        'arg_list.Add("-WRITE")
-        'arg_list.Add("-READ")
-        'arg_list.Add("-PNAND")
-        'arg_list.Add("-SPI")
-        'arg_list.Add("-MHZ")
-        'arg_list.Add("32")
+        'arg_list.Add("-SCRIPT")
         'arg_list.Add("-FILE")
-        'arg_list.Add("Tesla2.bin")
-        'arg_list.Add("-LENGTH")
-        'arg_list.Add("1638400")
+        'arg_list.Add("NavTool.fcs")
+        'arg_list.Add("-LOG")
+        'arg_list.Add("status.txt")
         'arg_list.Add("-EXIT")
+
+        'arg_list.Add("-COMPARE")
+        'arg_list.Add("-SPI")
+        'arg_list.Add("-FILE")
+        'arg_list.Add("ewj.bin")
+        'arg_list.Add("-LOG")
+        'arg_list.Add("status.txt")
+        'arg_list.Add("-EXIT")
+
         'args = arg_list.ToArray()
 
         MyConsole = New ConsoleMode()
@@ -320,21 +323,30 @@ Public Module MainApp
         Return CType(desired_speed, SQI_SPEED)
     End Function
 
-    Public Function GetDevices_SPI_EEPROM() As SPI_NOR()
+    Public Function GetDevices_SERIAL_EEPROM() As SPI_NOR()
         Dim spi_eeprom As New List(Of SPI_NOR)
         Dim d() As Device = FlashDatabase.GetFlashDevices(MemoryType.SERIAL_NOR)
         For Each dev As SPI_NOR In d
-            If DirectCast(dev, SPI_NOR).ProgramMode = SPI_ProgramMode.SPI_EEPROM Then
+            If DirectCast(dev, SPI_NOR).ProgramMode = SPI_PROG.SPI_EEPROM Then
                 spi_eeprom.Add(dev)
-            ElseIf DirectCast(dev, SPI_NOR).ProgramMode = SPI_ProgramMode.Nordic Then
+            ElseIf DirectCast(dev, SPI_NOR).ProgramMode = SPI_PROG.Nordic Then
                 spi_eeprom.Add(dev)
             End If
         Next
         Return spi_eeprom.ToArray
     End Function
 
+    Public Function GetDevices_PARALLEL_EEPROM() As P_NOR()
+        Dim par_ee_list As New List(Of P_NOR)
+        Dim d() As Device = FlashDatabase.GetFlashDevices(MemoryType.PARALLEL_NOR)
+        For Each dev As P_NOR In d
+            If dev.WriteMode = MFP_PRG.EEPROM Then par_ee_list.Add(dev)
+        Next
+        Return par_ee_list.ToArray
+    End Function
+
     Public Function SPIEEPROM_Configure(SPI_IF As SPI_Programmer, eeprom_name As String) As Boolean
-        Dim all_eeprom_devices() As SPI_NOR = GetDevices_SPI_EEPROM()
+        Dim all_eeprom_devices() As SPI_NOR = GetDevices_SERIAL_EEPROM()
         Dim eeprom As SPI_NOR = Nothing
         For Each ee_dev In all_eeprom_devices
             If ee_dev.NAME.Equals(eeprom_name) Then
@@ -695,6 +707,7 @@ Public Module MainApp
 #End Region
 
 #Region "Shell User Interface"
+    Private MemDevSelected As MemoryDeviceInstance
 
     Public Function PromptUser_OpenFile(Optional title As String = "Choose file to open", Optional filter As String = "All files (*.*)|*.*", Optional opt_path As String = "\") As String
         Return MyConsole.Console_Ask(title)
@@ -717,7 +730,8 @@ Public Module MainApp
         MyConsole.Progress_Set(percent)
     End Sub
 
-    Public Sub ProgressBar_Add(index As Integer, bar_left As Integer, bar_top As Integer, bar_width As Integer)
+    Public Sub ProgressBar_SetDevice(mem_dev As MemoryDeviceInstance)
+        MemDevSelected = mem_dev
         MyConsole.Progress_Create()
     End Sub
 
@@ -726,6 +740,8 @@ Public Module MainApp
     End Sub
 
     Public Sub ProgressBar_Dispose()
+        'ProgressBar_Percent(0)
+        MemDevSelected = Nothing
         MyConsole.Progress_Remove()
     End Sub
 
@@ -927,6 +943,7 @@ Public Module MainApp
         my_params.SPI_CLOCK = MyConsole.MyOperation.SPI_FREQ
         my_params.SQI_CLOCK = SQI_SPEED.MHZ_10
         my_params.SPI_EEPROM = MyConsole.MyOperation.SPI_EEPROM
+        my_params.PARALLEL_EEPROM = MyConsole.MyOperation.PARALLEL_EEPROM
         my_params.I2C_INDEX = MyConsole.MyOperation.I2C_EEPROM
         my_params.I2C_SPEED = I2C_SPEED_MODE._400kHz
         my_params.I2C_ADDRESS = &HA0

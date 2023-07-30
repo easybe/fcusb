@@ -16,7 +16,8 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
     Public Property DUALDIE_EN As Boolean = False 'Indicates two DIE are connected and using a CE
     Public Property DUALDIE_CE2 As Integer 'The Address pin that goes to the second chip-enable
     Public Property DIE_SELECTED As Integer = 0
-
+    Private Property MAX_PACKET_SIZE As Integer 'Set by DeviceInit/EEPROM_Init
+    Public Property ERASE_ALLOWED As Boolean = True
 
     Private FLASH_IDENT As FlashDetectResult
 
@@ -30,6 +31,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
         Me.DIE_SELECTED = 0
         Me.DUALDIE_EN = False
+        Me.MAX_PACKET_SIZE = 8192
         Me.MyFlashDevice = Nothing
         Me.CFI = Nothing
         If Not EXPIO_SETUP_USB(MEM_PROTOCOL.SETUP) Then
@@ -39,6 +41,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         Else
             RaiseEvent PrintConsole(RM.GetString("io_mode_initalized"))
         End If
+        Utilities.Sleep(100) 'Wait a little bit for VCC to charge up for 29F devices
         If DetectFlashDevice() Then
             Dim chip_id_str As String = Hex(FLASH_IDENT.MFG).PadLeft(2, "0"c) & Hex(FLASH_IDENT.PART).PadLeft(8, "0"c)
             RaiseEvent PrintConsole(String.Format(RM.GetString("ext_connected_chipid"), chip_id_str))
@@ -89,6 +92,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
                 WaitUntilReady()
                 EXPIO_PrintCurrentWriteMode()
                 Utilities.Sleep(10) 'We need to wait here (device is being configured)
+                Me.ERASE_ALLOWED = MyFlashDevice.ERASE_REQUIRED
                 Me.MyFlashStatus = DeviceStatus.Supported
                 Return True
             Else
@@ -99,6 +103,33 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
             Me.MyFlashStatus = DeviceStatus.NotDetected
         End If
         Return False
+    End Function
+
+    Public Function EEPROM_Init(selected_eeprom As P_NOR) As Boolean
+        Me.DIE_SELECTED = 0
+        Me.DUALDIE_EN = False
+        Me.MyFlashDevice = Nothing
+        Me.MAX_PACKET_SIZE = 256
+        Me.CFI = Nothing 'EEPROM does not support CFI
+        If Not EXPIO_SETUP_USB(MEM_PROTOCOL.AT90C) Then
+            RaiseEvent PrintConsole("Parallel I/O failed to initialize")
+            Me.MyFlashStatus = DeviceStatus.ExtIoNotConnected
+            Return False
+        Else
+            RaiseEvent PrintConsole(RM.GetString("io_mode_initalized"))
+        End If
+        Me.ERASE_ALLOWED = False
+        Me.MyFlashDevice = selected_eeprom
+        Me.MyFlashDevice.RESET_ENABLED = False
+        Me.MyFlashStatus = DeviceStatus.Supported
+        'remove software protection
+        '5555 = aa
+        '2aaa = 55
+        '5555 = 80
+        '5555 = aa
+        '2aaa = 55
+        '5555 = 20
+        Return True
     End Function
 
     Private Sub MyFlashDevice_SelectBest(device_matches() As Device)
@@ -199,7 +230,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
     End Function
 
     Public Function SectorErase(sector_index As Integer) As Boolean Implements MemoryDeviceUSB.SectorErase
-        If Not MyFlashDevice.ERASE_REQUIRED Then Return True
+        If Not Me.ERASE_ALLOWED Then Return True
         Try
             If sector_index = 0 AndAlso SectorSize(0) = MyFlashDevice.FLASH_SIZE Then
                 Return EraseDevice() 'Single sector, must do a full chip erase instead
@@ -244,13 +275,12 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
             EXPIO_VPP_ENABLE()
             Dim ReturnValue As Boolean
             Dim DataToWrite As Integer = data_to_write.Length
-            Dim PacketSize As Integer = 8192
-            Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / PacketSize)) 'Calcuates iterations
+            Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / Me.MAX_PACKET_SIZE)) 'Calcuates iterations
             For i As Integer = 0 To Loops - 1
                 Dim BufferSize As Integer = DataToWrite
-                If (BufferSize > PacketSize) Then BufferSize = PacketSize
+                If (BufferSize > Me.MAX_PACKET_SIZE) Then BufferSize = Me.MAX_PACKET_SIZE
                 Dim data(BufferSize - 1) As Byte
-                Array.Copy(data_to_write, (i * PacketSize), data, 0, data.Length)
+                Array.Copy(data_to_write, (i * Me.MAX_PACKET_SIZE), data, 0, data.Length)
                 If Me.DUALDIE_EN Then
                     Dim die_address As UInt32 = GetAddressForMultiDie(flash_addr32, 0, 0)
                     ReturnValue = WriteBulk(die_address, data)
@@ -343,7 +373,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         Return False
     End Function
 
-    Friend Function SectorSize(sector As Integer) As Integer Implements MemoryDeviceUSB.SectorSize
+    Public Function SectorSize(sector As Integer) As Integer Implements MemoryDeviceUSB.SectorSize
         If Not MyFlashStatus = USB.DeviceStatus.Supported Then Return 0
         If (Me.DUALDIE_EN) Then sector = ((MyFlashDevice.Sector_Count - 1) And sector)
         Return MyFlashDevice.GetSectorSize(sector)
@@ -378,6 +408,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         Buffer_2 = 6 '0x555=0xAA,0x2AA=0x55,SA=0x25,SA=(WC-1).. (Used by Spanion/Cypress)
         EPROM_X8 = 7 '8-BIT EPROM DEVICE
         EPROM_X16 = 8 '16-BIT EPROM DEVICE
+        AT90C = 9 '8-bit ATMEL AT90C EEPROM device
     End Enum
 
     Private Property CURRENT_BUS_WIDTH As E_BUS_WIDTH = E_BUS_WIDTH.X0
@@ -637,6 +668,18 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         End If
         Return False
     End Function
+
+    Public Function WriteRawData(cmd_addr As UInt32, cmd_data As UInt16) As Boolean
+        Dim addr_data(5) As Byte
+        addr_data(0) = CByte((cmd_addr >> 24) And 255)
+        addr_data(1) = CByte((cmd_addr >> 16) And 255)
+        addr_data(2) = CByte((cmd_addr >> 8) And 255)
+        addr_data(3) = CByte(cmd_addr And 255)
+        addr_data(4) = CByte((cmd_data >> 8) And 255)
+        addr_data(5) = CByte(cmd_data And 255)
+        Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_RAW, addr_data)
+    End Function
+
     'This is used to write data (8/16 bit) to the EXTIO IO (parallel NOR) port. CMD ADDRESS
     Public Function WriteCommandData(cmd_addr As UInt32, cmd_data As UInt16) As Boolean
         Dim addr_data(5) As Byte
@@ -790,7 +833,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
 
     Public Function ResetDevice() As Boolean
         Try
-            If MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
+            If MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR AndAlso MyFlashDevice.RESET_ENABLED Then
                 EXPIO_ResetDevice()
             End If
         Catch ex As Exception

@@ -675,6 +675,8 @@ Namespace USB
         SQI_WR_FLASH = &H56
         SPINAND_READFLASH = &H5B
         SPINAND_WRITEFLASH = &H5C
+        EXPIO_TIMING = &H5E
+        EXPIO_RAW = &H5F
         I2C_INIT = &H60
         I2C_READEEPROM = &H61
         I2C_WRITEEEPROM = &H62
@@ -699,7 +701,6 @@ Namespace USB
         EXPIO_WAIT = &H7D
         EXPIO_CPEN = &H7E
         EXPIO_SR = &H7F
-        EXPIO_TIMING = &H5E
         VERSION = &H80
         ECHO = &H81
         LEDON = &H82
@@ -742,6 +743,8 @@ Namespace USB
         NAND_SR = &HD1
         NAND_SETTYPE = &HD2
         JUMP_BOOT = &HF4
+        EEPROM_WR = &HF5     'Write internal EEPROM
+        EEPROM_RD = &HF6     'Read internal EEPROM
     End Enum
 
     Public Enum FCUSB_HW_CTRL As Byte

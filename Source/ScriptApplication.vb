@@ -24,6 +24,7 @@ Public Module ScriptApplication
         MEM_CMD.Add("exist", Nothing, New ScriptFunction(AddressOf c_mem_exist))
         ScriptProcessor.AddScriptNest(MEM_CMD)
         Dim SPI_CMD As New ScriptCmd("SPI")
+        SPI_CMD.Add("writeenable", Nothing, New ScriptFunction(AddressOf c_spi_writeenable)) 'Undocumented
         SPI_CMD.Add("clock", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_spi_clock))
         SPI_CMD.Add("mode", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_spi_mode))
         SPI_CMD.Add("database", {CmdPrm.Bool_Optional}, New ScriptFunction(AddressOf c_spi_database))
@@ -85,7 +86,11 @@ Public Module ScriptApplication
         LOADOPT.Add("logic", Nothing, New ScriptFunction(AddressOf c_load_logic))
         LOADOPT.Add("erase", Nothing, New ScriptFunction(AddressOf c_load_erase))
         LOADOPT.Add("bootloader", {CmdPrm.Data}, New ScriptFunction(AddressOf c_load_bootloader))
+        LOADOPT.Add("eeprom", {CmdPrm.Data}, New ScriptFunction(AddressOf c_load_eeprom))
         ScriptProcessor.AddScriptNest(LOADOPT)
+        Dim READOPT As New ScriptCmd("read") 'Undocumented
+        READOPT.Add("eeprom", {CmdPrm.Integer_Optional}, New ScriptFunction(AddressOf c_read_eeprom))
+        ScriptProcessor.AddScriptNest(READOPT)
         Dim LNKOPT As New ScriptCmd("Link") 'Undocumented
         LNKOPT.Add("init", {CmdPrm.Integer, CmdPrm.String_Optional}, New ScriptFunction(AddressOf c_link_init))
         LNKOPT.Add("detect", {CmdPrm.String}, New ScriptFunction(AddressOf c_link_detect))
@@ -132,7 +137,6 @@ Public Module ScriptApplication
         Dim data_len As Int32 = data_to_write.Length
         If (arguments.Length > 2) Then data_len = CInt(arguments(2).Value)
         ReDim Preserve data_to_write(data_len - 1)
-        ProgressBar_Percent(0)
         Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(CInt(Index))
         If mem_device Is Nothing Then
             Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device not connected"}
@@ -140,11 +144,12 @@ Public Module ScriptApplication
         Dim cb As New MemoryDeviceInstance.StatusCallback
         cb.UpdatePercent = New UpdateFunction_Progress(AddressOf MainApp.ProgressBar_Percent)
         cb.UpdateTask = New UpdateFunction_Status(AddressOf MainApp.SetStatus)
-        MEM_IF.GetDevice(CInt(Index)).DisableGuiControls()
-        MEM_IF.GetDevice(CInt(Index)).FCUSB.USB_LEDBlink()
+        mem_device.DisableGuiControls()
+        mem_device.FCUSB.USB_LEDBlink()
+        ProgressBar_SetDevice(mem_device)
+        ProgressBar_Percent(0)
         Try
-            Dim mem_dev As MemoryDeviceInstance = MEM_IF.GetDevice(CInt(Index))
-            Dim write_result As Boolean = mem_dev.WriteBytes(offset, data_to_write, MySettings.VERIFY_WRITE, cb)
+            Dim write_result As Boolean = mem_device.WriteBytes(offset, data_to_write, MySettings.VERIFY_WRITE, cb)
             If write_result Then
                 PrintConsole("Sucessfully programmed " & data_len.ToString("N0") & " bytes")
             Else
@@ -154,7 +159,7 @@ Public Module ScriptApplication
         Finally
             MEM_IF.GetDevice(CInt(Index)).EnableGuiControls()
             MEM_IF.GetDevice(CInt(Index)).FCUSB.USB_LEDOn()
-            ProgressBar_Percent(0)
+            ProgressBar_Dispose()
         End Try
         Return Nothing
     End Function
@@ -175,8 +180,9 @@ Public Module ScriptApplication
             cb.UpdateTask = New UpdateFunction_Status(AddressOf MainApp.SetStatus)
         End If
         mem_device.DisableGuiControls()
+        ProgressBar_SetDevice(mem_device)
+        ProgressBar_Percent(0)
         Try
-            ProgressBar_Percent(0)
             Dim data_read() As Byte = Nothing
             data_read = mem_device.ReadBytes(offset, count, cb)
             sv.Value = data_read
@@ -322,6 +328,21 @@ Public Module ScriptApplication
 #End Region
 
 #Region "SPI commands"
+
+    Private Function c_spi_writeenable(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
+        Dim current_if() As MemoryDeviceInstance = MEM_IF.GetDevices()
+        If current_if Is Nothing Then
+            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "A SPI/QSPI memory device must be connected"}
+        End If
+        If CURRENT_DEVICE_MODE = DeviceMode.SPI Then
+            Dim SPI_IF As SPI.SPI_Programmer = CType(current_if(0).MEM_IF, SPI.SPI_Programmer)
+            SPI_IF.SPIBUS_WriteEnable()
+        ElseIf CURRENT_DEVICE_MODE = DeviceMode.SQI Then
+            Dim SQI_IF As SPI.SQI_Programmer = CType(current_if(0).MEM_IF, SPI.SQI_Programmer)
+            SQI_IF.SQIBUS_WriteEnable()
+        End If
+        Return Nothing
+    End Function
 
     Private Function c_spi_clock(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim clock_int As Int32 = CInt(arguments(0).Value)
@@ -995,6 +1016,43 @@ Public Module ScriptApplication
             PrintConsole("Error: Load.Bootloader requires data variable with valid data")
         End If
         Return Nothing
+    End Function
+    'This allows you to write up to 64 bytes into the EEPROM (ATMEGA32u2/u4)
+    Friend Function c_load_eeprom(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
+        Dim result As Boolean = False
+        Select Case MAIN_FCUSB.HWBOARD
+            Case USB.FCUSB_BOARD.Classic
+            Case Else
+                Return New ScriptVariable("ERROR", DataType.FncError, "Only available for Classic")
+        End Select
+        Dim bl_data() As Byte = CType(arguments(0).Value, Byte())
+        Dim eeprom_addr As UInt32 = 0
+        If bl_data IsNot Nothing AndAlso bl_data.Length > 0 AndAlso bl_data.Length <= 64 Then
+            'If Not bl_data.Length = 64 Then ReDim Preserve bl_data(63)
+            result = MAIN_FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EEPROM_WR, bl_data, eeprom_addr)
+        Else
+            PrintConsole("Error: Load.EEPROM requires data variable data (1-64 bytes)")
+        End If
+        Return New ScriptVariable(CreateVarName(), DataType.Bool, result)
+    End Function
+
+#End Region
+
+#Region "READ"
+    'This allows you to read up to 64 bytes from the EEPROM (ATMEGA32u2/u4)
+    Friend Function c_read_eeprom(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
+        Select Case MAIN_FCUSB.HWBOARD
+            Case USB.FCUSB_BOARD.Classic
+            Case Else
+                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Only available for Classic"}
+        End Select
+        Dim size As Integer = 64
+        Dim eeprom_addr As UInt32 = 0
+        If arguments.Length > 0 Then size = CType(arguments(0).Value, Integer)
+        Dim eeprom(size - 1) As Byte
+        Dim result As Boolean = MAIN_FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.EEPROM_RD, eeprom, (CUInt(size) << 16) Or eeprom_addr)
+        If Not result Then Return New ScriptVariable("ERROR", DataType.FncError, "Unable to read EEPROM")
+        Return New ScriptVariable(CreateVarName(), DataType.Data, eeprom)
     End Function
 
 #End Region

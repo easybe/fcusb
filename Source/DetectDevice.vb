@@ -11,6 +11,7 @@ Public Module DetectDevice
         Public SPI_CLOCK As SPI_SPEED
         Public SQI_CLOCK As SQI_SPEED
         Public SPI_EEPROM As String
+        Public PARALLEL_EEPROM As String
         Public I2C_INDEX As Integer
         Public I2C_SPEED As I2C_SPEED_MODE
         Public I2C_ADDRESS As Byte
@@ -50,6 +51,8 @@ Public Module DetectDevice
             Return DetectDevice_HyperFlash(m, Params)
         ElseIf Params.OPER_MODE = DeviceMode.EPROM Then
             Return DetectDevice_EPROM(m, Params)
+        ElseIf Params.OPER_MODE = DeviceMode.P_EEPROM Then
+            Return DetectDevice_PEEPROM(m, Params)
         Else '(OTHER MODES)
         End If
         Return False
@@ -265,6 +268,27 @@ Public Module DetectDevice
                 PrintConsole("Flash memory is not compatible with this FlashcatUSB programmer model", True)
         End Select
         Return False
+    End Function
+
+    Public Function DetectDevice_PEEPROM(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
+        Dim PNOR_IF As PARALLEL_NOR = CType(prg_if, PARALLEL_NOR)
+        PrintConsole("Initializing Parallel EEPROM device mode")
+        Utilities.Sleep(150) 'Wait for IO board vcc to charge
+        Dim all_eeprom_devices() As P_NOR = GetDevices_PARALLEL_EEPROM()
+        Dim eeprom As P_NOR = Nothing
+        For Each ee_dev In all_eeprom_devices
+            If ee_dev.NAME.Equals(Params.PARALLEL_EEPROM) Then
+                eeprom = ee_dev
+            End If
+        Next
+        If eeprom Is Nothing Then Return False
+        If PNOR_IF.EEPROM_Init(eeprom) Then
+            Connected_Event(prg_if, 4096)
+            PrintConsole("Configured to use PARALLEL EEPROM device", True)
+            Return True
+        Else
+            Return False
+        End If
     End Function
 
     Public Function DetectDevice_FWH(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean

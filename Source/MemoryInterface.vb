@@ -945,7 +945,7 @@ Public Class MemoryInterface
                 PROG_IF = New SPI.SQI_Programmer(usb_dev)
             Case DeviceMode.SPI_NAND
                 PROG_IF = New SPINAND_Programmer(usb_dev)
-            Case DeviceMode.PNOR
+            Case DeviceMode.PNOR, DeviceMode.P_EEPROM
                 PROG_IF = New PARALLEL_NOR(usb_dev)
             Case DeviceMode.PNAND
                 PROG_IF = New PARALLEL_NAND(usb_dev)

@@ -31,6 +31,8 @@ Public Module MainApp
     Public NAND_LayoutTool As NAND_LAYOUT_TOOL
 
     Public Const IS_DEBUG_VER As Boolean = False
+    Public Property DefaultLocation As String = Application.StartupPath
+
 
     Sub Main(ParamArray args() As String)
         Try 'This makes it only allow one instance
@@ -47,6 +49,12 @@ Public Module MainApp
         Thread.CurrentThread.CurrentCulture = Globalization.CultureInfo.CreateSpecificCulture("en-US")
         My.Application.ChangeUICulture("en-US")
         My.Application.ChangeCulture("en-US")
+
+        If args.Length = 2 AndAlso args(0).ToUpper.StartsWith("-PATH") Then
+            Dim n As New IO.DirectoryInfo(args(1))
+            If n.Exists Then DefaultLocation = n.FullName.ToString
+        End If
+
         LicenseSystem_Init()
         CUSTOM_SPI_DEV = New SPI_NOR("User-defined", VCC_IF.SERIAL_3V, 1048576, 0, 0)
         CreateGrayCodeTable()
@@ -307,21 +315,30 @@ Public Module MainApp
         Return CType(desired_speed, SQI_SPEED)
     End Function
 
-    Public Function GetDevices_SPI_EEPROM() As SPI_NOR()
+    Public Function GetDevices_SERIAL_EEPROM() As SPI_NOR()
         Dim spi_eeprom As New List(Of SPI_NOR)
         Dim d() As Device = FlashDatabase.GetFlashDevices(MemoryType.SERIAL_NOR)
         For Each dev As SPI_NOR In d
-            If DirectCast(dev, SPI_NOR).ProgramMode = SPI_ProgramMode.SPI_EEPROM Then
+            If DirectCast(dev, SPI_NOR).ProgramMode = SPI_PROG.SPI_EEPROM Then
                 spi_eeprom.Add(dev)
-            ElseIf DirectCast(dev, SPI_NOR).ProgramMode = SPI_ProgramMode.Nordic Then
+            ElseIf DirectCast(dev, SPI_NOR).ProgramMode = SPI_PROG.Nordic Then
                 spi_eeprom.Add(dev)
             End If
         Next
         Return spi_eeprom.ToArray
     End Function
 
+    Public Function GetDevices_PARALLEL_EEPROM() As P_NOR()
+        Dim par_ee_list As New List(Of P_NOR)
+        Dim d() As Device = FlashDatabase.GetFlashDevices(MemoryType.PARALLEL_NOR)
+        For Each dev As P_NOR In d
+            If dev.WriteMode = MFP_PRG.EEPROM Then par_ee_list.Add(dev)
+        Next
+        Return par_ee_list.ToArray
+    End Function
+
     Public Function SPIEEPROM_Configure(SPI_IF As SPI_Programmer, eeprom_name As String) As Boolean
-        Dim all_eeprom_devices() As SPI_NOR = GetDevices_SPI_EEPROM()
+        Dim all_eeprom_devices() As SPI_NOR = GetDevices_SERIAL_EEPROM()
         Dim eeprom As SPI_NOR = Nothing
         For Each ee_dev In all_eeprom_devices
             If ee_dev.NAME.Equals(eeprom_name) Then
@@ -467,8 +484,13 @@ Public Module MainApp
             If GUI IsNot Nothing Then
                 Dim newTab As New TabPage("  " & GetTypeString(dev_inst.FlashType) & "  ")
                 newTab.Tag = dev_inst
-                Dim access As MemControl_v2.access_mode = MemControl_v2.access_mode.Writable
-                If (PRG_IF.GetType() Is GetType(EPROM_Programmer)) Then access = MemControl_v2.access_mode.WriteOnce
+                Dim access As MemControl_v2.access_mode = MemControl_v2.access_mode.ReadWriteErase
+                If (PRG_IF.GetType() Is GetType(EPROM_Programmer)) Then access = MemControl_v2.access_mode.ReadWriteOnce
+                If (PRG_IF.GetType() Is GetType(PARALLEL_NOR)) Then
+                    If Not DirectCast(PRG_IF, PARALLEL_NOR).ERASE_ALLOWED Then
+                        access = MemControl_v2.access_mode.ReadWrite
+                    End If
+                End If
                 AddHandler PRG_IF.SetProgress, AddressOf dev_inst.GuiControl.SetProgress
                 dev_inst.GuiControl.Width = newTab.Width
                 dev_inst.GuiControl.Height = newTab.Height
@@ -707,7 +729,7 @@ Public Module MainApp
         fileio_diagbox.CheckFileExists = True
         fileio_diagbox.Title = title
         fileio_diagbox.Filter = filter
-        fileio_diagbox.InitialDirectory = Application.StartupPath & opt_path
+        fileio_diagbox.InitialDirectory = DefaultLocation & opt_path
         If (fileio_diagbox.ShowDialog = DialogResult.OK) Then
             Return fileio_diagbox.FileName
         End If
@@ -719,7 +741,7 @@ Public Module MainApp
         fileio_diagbox.Filter = filter
         fileio_diagbox.Title = title
         fileio_diagbox.FileName = default_file
-        fileio_diagbox.InitialDirectory = Application.StartupPath
+        fileio_diagbox.InitialDirectory = DefaultLocation
         If fileio_diagbox.ShowDialog = DialogResult.OK Then
             Return fileio_diagbox.FileName
         End If
@@ -741,6 +763,7 @@ Public Module MainApp
     Private ScriptBar As ProgressBar = Nothing
     Private Delegate Sub cbProgressBarPercent(percent As Integer)
     Private Delegate Sub cbProgressBarDispose()
+    Private MemDevSelected As MemoryDeviceInstance
 
     Public Sub SetProgress(percent As Integer)
         Static LastPercent As Integer = -1
@@ -749,7 +772,7 @@ Public Module MainApp
             GUI.SetStatusPageProgress(percent)
         End If
     End Sub
-
+    'Adds a GUI Progress Bar to a user tab
     Public Sub ProgressBar_Add(index As Integer, bar_left As Integer, bar_top As Integer, bar_width As Integer)
         If GUI IsNot Nothing Then
             If GUI.Controls.Contains(ScriptBar) Then GUI.Controls.Remove(ScriptBar)
@@ -763,17 +786,26 @@ Public Module MainApp
         End If
     End Sub
 
+    Public Sub ProgressBar_SetDevice(mem_dev As MemoryDeviceInstance)
+        MemDevSelected = mem_dev
+    End Sub
+
     Public Sub ProgressBar_Percent(percent As Integer)
-        If ScriptBar Is Nothing Then Exit Sub
-        If ScriptBar.InvokeRequired Then
-            Dim n As New cbProgressBarPercent(AddressOf ProgressBar_Percent)
-            ScriptBar.Invoke(n, {percent})
-        Else
-            ScriptBar.Value = percent
+        If ScriptBar Is Nothing AndAlso MemDevSelected IsNot Nothing Then
+            MemDevSelected.GuiControl?.SetProgress(percent)
+        ElseIf ScriptBar IsNot Nothing Then
+            If ScriptBar.InvokeRequired Then
+                Dim n As New cbProgressBarPercent(AddressOf ProgressBar_Percent)
+                ScriptBar.Invoke(n, {percent})
+            Else
+                ScriptBar.Value = percent
+            End If
         End If
     End Sub
 
     Public Sub ProgressBar_Dispose()
+        ProgressBar_Percent(0)
+        MemDevSelected = Nothing
         If ScriptBar Is Nothing Then Exit Sub
         If ScriptBar.InvokeRequired Then
             Dim n As New cbProgressBarDispose(AddressOf ProgressBar_Dispose)
@@ -864,6 +896,7 @@ Public Module MainApp
                 modes.Add(DeviceMode.I2C_EEPROM)
                 modes.Add(DeviceMode.SPI_EEPROM)
                 modes.Add(DeviceMode.SPI_NAND)
+                modes.Add(DeviceMode.P_EEPROM)
                 modes.Add(DeviceMode.EPROM)
                 modes.Add(DeviceMode.JTAG)
             Case FCUSB_BOARD.Professional_PCB5
@@ -982,19 +1015,20 @@ Public Module MainApp
     End Sub
 
     Public Function GetDeviceParams() As DetectParams
-        Dim params As DetectParams
-        params.OPER_MODE = MySettings.OPERATION_MODE
-        params.SPI_AUTO = MySettings.SPI_AUTO
-        params.SPI_CLOCK = MySettings.SPI_CLOCK_MAX
-        params.SQI_CLOCK = MySettings.SQI_CLOCK_MAX
-        params.SPI_EEPROM = MySettings.SPI_EEPROM
-        params.I2C_INDEX = MySettings.I2C_INDEX
-        params.I2C_SPEED = MySettings.I2C_SPEED
-        params.I2C_ADDRESS = MySettings.I2C_ADDRESS
-        params.NOR_READ_ACCESS = MySettings.NOR_READ_ACCESS
-        params.NOR_WE_PULSE = MySettings.NOR_WE_PULSE
-        params.NAND_Layout = MySettings.NAND_Layout
-        Return params
+        Dim my_params As DetectParams
+        my_params.OPER_MODE = MySettings.OPERATION_MODE
+        my_params.SPI_AUTO = MySettings.SPI_AUTO
+        my_params.SPI_CLOCK = MySettings.SPI_CLOCK_MAX
+        my_params.SQI_CLOCK = MySettings.SQI_CLOCK_MAX
+        my_params.SPI_EEPROM = MySettings.SPI_EEPROM
+        my_params.PARALLEL_EEPROM = MySettings.PARALLEL_EEPROM
+        my_params.I2C_INDEX = MySettings.I2C_INDEX
+        my_params.I2C_SPEED = MySettings.I2C_SPEED
+        my_params.I2C_ADDRESS = MySettings.I2C_ADDRESS
+        my_params.NOR_READ_ACCESS = MySettings.NOR_READ_ACCESS
+        my_params.NOR_WE_PULSE = MySettings.NOR_WE_PULSE
+        my_params.NAND_Layout = MySettings.NAND_Layout
+        Return my_params
     End Function
 
 

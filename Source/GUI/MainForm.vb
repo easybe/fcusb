@@ -709,6 +709,7 @@ Public Class MainForm
         mi_mode_pnor.Checked = False
         mi_mode_pnand.Checked = False
         mi_mode_fwh.Checked = False
+        mi_mode_peeprom.Checked = False
         mi_mode_1wire.Checked = False
         mi_mode_spi_nand.Checked = False
         mi_mode_eprom_otp.Checked = False
@@ -744,6 +745,7 @@ Public Class MainForm
         mi_mode_pnor.Enabled = enabled
         mi_mode_pnand.Enabled = enabled
         mi_mode_fwh.Enabled = enabled
+        mi_mode_peeprom.Enabled = enabled
         mi_mode_eprom_otp.Enabled = enabled
         mi_mode_hyperflash.Enabled = enabled
         mi_mode_mmc.Enabled = enabled
@@ -764,6 +766,7 @@ Public Class MainForm
             mi_mode_eprom_otp.Enabled = True
             mi_mode_pnor.Enabled = True
             mi_mode_pnand.Enabled = True
+            mi_mode_peeprom.Enabled = True
             mi_mode_fwh.Enabled = True
             mi_mode_jtag.Enabled = True
             mi_mode_hyperflash.Enabled = True
@@ -786,6 +789,7 @@ Public Class MainForm
                 If mode = DeviceMode.SPI_EEPROM Then mi_mode_spieeprom.Enabled = True
                 If mode = DeviceMode.PNOR Then mi_mode_pnor.Enabled = True
                 If mode = DeviceMode.PNAND Then mi_mode_pnand.Enabled = True
+                If mode = DeviceMode.P_EEPROM Then mi_mode_peeprom.Enabled = True
                 If mode = DeviceMode.FWH Then mi_mode_fwh.Enabled = True
                 If mode = DeviceMode.ONE_WIRE Then mi_mode_1wire.Enabled = True
                 If mode = DeviceMode.EPROM Then mi_mode_eprom_otp.Enabled = True
@@ -845,6 +849,8 @@ Public Class MainForm
                 mi_mode_1wire.Checked = True
             Case DeviceMode.SPI_NAND
                 mi_mode_spi_nand.Checked = True
+            Case DeviceMode.P_EEPROM
+                mi_mode_peeprom.Checked = True
             Case DeviceMode.EPROM
                 mi_mode_eprom_otp.Checked = True
             Case DeviceMode.HyperFlash
@@ -1079,13 +1085,13 @@ Public Class MainForm
             If mem_dev.FlashType = MemoryType.SERIAL_NAND Then
                 Dim SNAND_IF As SPINAND_Programmer = CType(mem_dev.MEM_IF, SPINAND_Programmer)
                 SNAND_IF.BlockManager.ProcessMap()
-                mem_dev.GuiControl.InitMemoryDevice(mem_dev.FCUSB, mem_dev.MEM_IF, MemControl_v2.access_mode.Writable)
+                mem_dev.GuiControl.InitMemoryDevice(mem_dev.FCUSB, mem_dev.MEM_IF, MemControl_v2.access_mode.ReadWrite)
                 mem_dev.GuiControl.SetupLayout()
                 StatusMessages_LoadMemoryDevices()
             ElseIf mem_dev.FlashType = MemoryType.PARALLEL_NAND Then
                 Dim PNAND_IF As PARALLEL_NAND = CType(mem_dev.MEM_IF, PARALLEL_NAND)
                 PNAND_IF.BlockManager.ProcessMap()
-                mem_dev.GuiControl.InitMemoryDevice(mem_dev.FCUSB, mem_dev.MEM_IF, MemControl_v2.access_mode.Writable)
+                mem_dev.GuiControl.InitMemoryDevice(mem_dev.FCUSB, mem_dev.MEM_IF, MemControl_v2.access_mode.ReadWrite)
                 mem_dev.GuiControl.SetupLayout()
                 StatusMessages_LoadMemoryDevices()
             End If
@@ -1139,6 +1145,8 @@ Public Class MainForm
                 mi_mode_pnor.Checked = True
             Case DeviceMode.PNAND
                 mi_mode_pnand.Checked = True
+            Case DeviceMode.P_EEPROM
+                mi_mode_peeprom.Checked = True
             Case DeviceMode.FWH
                 mi_mode_fwh.Checked = True
             Case DeviceMode.EPROM
@@ -1194,6 +1202,7 @@ Public Class MainForm
         mi_mode_1wire.Checked = False
         mi_mode_3wire.Checked = False
         mi_mode_eprom_otp.Checked = False
+        mi_mode_peeprom.Checked = False
         mi_mode_jtag.Checked = False
         mi_mode_spi_nand.Checked = False
         mi_mode_hyperflash.Checked = False
@@ -1269,6 +1278,14 @@ Public Class MainForm
         Menu_Mode_UncheckAll()
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = DeviceMode.FWH
+        MySettings.Save()
+        DetectDeviceEvent()
+    End Sub
+
+    Private Sub mi_mode_peeprom_Click(sender As Object, e As EventArgs) Handles mi_mode_peeprom.Click
+        Menu_Mode_UncheckAll()
+        DirectCast(sender, ToolStripMenuItem).Checked = True
+        MySettings.OPERATION_MODE = DeviceMode.P_EEPROM
         MySettings.Save()
         DetectDeviceEvent()
     End Sub
@@ -1406,6 +1423,7 @@ Public Class MainForm
         mi_jtag_menu.Visible = False
         ClearStatusMessage()
         UnloadActiveScript()
+        UnloadMemoryTabs()
         RemoveStatusMessage(RM.GetString("gui_active_script"))
         MEM_IF.Clear() 'Removes all tabs
         If MAIN_FCUSB IsNot Nothing Then MAIN_FCUSB.Disconnect()
@@ -1513,7 +1531,7 @@ Public Class MainForm
     Private Sub LoadImage_Click(sender As Object, e As EventArgs) Handles mi_write_img.Click
         Dim OpenMe As New OpenFileDialog
         OpenMe.AddExtension = True
-        OpenMe.InitialDirectory = Application.StartupPath
+        OpenMe.InitialDirectory = DefaultLocation
         OpenMe.Title = RM.GetString("gui_open_img")
         OpenMe.CheckPathExists = True
         Dim FcFname As String = RM.GetString("gui_compressed_img") & " (*.zip)|*.zip"
@@ -1634,7 +1652,7 @@ Public Class MainForm
         Else
             Dim SaveMe As New SaveFileDialog
             SaveMe.AddExtension = True
-            SaveMe.InitialDirectory = Application.StartupPath
+            SaveMe.InitialDirectory = DefaultLocation
             SaveMe.Title = RM.GetString("gui_select_location")
             SaveMe.CheckPathExists = True
             SaveMe.FileName = default_name
@@ -2101,14 +2119,17 @@ Public Class MainForm
         End Try
     End Sub
 
-    Public Sub UnloadActiveScript()
-        ScriptProcessor.Unload()
+    Public Sub UnloadMemoryTabs()
         Dim i() As MemoryDeviceInstance = MyTabs_GetDeviceInstances()
         If i IsNot Nothing AndAlso i.Length > 0 Then
             For Each mem_dev In i
                 RemoveTab(mem_dev)
             Next
         End If
+    End Sub
+
+    Public Sub UnloadActiveScript()
+        ScriptProcessor.Unload()
         RemoveUserTabs()
         Application.DoEvents()
         RemoveScriptChecks()
@@ -2125,24 +2146,22 @@ Public Class MainForm
             Dim FcFname As String = "FlachcatUSB Scripts (*.fcs)|*.fcs"
             Dim AllF As String = "All files (*.*)|*.*"
             OpenMe.Filter = FcFname & "|" & AllF
-            If OpenMe.ShowDialog = DialogResult.OK Then
-                LoadScriptFile(OpenMe.FileName)
-            End If
+            If OpenMe.ShowDialog = DialogResult.OK Then LoadScriptFile(OpenMe.FileName)
         Catch ex As Exception
         End Try
     End Sub
 
     Private Sub LoadScriptFile(scriptName As String)
         Dim f As New IO.FileInfo(scriptName)
-        If f.Exists Then
-            UnloadActiveScript()
-            If ScriptProcessor.LoadFile(f) Then
-                UpdateStatusMessage(RM.GetString("gui_active_script"), f.Name)
-                SetStatus(String.Format(RM.GetString("gui_script_loaded"), f.Name)) 'RM.GetString("fcusb_script_loaded")
-                mi_script_unload.Enabled = True
-            End If
-        Else
+        If Not f.Exists Then
             SetStatus(RM.GetString("gui_script_can_not_load"))
+            Exit Sub
+        End If
+        UnloadActiveScript()
+        If ScriptProcessor.LoadFile(f) Then
+            UpdateStatusMessage(RM.GetString("gui_active_script"), f.Name)
+            SetStatus(String.Format(RM.GetString("gui_script_loaded"), f.Name)) 'RM.GetString("fcusb_script_loaded")
+            mi_script_unload.Enabled = True
         End If
     End Sub
 
@@ -2201,6 +2220,12 @@ Public Class MainForm
             UpdateStatusMessage(RM.GetString("device_mode"), "SPI EEPROM")
             If MySettings.SPI_EEPROM.Equals("") Then
                 SetStatus("Device mode Set To SPI EEPROM, configure SPI settings Then click 'Detect'")
+                Exit Sub
+            End If
+        ElseIf (mode = DeviceMode.P_EEPROM) Then
+            UpdateStatusMessage(RM.GetString("device_mode"), "PARALLEL EEPROM")
+            If MySettings.PARALLEL_EEPROM.Equals("") Then
+                SetStatus("Device mode Set To PARALLEL EEPROM, configure parallel settings Then click 'Detect'")
                 Exit Sub
             End If
         ElseIf (mode = DeviceMode.SPI_NAND) Then

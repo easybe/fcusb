@@ -144,7 +144,9 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
     End Function
 
     Public Function EraseDevice() As Boolean Implements MemoryDeviceUSB.EraseDevice
-        Return True 'EEPROM does not support erase commands
+        Dim black_data(CInt(Me.DeviceSize - 1)) As Byte
+        Utilities.FillByteArray(black_data, 255)
+        Return WriteData(0, black_data)
     End Function
 
     Public Sub WaitUntilReady() Implements MemoryDeviceUSB.WaitUntilReady

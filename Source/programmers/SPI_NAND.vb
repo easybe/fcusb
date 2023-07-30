@@ -26,26 +26,30 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     End Sub
 
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
-        Dim rdid(3) As Byte
+        Dim rdid(2) As Byte
         Dim sr(0) As Byte
         Dim MFG As Byte
         Dim PART As UInt16
         Dim clk_speed As UInt32 = CUInt(GetMaxSpiClock(FCUSB.HWBOARD, MySettings.SPI_CLOCK_MAX))
         Me.FCUSB.USB_SPI_INIT(CUInt(MySettings.SPI_MODE), clk_speed)
-        SPIBUS_WriteRead({SPI_OPCODES.RDID}, rdid) 'NAND devives use 1 dummy byte, then MFG and ID1 (and sometimes, ID2)
-        W25M121AV(rdid) 'Check to see if device is W25M121AV
-        If (rdid(0) = &HC8 AndAlso rdid(3) = &HC8) Then 'GigaDevice device
-            MFG = rdid(0)
-            PART = (CUShort(rdid(1)) << 8) + rdid(2)
-        Else 'Other Manufacturers use this
-            If Not (rdid(0) = 0 Or rdid(0) = 255) Then Return False
-            If rdid(1) = 0 OrElse rdid(1) = 255 Then Return False
-            If rdid(2) = 0 OrElse rdid(2) = 255 Then Return False
-            If rdid(1) = rdid(2) Then Return False
-            MFG = rdid(1)
-            PART = rdid(2)
-            If Not rdid(3) = MFG Then PART = (CUShort(rdid(2)) << 8) + rdid(3)
+
+        SPIBUS_WriteRead({SPI_OPCODES.RDID}, rdid) 'Perform a standard SPI read ID
+        If (rdid(0) = &HC8) Then 'GigaDevice device
+        ElseIf (rdid(0) = &HEF And rdid(1) = &H40 And rdid(2) = &H18) Then 'Winbond W25M121AV
+            SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady() 'Switch to W25N01GV die
+            SPIBUS_WriteRead({SPI_OPCODES.RDID, 0}, rdid)
+            If rdid(0) = &HEF AndAlso rdid(1) = &HAB AndAlso rdid(2) = &H21 Then rdid(1) = &HAA 'Change to 1Gb version
+        Else
+            SPIBUS_WriteRead({SPI_OPCODES.RDID, 0}, rdid) 'NAND devices use 1 dummy byte
         End If
+
+        If rdid(0) = 0 OrElse rdid(0) = 255 Then Return False
+        If rdid(1) = 0 OrElse rdid(1) = 255 Then Return False
+        If rdid(0) = rdid(1) Then Return False
+        MFG = rdid(0)
+        PART = rdid(1)
+        If Not rdid(2) = MFG Then PART = (CUShort(rdid(1)) << 8) + rdid(2)
+
         Dim RDID_STR As String = "0x" & MFG.ToString("X").PadLeft(2, "0"c) & PART.ToString("X").PadLeft(4, "0"c)
         RaiseEvent PrintConsole(RM.GetString("spinand_opened_device"))
         RaiseEvent PrintConsole(String.Format(RM.GetString("spinand_connected"), RDID_STR))
@@ -121,16 +125,6 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
 
     Public Sub NAND_ReadPages(page_addr As Integer, page_offset As UInt16, data_count As Integer, memory_area As FlashArea, ByRef data() As Byte) Handles BlockManager.ReadPages
         data = PageRead_Physical(page_addr, page_offset, data_count, memory_area)
-    End Sub
-
-    Private Sub W25M121AV(rdid() As Byte)
-        If (rdid(0) = &HEF AndAlso rdid(1) = &H40 AndAlso rdid(2) = &H18) Then 'Possibly W25M121AV
-            SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady() 'Switch to W25N01GV die
-            SPIBUS_WriteRead({SPI_OPCODES.RDID}, rdid)
-            If rdid(1) = &HEF AndAlso rdid(2) = &HAB AndAlso rdid(3) = &H21 Then 'ID changed, W25M121AV confirmed
-                rdid(2) = &HAA 'We need to change ID to 1Gbit version
-            End If
-        End If
     End Sub
 
 #Region "Public Interface"

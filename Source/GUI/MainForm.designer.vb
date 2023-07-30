@@ -66,6 +66,7 @@ Partial Class MainForm
         Me.mi_mode_hyperflash = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_jtag = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_mmc = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_jtag_menu = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_script_menu = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_script_selected = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_script_load = New System.Windows.Forms.ToolStripMenuItem()
@@ -111,7 +112,7 @@ Partial Class MainForm
         Me.cmdSaveLog = New System.Windows.Forms.Button()
         Me.txtInput = New System.Windows.Forms.TextBox()
         Me.ConsoleBox = New System.Windows.Forms.ListBox()
-        Me.mi_jtag_menu = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_mode_peeprom = New System.Windows.Forms.ToolStripMenuItem()
         Me.MenuBar.SuspendLayout()
         Me.FlashStatus.SuspendLayout()
         Me.MyTabs.SuspendLayout()
@@ -199,7 +200,7 @@ Partial Class MainForm
         '
         'mi_mode_menu
         '
-        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.mi_vcc_seperator, Me.mi_1V8, Me.mi_3V3, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_sqi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_3wire, Me.mi_mode_pnor, Me.mi_mode_pnand, Me.mi_mode_fwh, Me.mi_mode_eprom_otp, Me.mi_mode_hyperflash, Me.mi_mode_jtag, Me.mi_mode_mmc})
+        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.mi_vcc_seperator, Me.mi_1V8, Me.mi_3V3, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_sqi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_3wire, Me.mi_mode_pnor, Me.mi_mode_pnand, Me.mi_mode_fwh, Me.mi_mode_peeprom, Me.mi_mode_eprom_otp, Me.mi_mode_hyperflash, Me.mi_mode_jtag, Me.mi_mode_mmc})
         Me.mi_mode_menu.Name = "mi_mode_menu"
         Me.mi_mode_menu.Size = New System.Drawing.Size(50, 20)
         Me.mi_mode_menu.Text = "Mode"
@@ -392,6 +393,12 @@ Partial Class MainForm
         Me.mi_mode_mmc.Size = New System.Drawing.Size(222, 22)
         Me.mi_mode_mmc.Text = "SD / MMC / eMMC"
         '
+        'mi_jtag_menu
+        '
+        Me.mi_jtag_menu.Name = "mi_jtag_menu"
+        Me.mi_jtag_menu.Size = New System.Drawing.Size(44, 20)
+        Me.mi_jtag_menu.Text = "JTAG"
+        '
         'mi_script_menu
         '
         Me.mi_script_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_script_selected, Me.mi_script_load, Me.mi_script_unload})
@@ -403,21 +410,21 @@ Partial Class MainForm
         '
         Me.mi_script_selected.Image = Global.FlashcatUSB.My.Resources.Resources.config
         Me.mi_script_selected.Name = "mi_script_selected"
-        Me.mi_script_selected.Size = New System.Drawing.Size(180, 22)
+        Me.mi_script_selected.Size = New System.Drawing.Size(144, 22)
         Me.mi_script_selected.Text = "Select script"
         '
         'mi_script_load
         '
         Me.mi_script_load.Image = Global.FlashcatUSB.My.Resources.Resources.openfile
         Me.mi_script_load.Name = "mi_script_load"
-        Me.mi_script_load.Size = New System.Drawing.Size(180, 22)
+        Me.mi_script_load.Size = New System.Drawing.Size(144, 22)
         Me.mi_script_load.Text = "Load script"
         '
         'mi_script_unload
         '
         Me.mi_script_unload.Image = Global.FlashcatUSB.My.Resources.Resources.clear_x
         Me.mi_script_unload.Name = "mi_script_unload"
-        Me.mi_script_unload.Size = New System.Drawing.Size(180, 22)
+        Me.mi_script_unload.Size = New System.Drawing.Size(144, 22)
         Me.mi_script_unload.Text = "Unload script"
         '
         'mi_tools_menu
@@ -779,11 +786,11 @@ Partial Class MainForm
         Me.ConsoleBox.Size = New System.Drawing.Size(527, 264)
         Me.ConsoleBox.TabIndex = 1
         '
-        'mi_jtag_menu
+        'mi_mode_peeprom
         '
-        Me.mi_jtag_menu.Name = "mi_jtag_menu"
-        Me.mi_jtag_menu.Size = New System.Drawing.Size(44, 20)
-        Me.mi_jtag_menu.Text = "JTAG"
+        Me.mi_mode_peeprom.Name = "mi_mode_peeprom"
+        Me.mi_mode_peeprom.Size = New System.Drawing.Size(222, 22)
+        Me.mi_mode_peeprom.Text = "Parallel EEPROM"
         '
         'MainForm
         '
@@ -902,4 +909,5 @@ Partial Class MainForm
     Friend WithEvents mi_mode_fwh As ToolStripMenuItem
     Friend WithEvents mi_mode_pnand As ToolStripMenuItem
     Friend WithEvents mi_jtag_menu As ToolStripMenuItem
+    Friend WithEvents mi_mode_peeprom As ToolStripMenuItem
 End Class
