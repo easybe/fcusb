@@ -107,25 +107,25 @@ Partial Class FrmSettings
         Me.cb_mismatch = New System.Windows.Forms.CheckBox()
         Me.cb_preserve = New System.Windows.Forms.CheckBox()
         Me.TP_NAND2 = New System.Windows.Forms.TabPage()
-        Me.Label25 = New System.Windows.Forms.Label()
         Me.gb_nandecc_title = New System.Windows.Forms.GroupBox()
-        Me.txt_ecc_location = New System.Windows.Forms.TextBox()
-        Me.cb_ecc_seperate = New System.Windows.Forms.CheckBox()
+        Me.Label25 = New System.Windows.Forms.Label()
+        Me.cmdEccRemove = New System.Windows.Forms.Button()
+        Me.cmdEccAdd = New System.Windows.Forms.Button()
         Me.lbl_ECC_size = New System.Windows.Forms.Label()
-        Me.rb_ECC_BHC = New System.Windows.Forms.RadioButton()
-        Me.rb_ECC_ReedSolomon = New System.Windows.Forms.RadioButton()
-        Me.rb_ECC_Hamming = New System.Windows.Forms.RadioButton()
-        Me.lbl_nandecc_algorithm = New System.Windows.Forms.Label()
+        Me.cb_ecc_feature = New System.Windows.Forms.CheckBox()
+        Me.lv_nand_type = New System.Windows.Forms.ListView()
+        Me.ch_index = CType(New System.Windows.Forms.ColumnHeader(), System.Windows.Forms.ColumnHeader)
+        Me.ch_page_size = CType(New System.Windows.Forms.ColumnHeader(), System.Windows.Forms.ColumnHeader)
+        Me.ch_spare_size = CType(New System.Windows.Forms.ColumnHeader(), System.Windows.Forms.ColumnHeader)
+        Me.ch_algorithm = CType(New System.Windows.Forms.ColumnHeader(), System.Windows.Forms.ColumnHeader)
+        Me.ch_bitcorrection = CType(New System.Windows.Forms.ColumnHeader(), System.Windows.Forms.ColumnHeader)
+        Me.ch_symwidth = CType(New System.Windows.Forms.ColumnHeader(), System.Windows.Forms.ColumnHeader)
+        Me.ch_reverse = CType(New System.Windows.Forms.ColumnHeader(), System.Windows.Forms.ColumnHeader)
         Me.lbl_nandecc_changes = New System.Windows.Forms.Label()
-        Me.cb_rs_reverse_data = New System.Windows.Forms.CheckBox()
-        Me.cb_sym_width = New System.Windows.Forms.ComboBox()
-        Me.lbl_sym_width = New System.Windows.Forms.Label()
-        Me.lbl_nandecc_location = New System.Windows.Forms.Label()
-        Me.cb_ECC_WriteEnable = New System.Windows.Forms.CheckBox()
-        Me.cb_ECC_ReadEnable = New System.Windows.Forms.CheckBox()
-        Me.lbl_nandecc_enabled = New System.Windows.Forms.Label()
-        Me.cb_ECC_BITERR = New System.Windows.Forms.ComboBox()
-        Me.lbl_nandecc_biterror = New System.Windows.Forms.Label()
+        Me.lv_nand_region = New System.Windows.Forms.ListView()
+        Me.ch_sector = CType(New System.Windows.Forms.ColumnHeader(), System.Windows.Forms.ColumnHeader)
+        Me.ch_ecc_start = CType(New System.Windows.Forms.ColumnHeader(), System.Windows.Forms.ColumnHeader)
+        Me.ch_ecc_end = CType(New System.Windows.Forms.ColumnHeader(), System.Windows.Forms.ColumnHeader)
         Me.TP_GEN = New System.Windows.Forms.TabPage()
         Me.GroupBox9 = New System.Windows.Forms.GroupBox()
         Me.cb_nor_we_pulse = New System.Windows.Forms.ComboBox()
@@ -1072,7 +1072,6 @@ Partial Class FrmSettings
         'TP_NAND2
         '
         Me.TP_NAND2.BackColor = System.Drawing.SystemColors.Control
-        Me.TP_NAND2.Controls.Add(Me.Label25)
         Me.TP_NAND2.Controls.Add(Me.gb_nandecc_title)
         Me.TP_NAND2.Location = New System.Drawing.Point(4, 22)
         Me.TP_NAND2.Name = "TP_NAND2"
@@ -1081,210 +1080,154 @@ Partial Class FrmSettings
         Me.TP_NAND2.TabIndex = 4
         Me.TP_NAND2.Text = "  ECC  "
         '
+        'gb_nandecc_title
+        '
+        Me.gb_nandecc_title.Controls.Add(Me.Label25)
+        Me.gb_nandecc_title.Controls.Add(Me.cmdEccRemove)
+        Me.gb_nandecc_title.Controls.Add(Me.cmdEccAdd)
+        Me.gb_nandecc_title.Controls.Add(Me.lbl_ECC_size)
+        Me.gb_nandecc_title.Controls.Add(Me.cb_ecc_feature)
+        Me.gb_nandecc_title.Controls.Add(Me.lv_nand_type)
+        Me.gb_nandecc_title.Controls.Add(Me.lbl_nandecc_changes)
+        Me.gb_nandecc_title.Controls.Add(Me.lv_nand_region)
+        Me.gb_nandecc_title.Location = New System.Drawing.Point(6, 6)
+        Me.gb_nandecc_title.Name = "gb_nandecc_title"
+        Me.gb_nandecc_title.Size = New System.Drawing.Size(512, 316)
+        Me.gb_nandecc_title.TabIndex = 1
+        Me.gb_nandecc_title.TabStop = False
+        Me.gb_nandecc_title.Text = "Software ECC Feature"
+        '
         'Label25
         '
         Me.Label25.AutoSize = True
         Me.Label25.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.Label25.Location = New System.Drawing.Point(95, 246)
+        Me.Label25.Location = New System.Drawing.Point(125, 20)
         Me.Label25.Name = "Label25"
         Me.Label25.Size = New System.Drawing.Size(341, 13)
         Me.Label25.TabIndex = 12
         Me.Label25.Text = "This feature is only available to commercial license holders"
         '
-        'gb_nandecc_title
+        'cmdEccRemove
         '
-        Me.gb_nandecc_title.Controls.Add(Me.txt_ecc_location)
-        Me.gb_nandecc_title.Controls.Add(Me.cb_ecc_seperate)
-        Me.gb_nandecc_title.Controls.Add(Me.lbl_ECC_size)
-        Me.gb_nandecc_title.Controls.Add(Me.rb_ECC_BHC)
-        Me.gb_nandecc_title.Controls.Add(Me.rb_ECC_ReedSolomon)
-        Me.gb_nandecc_title.Controls.Add(Me.rb_ECC_Hamming)
-        Me.gb_nandecc_title.Controls.Add(Me.lbl_nandecc_algorithm)
-        Me.gb_nandecc_title.Controls.Add(Me.lbl_nandecc_changes)
-        Me.gb_nandecc_title.Controls.Add(Me.cb_rs_reverse_data)
-        Me.gb_nandecc_title.Controls.Add(Me.cb_sym_width)
-        Me.gb_nandecc_title.Controls.Add(Me.lbl_sym_width)
-        Me.gb_nandecc_title.Controls.Add(Me.lbl_nandecc_location)
-        Me.gb_nandecc_title.Controls.Add(Me.cb_ECC_WriteEnable)
-        Me.gb_nandecc_title.Controls.Add(Me.cb_ECC_ReadEnable)
-        Me.gb_nandecc_title.Controls.Add(Me.lbl_nandecc_enabled)
-        Me.gb_nandecc_title.Controls.Add(Me.cb_ECC_BITERR)
-        Me.gb_nandecc_title.Controls.Add(Me.lbl_nandecc_biterror)
-        Me.gb_nandecc_title.Location = New System.Drawing.Point(6, 6)
-        Me.gb_nandecc_title.Name = "gb_nandecc_title"
-        Me.gb_nandecc_title.Size = New System.Drawing.Size(512, 237)
-        Me.gb_nandecc_title.TabIndex = 1
-        Me.gb_nandecc_title.TabStop = False
-        Me.gb_nandecc_title.Text = "Software ECC Feature"
+        Me.cmdEccRemove.Location = New System.Drawing.Point(89, 164)
+        Me.cmdEccRemove.Name = "cmdEccRemove"
+        Me.cmdEccRemove.Size = New System.Drawing.Size(76, 27)
+        Me.cmdEccRemove.TabIndex = 45
+        Me.cmdEccRemove.Text = "Remove"
+        Me.cmdEccRemove.UseVisualStyleBackColor = True
         '
-        'txt_ecc_location
+        'cmdEccAdd
         '
-        Me.txt_ecc_location.Location = New System.Drawing.Point(366, 137)
-        Me.txt_ecc_location.Name = "txt_ecc_location"
-        Me.txt_ecc_location.Size = New System.Drawing.Size(64, 20)
-        Me.txt_ecc_location.TabIndex = 33
-        Me.txt_ecc_location.Text = "0x00"
-        '
-        'cb_ecc_seperate
-        '
-        Me.cb_ecc_seperate.AutoSize = True
-        Me.cb_ecc_seperate.Location = New System.Drawing.Point(9, 139)
-        Me.cb_ecc_seperate.Name = "cb_ecc_seperate"
-        Me.cb_ecc_seperate.Size = New System.Drawing.Size(237, 17)
-        Me.cb_ecc_seperate.TabIndex = 32
-        Me.cb_ecc_seperate.Text = "Separate OOB area for each 512 byte sector"
-        Me.cb_ecc_seperate.UseVisualStyleBackColor = True
+        Me.cmdEccAdd.Location = New System.Drawing.Point(7, 164)
+        Me.cmdEccAdd.Name = "cmdEccAdd"
+        Me.cmdEccAdd.Size = New System.Drawing.Size(76, 27)
+        Me.cmdEccAdd.TabIndex = 44
+        Me.cmdEccAdd.Text = "Add new"
+        Me.cmdEccAdd.UseVisualStyleBackColor = True
         '
         'lbl_ECC_size
         '
         Me.lbl_ECC_size.AutoSize = True
-        Me.lbl_ECC_size.Location = New System.Drawing.Point(257, 210)
+        Me.lbl_ECC_size.Location = New System.Drawing.Point(264, 281)
         Me.lbl_ECC_size.Name = "lbl_ECC_size"
         Me.lbl_ECC_size.Size = New System.Drawing.Size(186, 13)
-        Me.lbl_ECC_size.TabIndex = 31
+        Me.lbl_ECC_size.TabIndex = 43
         Me.lbl_ECC_size.Text = "ECC data per 512 byte sector: 0 bytes"
         '
-        'rb_ECC_BHC
+        'cb_ecc_feature
         '
-        Me.rb_ECC_BHC.AutoSize = True
-        Me.rb_ECC_BHC.Location = New System.Drawing.Point(250, 81)
-        Me.rb_ECC_BHC.Name = "rb_ECC_BHC"
-        Me.rb_ECC_BHC.Size = New System.Drawing.Size(79, 17)
-        Me.rb_ECC_BHC.TabIndex = 4
-        Me.rb_ECC_BHC.TabStop = True
-        Me.rb_ECC_BHC.Text = "Binary BHC"
-        Me.rb_ECC_BHC.UseVisualStyleBackColor = True
+        Me.cb_ecc_feature.AutoSize = True
+        Me.cb_ecc_feature.Location = New System.Drawing.Point(6, 19)
+        Me.cb_ecc_feature.Name = "cb_ecc_feature"
+        Me.cb_ecc_feature.Size = New System.Drawing.Size(95, 17)
+        Me.cb_ecc_feature.TabIndex = 42
+        Me.cb_ecc_feature.Text = "Enable feature"
+        Me.cb_ecc_feature.UseVisualStyleBackColor = True
         '
-        'rb_ECC_ReedSolomon
+        'lv_nand_type
         '
-        Me.rb_ECC_ReedSolomon.AutoSize = True
-        Me.rb_ECC_ReedSolomon.Location = New System.Drawing.Point(250, 58)
-        Me.rb_ECC_ReedSolomon.Name = "rb_ECC_ReedSolomon"
-        Me.rb_ECC_ReedSolomon.Size = New System.Drawing.Size(95, 17)
-        Me.rb_ECC_ReedSolomon.TabIndex = 3
-        Me.rb_ECC_ReedSolomon.TabStop = True
-        Me.rb_ECC_ReedSolomon.Text = "Reed-Solomon"
-        Me.rb_ECC_ReedSolomon.UseVisualStyleBackColor = True
+        Me.lv_nand_type.Columns.AddRange(New System.Windows.Forms.ColumnHeader() {Me.ch_index, Me.ch_page_size, Me.ch_spare_size, Me.ch_algorithm, Me.ch_bitcorrection, Me.ch_symwidth, Me.ch_reverse})
+        Me.lv_nand_type.FullRowSelect = True
+        Me.lv_nand_type.GridLines = True
+        Me.lv_nand_type.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable
+        Me.lv_nand_type.HideSelection = False
+        Me.lv_nand_type.Location = New System.Drawing.Point(7, 46)
+        Me.lv_nand_type.Name = "lv_nand_type"
+        Me.lv_nand_type.Size = New System.Drawing.Size(459, 112)
+        Me.lv_nand_type.TabIndex = 41
+        Me.lv_nand_type.UseCompatibleStateImageBehavior = False
+        Me.lv_nand_type.View = System.Windows.Forms.View.Details
         '
-        'rb_ECC_Hamming
+        'ch_index
         '
-        Me.rb_ECC_Hamming.AutoSize = True
-        Me.rb_ECC_Hamming.Location = New System.Drawing.Point(250, 35)
-        Me.rb_ECC_Hamming.Name = "rb_ECC_Hamming"
-        Me.rb_ECC_Hamming.Size = New System.Drawing.Size(69, 17)
-        Me.rb_ECC_Hamming.TabIndex = 2
-        Me.rb_ECC_Hamming.TabStop = True
-        Me.rb_ECC_Hamming.Text = "Hamming"
-        Me.rb_ECC_Hamming.UseVisualStyleBackColor = True
+        Me.ch_index.Text = "Index"
+        Me.ch_index.Width = 50
         '
-        'lbl_nandecc_algorithm
+        'ch_page_size
         '
-        Me.lbl_nandecc_algorithm.AutoSize = True
-        Me.lbl_nandecc_algorithm.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lbl_nandecc_algorithm.Location = New System.Drawing.Point(247, 19)
-        Me.lbl_nandecc_algorithm.Name = "lbl_nandecc_algorithm"
-        Me.lbl_nandecc_algorithm.Size = New System.Drawing.Size(59, 13)
-        Me.lbl_nandecc_algorithm.TabIndex = 1
-        Me.lbl_nandecc_algorithm.Text = "Algorithm"
+        Me.ch_page_size.Text = "Page size"
+        Me.ch_page_size.Width = 65
+        '
+        'ch_spare_size
+        '
+        Me.ch_spare_size.Text = "Spare size"
+        Me.ch_spare_size.Width = 65
+        '
+        'ch_algorithm
+        '
+        Me.ch_algorithm.Text = "Algorithm"
+        Me.ch_algorithm.Width = 85
+        '
+        'ch_bitcorrection
+        '
+        Me.ch_bitcorrection.Text = "Bit-error"
+        Me.ch_bitcorrection.Width = 50
+        '
+        'ch_symwidth
+        '
+        Me.ch_symwidth.Text = "Sym size"
+        Me.ch_symwidth.Width = 55
+        '
+        'ch_reverse
+        '
+        Me.ch_reverse.Text = "Reverse"
+        Me.ch_reverse.Width = 56
         '
         'lbl_nandecc_changes
         '
         Me.lbl_nandecc_changes.AutoSize = True
-        Me.lbl_nandecc_changes.Location = New System.Drawing.Point(6, 210)
+        Me.lbl_nandecc_changes.Location = New System.Drawing.Point(6, 570)
         Me.lbl_nandecc_changes.Name = "lbl_nandecc_changes"
         Me.lbl_nandecc_changes.Size = New System.Drawing.Size(223, 13)
         Me.lbl_nandecc_changes.TabIndex = 11
         Me.lbl_nandecc_changes.Text = "* Changes take effect on device detect event"
         '
-        'cb_rs_reverse_data
+        'lv_nand_region
         '
-        Me.cb_rs_reverse_data.AutoSize = True
-        Me.cb_rs_reverse_data.Location = New System.Drawing.Point(9, 116)
-        Me.cb_rs_reverse_data.Name = "cb_rs_reverse_data"
-        Me.cb_rs_reverse_data.Size = New System.Drawing.Size(116, 17)
-        Me.cb_rs_reverse_data.TabIndex = 30
-        Me.cb_rs_reverse_data.Text = "Reverse byte order"
-        Me.cb_rs_reverse_data.UseVisualStyleBackColor = True
+        Me.lv_nand_region.Columns.AddRange(New System.Windows.Forms.ColumnHeader() {Me.ch_sector, Me.ch_ecc_start, Me.ch_ecc_end})
+        Me.lv_nand_region.FullRowSelect = True
+        Me.lv_nand_region.GridLines = True
+        Me.lv_nand_region.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable
+        Me.lv_nand_region.HideSelection = False
+        Me.lv_nand_region.Location = New System.Drawing.Point(264, 166)
+        Me.lv_nand_region.Name = "lv_nand_region"
+        Me.lv_nand_region.Size = New System.Drawing.Size(202, 112)
+        Me.lv_nand_region.TabIndex = 40
+        Me.lv_nand_region.UseCompatibleStateImageBehavior = False
+        Me.lv_nand_region.View = System.Windows.Forms.View.Details
         '
-        'cb_sym_width
+        'ch_sector
         '
-        Me.cb_sym_width.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cb_sym_width.FormattingEnabled = True
-        Me.cb_sym_width.Items.AddRange(New Object() {"9-bit", "10-bit"})
-        Me.cb_sym_width.Location = New System.Drawing.Point(366, 85)
-        Me.cb_sym_width.Name = "cb_sym_width"
-        Me.cb_sym_width.Size = New System.Drawing.Size(80, 21)
-        Me.cb_sym_width.TabIndex = 28
+        Me.ch_sector.Text = "Sector"
+        Me.ch_sector.Width = 50
         '
-        'lbl_sym_width
+        'ch_ecc_start
         '
-        Me.lbl_sym_width.AutoSize = True
-        Me.lbl_sym_width.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lbl_sym_width.Location = New System.Drawing.Point(363, 68)
-        Me.lbl_sym_width.Name = "lbl_sym_width"
-        Me.lbl_sym_width.Size = New System.Drawing.Size(81, 13)
-        Me.lbl_sym_width.TabIndex = 29
-        Me.lbl_sym_width.Text = "Symbol width"
+        Me.ch_ecc_start.Text = "Offset"
         '
-        'lbl_nandecc_location
+        'ch_ecc_end
         '
-        Me.lbl_nandecc_location.AutoSize = True
-        Me.lbl_nandecc_location.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lbl_nandecc_location.Location = New System.Drawing.Point(363, 118)
-        Me.lbl_nandecc_location.Name = "lbl_nandecc_location"
-        Me.lbl_nandecc_location.Size = New System.Drawing.Size(80, 13)
-        Me.lbl_nandecc_location.TabIndex = 10
-        Me.lbl_nandecc_location.Text = "ECC location"
-        '
-        'cb_ECC_WriteEnable
-        '
-        Me.cb_ECC_WriteEnable.AutoSize = True
-        Me.cb_ECC_WriteEnable.Location = New System.Drawing.Point(9, 67)
-        Me.cb_ECC_WriteEnable.Name = "cb_ECC_WriteEnable"
-        Me.cb_ECC_WriteEnable.Size = New System.Drawing.Size(98, 17)
-        Me.cb_ECC_WriteEnable.TabIndex = 6
-        Me.cb_ECC_WriteEnable.Text = "Write operation"
-        Me.cb_ECC_WriteEnable.UseVisualStyleBackColor = True
-        '
-        'cb_ECC_ReadEnable
-        '
-        Me.cb_ECC_ReadEnable.AutoSize = True
-        Me.cb_ECC_ReadEnable.Location = New System.Drawing.Point(9, 44)
-        Me.cb_ECC_ReadEnable.Name = "cb_ECC_ReadEnable"
-        Me.cb_ECC_ReadEnable.Size = New System.Drawing.Size(99, 17)
-        Me.cb_ECC_ReadEnable.TabIndex = 0
-        Me.cb_ECC_ReadEnable.Text = "Read operation"
-        Me.cb_ECC_ReadEnable.UseVisualStyleBackColor = True
-        '
-        'lbl_nandecc_enabled
-        '
-        Me.lbl_nandecc_enabled.AutoSize = True
-        Me.lbl_nandecc_enabled.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lbl_nandecc_enabled.Location = New System.Drawing.Point(6, 27)
-        Me.lbl_nandecc_enabled.Name = "lbl_nandecc_enabled"
-        Me.lbl_nandecc_enabled.Size = New System.Drawing.Size(53, 13)
-        Me.lbl_nandecc_enabled.TabIndex = 8
-        Me.lbl_nandecc_enabled.Text = "Enabled"
-        '
-        'cb_ECC_BITERR
-        '
-        Me.cb_ECC_BITERR.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cb_ECC_BITERR.FormattingEnabled = True
-        Me.cb_ECC_BITERR.Items.AddRange(New Object() {"1-bit", "2-bit", "4-bit", "8-bit", "10-bit", "14-bit"})
-        Me.cb_ECC_BITERR.Location = New System.Drawing.Point(366, 36)
-        Me.cb_ECC_BITERR.Name = "cb_ECC_BITERR"
-        Me.cb_ECC_BITERR.Size = New System.Drawing.Size(80, 21)
-        Me.cb_ECC_BITERR.TabIndex = 5
-        '
-        'lbl_nandecc_biterror
-        '
-        Me.lbl_nandecc_biterror.AutoSize = True
-        Me.lbl_nandecc_biterror.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lbl_nandecc_biterror.Location = New System.Drawing.Point(363, 19)
-        Me.lbl_nandecc_biterror.Name = "lbl_nandecc_biterror"
-        Me.lbl_nandecc_biterror.Size = New System.Drawing.Size(52, 13)
-        Me.lbl_nandecc_biterror.TabIndex = 7
-        Me.lbl_nandecc_biterror.Text = "Bit-error"
+        Me.ch_ecc_end.Text = "End"
         '
         'TP_GEN
         '
@@ -1420,14 +1363,14 @@ Partial Class FrmSettings
         Me.GroupBox2.Size = New System.Drawing.Size(244, 84)
         Me.GroupBox2.TabIndex = 52
         Me.GroupBox2.TabStop = False
-        Me.GroupBox2.Text = "JTAG (Professional)"
+        Me.GroupBox2.Text = "JTAG"
         '
         'cb_jtag_tck_speed
         '
         Me.cb_jtag_tck_speed.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_jtag_tck_speed.FormattingEnabled = True
         Me.cb_jtag_tck_speed.Items.AddRange(New Object() {"10 MHz", "20 MHz", "40 MHz"})
-        Me.cb_jtag_tck_speed.Location = New System.Drawing.Point(9, 45)
+        Me.cb_jtag_tck_speed.Location = New System.Drawing.Point(9, 41)
         Me.cb_jtag_tck_speed.Name = "cb_jtag_tck_speed"
         Me.cb_jtag_tck_speed.Size = New System.Drawing.Size(117, 21)
         Me.cb_jtag_tck_speed.TabIndex = 53
@@ -1435,7 +1378,7 @@ Partial Class FrmSettings
         'Label22
         '
         Me.Label22.AutoSize = True
-        Me.Label22.Location = New System.Drawing.Point(9, 27)
+        Me.Label22.Location = New System.Drawing.Point(9, 23)
         Me.Label22.Name = "Label22"
         Me.Label22.Size = New System.Drawing.Size(62, 13)
         Me.Label22.TabIndex = 54
@@ -1551,7 +1494,6 @@ Partial Class FrmSettings
         Me.gb_nand_general.ResumeLayout(False)
         Me.gb_nand_general.PerformLayout()
         Me.TP_NAND2.ResumeLayout(False)
-        Me.TP_NAND2.PerformLayout()
         Me.gb_nandecc_title.ResumeLayout(False)
         Me.gb_nandecc_title.PerformLayout()
         Me.TP_GEN.ResumeLayout(False)
@@ -1644,25 +1586,9 @@ Partial Class FrmSettings
     Friend WithEvents cb_badmarker_6th_page1 As CheckBox
     Friend WithEvents lbl_6th_byte As Label
     Friend WithEvents TP_NAND2 As TabPage
-    Friend WithEvents cb_ECC_ReadEnable As CheckBox
     Friend WithEvents gb_nandecc_title As GroupBox
-    Friend WithEvents lbl_nandecc_algorithm As Label
-    Friend WithEvents lbl_nandecc_biterror As Label
-    Friend WithEvents cb_ECC_WriteEnable As CheckBox
-    Friend WithEvents cb_ECC_BITERR As ComboBox
-    Friend WithEvents rb_ECC_BHC As RadioButton
-    Friend WithEvents rb_ECC_ReedSolomon As RadioButton
-    Friend WithEvents rb_ECC_Hamming As RadioButton
-    Friend WithEvents lbl_nandecc_enabled As Label
-    Friend WithEvents lbl_nandecc_location As Label
     Friend WithEvents lbl_nandecc_changes As Label
-    Friend WithEvents cb_rs_reverse_data As CheckBox
-    Friend WithEvents cb_sym_width As ComboBox
-    Friend WithEvents lbl_sym_width As Label
     Friend WithEvents TP_GEN As TabPage
-    Friend WithEvents lbl_ECC_size As Label
-    Friend WithEvents cb_ecc_seperate As CheckBox
-    Friend WithEvents txt_ecc_location As TextBox
     Friend WithEvents GroupBox3 As GroupBox
     Friend WithEvents Label17 As Label
     Friend WithEvents cb_retry_write As ComboBox
@@ -1692,5 +1618,21 @@ Partial Class FrmSettings
     Friend WithEvents cb_nor_read_access As ComboBox
     Friend WithEvents Label24 As Label
     Friend WithEvents Label23 As Label
+    Friend WithEvents lv_nand_region As ListView
+    Friend WithEvents lv_nand_type As ListView
+    Friend WithEvents ch_index As ColumnHeader
+    Friend WithEvents ch_page_size As ColumnHeader
+    Friend WithEvents ch_spare_size As ColumnHeader
+    Friend WithEvents ch_sector As ColumnHeader
+    Friend WithEvents ch_ecc_start As ColumnHeader
+    Friend WithEvents ch_ecc_end As ColumnHeader
+    Friend WithEvents cb_ecc_feature As CheckBox
+    Friend WithEvents ch_algorithm As ColumnHeader
+    Friend WithEvents ch_bitcorrection As ColumnHeader
+    Friend WithEvents ch_symwidth As ColumnHeader
+    Friend WithEvents ch_reverse As ColumnHeader
+    Friend WithEvents lbl_ECC_size As Label
+    Friend WithEvents cmdEccRemove As Button
+    Friend WithEvents cmdEccAdd As Button
     Friend WithEvents Label25 As Label
 End Class

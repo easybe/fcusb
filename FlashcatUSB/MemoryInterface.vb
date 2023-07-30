@@ -1,5 +1,5 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2019 - ALL RIGHTS RESERVED
-'CONTACT EMAIL: contact@embeddedcomputers.net
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2020 - ALL RIGHTS RESERVED
+'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: this class creates a flash memory interface that is used by the main program
 
@@ -244,10 +244,7 @@ Public Class MemoryInterface
         End Sub
 
         Private Sub OnGetEccLastResult(ByRef result As ECC_LIB.ECC_DECODE_RESULT) Handles GuiControl.GetEccLastResult
-            Select Case Me.FlashType
-                Case MemoryType.PARALLEL_NAND
-                    result = FCUSB.PARALLEL_IF.ECC_LAST_RESULT
-            End Select
+            result = ECC_LAST_RESULT
         End Sub
 
 #End Region
@@ -302,7 +299,7 @@ Public Class MemoryInterface
 
         Private Function ReadStream(data_stream As IO.Stream, Params As ReadParameters) As Boolean
             Me.NoErrors = True
-            If (Threading.Thread.CurrentThread.Name = "") Then
+            If (Threading.Thread.CurrentThread.Name Is Nothing) Then
                 Dim td_int As Integer = Threading.Thread.CurrentThread.ManagedThreadId
                 Threading.Thread.CurrentThread.Name = "MemIf.ReadStream_" & td_int
             End If
@@ -366,7 +363,7 @@ Public Class MemoryInterface
         Private Function WriteStream(data_stream As IO.Stream, params As WriteParameters) As Boolean
             Try : Me.IsTaskRunning = True
                 Me.NoErrors = True
-                If (Threading.Thread.CurrentThread.Name.Equals("")) Then
+                If (Threading.Thread.CurrentThread.Name Is Nothing) Then
                     Dim td_int As Integer = Threading.Thread.CurrentThread.ManagedThreadId
                     Threading.Thread.CurrentThread.Name = "MemIf.WriteBytes_" & td_int
                 End If
@@ -466,8 +463,7 @@ Public Class MemoryInterface
                             Utilities.Sleep(500)
                         End If
                     Else
-                        FailedAttempts += 1
-                        If FailedAttempts = (MySettings.VERIFY_COUNT + 1) Then
+                        If FailedAttempts = MySettings.VERIFY_COUNT Then
                             RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(Params.Address)))
                             If Params.Status.UpdateOperation IsNot Nothing Then
                                 Params.Status.UpdateOperation.DynamicInvoke(5) 'ERROR IMG
@@ -479,6 +475,7 @@ Public Class MemoryInterface
                             End If
                             Return False
                         End If
+                        FailedAttempts += 1
                         Utilities.Sleep(500)
                     End If
                 End If
@@ -707,23 +704,22 @@ Public Class MemoryInterface
                                 Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_okay"))
                             End If
                         Else
-                            FailedAttempts += 1
-                            If FailedAttempts = (MySettings.VERIFY_COUNT + 1) Then
+                            If FailedAttempts = MySettings.VERIFY_COUNT Then
                                 If (FlashType = FlashMemory.MemoryType.PARALLEL_NAND) Then
-                                    Dim n_dev As P_NAND = DirectCast(FCUSB.PARALLEL_IF.MyFlashDevice, P_NAND)
-                                    Dim pages_per_block As UInt32 = (n_dev.BLOCK_SIZE / n_dev.PAGE_SIZE)
+                                    Dim n_dev As P_NAND = FCUSB.PARALLEL_NAND_IF.MyFlashDevice
+                                    Dim pages_per_block As UInt32 = (n_dev.Block_Size / n_dev.PAGE_SIZE)
                                     Dim page_addr As UInt32 = GetNandPageAddress(n_dev, Params.Address, Params.Memory_Area)
                                     Dim block_addr As UInt32 = Math.Floor(page_addr / pages_per_block)
                                     RaiseEvent PrintConsole(String.Format(RM.GetString("mem_bad_nand_block"), Hex(page_addr).PadLeft(6, "0"), block_addr))
                                     Return False
                                 ElseIf (FlashType = FlashMemory.MemoryType.SERIAL_NAND) Then
                                     Dim n_dev As SPI_NAND = DirectCast(FCUSB.SPI_NAND_IF.MyFlashDevice, SPI_NAND)
-                                    Dim pages_per_block As UInt32 = (n_dev.BLOCK_SIZE / n_dev.PAGE_SIZE)
+                                    Dim pages_per_block As UInt32 = (n_dev.Block_Size / n_dev.PAGE_SIZE)
                                     Dim page_addr As UInt32 = GetNandPageAddress(n_dev, Params.Address, Params.Memory_Area)
                                     Dim block_addr As UInt32 = Math.Floor(page_addr / pages_per_block)
                                     RaiseEvent PrintConsole(String.Format(RM.GetString("mem_bad_nand_block"), Hex(page_addr).PadLeft(6, "0"), block_addr))
                                     Return False
-                                ElseIf (FlashType = FlashMemory.MemoryType.PARALLEL_NOR) AndAlso (FCUSB.PARALLEL_IF.MyFlashDevice.GetType Is GetType(OTP_EPROM)) Then
+                                ElseIf (FlashType = FlashMemory.MemoryType.PARALLEL_NOR) AndAlso (FCUSB.PARALLEL_NOR_IF.MyFlashDevice.GetType Is GetType(OTP_EPROM)) Then
                                     RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(Params.Address)))
                                     If Params.Status.UpdateOperation IsNot Nothing Then
                                         Params.Status.UpdateOperation.DynamicInvoke(5) 'ERROR IMG
@@ -745,6 +741,7 @@ Public Class MemoryInterface
                                     Return WriteErrorOnVerifyWrite(Params.Address)
                                 End If
                             End If
+                            FailedAttempts += 1
                             Utilities.Sleep(500)
                         End If
                     Else
@@ -827,7 +824,7 @@ Public Class MemoryInterface
         Public Sub ReadMode()
             Select Case Me.FlashType
                 Case MemoryType.PARALLEL_NOR
-                    FCUSB.PARALLEL_IF.ResetDevice()
+                    FCUSB.PARALLEL_NOR_IF.ResetDevice()
                 Case MemoryType.JTAG_CFI
                     FCUSB.JTAG_IF.CFI_ReadMode()
             End Select

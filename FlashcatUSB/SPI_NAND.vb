@@ -1,12 +1,12 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2019 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2020 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB
-'CONTACT EMAIL: contact@embeddedcomputers.net
+'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'ACKNOWLEDGEMENT: USB driver functionality provided by LibUsbDotNet (sourceforge.net/projects/libusbdotnet) 
 
+Imports FlashcatUSB.ECC_LIB
 Imports FlashcatUSB.FlashMemory
 Imports FlashcatUSB.USB
-Imports FlashcatUSB.USB.HostClient
 
 Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     Private FCUSB As FCUSB_DEVICE
@@ -15,6 +15,8 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     Public Property MyFlashDevice As SPI_NAND
     Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
     Public Property DIE_SELECTED As Integer = 0
+
+    Private Delegate Function USB_Readages(page_addr As UInt32, page_offset As UInt16, data_count As UInt32, memory_area As FlashArea) As Byte()
 
     Sub New(ByVal parent_if As FCUSB_DEVICE)
         FCUSB = parent_if
@@ -81,6 +83,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             FCUSB.NAND_IF.CreateMap(MyFlashDevice.FLASH_SIZE, MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT, MyFlashDevice.PAGE_COUNT, MyFlashDevice.BLOCK_COUNT)
             FCUSB.NAND_IF.EnableBlockManager() 'If enabled
             FCUSB.NAND_IF.ProcessMap()
+            ECC_LoadConfiguration(MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT)
             Return True
         Else
             RaiseEvent PrintConsole(RM.GetString("unknown_device_email"))
@@ -88,7 +91,6 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             Return False
         End If
     End Function
-
     'Indicates if the device has its internal ECC engine enabled
     Public Property ECC_ENABLED As Boolean
         Get
@@ -334,7 +336,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                     Dim die_page_addr As UInt32 = GetPageForMultiDie(page_addr, 0, bytes_left, main_buffer_size, memory_area)
                     Dim die_data(main_buffer_size - 1) As Byte
                     Array.Copy(main, main_ptr, die_data, 0, die_data.Length) : main_ptr += main_buffer_size
-                    write_result = WritePages(die_page_addr, die_data, Nothing, FlashArea.All)
+                    write_result = WriteBulk_SNAND(die_page_addr, die_data, Nothing, FlashArea.All)
                     If Not write_result Then Exit Sub
                 Loop
             Else
@@ -352,7 +354,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                             ReDim die_oob(oob_buffer_size - 1)
                             Array.Copy(oob, oob_ptr, die_oob, 0, die_oob.Length) : oob_ptr += oob_buffer_size
                         End If
-                        write_result = WritePages(die_page_addr, die_data, die_oob, FlashArea.Main)
+                        write_result = WriteBulk_SNAND(die_page_addr, die_data, die_oob, FlashArea.Main)
                         If Not write_result Then Exit Sub
                     Loop
                 ElseIf oob IsNot Nothing Then
@@ -362,7 +364,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                         Dim die_page_addr As UInt32 = GetPageForMultiDie(page_addr, 0, bytes_left, oob_buffer_size, memory_area)
                         Dim die_oob(oob_buffer_size - 1) As Byte
                         Array.Copy(oob, oob_ptr, die_oob, 0, die_oob.Length) : oob_ptr += oob_buffer_size
-                        write_result = WritePages(die_page_addr, Nothing, die_oob, FlashArea.OOB)
+                        write_result = WriteBulk_SNAND(die_page_addr, Nothing, die_oob, FlashArea.OOB)
                         If Not write_result Then Exit Sub
                     Loop
                 Else
@@ -370,7 +372,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                 End If
             End If
         Else
-            write_result = WritePages(page_addr, main, oob, memory_area)
+            write_result = WriteBulk_SNAND(page_addr, main, oob, memory_area)
         End If
     End Sub
 
@@ -424,11 +426,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     End Function
     'Makes the CS/SS pin go low
     Private Sub SPIBUS_SlaveSelect_Enable()
-        Try
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SPI_SS_ENABLE)
-            Utilities.Sleep(1)
-        Catch ex As Exception
-        End Try
+        FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SPI_SS_ENABLE)
     End Sub
     'Releases the CS/SS pin
     Private Sub SPIBUS_SlaveSelect_Disable()
@@ -480,100 +478,135 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         End Try
     End Function
 
-    Public Function ReadPages(page_addr As UInt32, page_offset As UInt16, data_count As UInt32, memory_area As FlashArea) As Byte()
+    Public Function ReadPages(page_addr As UInt32, page_offset As UInt16, count As UInt32, memory_area As FlashArea) As Byte()
+        Dim read_fnc As USB_Readages
         Try
-            Dim bytes_left As UInt32 = data_count
-            Dim data_out(data_count - 1) As Byte
             If (FCUSB.HasLogic()) Then 'Hardware-enabled routine
-                Dim setup() As Byte = SetupPacket_NAND(page_addr, page_offset, data_count, memory_area)
-                Dim param As UInt32 = 0
-                If MyFlashDevice.PLANE_SELECT Then param = (param Or 1)
-                If MyFlashDevice.READ_CMD_DUMMY Then param = (param Or (1 << 1))
-                Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.SPINAND_READFLASH, setup, data_out, param)
-                If Not result Then Return Nothing
-                Else
-                Dim nand_layout As NANDLAYOUT_STRUCTURE = NANDLAYOUT_Get(MyFlashDevice)
-                Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.PAGE_EXT)
-                Dim logical_block As UInt16 = (nand_layout.Layout_Main + nand_layout.Layout_Spare)
-                Dim data_ptr As UInt32 = 0
-                Dim op_setup() As Byte = Nothing
-                Do While (bytes_left > 0)
-                    Dim read_offset As UInt16 = 0 'We always want to read the entire page
-                    If MyFlashDevice.PLANE_SELECT Then read_offset = read_offset Or &H1000 'Sets plane select to HIGH
-                    If MyFlashDevice.READ_CMD_DUMMY Then
-                        ReDim op_setup(4)
-                        op_setup(0) = OPCMD_READCACHE
-                        op_setup(2) = ((read_offset >> 8) And 255) 'Column address (upper)
-                        op_setup(3) = (read_offset And 255) 'Lower
-                    Else
-                        ReDim op_setup(3)
-                        op_setup(0) = OPCMD_READCACHE
-                        op_setup(1) = ((read_offset >> 8) And 255) 'Column address (upper)
-                        op_setup(2) = (read_offset And 255) 'Lower
-                    End If
-                    Dim read_packet(page_size_tot - 1) As Byte
-                    SPIBUS_WriteRead({OPCMD_PAGEREAD, ((page_addr >> 16) And 255), ((page_addr >> 8) And 255), (page_addr And 255)})
-                    SPIBUS_WriteRead(op_setup, read_packet)
-                    Select Case memory_area
-                        Case FlashArea.Main
-                            Dim sub_index As UInt16 = Math.Floor(page_offset / nand_layout.Layout_Main) 'the sub block we are in			
-                            Dim adj_offset As UInt16 = (sub_index * logical_block) + (page_offset Mod nand_layout.Layout_Main)
-                            sub_index += 1
-                            Do While Not (adj_offset = page_size_tot)
-                                Dim sub_left As UInt16 = nand_layout.Layout_Main - (page_offset Mod nand_layout.Layout_Main)
-                                If sub_left > bytes_left Then sub_left = bytes_left
-                                Array.Copy(read_packet, adj_offset, data_out, data_ptr, sub_left)
-                                data_ptr += sub_left
-                                page_offset += sub_left
-                                bytes_left -= sub_left
-                                If (bytes_left = 0) Then Exit Do
-                                adj_offset = (sub_index * logical_block)
-                                sub_index += 1
-                            Loop
-                            If (page_offset = MyFlashDevice.PAGE_SIZE) Then
-                                page_offset = 0
-                                page_addr += 1
-                            End If
-                        Case FlashArea.OOB
-                            Dim sub_index As UInt16 = Math.Floor(page_offset / nand_layout.Layout_Spare) + 1 'the sub block we are in			
-                            Dim adj_offset As UInt16 = ((sub_index * logical_block) - nand_layout.Layout_Spare) + (page_offset Mod nand_layout.Layout_Spare)
-                            sub_index += 1
-                            Do While Not ((adj_offset - nand_layout.Layout_Main) = page_size_tot)
-                                Dim sub_left As UInt16 = nand_layout.Layout_Spare - (page_offset Mod nand_layout.Layout_Spare)
-                                If sub_left > bytes_left Then sub_left = bytes_left
-                                Array.Copy(read_packet, adj_offset, data_out, data_ptr, sub_left)
-                                data_ptr += sub_left
-                                page_offset += sub_left
-                                bytes_left -= sub_left
-                                If (bytes_left = 0) Then Exit Do
-                                adj_offset = ((sub_index * logical_block) - nand_layout.Layout_Spare)
-                                sub_index += 1
-                            Loop
-                            If (page_offset = MyFlashDevice.PAGE_EXT) Then
-                                page_offset = 0
-                                page_addr += 1
-                            End If
-                        Case FlashArea.All
-                            Dim sub_left As UInt16 = page_size_tot - page_offset
-                            Dim transfer_count As UInt16 = sub_left
-                            If (transfer_count > bytes_left) Then transfer_count = bytes_left
-                            Array.Copy(read_packet, page_offset, data_out, data_ptr, transfer_count)
-                            data_ptr += transfer_count
-                            bytes_left -= transfer_count
-                            sub_left -= transfer_count
-                            If (sub_left = 0) Then
-                                page_addr += 1
-                                page_offset = 0
-                            Else
-                                page_offset = (page_size_tot - sub_left)
-                            End If
-                    End Select
-                Loop
+                read_fnc = New USB_Readages(AddressOf ReadPages_Hardware)
+            Else 'Software mode only
+                read_fnc = New USB_Readages(AddressOf ReadPages_Software)
             End If
-            Return data_out
+            If NAND_ECC IsNot Nothing AndAlso (memory_area = FlashArea.Main) Then
+                Dim NAND_DEV As SPI_NAND = DirectCast(MyFlashDevice, SPI_NAND)
+                Dim page_count As UInt32 = Math.Ceiling((count + page_offset) / NAND_DEV.PAGE_SIZE) 'Number of complete pages and OOB to read and correct
+                Dim total_main_bytes As UInt32 = (page_count * NAND_DEV.PAGE_SIZE)
+                Dim total_oob_bytes As UInt32 = (page_count * NAND_DEV.PAGE_EXT)
+                Dim main_area_data() As Byte = read_fnc(page_addr, 0, total_main_bytes, FlashArea.Main)
+                Dim oob_area_data() As Byte = read_fnc(page_addr, 0, total_oob_bytes, FlashArea.OOB)
+                Dim ecc_data() As Byte = NAND_ECC.GetEccFromSpare(oob_area_data, NAND_DEV.PAGE_SIZE, NAND_DEV.PAGE_EXT) 'This strips out the ecc data from the spare area
+                ECC_LAST_RESULT = NAND_ECC.ReadData(main_area_data, ecc_data) 'This processes the flash data (512 bytes at a time) and corrects for any errors using the ECC
+                If ECC_LAST_RESULT = ECC_DECODE_RESULT.Uncorractable Then
+                    Dim logical_addr As Long = (page_addr * CLng(MyFlashDevice.PAGE_SIZE)) + page_offset
+                    RaiseEvent PrintConsole("ECC failed at: 0x" & Hex(logical_addr).PadLeft(8, "0"))
+                End If
+                Dim data_out(count - 1) As Byte 'This is the data the user requested
+                Array.Copy(main_area_data, page_offset, data_out, 0, data_out.Length)
+                Return data_out
+            Else
+                Return read_fnc(page_addr, page_offset, count, memory_area)
+            End If
         Catch ex As Exception
         End Try
         Return Nothing
+    End Function
+
+    Private Function ReadPages_Hardware(page_addr As UInt32, page_offset As UInt16, data_count As UInt32, memory_area As FlashArea) As Byte()
+        Dim setup() As Byte = SetupPacket_NAND(page_addr, page_offset, data_count, memory_area)
+        Dim param As UInt32 = 0
+        If MyFlashDevice.PLANE_SELECT Then param = (param Or 1)
+        If MyFlashDevice.READ_CMD_DUMMY Then param = (param Or (1 << 1))
+        Dim data_out(data_count - 1) As Byte
+        If Not FCUSB.USB_SETUP_BULKIN(USBREQ.SPINAND_READFLASH, setup, data_out, param) Then Return Nothing
+        Return data_out
+    End Function
+    'SPI NAND software mode
+    Private Function ReadPages_Software(page_addr As UInt32, page_offset As UInt16, count As UInt32, memory_area As FlashArea) As Byte()
+        Dim data_out(count - 1) As Byte
+        Dim bytes_left As UInt32 = count
+        Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.PAGE_EXT)
+        Dim nand_layout As NANDLAYOUT_STRUCTURE = NANDLAYOUT_Get(MyFlashDevice)
+        Dim data_ptr As UInt32 = 0
+        If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then memory_area = FlashArea.All
+        Dim logical_block As UInt16 = (nand_layout.Layout_Main + nand_layout.Layout_Spare)
+        Do While (bytes_left > 0)
+            Dim read_offset As UInt16 = 0 'We always want to read the entire page
+            If MyFlashDevice.PLANE_SELECT Then read_offset = read_offset Or &H1000 'Sets plane select to HIGH
+            Dim op_setup() As Byte = GetReadCacheCommand(read_offset)
+            Dim read_packet(page_size_tot - 1) As Byte
+            SPIBUS_WriteRead({OPCMD_PAGEREAD, ((page_addr >> 16) And 255), ((page_addr >> 8) And 255), (page_addr And 255)})
+            SPIBUS_WriteRead(op_setup, read_packet)
+            Select Case memory_area
+                Case FlashArea.Main
+                    Dim sub_index As UInt16 = Math.Floor(page_offset / nand_layout.Layout_Main) 'the sub block we are in			
+                    Dim adj_offset As UInt16 = (sub_index * logical_block) + (page_offset Mod nand_layout.Layout_Main)
+                    sub_index += 1
+                    Do While Not (adj_offset = page_size_tot)
+                        Dim sub_left As UInt16 = nand_layout.Layout_Main - (page_offset Mod nand_layout.Layout_Main)
+                        If sub_left > bytes_left Then sub_left = bytes_left
+                        Array.Copy(read_packet, adj_offset, data_out, data_ptr, sub_left)
+                        data_ptr += sub_left
+                        page_offset += sub_left
+                        bytes_left -= sub_left
+                        If (bytes_left = 0) Then Exit Do
+                        adj_offset = (sub_index * logical_block)
+                        sub_index += 1
+                    Loop
+                    If (page_offset = MyFlashDevice.PAGE_SIZE) Then
+                        page_offset = 0
+                        page_addr += 1
+                    End If
+                Case FlashArea.OOB
+                    Dim sub_index As UInt16 = Math.Floor(page_offset / nand_layout.Layout_Spare) + 1 'the sub block we are in			
+                    Dim adj_offset As UInt16 = ((sub_index * logical_block) - nand_layout.Layout_Spare) + (page_offset Mod nand_layout.Layout_Spare)
+                    sub_index += 1
+                    Do While Not ((adj_offset - nand_layout.Layout_Main) = page_size_tot)
+                        Dim sub_left As UInt16 = nand_layout.Layout_Spare - (page_offset Mod nand_layout.Layout_Spare)
+                        If sub_left > bytes_left Then sub_left = bytes_left
+                        Array.Copy(read_packet, adj_offset, data_out, data_ptr, sub_left)
+                        data_ptr += sub_left
+                        page_offset += sub_left
+                        bytes_left -= sub_left
+                        If (bytes_left = 0) Then Exit Do
+                        adj_offset = ((sub_index * logical_block) - nand_layout.Layout_Spare)
+                        sub_index += 1
+                    Loop
+                    If (page_offset = MyFlashDevice.PAGE_EXT) Then
+                        page_offset = 0
+                        page_addr += 1
+                    End If
+                Case FlashArea.All
+                    Dim sub_left As UInt16 = page_size_tot - page_offset
+                    Dim transfer_count As UInt16 = sub_left
+                    If (transfer_count > bytes_left) Then transfer_count = bytes_left
+                    Array.Copy(read_packet, page_offset, data_out, data_ptr, transfer_count)
+                    data_ptr += transfer_count
+                    bytes_left -= transfer_count
+                    sub_left -= transfer_count
+                    If (sub_left = 0) Then
+                        page_addr += 1
+                        page_offset = 0
+                    Else
+                        page_offset = (page_size_tot - sub_left)
+                    End If
+            End Select
+        Loop
+        Return data_out
+    End Function
+
+    Private Function GetReadCacheCommand(read_offset As UInt16) As Byte()
+        Dim rd_cmd() As Byte
+        If MyFlashDevice.READ_CMD_DUMMY Then
+            ReDim rd_cmd(4)
+            rd_cmd(0) = OPCMD_READCACHE
+            rd_cmd(2) = ((read_offset >> 8) And 255) 'Column address (upper)
+            rd_cmd(3) = (read_offset And 255) 'Lower
+        Else
+            ReDim rd_cmd(3)
+            rd_cmd(0) = OPCMD_READCACHE
+            rd_cmd(1) = ((read_offset >> 8) And 255) 'Column address (upper)
+            rd_cmd(2) = (read_offset And 255) 'Lower
+        End If
+        Return rd_cmd
     End Function
 
     Private Sub SNAND_Wait()
@@ -587,33 +620,36 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         SPIBUS_SlaveSelect_Disable()
     End Sub
 
-    Private Function WritePages(page_addr As UInt32, main_data() As Byte, oob_data() As Byte, area As FlashArea) As Boolean
-        Dim write_result As Boolean = False
+    Private Function WriteBulk_SNAND(page_addr As UInt32, main_data() As Byte, oob_data() As Byte, memory_area As FlashArea) As Boolean
         Try
             If main_data Is Nothing And oob_data Is Nothing Then Return False
-            Dim page_size As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.PAGE_EXT) 'Entire size
-            Dim sep_layout As Boolean = CBool(MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Separated)
-            If (Not area = FlashArea.All) AndAlso (sep_layout AndAlso (main_data Is Nothing Or oob_data Is Nothing)) Then 'We only need to write one area
-                If main_data IsNot Nothing Then
-                    write_result = USB_WritePageAreaData(page_addr, main_data, FlashArea.Main)
-                Else
-                    write_result = USB_WritePageAreaData(page_addr, oob_data, FlashArea.OOB)
+            Dim NAND_DEV As SPI_NAND = DirectCast(MyFlashDevice, SPI_NAND)
+            Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + NAND_DEV.PAGE_EXT)
+            Dim page_aligned() As Byte = Nothing
+            If memory_area = FlashArea.All Then 'Ignore OOB/SPARE
+                oob_data = Nothing
+                Dim total_pages As UInt32 = Math.Ceiling(main_data.Length / page_size_tot)
+                ReDim page_aligned((total_pages * page_size_tot) - 1)
+                For i = 0 To page_aligned.Length - 1 : page_aligned(i) = 255 : Next
+                Array.Copy(main_data, 0, page_aligned, 0, main_data.Length)
+            ElseIf memory_area = FlashArea.Main Then
+                If NAND_ECC IsNot Nothing Then
+                    If oob_data Is Nothing Then
+                        ReDim oob_data(((main_data.Length / NAND_DEV.PAGE_SIZE) * NAND_DEV.PAGE_EXT) - 1)
+                        Utilities.FillByteArray(oob_data, 255)
+                    End If
+                    Dim ecc_data() As Byte = Nothing
+                    NAND_ECC.WriteData(main_data, ecc_data)
+                    NAND_ECC.SetEccToSpare(oob_data, ecc_data, NAND_DEV.PAGE_SIZE, NAND_DEV.PAGE_EXT)
                 End If
-            Else 'We need to seperate and align data
-                Dim page_aligned() As Byte = Nothing
-                If area = FlashArea.All Then 'Ignore OOB/SPARE
-                    Dim total_pages As UInt32 = Math.Ceiling(main_data.Length / page_size)
-                    ReDim page_aligned((total_pages * page_size) - 1)
-                    For i = 0 To page_aligned.Length - 1 : page_aligned(i) = 255 : Next
-                    Array.Copy(main_data, 0, page_aligned, 0, main_data.Length)
-                Else
-                    page_aligned = CreatePageAligned(MyFlashDevice, main_data, oob_data)
-                End If
-                write_result = USB_WritePageAlignedData(page_addr, page_aligned)
+                page_aligned = CreatePageAligned(MyFlashDevice, main_data, oob_data)
+            ElseIf memory_area = FlashArea.OOB Then
+                page_aligned = CreatePageAligned(MyFlashDevice, main_data, oob_data)
             End If
+            Return USB_WritePageAlignedData(page_addr, page_aligned)
         Catch ex As Exception
         End Try
-        Return write_result
+        Return False
     End Function
 
     Private Function USB_WritePageAlignedData(ByRef page_addr As UInt32, page_aligned() As Byte) As Boolean
@@ -629,7 +665,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                 array_ptr += packet.Length
                 Dim setup() As Byte = SetupPacket_NAND(page_addr, 0, packet.Length, FlashArea.All) 'We will write the entire page
                 Dim param As UInt32 = Utilities.BoolToInt(MyFlashDevice.PLANE_SELECT)
-                Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.SPINAND_WRITEFLASH, setup, packet, param)
+                Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPINAND_WRITEFLASH, setup, packet, param)
                 If Not result Then Return False
                 FCUSB.USB_WaitForComplete()
                 page_addr += count
@@ -643,50 +679,6 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                 Dim cache_offset As UInt16 = 0
                 If MyFlashDevice.PLANE_SELECT Then If (Math.Floor(page_addr / 64) And 1 = 1) Then cache_offset = cache_offset Or &H1000 'Sets plane select to HIGH
                 LoadPageCache(0, cache_data)
-                ProgramPageCache(page_addr)
-                page_addr += 1
-                WaitUntilReady()
-            Next
-        End If
-        Return True
-    End Function
-
-    Private Function USB_WritePageAreaData(ByRef page_addr As UInt32, area_data() As Byte, area As FlashArea) As Boolean
-        Dim page_size As UInt16
-        Dim page_offset As UInt32 = 0
-        If area = FlashArea.Main Then
-            page_size = MyFlashDevice.PAGE_SIZE
-            page_offset = 0
-        ElseIf area = FlashArea.OOB Then
-            page_size = MyFlashDevice.PAGE_EXT
-            page_offset = MyFlashDevice.PAGE_SIZE
-        Else
-            Return False
-        End If
-        Dim pages_to_write As UInt32 = (area_data.Length / page_size)
-        If (FCUSB.HasLogic()) Then 'Hardware-enabled routine
-            Dim array_ptr As UInt32 = 0
-            Do Until pages_to_write = 0
-                Dim max_page_count As Integer = (8192 / page_size)
-                Dim count As UInt32 = Math.Min(max_page_count, pages_to_write) 'Write up to 4 pages (fcusb pro buffer has 12KB total)
-                Dim packet((count * page_size) - 1) As Byte
-                Array.Copy(area_data, array_ptr, packet, 0, packet.Length)
-                array_ptr += packet.Length
-                Dim setup() As Byte = SetupPacket_NAND(page_addr, 0, packet.Length, area) 'We will write the entire page
-                Dim param As UInt32 = Utilities.BoolToInt(MyFlashDevice.PLANE_SELECT)
-                Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPINAND_WRITEFLASH, setup, packet, param)
-                If Not result Then Return False
-                FCUSB.USB_WaitForComplete()
-                page_addr += count
-                pages_to_write -= count
-            Loop
-        Else
-            For i = 0 To pages_to_write - 1
-                Dim cache_data(page_size - 1) As Byte
-                Array.Copy(area_data, (i * page_size), cache_data, 0, cache_data.Length)
-                SPIBUS_WriteEnable()
-                If MyFlashDevice.PLANE_SELECT Then If (Math.Floor(page_addr / 64) And 1 = 1) Then page_addr = page_addr Or &H1000 'Sets plane select to HIGH
-                LoadPageCache(page_offset, cache_data)
                 ProgramPageCache(page_addr)
                 page_addr += 1
                 WaitUntilReady()
@@ -715,8 +707,8 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
 
     Private Function SetupPacket_NAND(page_addr As UInt32, page_offset As UInt16, Count As UInt32, area As FlashArea) As Byte()
         Dim nand_layout As NANDLAYOUT_STRUCTURE = NANDLAYOUT_Get(MyFlashDevice)
-        Dim spare_size As UInt16 = MyFlashDevice.PAGE_EXT
         If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then area = FlashArea.All
+        Dim spare_size As UInt16 = MyFlashDevice.PAGE_EXT
         Dim setup_data(19) As Byte
         setup_data(0) = CByte(page_addr And 255)
         setup_data(1) = CByte((page_addr >> 8) And 255)

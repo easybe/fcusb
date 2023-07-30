@@ -260,7 +260,8 @@ Namespace USB
         Public SPI_NOR_IF As New SPI_Programmer(Me)
         Public SQI_NOR_IF As New SQI_Programmer(Me)
         Public SPI_NAND_IF As New SPINAND_Programmer(Me)
-        Public PARALLEL_IF As New PARALLEL_MEMORY(Me)
+        Public PARALLEL_NOR_IF As New PARALLEL_NOR(Me)
+        Public PARALLEL_NAND_IF As New PARALLEL_NAND(Me)
         Public FWH_IF As New FWH_Programmer(Me)
         Public EPROM_IF As New EPROM_Programmer(Me)
         Public HF_IF As New HF_Port(Me)
@@ -296,7 +297,8 @@ Namespace USB
             AddHandler SQI_NOR_IF.PrintConsole, AddressOf WriteConsole
             AddHandler SPI_NAND_IF.PrintConsole, AddressOf WriteConsole
             AddHandler I2C_IF.PrintConsole, AddressOf WriteConsole
-            AddHandler PARALLEL_IF.PrintConsole, AddressOf WriteConsole
+            AddHandler PARALLEL_NOR_IF.PrintConsole, AddressOf WriteConsole
+            AddHandler PARALLEL_NAND_IF.PrintConsole, AddressOf WriteConsole
             AddHandler MW_IF.PrintConsole, AddressOf WriteConsole
             AddHandler HF_IF.PrintConsole, AddressOf WriteConsole
             AddHandler FWH_IF.PrintConsole, AddressOf WriteConsole
@@ -336,8 +338,10 @@ Namespace USB
                     Me.PROGRAMMER = SQI_NOR_IF
                 Case FlashcatSettings.DeviceMode.SPI_NAND
                     Me.PROGRAMMER = SPI_NAND_IF
-                Case FlashcatSettings.DeviceMode.NOR_NAND
-                    Me.PROGRAMMER = PARALLEL_IF
+                Case FlashcatSettings.DeviceMode.PNOR
+                    Me.PROGRAMMER = PARALLEL_NOR_IF
+                Case FlashcatSettings.DeviceMode.PNAND
+                    Me.PROGRAMMER = PARALLEL_NAND_IF
                 Case FlashcatSettings.DeviceMode.FWH
                     Me.PROGRAMMER = FWH_IF
                 Case FlashcatSettings.DeviceMode.EPROM
@@ -513,6 +517,7 @@ Namespace USB
                 Else
                     result = USBHANDLE.ControlTransfer(usbSetupPacket, buffer_out, buffer_out.Length, bytes_xfer)
                 End If
+                Utilities.Sleep(5) 'Allow request to finish (possibly make this a overriddeable option)
                 Return result
             Catch ex As Exception
                 Return False
@@ -864,11 +869,10 @@ Namespace USB
         JTAG_FLASHWRITE_SST = &H1F
         JTAG_FLASHWRITE_AMDNB = &H20
         JTAG_SCAN = &H21
-        JTAG_TOGGLE = &H22
+        JTAG_TOGGLE = &H22 'Toggle in HIGH values into TDI
         JTAG_GOTO_STATE = &H23
         JTAG_SET_OPTION = &H24
         JTAG_REGISTERS = &H25
-        JTAG_SHIFT_TMS = &H26
         JTAG_SHIFT_DATA = &H27
         JTAG_BDR_SETUP = &H28
         JTAG_BDR_INIT = &H29
@@ -880,6 +884,8 @@ Namespace USB
         JTAG_BDR_WRFLASH = &H2F
         JTAG_BDR_SETBSR = &H30
         JTAG_BDR_WRITEBSR = &H31
+        JTAG_SHIFT_IR = &H32
+        JTAG_SHIFT_DR = &H33
         SPI_INIT = &H40
         SPI_SS_ENABLE = &H41
         SPI_SS_DISABLE = &H42
@@ -984,6 +990,14 @@ Namespace USB
         RELAY_OFF = 11 'PE7=LOW
         VPP_DISABLE = 12 'CLE_LOW
         VPP_ENABLE = 13 'CLE_HIGH
+        CLE_HIGH = 14
+        CLE_LOW = 15
+        ALE_HIGH = 16
+        ALE_LOW = 17
+        RB0_HIGH = 18
+        RB0_LOW = 19
+        BYTE_HIGH = 20
+        BYTE_LOW = 21
     End Enum
 
     Public Enum DeviceStatus

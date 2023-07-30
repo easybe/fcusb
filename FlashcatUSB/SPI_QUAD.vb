@@ -1,6 +1,6 @@
 ﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2018 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB
-'CONTACT EMAIL: contact@embeddedcomputers.net
+'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'ACKNOWLEDGEMENT: USB driver functionality provided by LibUsbDotNet (sourceforge.net/projects/libusbdotnet) 
 
@@ -484,7 +484,6 @@ Namespace SPI
         Private Sub SQIBUS_SlaveSelect_Enable()
             Try
                 FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SS_ENABLE)
-                Utilities.Sleep(1)
             Catch ex As Exception
             End Try
         End Sub
@@ -492,7 +491,6 @@ Namespace SPI
         Private Sub SQIBUS_SlaveSelect_Disable()
             Try
                 FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SS_DISABLE)
-                Utilities.Sleep(2)
             Catch ex As Exception
             End Try
         End Sub

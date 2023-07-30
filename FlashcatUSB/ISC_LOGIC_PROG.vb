@@ -38,7 +38,6 @@ Public Class ISC_LOGIC_PROG
         Else
             sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.SPI_SS_DISABLE) 'SS=HIGH
         End If
-        Utilities.Sleep(2)
     End Sub
 
     Public Function SSPI_WriteData(data() As Byte) As Boolean
@@ -217,7 +216,6 @@ Public Class ISC_LOGIC_PROG
             SSPI_Init(3, 1, 24) 'MODE_3, CS_0, 24MHZ; PIN_FPGA_RESET=HIGH
             SSPI_SS(True) 'SS_LOW
             sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.PULSE_RESET) 'PCRESET_B=LOW; delay_us(200); PCRESET_B=HIGH
-            Utilities.Sleep(1)
             SSPI_SS(False) 'SS_HIGH
             SSPI_WriteData({0}) '8 dummy clocks
             SSPI_SS(True) 'SS_LOW

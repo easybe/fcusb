@@ -1,6 +1,6 @@
 ﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2020 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB PRODUCTS
-'CONTACT EMAIL: contact@embeddedcomputers.net
+'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: This object interfaces FCUSB with a Firmware Hub memory device using LPC protocol
 
@@ -11,7 +11,7 @@ Public Class FWH_Programmer : Implements MemoryDeviceUSB
     Private FCUSB As FCUSB_DEVICE
     Public Property MyFlashDevice As FWH
     Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
-    Private FLASH_IDENT As PARALLEL_MEMORY.FlashDetectResult
+    Private FLASH_IDENT As FlashDetectResult
 
     Public Event PrintConsole(message As String) Implements MemoryDeviceUSB.PrintConsole
     Public Event SetProgress(percent As Integer) Implements MemoryDeviceUSB.SetProgress
@@ -28,7 +28,7 @@ Public Class FWH_Programmer : Implements MemoryDeviceUSB
         If Not FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_INIT, result_data, MEM_PROTOCOL.FWH) Then Return False
         If Not (result_data(0) = &H17) Then Return False
         FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_RDID, ident_data)
-        Me.FLASH_IDENT = PARALLEL_MEMORY.GetFlashResult(ident_data)
+        Me.FLASH_IDENT = GetFlashResult(ident_data)
         If Not FLASH_IDENT.Successful Then Return False
         Dim part As UInt32 = (CUInt(FLASH_IDENT.ID1) << 16) Or (FLASH_IDENT.ID2)
         Dim chip_id_str As String = Hex(FLASH_IDENT.MFG).PadLeft(2, "0") & Hex(part).PadLeft(8, "0")

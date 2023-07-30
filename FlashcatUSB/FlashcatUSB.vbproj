@@ -11,7 +11,7 @@
     <AssemblyName>FlashcatUSB</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <MyType>WindowsFormsWithCustomSubMain</MyType>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -109,6 +109,12 @@
     </Compile>
     <Compile Include="ECC.vb" />
     <Compile Include="EPROM.vb" />
+    <Compile Include="FrmECC.Designer.vb">
+      <DependentUpon>FrmECC.vb</DependentUpon>
+    </Compile>
+    <Compile Include="FrmECC.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="FrmLicense.Designer.vb">
       <DependentUpon>FrmLicense.vb</DependentUpon>
     </Compile>
@@ -117,7 +123,8 @@
     </Compile>
     <Compile Include="FWH.vb" />
     <Compile Include="ISC_LOGIC_PROG.vb" />
-    <Compile Include="PARALLEL_MEMORY.vb" />
+    <Compile Include="PARALLEL_NAND.vb" />
+    <Compile Include="PARALLEL_NOR.vb" />
     <Compile Include="FlashMemory.vb" />
     <Compile Include="FrmSettings.designer.vb">
       <DependentUpon>FrmSettings.vb</DependentUpon>
@@ -144,7 +151,6 @@
     <Compile Include="I2C.vb" />
     <Compile Include="JTAG.vb" />
     <Compile Include="JTAG_SVF_Player.vb" />
-    <Compile Include="JTAG_TAP.vb" />
     <Compile Include="languages\chinese.Designer.vb">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -205,6 +211,7 @@
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>
       <DependentUpon>Application.myapp</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <Compile Include="My Project\Resources.Designer.vb">
       <AutoGen>True</AutoGen>
@@ -262,6 +269,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DropPanelList.resx">
       <DependentUpon>DropPanelList.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FrmECC.resx">
+      <DependentUpon>FrmECC.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FrmLicense.resx">
       <DependentUpon>FrmLicense.vb</DependentUpon>

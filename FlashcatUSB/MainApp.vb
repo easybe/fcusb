@@ -1,6 +1,6 @@
 ﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2020 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB PRODUCTS
-'CONTACT EMAIL: contact@embeddedcomputers.net
+'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: This is the main module that is loaded first.
 
@@ -17,19 +17,12 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 606
+    Public Const Build As Integer = 608
 
-    Private Const PRO_PCB5_FW As Single = 1.06F 'This is the embedded firmware version for pro
-    Private Const MACH1_PCB2_FW As Single = 2.19F 'Firmware version for Mach1
-    Private Const XPORT_PCB2_FW As Single = 5.17F 'XPORT PCB 2.x
-
-    Private Const CLASSIC_FW As Single = 4.5F 'Min revision allowed for classic (PCB 2.x)
-    Private Const CPLD_SPI_3V3 As UInt32 = &HCD330003UI 'ID CODE FOR SPI (3.3v)
-    Private Const CPLD_SPI_1V8 As UInt32 = &HCD180003UI 'ID CODE FOR JTAG (1.8v)
-    Private Const CPLD_JTAG As UInt32 = &HCD330101UI 'ID CODE FOR JTAG (3.3v)
-    Private Const CPLD_I2C As UInt32 = &HCD330202UI 'ID CODE FOR I2C (3.3v)
-    Private Const CPLD_QSPI_3V3 As UInt32 = &HCD330301UI 'ID CODE FOR JTAG (3.3v)
-    Private Const CPLD_QSPI_1V8 As UInt32 = &HCD180301UI 'ID CODE FOR JTAG (1.8v)
+    Private Const PRO_PCB5_FW As Single = 1.07F 'This is the embedded firmware version for pro
+    Private Const MACH1_PCB2_FW As Single = 2.2F 'Firmware version for Mach1
+    Private Const XPORT_PCB2_FW As Single = 5.18F 'XPORT PCB 2.x
+    Private Const CLASSIC_FW As Single = 4.51F 'Min revision allowed for classic (PCB 2.x)
     Private Const MACH1_FGPA_3V3 As UInt32 = &HAF330006UI
     Private Const MACH1_FGPA_1V8 As UInt32 = &HAF180006UI
     Private Const MACH1_SPI_3V3 As UInt32 = &HAF330101UI 'Passthrough for SPI
@@ -48,7 +41,6 @@ Public Module MainApp
     Public WithEvents MAIN_FCUSB As FCUSB_DEVICE = Nothing
 
     Public Const IS_DEBUG_VER As Boolean = False
-
 
     Sub Main(Args() As String)
         Try 'This makes it only allow one instance
@@ -149,8 +141,7 @@ Public Module MainApp
             End If
         End If
         If (Not LicenseStatus = LicenseStatusEnum.LicensedValid) Then
-            MySettings.ECC_READ_ENABLED = False
-            MySettings.ECC_WRITE_ENABLED = False
+            MySettings.ECC_FEATURE_ENABLED = False
         End If
     End Sub
 
@@ -183,14 +174,131 @@ Public Module MainApp
 #End Region
 
 #Region "Error correcting code"
-    Public NAND_ECC_ENG As ECC_LIB.Engine
+    Public NAND_ECC_CFG() As ECC_LIB.ECC_Configuration_Entry
+    Public NAND_ECC As ECC_LIB.Engine
+
+    Public Property ECC_LAST_RESULT As ECC_LIB.ECC_DECODE_RESULT = ECC_LIB.ECC_DECODE_RESULT.NoErrors
 
     Public Sub ECC_LoadSettings()
-        NAND_ECC_ENG = New ECC_LIB.Engine(MySettings.ECC_Algorithum, MySettings.ECC_BitError)
-        NAND_ECC_ENG.ECC_DATA_LOCATION = MySettings.ECC_Location
-        NAND_ECC_ENG.ECC_SEPERATE = MySettings.ECC_Separate
-        NAND_ECC_ENG.REVERSE_ARRAY = MySettings.ECC_Reverse
-        NAND_ECC_ENG.SetSymbolWidth(MySettings.ECC_SymWidth)
+        LoadEccConfigurations()
+        If NAND_ECC_CFG Is Nothing Then
+            NAND_ECC_CFG = GenerateLocalEccConfigurations()
+        End If
+    End Sub
+
+    Public Sub SaveLocalEccConfigurations()
+        Dim REGKEY As String = "Software\EmbComputers\FlashcatUSB\"
+        Dim root_key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY, RegistryKeyPermissionCheck.ReadWriteSubTree)
+        If root_key.GetSubKeyNames().Contains("ECC") Then
+            root_key.DeleteSubKeyTree("ECC")
+        End If
+        If NAND_ECC_CFG Is Nothing Then Exit Sub
+        Dim ecc_key As RegistryKey = root_key.CreateSubKey("ECC")
+        For i = 1 To NAND_ECC_CFG.Length
+            Dim sub_key As RegistryKey = ecc_key.CreateSubKey("Profile_" & i.ToString)
+            sub_key.SetValue("PageSize", CInt(NAND_ECC_CFG(i - 1).PageSize))
+            sub_key.SetValue("SpareSize", CInt(NAND_ECC_CFG(i - 1).SpareSize))
+            sub_key.SetValue("Algorithm", CInt(NAND_ECC_CFG(i - 1).Algorithm))
+            sub_key.SetValue("BitError", CInt(NAND_ECC_CFG(i - 1).BitError))
+            sub_key.SetValue("SymSize", CInt(NAND_ECC_CFG(i - 1).SymSize))
+            sub_key.SetValue("ReverseData", NAND_ECC_CFG(i - 1).ReverseData.ToString)
+            If NAND_ECC_CFG(i - 1).EccRegion IsNot Nothing AndAlso NAND_ECC_CFG(i - 1).EccRegion.Length > 0 Then
+                For x = 1 To NAND_ECC_CFG(i - 1).EccRegion.Length
+                    sub_key.SetValue("Region_" & x.ToString, CInt(NAND_ECC_CFG(i - 1).EccRegion(x - 1)))
+                Next
+            End If
+        Next
+    End Sub
+
+    Public Sub LoadEccConfigurations()
+        Dim REGKEY As String = "Software\EmbComputers\FlashcatUSB\"
+        Dim root_key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY, RegistryKeyPermissionCheck.ReadWriteSubTree)
+        If root_key.GetSubKeyNames().Contains("ECC") Then
+            Dim ecc_key As RegistryKey = root_key.OpenSubKey("ECC")
+            Dim CFGS() As String = ecc_key.GetSubKeyNames()
+            If CFGS IsNot Nothing AndAlso CFGS.Length > 0 Then
+                ReDim NAND_ECC_CFG(CFGS.Length - 1)
+                For i = 0 To NAND_ECC_CFG.Length - 1
+                    Dim sub_key As RegistryKey = ecc_key.OpenSubKey(CFGS(i))
+                    NAND_ECC_CFG(i) = New ECC_LIB.ECC_Configuration_Entry
+                    NAND_ECC_CFG(i).PageSize = CUShort(sub_key.GetValue("PageSize"))
+                    NAND_ECC_CFG(i).SpareSize = CUShort(sub_key.GetValue("SpareSize"))
+                    NAND_ECC_CFG(i).Algorithm = CInt(sub_key.GetValue("Algorithm"))
+                    NAND_ECC_CFG(i).BitError = CByte(sub_key.GetValue("BitError"))
+                    NAND_ECC_CFG(i).SymSize = CByte(sub_key.GetValue("SymSize"))
+                    NAND_ECC_CFG(i).ReverseData = CBool(sub_key.GetValue("ReverseData"))
+                    Dim n() As String = sub_key.GetValueNames()
+                    For Each item In n
+                        If item.StartsWith("Region_") Then
+                            NAND_ECC_CFG(i).AddRegion(CUShort(sub_key.GetValue(item)))
+                        End If
+                    Next
+                Next
+            End If
+        End If
+    End Sub
+
+    Public Function GenerateLocalEccConfigurations() As ECC_LIB.ECC_Configuration_Entry()
+        Dim cfg_list As New List(Of ECC_LIB.ECC_Configuration_Entry)
+
+        Dim n1 As New ECC_LIB.ECC_Configuration_Entry()
+        n1.PageSize = 512
+        n1.SpareSize = 16
+        n1.Algorithm = ECC_LIB.ecc_algorithum.hamming
+        n1.BitError = 1
+        n1.SymSize = 0
+        n1.ReverseData = False
+        n1.AddRegion(&HD)
+
+        Dim n2 As New ECC_LIB.ECC_Configuration_Entry()
+        n2.PageSize = 2048
+        n2.SpareSize = 64
+        n2.Algorithm = ECC_LIB.ecc_algorithum.reedsolomon
+        n2.BitError = 4
+        n2.SymSize = 9
+        n2.ReverseData = False
+        n2.AddRegion(&H7)
+        n2.AddRegion(&H17)
+        n2.AddRegion(&H27)
+        n2.AddRegion(&H37)
+
+        Dim n3 As New ECC_LIB.ECC_Configuration_Entry()
+        n3.PageSize = 2048
+        n3.SpareSize = 128
+        n3.Algorithm = ECC_LIB.ecc_algorithum.bhc
+        n3.BitError = 8
+        n3.SymSize = 0
+        n3.ReverseData = False
+        n3.AddRegion(&H13)
+        n3.AddRegion(&H33)
+        n3.AddRegion(&H53)
+        n3.AddRegion(&H73)
+
+        cfg_list.Add(n1)
+        cfg_list.Add(n2)
+        cfg_list.Add(n3)
+
+        Return cfg_list.ToArray
+    End Function
+    'Returns number of bytes for a given ECC configuration
+
+    Public Sub ECC_LoadConfiguration(page_size As Integer, spare_size As Integer)
+        NAND_ECC = Nothing
+        If NAND_ECC_CFG Is Nothing OrElse (Not MySettings.ECC_FEATURE_ENABLED) Then Exit Sub
+        WriteConsole("ECC Feature is enabled")
+        For i = 0 To NAND_ECC_CFG.Length - 1
+            If NAND_ECC_CFG(i).IsValid Then
+                If NAND_ECC_CFG(i).PageSize = page_size AndAlso NAND_ECC_CFG(i).SpareSize = spare_size Then
+                    NAND_ECC = New ECC_LIB.Engine(NAND_ECC_CFG(i).Algorithm, NAND_ECC_CFG(i).BitError)
+                    NAND_ECC.REVERSE_ARRAY = NAND_ECC_CFG(i).ReverseData
+                    NAND_ECC.SetSymbolWidth(NAND_ECC_CFG(i).SymSize)
+                    NAND_ECC.ECC_DATA_LOCATION = NAND_ECC_CFG(i).EccRegion
+                    WriteConsole("Compatible profile found at index " & (i + 1).ToString)
+                    Exit Sub
+                End If
+            End If
+        Next
+        WriteConsole("No compatible profile found")
     End Sub
 
 #End Region
@@ -635,16 +743,39 @@ Public Module MainApp
                     Environment.ExitCode = -1
                     Console_Exit() : Exit Sub
                 End If
-            Case DeviceMode.NOR_NAND
-                ConsoleWriteLine(RM.GetString("device_mode") & ": Extension Port Interface")
-                MAIN_FCUSB.PARALLEL_IF.DeviceInit()
-                Select Case MAIN_FCUSB.PARALLEL_IF.MyFlashStatus
+            Case DeviceMode.PNOR
+                ConsoleWriteLine(RM.GetString("device_mode") & ": Parallel NOR Interface (PARALLEL-NOR)")
+                MAIN_FCUSB.PARALLEL_NOR_IF.DeviceInit()
+                Select Case MAIN_FCUSB.PARALLEL_NOR_IF.MyFlashStatus
                     Case DeviceStatus.Supported
-                        Dim device_id As String = Hex(MAIN_FCUSB.PARALLEL_IF.MyFlashDevice.MFG_CODE).PadLeft(2, "0") & " " & Hex(MAIN_FCUSB.PARALLEL_IF.MyFlashDevice.ID1).PadLeft(4, "0")
+                        Dim device_id As String = Hex(MAIN_FCUSB.PARALLEL_NOR_IF.MyFlashDevice.MFG_CODE).PadLeft(2, "0") & " " & Hex(MAIN_FCUSB.PARALLEL_NOR_IF.MyFlashDevice.ID1).PadLeft(4, "0")
                         ConsoleWriteLine(RM.GetString("device_mode") & ": Multi-purpose Flash device (CHIP ID: " & device_id & ")")
-                        mem_dev = MEM_IF.Add(MAIN_FCUSB, MAIN_FCUSB.PARALLEL_IF.MyFlashDevice)
+                        mem_dev = MEM_IF.Add(MAIN_FCUSB, MAIN_FCUSB.PARALLEL_NOR_IF.MyFlashDevice)
                         mem_dev.PreferredBlockSize = 32768
-                        MyConsoleOperation.FLASH_SIZE = MAIN_FCUSB.PARALLEL_IF.DeviceSize
+                        MyConsoleOperation.FLASH_SIZE = MAIN_FCUSB.PARALLEL_NOR_IF.DeviceSize
+                    Case DeviceStatus.NotSupported
+                        ConsoleWriteLine(RM.GetString("mem_not_supported"))
+                        Environment.ExitCode = -1
+                        Console_Exit() : Exit Sub
+                    Case DeviceStatus.ExtIoNotConnected
+                        ConsoleWriteLine(RM.GetString("ext_board_not_detected"))
+                        Environment.ExitCode = -1
+                        Console_Exit() : Exit Sub
+                    Case DeviceStatus.NotDetected
+                        ConsoleWriteLine(RM.GetString("ext_not_detected"))
+                        Environment.ExitCode = -1
+                        Console_Exit() : Exit Sub
+                End Select
+            Case DeviceMode.PNAND
+                ConsoleWriteLine(RM.GetString("device_mode") & " Parallel NAND Interface (PARALLEL-NAND)")
+                MAIN_FCUSB.PARALLEL_NAND_IF.DeviceInit()
+                Select Case MAIN_FCUSB.PARALLEL_NAND_IF.MyFlashStatus
+                    Case DeviceStatus.Supported
+                        Dim device_id As String = Hex(MAIN_FCUSB.PARALLEL_NAND_IF.MyFlashDevice.MFG_CODE).PadLeft(2, "0") & " " & Hex(MAIN_FCUSB.PARALLEL_NAND_IF.MyFlashDevice.ID1).PadLeft(4, "0")
+                        ConsoleWriteLine(RM.GetString("device_mode") & ": Multi-purpose Flash device (CHIP ID: " & device_id & ")")
+                        mem_dev = MEM_IF.Add(MAIN_FCUSB, MAIN_FCUSB.PARALLEL_NAND_IF.MyFlashDevice)
+                        mem_dev.PreferredBlockSize = 32768
+                        MyConsoleOperation.FLASH_SIZE = MAIN_FCUSB.PARALLEL_NAND_IF.DeviceSize
                     Case DeviceStatus.NotSupported
                         ConsoleWriteLine(RM.GetString("mem_not_supported"))
                         Environment.ExitCode = -1
@@ -667,7 +798,7 @@ Public Module MainApp
                 Else
                     ConsoleWriteLine(RM.GetString("jtag_setup"))
                 End If
-                If (Not MAIN_FCUSB.JTAG_IF.Detected) Then
+                If (Not MAIN_FCUSB.JTAG_IF.Devices.Count > 0) Then
                     ConsoleWriteLine(RM.GetString("jtag_no_idcode"))
                     Environment.ExitCode = -1
                     Console_Exit() : Exit Sub
@@ -852,8 +983,10 @@ Public Module MainApp
                     MyConsoleOperation.Mode = DeviceMode.SPI_NAND
                 Case "-I2C"
                     MyConsoleOperation.Mode = DeviceMode.I2C_EEPROM
-                Case "-EXTIO"
-                    MyConsoleOperation.Mode = DeviceMode.NOR_NAND
+                Case "-PNOR"
+                    MyConsoleOperation.Mode = DeviceMode.PNOR
+                Case "-PNAND"
+                    MyConsoleOperation.Mode = DeviceMode.PNAND
                 Case "-JTAG"
                     MyConsoleOperation.Mode = DeviceMode.JTAG
                 Case "-SWI"
@@ -1134,7 +1267,7 @@ Public Module MainApp
         ConsoleWriteLine("-help             " & RM.GetString("console_opt_help"))
         ConsoleWriteLine("")
         ConsoleWriteLine("Supported modes:")
-        ConsoleWriteLine("-SPI -SPIEEPROM -SPINAND -I2C -EXTIO -SWI -JTAG")
+        ConsoleWriteLine("-SPI -SPIEEPROM -SPINAND -I2C -PNOR -PNAND -SWI -JTAG")
         ConsoleWriteLine("")
         ConsoleWriteLine("Options:")
         ConsoleWriteLine("-File (filename)  " & RM.GetString("console_opt_file"))
@@ -1242,16 +1375,8 @@ Public Module MainApp
         Public Property NAND_MismatchSkip As Boolean = True
         Public Property NAND_Layout As NandMemLayout = NandMemLayout.Separated
         Public Property NAND_Speed As NandMemSpeed = NandMemSpeed._20MHz
-
         'NAND ECC Settings
-        Public Property ECC_READ_ENABLED As Boolean
-        Public Property ECC_WRITE_ENABLED As Boolean
-        Public Property ECC_Algorithum As Integer '0=Hamming,1=Reed-Solomon,2=BHC
-        Public Property ECC_BitError As Integer 'Number of bits to correct (1,2,4,8,10,14)
-        Public Property ECC_Location As Byte
-        Public Property ECC_SymWidth As Integer '8/9/10
-        Public Property ECC_Separate As Boolean
-        Public Property ECC_Reverse As Boolean
+        Public Property ECC_FEATURE_ENABLED As Boolean
         'NOR Flash
         Public Property NOR_READ_ACCESS As Integer
         Public Property NOR_WE_PULSE As Integer
@@ -1306,14 +1431,7 @@ Public Module MainApp
             Me.NAND_MismatchSkip = GetRegistryValue("NAND_Mismatch", True)
             Me.NAND_Layout = GetRegistryValue("NAND_Layout", NandMemLayout.Separated)
             Me.NAND_Speed = GetRegistryValue("NAND_Speed", NandMemSpeed._20MHz)
-            Me.ECC_READ_ENABLED = GetRegistryValue("ECC_READ", False)
-            Me.ECC_WRITE_ENABLED = GetRegistryValue("ECC_WRITE", False)
-            Me.ECC_Algorithum = GetRegistryValue("ECC_ALG", 0)
-            Me.ECC_BitError = GetRegistryValue("ECC_BITERR", 1)
-            Me.ECC_Location = GetRegistryValue("ECC_LOCATION", 2)
-            Me.ECC_SymWidth = GetRegistryValue("ECC_SYMWIDTH", 9)
-            Me.ECC_Separate = GetRegistryValue("ECC_SEPERATE", True)
-            Me.ECC_Reverse = GetRegistryValue("ECC_REVERSE", False)
+            Me.ECC_FEATURE_ENABLED = GetRegistryValue("ECC_ENABLED", False)
             Me.S93_DEVICE = GetRegistryValue("S93_DEVICE_NAME", "")
             Me.S93_DEVICE_ORG = GetRegistryValue("S93_ORG", 0)
             Me.SREC_BITMODE = GetRegistryValue("SREC_ORG", 0)
@@ -1354,14 +1472,7 @@ Public Module MainApp
             SetRegistryValue("NAND_Layout", Me.NAND_Layout)
             SetRegistryValue("NAND_Speed", Me.NAND_Speed)
             SetRegistryValue("Language", LanguageName)
-            SetRegistryValue("ECC_READ", Me.ECC_READ_ENABLED)
-            SetRegistryValue("ECC_WRITE", Me.ECC_WRITE_ENABLED)
-            SetRegistryValue("ECC_ALG", Me.ECC_Algorithum)
-            SetRegistryValue("ECC_BITERR", Me.ECC_BitError)
-            SetRegistryValue("ECC_LOCATION", Me.ECC_Location)
-            SetRegistryValue("ECC_SYMWIDTH", Me.ECC_SymWidth)
-            SetRegistryValue("ECC_SEPERATE", Me.ECC_Separate)
-            SetRegistryValue("ECC_REVERSE", Me.ECC_Reverse)
+            SetRegistryValue("ECC_ENABLED", Me.ECC_FEATURE_ENABLED)
             SetRegistryValue("S93_DEVICE_NAME", Me.S93_DEVICE)
             SetRegistryValue("S93_ORG", Me.S93_DEVICE_ORG)
             SetRegistryValue("SREC_ORG", Me.SREC_BITMODE)
@@ -1369,6 +1480,7 @@ Public Module MainApp
             SetRegistryValue("NOR_READ_ACCESS", Me.NOR_READ_ACCESS)
             SetRegistryValue("NOR_WE_PULSE", Me.NOR_WE_PULSE)
             SaveCustomSPI()
+            SaveLocalEccConfigurations()
         End Sub
 
         Private Sub LoadCustomSPI()
@@ -1449,15 +1561,16 @@ Public Module MainApp
             JTAG = 2
             I2C_EEPROM = 3
             SPI_EEPROM = 4
-            NOR_NAND = 5
-            SINGLE_WIRE = 6 '1-Wire
-            SPI_NAND = 7
-            EPROM = 8 '27-series one-time programmable
-            HyperFlash = 9
-            Microwire = 10
-            SQI = 11
-            SD_MMC_EMMC = 12
-            FWH = 13 'Firmware Hub
+            PNOR = 5
+            PNAND = 6
+            SINGLE_WIRE = 7 '1-Wire
+            SPI_NAND = 8
+            EPROM = 9 '27-series one-time programmable
+            HyperFlash = 10
+            Microwire = 11
+            SQI = 12
+            SD_MMC_EMMC = 13
+            FWH = 14 'Firmware Hub
             Unspecified = 20
         End Enum
 
@@ -1637,7 +1750,6 @@ Public Module MainApp
         End Try
         Return False
     End Function
-
     'Returns the name of the flash device
     Public Function GetDeviceManufacture(ManuID As Byte) As String
         Select Case ManuID
@@ -1795,7 +1907,8 @@ Public Module MainApp
                 modes.Add(DeviceMode.SINGLE_WIRE)
                 modes.Add(DeviceMode.JTAG)
             Case FCUSB_BOARD.XPORT_PCB2
-                modes.Add(DeviceMode.NOR_NAND)
+                modes.Add(DeviceMode.PNOR)
+                modes.Add(DeviceMode.PNAND)
                 modes.Add(DeviceMode.FWH)
                 modes.Add(DeviceMode.SPI)
                 modes.Add(DeviceMode.SQI)
@@ -1817,7 +1930,8 @@ Public Module MainApp
                 modes.Add(DeviceMode.SPI)
                 modes.Add(DeviceMode.SPI_NAND)
                 modes.Add(DeviceMode.SQI)
-                modes.Add(DeviceMode.NOR_NAND)
+                modes.Add(DeviceMode.PNOR)
+                modes.Add(DeviceMode.PNAND)
                 modes.Add(DeviceMode.HyperFlash)
         End Select
         Return modes.ToArray()
@@ -1832,6 +1946,7 @@ Public Module MainApp
         Else
             Exit Sub
         End If
+        NAND_ECC = Nothing
         MEM_IF.Clear()
         If GUI IsNot Nothing Then
             GUI.SetConnectionStatus()
@@ -1889,7 +2004,7 @@ Public Module MainApp
         Dim SupportedModes() As DeviceMode = GetSupportedModes(usb_dev)
         If (Array.IndexOf(SupportedModes, MySettings.OPERATION_MODE) = -1) Then
             If usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
-                MySettings.OPERATION_MODE = DeviceMode.NOR_NAND
+                MySettings.OPERATION_MODE = DeviceMode.PNAND
             Else
                 MySettings.OPERATION_MODE = SupportedModes(0)
             End If
@@ -1936,8 +2051,11 @@ Public Module MainApp
         ElseIf (MySettings.OPERATION_MODE = DeviceMode.Microwire) Then
             GUI.UpdateStatusMessage(RM.GetString("device_mode"), "Microwire (3-wire EEPROM)")
             DetectDevice(usb_dev)
-        ElseIf (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND) Then
-            GUI.UpdateStatusMessage(RM.GetString("device_mode"), "Parallel NOR / NAND mode")
+        ElseIf (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.PNOR) Then
+            GUI.UpdateStatusMessage(RM.GetString("device_mode"), "Parallel NOR mode")
+            DetectDevice(usb_dev)
+        ElseIf (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.PNAND) Then
+            GUI.UpdateStatusMessage(RM.GetString("device_mode"), "Parallel NAND mode")
             DetectDevice(usb_dev)
         ElseIf (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.FWH) Then
             GUI.UpdateStatusMessage(RM.GetString("device_mode"), "FWH Flash")
@@ -1968,6 +2086,7 @@ Public Module MainApp
     Private Sub OnUsbDevice_Disconnected(usb_dev As FCUSB_DEVICE) Handles USBCLIENT.DeviceDisconnected
         If MAIN_FCUSB IsNot usb_dev Then Exit Sub
         MAIN_FCUSB = Nothing
+        NAND_ECC = Nothing
         MEM_IF.Clear() 'Remove all devices that are on this usb port
         Dim msg_out As String
         If (usb_dev.HWBOARD = FCUSB_BOARD.Professional_PCB5) Then
@@ -2009,18 +2128,27 @@ Public Module MainApp
             Exit Sub
         End If
         GUI.UpdateStatusMessage(RM.GetString("device_mode"), "JTAG")
-        If (usb_dev.JTAG_IF.Count = 1) Then
-            If (Not (usb_dev.JTAG_IF.Devices(0).IDCODE = 0)) Then
-                Dim mfg_part As String = usb_dev.JTAG_IF.GetJedecDescription(usb_dev.JTAG_IF.Devices(0).IDCODE)
-                GUI.UpdateStatusMessage("Device", mfg_part)
-                GUI.LoadScripts(usb_dev.JTAG_IF.Devices(0).IDCODE)
+        Select_JTAG_Device(0)
+    End Sub
+
+    Public Sub Select_JTAG_Device(index As Integer)
+        If GUI IsNot Nothing Then
+            GUI.UnloadActiveScript()
+            GUI.RemoveStatusMessage("Device")
+        Else
+            ScriptEngine.Unload()
+        End If
+        If (MAIN_FCUSB.JTAG_IF.Devices.Count > 0) AndAlso (index < MAIN_FCUSB.JTAG_IF.Devices.Count) Then
+            If MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
+                MAIN_FCUSB.JTAG_IF.Chain_Select(index)
+                If (Not (MAIN_FCUSB.JTAG_IF.Devices(index).IDCODE = 0)) Then
+                    Dim mfg_part As String = MAIN_FCUSB.JTAG_IF.GetJedecDescription(MAIN_FCUSB.JTAG_IF.Devices(index).IDCODE)
+                    GUI.UpdateStatusMessage("Device", mfg_part)
+                    GUI.LoadScripts(MAIN_FCUSB.JTAG_IF.Devices(index).IDCODE)
+                End If
             Else
-                GUI.PrintConsole(RM.GetString("jtag_no_idcode"))
-                GUI.UpdateStatusMessage(RM.GetString("device_mode"), RM.GetString("jtag_unknown_device"))
+                WriteConsole("JTAG chain is not valid, not all devices have BSDL loaded")
             End If
-        ElseIf (usb_dev.JTAG_IF.Count > 1) Then
-            Dim svf_prog As New IO.FileInfo("Scripts\SVF_Player.fcs")
-            ScriptEngine.LoadFile(svf_prog)
         End If
     End Sub
 
@@ -2107,31 +2235,46 @@ Public Module MainApp
                 End Select
                 Exit Sub
             End If
-        ElseIf MySettings.OPERATION_MODE = DeviceMode.NOR_NAND Then
+        ElseIf MySettings.OPERATION_MODE = DeviceMode.PNOR Then
             GUI.PrintConsole(RM.GetString("ext_init")) 'Initializing parallel mode hardware board
             Utilities.Sleep(150) 'Wait for IO board vcc to charge
-            usb_dev.PARALLEL_IF.DeviceInit()
-            Select Case usb_dev.PARALLEL_IF.MyFlashStatus
+            usb_dev.PARALLEL_NOR_IF.DeviceInit()
+            Select Case usb_dev.PARALLEL_NOR_IF.MyFlashStatus
                 Case DeviceStatus.Supported
                     GUI.SetStatus(RM.GetString("mem_flash_supported")) '"Flash device successfully detected and ready for operation"
-                    If (usb_dev.PARALLEL_IF.MyAdapter = MEM_PROTOCOL.NAND_X16_ASYNC) Then
+                    If usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
+                        Connected_Event(usb_dev, MemoryType.PARALLEL_NOR, "NOR Flash", 262144)
+                        usb_dev.PARALLEL_NOR_IF.EXPIO_SetTiming(MySettings.NOR_READ_ACCESS, MySettings.NOR_WE_PULSE)
+                    Else
+                        Connected_Event(usb_dev, MemoryType.PARALLEL_NOR, "NOR Flash", 16384)
+                    End If
+                Case DeviceStatus.NotSupported
+                    GUI.SetStatus(RM.GetString("mem_not_supported")) '"Flash memory detected but not found in Flash library"
+                Case DeviceStatus.NotDetected
+                    GUI.SetStatus(RM.GetString("ext_not_detected")) '"Flash device not detected in Parallel I/O mode"
+                Case DeviceStatus.ExtIoNotConnected
+                    GUI.SetStatus(RM.GetString("ext_board_not_detected")) '"Unable to connect to the Parallel I/O board"
+                Case DeviceStatus.NotCompatible
+                    GUI.SetStatus("Flash memory is not compatible with this FlashcatUSB programmer model")
+            End Select
+        ElseIf MySettings.OPERATION_MODE = DeviceMode.PNAND Then
+            GUI.PrintConsole(RM.GetString("ext_init")) 'Initializing parallel mode hardware board
+            Utilities.Sleep(150) 'Wait for IO board vcc to charge
+            usb_dev.PARALLEL_NAND_IF.DeviceInit()
+            Select Case usb_dev.PARALLEL_NAND_IF.MyFlashStatus
+                Case DeviceStatus.Supported
+                    GUI.SetStatus(RM.GetString("mem_flash_supported")) '"Flash device successfully detected and ready for operation"
+                    If (usb_dev.PARALLEL_NAND_IF.MyAdapter = MEM_PROTOCOL.NAND_X16_ASYNC) Then
                         If usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
                             Connected_Event(usb_dev, MemoryType.PARALLEL_NAND, "NAND X16 Flash", 524288)
                         Else
                             Connected_Event(usb_dev, MemoryType.PARALLEL_NAND, "NAND X16 Flash", 65536)
                         End If
-                    ElseIf (usb_dev.PARALLEL_IF.MyAdapter = MEM_PROTOCOL.NAND_X8_ASYNC) Then
+                    ElseIf (usb_dev.PARALLEL_NAND_IF.MyAdapter = MEM_PROTOCOL.NAND_X8_ASYNC) Then
                         If usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
                             Connected_Event(usb_dev, MemoryType.PARALLEL_NAND, "NAND X8 Flash", 524288)
                         Else
                             Connected_Event(usb_dev, MemoryType.PARALLEL_NAND, "NAND X8 Flash", 65536)
-                        End If
-                    Else
-                        If usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
-                            Connected_Event(usb_dev, MemoryType.PARALLEL_NOR, "NOR Flash", 262144)
-                            usb_dev.PARALLEL_IF.EXPIO_SetTiming(MySettings.NOR_READ_ACCESS, MySettings.NOR_WE_PULSE)
-                        Else
-                            Connected_Event(usb_dev, MemoryType.PARALLEL_NOR, "NOR Flash", 16384)
                         End If
                     End If
                 Case DeviceStatus.NotSupported
@@ -2215,7 +2358,7 @@ Public Module MainApp
                 GUI.SetStatus("EPROM device not detected")
             End If
             If (GUI IsNot Nothing) Then
-                RemoveHandler usb_dev.PARALLEL_IF.SetProgress, AddressOf GUI.SetStatusPageProgress
+                RemoveHandler usb_dev.PARALLEL_NOR_IF.SetProgress, AddressOf GUI.SetStatusPageProgress
                 GUI.SetStatusPageProgress(100)
             End If
         ElseIf MySettings.OPERATION_MODE = DeviceMode.SINGLE_WIRE Then
@@ -2519,7 +2662,7 @@ Public Module MainApp
         SetStatus("Erasing FPGA device")
         MEM_IF.Clear() 'Remove all devices that are on this usb port
         Dim svf_data() As Byte = Utilities.GetResourceAsBytes("MACH1_ERASE.svf")
-        Dim jtag_successful As Boolean = usb_dev.JTAG_IF.Init(True)
+        Dim jtag_successful As Boolean = usb_dev.JTAG_IF.Init()
         If (Not jtag_successful) Then
             WriteConsole("Error: failed to connect to FPGA via JTAG")
             Exit Sub
@@ -2615,7 +2758,7 @@ Public Module MainApp
             If GUI IsNot Nothing Then SetStatus(Message) Else ConsoleWriteLine(Message)
             usb_dev.USB_VCC_OFF()
             Utilities.Sleep(1000)
-            If Not usb_dev.JTAG_IF.Init(True) Then
+            If Not usb_dev.JTAG_IF.Init() Then
                 Message = "Error: unable to connect to on board " & logic_type & " via JTAG"
                 If GUI IsNot Nothing Then SetStatus(Message) Else ConsoleWriteLine(Message)
                 Exit Sub

@@ -1,6 +1,6 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2019 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2020 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB
-'CONTACT EMAIL: contact@embeddedcomputers.net
+'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'ACKNOWLEDGEMENT: USB driver functionality provided by LibUsbDotNet (sourceforge.net/projects/libusbdotnet)
 
@@ -10,90 +10,77 @@ Namespace JTAG
 
     Public Class JTAG_IF
         Public FCUSB As USB.FCUSB_DEVICE
-        Public Property Detected As Boolean = False
-        Public Property Count As Integer = 0
-        Public Property Chain_Length As Integer = -1
-
         Public Devices As New List(Of JTAG_DEVICE)
-        Public Property SELECTED_INDEX As Integer = 0
-        Public Property TCK_SPEED As JTAG_SPEED = JTAG_SPEED._10MHZ
+        Public Property Chain_IsValid As Boolean 'Indicates if the chain has all BSDL loaded
+        Public Property Chain_BitLength As Byte 'Number of total bits in the TDI-TDO through IR REG
+        Public Property Chain_SelectedIndex As Integer 'Selected device in the chain
 
-        Public WithEvents SW_TAP As JTAG_STATE_CONTROLLER 'JTAG state machine for Classic
+        Public Property IR_LENGTH As Byte 'Number of bits of the IR register for the selected device
+        Public Property IR_LEADING As Byte 'Number of bits after the IR register
+        Public Property IR_TRAILING As Byte 'Number of bits before the IR register
+        Public Property DR_LEADING As Byte 'Number of bits after the DR register
+        Public Property DR_TRAILING As Byte 'Number of bits before the DR register
+
+        Public Property TCK_SPEED As JTAG_SPEED = JTAG_SPEED._10MHZ
 
         Sub New(parent_if As USB.FCUSB_DEVICE)
             FCUSB = parent_if
             BSDL_Init()
         End Sub
         'Connects to the target device
-        Public Function Init(Optional internal_logic As Boolean = False) As Boolean
+        Public Function Init() As Boolean
             Try
-                Me.Detected = False
-                Me.Count = 0
-                Me.Chain_Length = -1
-                Me.SELECTED_INDEX = 0
-                Devices.Clear()
-                If (FCUSB.HasLogic()) And (Not internal_logic) Then
-                    FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_INIT, Nothing, Me.TCK_SPEED)
-                Else
-                    If FCUSB.HasLogic() Then
-                        FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_INIT, Nothing, (1 << 16) Or Me.TCK_SPEED)
-                    Else
-                        FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_INIT, Nothing, 0)
-                    End If
-                    TAP_EnableSoftwareStateMachine()
-                End If
+                Me.Chain_BitLength = 0
+                Me.Chain_SelectedIndex = 0
+                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_INIT, Nothing, Me.TCK_SPEED)
                 JTAG_PrintClockSpeed()
                 Utilities.Sleep(200) 'We need to wait
                 If Not TAP_Detect() Then Return False
-                WriteConsole("JTAG chain detected: " & Me.Count & " devices")
-                WriteConsole("JTAG TDI size: " & Me.Chain_Length & " bits")
-                For i = 0 To Me.Count - 1
-                    Dim jtag_dev_name As String = GetJedecDescription(Devices(i).IDCODE)
-                    WriteConsole("JEDEC ID: 0x" & Hex(Devices(i).IDCODE).PadLeft(8, "0") & " (" & jtag_dev_name & ")")
-                Next
-                Select_Device(0) 'By default, select the first chain item
-                If Devices(0).IDCODE = &HBA02477 Then
-                    Dim tdo(3) As Byte
-                    Dim tdi(3) As Byte
-                    Dim tdo32 As UInt32 = 0
-                    Dim REG_VALUE As UInt32
-                    Reset_StateMachine() 'Now at Select_DR
-                    TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
-                    ShiftTDI(4, {Devices(0).BSDL.IDCODE}, Nothing, True)
-                    TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
-                    ShiftTDI(32, {0, 0, 0, 0}, tdo, True)
-                    TAP_GotoState(JTAG_MACHINE_STATE.Update_DR)
-                    Array.Reverse(tdo)
-                    Dim ARM_ID As UInt32 = Utilities.Bytes.ToUInt32(tdo) '0x0BA02477
-                    WriteConsole("ARM ID code: 0x" & Conversion.Hex(ARM_ID).PadLeft(8, "0"))
-                    ARM_MDAP_INIT()
-                    REG_VALUE = CTRLSTAT.CSYSPWRUPREQ Or CTRLSTAT.CDBGPWRUPREQ Or CTRLSTAT.STICKYERR
-                    ARM_DPACC(REG_VALUE, ARM_DP_REG.CTRL_STAT, ARM_RnW.WR)
-                    ARM_APACC(&H0, ARM_AP_REG.IDR, ARM_RnW.RD)
-                    Dim AHB_AP As UInt32 = ARM_APACC(&H0, ARM_AP_REG.IDR, ARM_RnW.RD, False) '0x04770041
-                    WriteConsole("AHB-AP (IDR: 0x" & Conversion.Hex(AHB_AP).PadLeft(8, "0") & ")")
-                    ARM_APACC(&H0, ARM_AP_REG.BASE, ARM_RnW.RD)
-                    Dim BASE_REG As UInt32 = ARM_APACC(&H0, ARM_AP_REG.BASE, ARM_RnW.RD, False) '0xE00FB003
-
-                    'Dim d1, d2, d3, d4 As UInt32
-                    'Dim r1, r2, r3, r4 As ARM_DP_REG
-                    'Dim w1, w2, w3, w4 As ARM_RnW
-
-                    'ARM_DP_Decode(&H280000102, d1, r1, w1)
-                    'ARM_DP_Decode(&H784, d2, r2, w2)
-                    'ARM_AP_Decode(&H5, d3, r3, w3)
-                    'ARM_DP_Decode(&H7, d4, r4, w4)
-                    'AHB-AP
-                    '"PPB ROM Table" at 0xe00ff000
-                    '0xE00FE000	Cortex-M7 PPB ROM Table
-                    '0xE00FB000 <-- from our debugger
-                    'Find ROM base (0xE00FB000)
-                End If
+                ValidateAndPrintChain()
+                If Devices(0).IDCODE = &HBA02477 Then BroadcomM7()
                 Return True
             Catch ex As Exception
             End Try
             Return False
         End Function
+
+        Private Sub BroadcomM7()
+            Dim tdo(3) As Byte
+            Dim tdi(3) As Byte
+            Dim tdo32 As UInt32 = 0
+            Dim REG_VALUE As UInt32
+            Reset_StateMachine() 'Now at Select_DR
+            TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
+            ShiftTDI(4, {Devices(0).BSDL.IDCODE}, Nothing, True)
+            TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
+            ShiftTDI(32, {0, 0, 0, 0}, tdo, True)
+            TAP_GotoState(JTAG_MACHINE_STATE.Update_DR)
+            Array.Reverse(tdo)
+            Dim ARM_ID As UInt32 = Utilities.Bytes.ToUInt32(tdo) '0x0BA02477
+            WriteConsole("ARM ID code: 0x" & Conversion.Hex(ARM_ID).PadLeft(8, "0"))
+            ARM_MDAP_INIT()
+            REG_VALUE = CTRLSTAT.CSYSPWRUPREQ Or CTRLSTAT.CDBGPWRUPREQ Or CTRLSTAT.STICKYERR
+            ARM_DPACC(REG_VALUE, ARM_DP_REG.CTRL_STAT, ARM_RnW.WR)
+            ARM_APACC(&H0, ARM_AP_REG.IDR, ARM_RnW.RD)
+            Dim AHB_AP As UInt32 = ARM_APACC(&H0, ARM_AP_REG.IDR, ARM_RnW.RD, False) '0x04770041
+            WriteConsole("AHB-AP (IDR: 0x" & Conversion.Hex(AHB_AP).PadLeft(8, "0") & ")")
+            ARM_APACC(&H0, ARM_AP_REG.BASE, ARM_RnW.RD)
+            Dim BASE_REG As UInt32 = ARM_APACC(&H0, ARM_AP_REG.BASE, ARM_RnW.RD, False) '0xE00FB003
+
+            'Dim d1, d2, d3, d4 As UInt32
+            'Dim r1, r2, r3, r4 As ARM_DP_REG
+            'Dim w1, w2, w3, w4 As ARM_RnW
+
+            'ARM_DP_Decode(&H280000102, d1, r1, w1)
+            'ARM_DP_Decode(&H784, d2, r2, w2)
+            'ARM_AP_Decode(&H5, d3, r3, w3)
+            'ARM_DP_Decode(&H7, d4, r4, w4)
+            'AHB-AP
+            '"PPB ROM Table" at 0xe00ff000
+            '0xE00FE000	Cortex-M7 PPB ROM Table
+            '0xE00FB000 <-- from our debugger
+            'Find ROM base (0xE00FB000)
+        End Sub
 
 #Region "EPC2 Support"
 
@@ -104,16 +91,16 @@ Namespace JTAG
             If Not EPC2_Check_JedecID() Then
                 Return Nothing
             End If
-            JSP_ShiftIR({0, &H44}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({0, &H44}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             JSP_ToggleClock(10000)
             If Not EPC2_Check_SiliconID() Then
                 Return Nothing
             End If
-            JSP_ShiftIR({&H1, &HA}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({&H1, &HA}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             JSP_ToggleClock(50)
-            JSP_ShiftIR({&H1, &H22}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({&H1, &H22}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             JSP_ToggleClock(200)
             Dim tdi_high_64() As Byte = {255, 255, 255, 255, 255, 255, 255, 255}
@@ -128,7 +115,7 @@ Namespace JTAG
                     progress_update.DynamicInvoke(CInt(((i + 1) / loops) * 100))
                 End If
             Next
-            JSP_ShiftIR({&H0, &H3E}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({&H0, &H3E}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             JSP_ToggleClock(200)
             Dim success As Boolean = EPC2_GetStatus()
@@ -137,7 +124,7 @@ Namespace JTAG
 
         Private Function EPC2_Check_JedecID() As Boolean
             Dim id_code(3) As Byte
-            JSP_ShiftIR({0, &H59}, Nothing, 10, True)
+            JSP_ShiftIR({0, &H59}, Nothing, -1, True)
             JSP_ShiftDR({255, 255, 255, 255}, id_code, 32, True)
             If Not ((id_code(0) = 1) And (id_code(1) = 0) And (id_code(2) = &H20) And (id_code(3) = &HDD)) Then 'Check ID CODE
                 WriteConsole("JTAG EPC2 error: device not detected")
@@ -148,7 +135,7 @@ Namespace JTAG
 
         Private Function EPC2_Check_SiliconID() As Boolean
             Dim id_code(3) As Byte
-            JSP_ShiftIR({0, &H42}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({0, &H42}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             JSP_ToggleClock(50)
             JSP_ShiftDR({255, 255, 255, 255}, id_code, 32, True) : JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
@@ -162,14 +149,14 @@ Namespace JTAG
         Public Function EPC2_Erase() As Boolean
             Reset_StateMachine()
             JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
-            JSP_ShiftIR({0, &H44}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({0, &H44}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             JSP_ToggleClock(10000)
             If Not EPC2_Check_SiliconID() Then
                 WriteConsole("EPC2 Error: silicon ID check failed") : Return False
             End If
             WriteConsole("Performing erase opreation on EPC2 device")
-            JSP_ShiftIR({&H1, &H92}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({&H1, &H92}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             JSP_ToggleClock(440000000UI)
             Return EPC2_GetStatus()
@@ -177,7 +164,7 @@ Namespace JTAG
 
         Private Function EPC2_GetStatus() As Boolean
             Dim status(0) As Byte
-            JSP_ShiftIR({&H0, &H3E}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({&H0, &H3E}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_ToggleClock(200)
             JSP_ShiftDR({7}, status, 3, True) : JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             Return (status(0) = 0)
@@ -208,7 +195,7 @@ Namespace JTAG
             ctr_reg(4) = &HFF 'or &HBF
             Reset_StateMachine()
             JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
-            JSP_ShiftIR({0, &H44}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({0, &H44}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             JSP_ToggleClock(10000)
             If Not EPC2_Check_SiliconID() Then
@@ -216,7 +203,7 @@ Namespace JTAG
             End If
             'ERASE
             WriteConsole("Performing erase opreation on EPC2 device")
-            JSP_ShiftIR({&H1, &H92}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({&H1, &H92}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             JSP_ToggleClock(440000000UI)
             If Not EPC2_GetStatus() Then
@@ -224,12 +211,12 @@ Namespace JTAG
             End If
             'PROGRAM
             WriteConsole("Programming EPC2 device")
-            JSP_ShiftIR({&H0, &H6}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({&H0, &H6}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_ToggleClock(50)
             JSP_ShiftDR(ctr_reg.Clone(), Nothing, 64, True) : JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
-            JSP_ShiftIR({&H1, &HA}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({&H1, &HA}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_ToggleClock(50)
-            JSP_ShiftIR({&H1, &H96}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({&H1, &H96}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_ToggleClock(9000)
             Dim loops As Integer = (epc2_data.Length / 8)
             For i = 0 To loops - 1
@@ -248,18 +235,18 @@ Namespace JTAG
                 WriteConsole("EPC2 Error: Programming failed") : Return False
             End If
             'PROGRAMMING DONE BIT
-            JSP_ShiftIR({&H0, &H6}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({&H0, &H6}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_ToggleClock(50)
             ctr_reg(4) = (ctr_reg(4) And &HBF) 'Set BIT 7 to LOW
             JSP_ShiftDR(ctr_reg, Nothing, 64, True) : JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
-            JSP_ShiftIR({&H1, &HA}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({&H1, &HA}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_ToggleClock(50)
-            JSP_ShiftIR({&H1, &H96}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({&H1, &H96}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_ToggleClock(9000)
             was_sucessful = EPC2_GetStatus()
-            JSP_ShiftIR({&H0, &H4A}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({&H0, &H4A}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_ToggleClock(10000)
-            JSP_ShiftIR({&H3, &HFF}, Nothing, 10, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
+            JSP_ShiftIR({&H3, &HFF}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_ToggleClock(10000)
             JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             WriteConsole("EPC2 device programming successfully completed")
@@ -378,6 +365,13 @@ Namespace JTAG
         End Enum
 
 #End Region
+        Private Sub ValidateAndPrintChain()
+            Me.Chain_IsValid = True
+            Chain_Print()
+            For i = 0 To Me.Devices.Count - 1
+                If Devices(i).BSDL Is Nothing Then Me.Chain_IsValid = False
+            Next
+        End Sub
 
         Private Sub JTAG_PrintClockSpeed()
             Select Case Me.TCK_SPEED
@@ -408,11 +402,12 @@ Namespace JTAG
         End Function
         'Attempts to auto-detect a JTAG device on the TAP, returns the IR Length of the device
         Private Function TAP_Detect() As Boolean
+            Me.Devices.Clear()
             Dim r_data(63) As Byte
             Dim result As Boolean = FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_DETECT, r_data)
             If Not result Then Return False
             Dim dev_count As Integer = r_data(0)
-            Me.Chain_Length = r_data(1)
+            Me.Chain_BitLength = r_data(1)
             If dev_count = 0 Then Return False
             Dim ptr As Integer = 2
             Dim ID32 As UInt32 = 0
@@ -429,37 +424,37 @@ Namespace JTAG
                     n.PARTNU = CUShort((ID32 And &HFFFF000) >> 12)
                     n.MANUID = CUShort((ID32 And &HFFE) >> 1)
                     n.BSDL = BSDL_GetDefinition(ID32)
-                    If n.BSDL Is Nothing Then WriteConsole("BSDL definition not found for JEDEC ID: 0x" & Hex(ID32).PadLeft(8, "0"))
-                    Devices.Add(n)
-                    Me.Detected = True
+                    If n.BSDL IsNot Nothing Then n.IR_LENGTH = n.BSDL.IR_LEN
+                    Me.Devices.Add(n)
                 End If
             Next
-            If Me.Detected Then
-                Me.Count = Devices.Count
-                Return True
+            If (Me.Devices.Count = 0) Then Return False
+            If Me.Devices.Count = 1 AndAlso Me.Devices(0).BSDL Is Nothing Then
+                Me.Devices(0).IR_LENGTH = r_data(1)
             End If
-            Return False
+            Me.Devices.Reverse() 'Put devices in order closest to HOST
+            Return True
         End Function
 
         Public Sub Configure(proc_type As PROCESSOR)
-            Me.Devices(Me.SELECTED_INDEX).ACCESS = JTAG_MEM_ACCESS.NONE
+            Me.Devices(Me.Chain_SelectedIndex).ACCESS = JTAG_MEM_ACCESS.NONE
             If proc_type = PROCESSOR.MIPS Then
                 GUI.PrintConsole("Configure JTAG engine for MIPS processor")
-                Dim IMPCODE As UInt32 = ReadWriteReg32(Devices(SELECTED_INDEX).BSDL.MIPS_IMPCODE)
+                Dim IMPCODE As UInt32 = AccessDataRegister32(Devices(Chain_SelectedIndex).BSDL.MIPS_IMPCODE)
                 EJTAG_LoadCapabilities(IMPCODE) 'Only supported by MIPS/EJTAG devices
                 If Me.DMA_SUPPORTED Then
                     Dim r As UInteger = ReadMemory(&HFF300000UI, DATA_WIDTH.Word) 'Returns 2000001E 
                     r = r And &HFFFFFFFBUI '2000001A
                     WriteMemory(&HFF300000UI, r, DATA_WIDTH.Word)
-                    Me.Devices(Me.SELECTED_INDEX).ACCESS = JTAG_MEM_ACCESS.EJTAG_DMA
+                    Me.Devices(Me.Chain_SelectedIndex).ACCESS = JTAG_MEM_ACCESS.EJTAG_DMA
                     GUI.PrintConsole(RM.GetString("jtag_dma"))
                 Else
-                    Me.Devices(Me.SELECTED_INDEX).ACCESS = JTAG_MEM_ACCESS.EJTAG_PRACC
+                    Me.Devices(Me.Chain_SelectedIndex).ACCESS = JTAG_MEM_ACCESS.EJTAG_PRACC
                     GUI.PrintConsole(RM.GetString("jtag_no_dma"))
                 End If
             ElseIf proc_type = PROCESSOR.ARM Then
                 GUI.PrintConsole("Configure JTAG engine for ARM processor")
-                Me.Devices(Me.SELECTED_INDEX).ACCESS = JTAG_MEM_ACCESS.ARM
+                Me.Devices(Me.Chain_SelectedIndex).ACCESS = JTAG_MEM_ACCESS.ARM
                 'This does processor disable_cache, disable_mmu, and halt
                 FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_ARM_INIT, Nothing)
             End If
@@ -506,7 +501,7 @@ Namespace JTAG
             Me.BDR_DQ_SIZE = 0
             Me.BDR_ADDR_SIZE = 0
             Me.BSR_SIZE = Devices(0).BSDL.BS_LEN
-            Me.BDR_CTRL_EN = Devices(0).BSDL.CONTROL_DISABLE  'SOMETHING
+            Me.BDR_CTRL_EN = Devices(0).BSDL.DISVAL  'SOMETHING
             ReDim BSR_REG(127)
             BSDL_FLASH_DEVICE = Nothing
             Dim setup_data(6) As Byte
@@ -516,7 +511,7 @@ Namespace JTAG
             setup_data(3) = CByte((Devices(0).BSDL.SAMPLE >> 8) And 255)
             setup_data(4) = CByte((Devices(0).BSDL.BS_LEN) And 255)
             setup_data(5) = CByte((Devices(0).BSDL.BS_LEN >> 8) And 255)
-            setup_data(6) = CByte(Devices(0).BSDL.CONTROL_DISABLE)
+            setup_data(6) = CByte(Devices(0).BSDL.DISVAL)
             FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, setup_data)
             SetupReady = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_SETUP)
         End Sub
@@ -540,7 +535,6 @@ Namespace JTAG
                 pin_data(7) = CByte(item.INPUT >> 8)
                 FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, pin_data)
                 FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_ADDPIN)
-                Utilities.Sleep(5)
             Next
             If EnableX8Mode Then
                 Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16
@@ -672,19 +666,14 @@ Namespace JTAG
 
         Private Sub JTAG_BDR_Extest(ByRef REG() As Byte)
             Dim TDO(REG.Length - 1) As Byte
-            TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
-            ShiftTDI(8, {Devices(0).BSDL.EXTEST}, Nothing, True)
-            TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
-            ShiftTDI(Me.BSR_SIZE, REG, REG, True)
+            ShiftIR({Me.Devices(Me.Chain_SelectedIndex).BSDL.EXTEST}, Nothing, Me.IR_LENGTH, True)
+            ShiftDR(REG, REG, Me.BSR_SIZE, True)
             TAP_GotoState(JTAG_MACHINE_STATE.Update_DR)
         End Sub
 
         Private Sub JTAG_BDR_Sample(ByRef REG() As Byte)
-            Dim TDO(REG.Length - 1) As Byte
-            TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
-            ShiftTDI(8, {Devices(0).BSDL.SAMPLE}, Nothing, True)
-            TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
-            ShiftTDI(Me.BSR_SIZE, REG, REG, True)
+            ShiftIR({Me.Devices(Me.Chain_SelectedIndex).BSDL.SAMPLE}, Nothing, Me.IR_LENGTH, True)
+            ShiftDR(REG, REG, Me.BSR_SIZE, True)
             TAP_GotoState(JTAG_MACHINE_STATE.Update_DR)
         End Sub
 
@@ -721,11 +710,11 @@ Namespace JTAG
 
         Public Function BoundaryScan_Detect() As Boolean
             Me.CFI = Nothing
-            Dim FLASH_RESULT As PARALLEL_MEMORY.FlashDetectResult
+            Dim FLASH_RESULT As FlashDetectResult
             If Me.BSDL_IO = BSDL_DQ_IO.X8 Then
-                FLASH_RESULT = PARALLEL_MEMORY.GetFlashResult(BSDL_ReadIdent(False)) 'X8 Device
+                FLASH_RESULT = GetFlashResult(BSDL_ReadIdent(False)) 'X8 Device
             Else
-                FLASH_RESULT = PARALLEL_MEMORY.GetFlashResult(BSDL_ReadIdent(True)) 'X16 Device
+                FLASH_RESULT = GetFlashResult(BSDL_ReadIdent(True)) 'X16 Device
             End If
             If FLASH_RESULT.Successful Then
                 Me.CFI = New NOR_CFI(BSDL_GetCFI())
@@ -1256,7 +1245,7 @@ Namespace JTAG
             ReDim tdi(4) '5 bytes only
             ShiftTDI(33, tdi, Nothing, False)
             TAP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
-            If (rti_cycles > 0) Then Tap_Toggle(rti_cycles)
+            If (rti_cycles > 0) Then Tap_Toggle(rti_cycles, False)
         End Sub
 
         Public Sub ARM_IR(ir_data As Byte)
@@ -1292,46 +1281,22 @@ Namespace JTAG
             TAP_GotoState(dst_state)
         End Sub
 
-        Private Function JSP_ToggleClock(ticks As UInt32) Handles JSP.ToggleClock
+        Private Function JSP_ToggleClock(ticks As UInt32, Optional exit_tms As Boolean = False) Handles JSP.ToggleClock
             Dim hz As UInt32 = Me.JTAG_GetTckInHerz()
             Dim mult As Integer = (CSng(hz) / CSng(CurrentHz))
-            Return Tap_Toggle(ticks * mult)
+            Return Tap_Toggle(ticks * mult, exit_tms)
         End Function
+
+        Public Sub JSP_ShiftIR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As Integer, exit_tms As Boolean) Handles JSP.ShiftIR
+            ShiftIR(tdi_bits, tdo_bits, bit_count, exit_tms)
+        End Sub
+
+        Public Sub JSP_ShiftDR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As UInt16, exit_tms As Boolean) Handles JSP.ShiftDR
+            ShiftDR(tdi_bits, tdo_bits, bit_count, exit_tms)
+        End Sub
 
         Private Sub HandleJtagPrintRequest(msg As String) Handles JSP.Writeconsole
             GUI.PrintConsole("SVF Player: " & msg)
-        End Sub
-
-        Public Sub JSP_ShiftIR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As UInt16, exit_mode As Boolean) Handles JSP.ShiftIR
-            If SW_TAP IsNot Nothing Then
-                SW_TAP.ShiftIR(tdi_bits, tdo_bits, bit_count, exit_mode)
-                Utilities.Sleep(2)
-            Else
-                Dim packet_param As UInt32 = bit_count
-                If exit_mode Then packet_param = packet_param Or (1 << 16)
-                ReDim tdo_bits(tdi_bits.Length - 1)
-                Array.Reverse(tdi_bits)
-                TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
-                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, tdi_bits, tdi_bits.Length) : Utilities.Sleep(2) 'Preloads the TDI/TMS data
-                FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_SHIFT_DATA, tdo_bits, packet_param)
-                Array.Reverse(tdo_bits)
-            End If
-        End Sub
-
-        Public Sub JSP_ShiftDR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As UInt16, exit_mode As Boolean) Handles JSP.ShiftDR
-            If SW_TAP IsNot Nothing Then
-                SW_TAP.ShiftDR(tdi_bits, tdo_bits, bit_count, exit_mode)
-                Utilities.Sleep(2)
-            Else
-                Dim packet_param As UInt32 = bit_count
-                If exit_mode Then packet_param = packet_param Or (1 << 16)
-                ReDim tdo_bits(tdi_bits.Length - 1)
-                Array.Reverse(tdi_bits)
-                TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
-                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, tdi_bits, tdi_bits.Length) : Utilities.Sleep(2) 'Preloads the TDI/TMS data
-                FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_SHIFT_DATA, tdo_bits, packet_param)
-                Array.Reverse(tdo_bits)
-            End If
         End Sub
 
 #End Region
@@ -1424,14 +1389,14 @@ Namespace JTAG
         End Sub
         'Resets the processor (EJTAG ONLY)
         Public Sub EJTAG_Reset()
-            ReadWriteReg32(Devices(SELECTED_INDEX).BSDL.MIPS_CONTROL, (EJTAG_CTRL.PrRst Or EJTAG_CTRL.PerRst))
+            AccessDataRegister32(Devices(Chain_SelectedIndex).BSDL.MIPS_CONTROL, (EJTAG_CTRL.PrRst Or EJTAG_CTRL.PerRst))
         End Sub
 
         Public Function EJTAG_Debug_Enable() As Boolean
             Try
                 Dim debug_flag As UInt32 = EJTAG_CTRL.PrAcc Or EJTAG_CTRL.ProbEn Or EJTAG_CTRL.SetDev Or EJTAG_CTRL.JtagBrk
-                Dim ctrl_reg As UInt32 = ReadWriteReg32(Devices(SELECTED_INDEX).BSDL.MIPS_CONTROL, debug_flag)
-                If (ReadWriteReg32(Devices(SELECTED_INDEX).BSDL.MIPS_CONTROL, EJTAG_CTRL.PrAcc Or EJTAG_CTRL.ProbEn Or EJTAG_CTRL.SetDev) And EJTAG_CTRL.BrkSt) Then
+                Dim ctrl_reg As UInt32 = AccessDataRegister32(Devices(Chain_SelectedIndex).BSDL.MIPS_CONTROL, debug_flag)
+                If (AccessDataRegister32(Devices(Chain_SelectedIndex).BSDL.MIPS_CONTROL, EJTAG_CTRL.PrAcc Or EJTAG_CTRL.ProbEn Or EJTAG_CTRL.SetDev) And EJTAG_CTRL.BrkSt) Then
                     Return True
                 Else
                     Return False
@@ -1444,7 +1409,7 @@ Namespace JTAG
         Public Sub EJTAG_Debug_Disable()
             Try
                 Dim flag As UInt32 = (EJTAG_CTRL.ProbEn Or EJTAG_CTRL.SetDev) 'This clears the JTAGBRK bit
-                ReadWriteReg32(Devices(SELECTED_INDEX).BSDL.MIPS_CONTROL, flag)
+                AccessDataRegister32(Devices(Chain_SelectedIndex).BSDL.MIPS_CONTROL, flag)
             Catch ex As Exception
             End Try
         End Sub
@@ -1510,7 +1475,7 @@ Namespace JTAG
 
         Public Function ReadMemory(addr As UInt32, width As DATA_WIDTH) As UInt32
             Dim ReadBack As Byte() = New Byte(3) {}
-            Select Case Me.Devices(Me.SELECTED_INDEX).ACCESS
+            Select Case Me.Devices(Me.Chain_SelectedIndex).ACCESS
                 Case JTAG_MEM_ACCESS.EJTAG_DMA
                     Select Case width
                         Case DATA_WIDTH.Word
@@ -1557,7 +1522,7 @@ Namespace JTAG
             setup_data(5) = CByte((data >> 8) And 255)
             setup_data(6) = CByte((data >> 16) And 255)
             setup_data(7) = CByte((data >> 24) And 255)
-            setup_data(8) = Me.Devices(Me.SELECTED_INDEX).ACCESS
+            setup_data(8) = Me.Devices(Me.Chain_SelectedIndex).ACCESS
             If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, setup_data, setup_data.Length) Then Exit Sub
             FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_WRITE, Nothing, bits)
         End Sub
@@ -1580,7 +1545,7 @@ Namespace JTAG
                 If BytesToRead > MAX_USB_BUFFER_SIZE Then BytesToRead = MAX_USB_BUFFER_SIZE
                 Dim Offset As UInt32 = LargeCount - BytesLeft
                 Dim TempBuffer() As Byte = Nothing
-                Select Case Me.Devices(Me.SELECTED_INDEX).ACCESS
+                Select Case Me.Devices(Me.Chain_SelectedIndex).ACCESS
                     Case JTAG_MEM_ACCESS.EJTAG_DMA
                         TempBuffer = JTAG_ReadMemory(Address + Offset, BytesToRead)
                     Case JTAG_MEM_ACCESS.EJTAG_PRACC
@@ -1613,7 +1578,7 @@ Namespace JTAG
                         ReDim BlockToWrite(BytesRemaining - 1)
                     End If
                     Array.Copy(DataToWrite, BytesWritten, BlockToWrite, 0, BlockToWrite.Length)
-                    Select Case Me.Devices(Me.SELECTED_INDEX).ACCESS
+                    Select Case Me.Devices(Me.Chain_SelectedIndex).ACCESS
                         Case JTAG_MEM_ACCESS.EJTAG_DMA
                             JTAG_WriteMemory(Address, BlockToWrite)
                         Case JTAG_MEM_ACCESS.EJTAG_PRACC
@@ -1645,7 +1610,7 @@ Namespace JTAG
             setup_data(5) = CByte((data_len >> 8) And 255)
             setup_data(6) = CByte((data_len >> 16) And 255)
             setup_data(7) = CByte((data_len >> 24) And 255)
-            setup_data(8) = Me.Devices(Me.SELECTED_INDEX).ACCESS
+            setup_data(8) = Me.Devices(Me.Chain_SelectedIndex).ACCESS
             If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, setup_data, setup_data.Length) Then Return Nothing
             If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_WRITEMEM) Then Return Nothing 'Sends setup command and data
             Return FCUSB.USB_BULK_OUT(data_out)
@@ -1661,7 +1626,7 @@ Namespace JTAG
             setup_data(5) = CByte((count >> 8) And 255)
             setup_data(6) = CByte((count >> 16) And 255)
             setup_data(7) = CByte((count >> 24) And 255)
-            setup_data(8) = Me.Devices(Me.SELECTED_INDEX).ACCESS
+            setup_data(8) = Me.Devices(Me.Chain_SelectedIndex).ACCESS
             Dim data_back(count - 1) As Byte
             If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, setup_data, setup_data.Length) Then Return Nothing
             If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_READMEM) Then Return Nothing 'Sends setup command and data
@@ -1778,7 +1743,7 @@ Namespace JTAG
 #End Region
 
 #Region "SPI over JTAG"
-        Public SPI_Part As FlashMemory.SPI_NOR 'Contains the SPI Flash definition
+        Public SPI_Part As SPI_NOR 'Contains the SPI Flash definition
         Private SPI_JTAG_PROTOCOL As JTAG_SPI_Type
         Private SPI_MIPS_JTAG_IF As MIPS_SPI_API
         'Returns TRUE if the JTAG can detect a connected flash to the SPI port
@@ -2068,52 +2033,112 @@ Namespace JTAG
 
 #End Region
 
-#Region "Public function"
-        Public Sub Select_Device(device_index As Integer)
-            Try
-                Me.SELECTED_INDEX = device_index
-                Dim J As JTAG_DEVICE = Me.Devices(Me.SELECTED_INDEX)
+#Region "Chain Support"
+
+        Public Sub Chain_Select(device_index As Integer)
+            Dim ACCESS_TYPE As Byte = 0
+            If Not Me.Chain_IsValid Then
+                WriteConsole("JTAG chain is not valid, unable to select device") : Exit Sub
+            End If
+            If (device_index < Me.Devices.Count) Then
+                Dim J As JTAG_DEVICE = Me.Devices(device_index)
+                Me.IR_LEADING = 0
+                Me.IR_TRAILING = 0
+                Me.DR_LEADING = 0
+                Me.DR_TRAILING = 0
+                Me.IR_LENGTH = J.BSDL.IR_LEN
+                ACCESS_TYPE = J.ACCESS
+                Me.Chain_SelectedIndex = device_index
                 If J.BSDL IsNot Nothing Then
-                    WriteConsole(String.Format("JTAG Device selected: {0} (IR length {1})", device_index, J.BSDL.IR_LEN.ToString))
-                    Dim Leading_Bits As UInt16 = (CUShort(Devices(Me.SELECTED_INDEX).IR_LEADING) << 8) Or CUShort(Devices(Me.SELECTED_INDEX).IR_TRAILING)
-                    Dim select_value As UInt32 = (CUInt(Leading_Bits) << 16) Or (Devices(Me.SELECTED_INDEX).ACCESS << 8) Or (Me.Devices(Me.SELECTED_INDEX).BSDL.IR_LEN And 255)
-                    FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_SELECT, Nothing, select_value)
-                Else
-                    WriteConsole("Unable to select JTAG device: BSDL not loaded")
+                    For i = 0 To (device_index - 1)
+                        Me.IR_TRAILING += Me.Devices(i).BSDL.IR_LEN
+                        Me.DR_TRAILING += 1 'BYPASS REG is always one bit wide
+                    Next
+                    For i = (device_index + 1) To Me.Devices.Count - 1
+                        Me.IR_LEADING += J.BSDL.IR_LEN
+                        Me.DR_LEADING += 1 'BYPASS REG is always one bit wide
+                    Next
+                    Dim jtag_dev_name As String = GetJedecDescription(Devices(device_index).IDCODE)
+                    WriteConsole(String.Format("JTAG index {0} selected: {1} (IR length {2})", device_index, jtag_dev_name, J.BSDL.IR_LEN.ToString))
                 End If
-                Utilities.Sleep(10)
-            Catch ex As Exception
-            End Try
+            ElseIf (device_index = Me.Devices.Count) Then 'Select all
+                Me.Chain_SelectedIndex = device_index
+                Me.IR_LEADING = 0
+                Me.IR_TRAILING = 0
+                Me.DR_LEADING = 0
+                Me.DR_TRAILING = 0
+                Me.IR_LENGTH = Me.Chain_BitLength
+                WriteConsole("JTAG selected all devices")
+            Else
+                Exit Sub
+            End If
+            Dim select_data(7) As Byte
+            select_data(0) = Me.IR_LENGTH
+            select_data(1) = Me.IR_LEADING
+            select_data(2) = Me.IR_TRAILING
+            select_data(3) = Me.DR_LEADING
+            select_data(4) = Me.DR_TRAILING
+            select_data(5) = ACCESS_TYPE
+            select_data(6) = 0 'RFU1
+            select_data(7) = 0 'RFU2
+            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, select_data)
+            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_SELECT)
         End Sub
 
-        Public Function GetSelectedDevice() As JTAG_DEVICE
-            Return Me.Devices(SELECTED_INDEX)
+        Public Sub Chain_Print()
+            WriteConsole("JTAG chain detected: " & Me.Devices.Count & " devices")
+            WriteConsole("JTAG TDI IR chain size: " & Me.Chain_BitLength & " bits")
+            For i = 0 To Me.Devices.Count - 1
+                Dim ID As String = "0x" & Hex(Devices(i).IDCODE).PadLeft(8, "0")
+                If Devices(i).BSDL IsNot Nothing Then
+                    Dim jtag_dev_name As String = GetJedecDescription(Devices(i).IDCODE)
+                    WriteConsole("Index " & i.ToString() & ": JEDEC ID " & ID & " (" & jtag_dev_name & ")")
+                Else
+                    WriteConsole("Index " & i.ToString() & ": JEDEC ID " & ID & " - BSDL definition not found")
+                End If
+            Next
+            If (Me.Devices.Count > 1) Then
+                WriteConsole("Index " & Me.Devices.Count.ToString() & ": [select all devices]")
+            End If
+        End Sub
+        'Sets the BSDL definition for a given device in a JTAG chain
+        Public Function Chain_Set(index As Integer, bsdl_name As String) As Boolean
+            If (index > (Me.Devices.Count - 1)) Then Return False
+            For Each d In Me.BSDL_DATABASE
+                If d.PART_NAME.ToUpper.Equals(bsdl_name.ToUpper) Then
+                    Me.Devices(index).BSDL = d
+                    Me.Devices(index).IR_LENGTH = d.IR_LEN
+                    ValidateAndPrintChain() 'We made changes to the chain, revalidate
+                    Return True
+                End If
+            Next
+            Return False
+        End Function
+        'Returns the BSDL definition
+        Public Function Chain_Get(index As Integer) As BSDL_DEF
+            Return Me.Devices(index).BSDL
         End Function
 
+#End Region
+
+#Region "Public function"
+
         Public Sub Reset_StateMachine()
-            If SW_TAP IsNot Nothing Then
-                SW_TAP.Reset()
-            Else
-                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_RESET)
-                Utilities.Sleep(2)
-            End If
+            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_RESET)
         End Sub
 
         Public Sub TAP_GotoState(J_STATE As JTAG_MACHINE_STATE)
-            If SW_TAP IsNot Nothing Then
-                SW_TAP.GotoState(J_STATE)
-            Else
-                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_GOTO_STATE, Nothing, J_STATE)
-                Utilities.Sleep(2)
-            End If
+            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_GOTO_STATE, Nothing, J_STATE)
         End Sub
 
-        Public Function Tap_Toggle(count As UInt32) As Boolean
+        Public Function Tap_Toggle(count As UInt32, exit_tms As Boolean) As Boolean
             Try
                 Dim ticks_left As UInt32 = count
                 While (ticks_left > 0)
                     Dim toggle_count As UInt32 = IIf(ticks_left <= 10000000UI, ticks_left, 10000000UI) 'MAX 10 million cycles
-                    Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_TOGGLE, Nothing, toggle_count)
+                    Dim toggle_cmd As UInt32 = toggle_count
+                    If exit_tms Then toggle_cmd = toggle_cmd Or (1UI << 31) 'The MSB indicates STAY/LEAVE for toggles
+                    Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_TOGGLE, Nothing, toggle_cmd)
                     If Not result Then Return False
                     Dim current_hz As UInt32 = JTAG_GetTckInHerz()
                     Dim delay_ms As Integer = (CDbl(toggle_count) / CDbl(current_hz)) * 1000
@@ -2133,62 +2158,24 @@ Namespace JTAG
             End Try
             Return False
         End Function
-        'Writes to the instruction-register and then shifts out 32-bits from the DR
-        Public Function ReadWriteReg32(ir_value As UInt32, Optional dr_value As UInt32 = 0) As UInt32
-            If SW_TAP IsNot Nothing Then
-                Dim byte_count As Integer = Math.Ceiling(Devices(Me.SELECTED_INDEX).BSDL.IR_LEN / 8)
-                If (byte_count = 1) Then
-                    SW_TAP.ShiftIR({(ir_value And 255)}, Nothing, Devices(Me.SELECTED_INDEX).BSDL.IR_LEN, True)
-                ElseIf (byte_count = 2) Then
-                    SW_TAP.ShiftIR({((ir_value >> 8) And 255), (ir_value And 255)}, Nothing, Devices(Me.SELECTED_INDEX).BSDL.IR_LEN, True)
-                End If
-                Dim data_in() As Byte = Utilities.Bytes.FromUInt32(dr_value)
-                Dim data_out() As Byte = Nothing
-                SW_TAP.ShiftDR(data_in, data_out, 32)
-                SW_TAP.GotoState(JTAG_MACHINE_STATE.Select_DR) 'Default parking
-                Return Utilities.Bytes.ToUInt32(data_out)
-            Else
-                Dim ir_data() As Byte = Utilities.Bytes.FromUInt32(ir_value, False)
-                Dim dr_data() As Byte = Utilities.Bytes.FromUInt32(dr_value, False)
-                Array.Reverse(ir_data)
-                Array.Reverse(dr_data)
-                Dim setup(15) As Byte '16 bytes (8 byte area for both IR/DR)
-                Dim return_data(3) As Byte
-                Array.Copy(ir_data, 0, setup, 0, 4)
-                Array.Copy(dr_data, 0, setup, 8, 4)
-                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, setup) : Utilities.Sleep(2)
-                FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_REGISTERS, return_data, 32)
-                Array.Reverse(return_data)
-                Return Utilities.Bytes.ToUInt32(return_data)
-            End If
-        End Function
-        'Returns DR value (32 bit)
-        Public Function ReadRegister32(ir_opcode As UInt32, ir_len As Integer) As UInt32
-            Dim tdo(3) As Byte
-            TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
-            ShiftTDI(ir_len, {ir_opcode}, Nothing, True)
-            TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
-            ShiftTDI(32, {0, 0, 0, 0}, tdo, True)
-            TAP_GotoState(JTAG_MACHINE_STATE.Update_DR)
-            Array.Reverse(tdo)
-            Return Utilities.Bytes.ToUInt32(tdo)
-        End Function
+        'Selects the IR and shifts data into them and exits
+        Public Sub ShiftIR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As UInt16, exit_tms As Boolean)
+            If bit_count = -1 Then bit_count = Me.IR_LENGTH
+            ReDim tdo_bits(tdi_bits.Length - 1)
+            Dim cmd As UInt32 = IIf(exit_tms, CUInt((1UI << 16) Or bit_count), CUInt(bit_count))
+            Array.Reverse(tdi_bits)
+            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, tdi_bits, tdi_bits.Length) 'Preloads the TDI data
+            FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_SHIFT_IR, tdo_bits, cmd)
+            Array.Reverse(tdo_bits)
+        End Sub
 
-        Public Sub ShiftTMS(BitCount As UInt32, tms_bits() As Byte)
-            Dim BytesLeft As Integer = tms_bits.Length
-            Dim BitsLeft As UInt32 = BitCount
-            Dim ptr As Integer = 0
-            Do Until BytesLeft = 0
-                Dim packet_size As UInt32 = Math.Min(64, BytesLeft)
-                Dim packet_data(packet_size - 1) As Byte
-                Array.Copy(tms_bits, ptr, packet_data, 0, packet_data.Length)
-                ptr += packet_data.Length
-                BytesLeft -= packet_size
-                Dim bits_size As UInt32 = Math.Min(512, BitsLeft)
-                BitsLeft -= bits_size
-                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, packet_data, packet_data.Length) : Utilities.Sleep(2)
-                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_SHIFT_TMS, Nothing, bits_size)   'Shifts data and reads result
-            Loop
+        Public Sub ShiftDR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As UInt16, exit_tms As Boolean)
+            ReDim tdo_bits(tdi_bits.Length - 1)
+            Dim cmd As UInt32 = IIf(exit_tms, CUInt((1UI << 16) Or bit_count), CUInt(bit_count))
+            Array.Reverse(tdi_bits)
+            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, tdi_bits, tdi_bits.Length) 'Preloads the TDI data
+            FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_SHIFT_DR, tdo_bits, cmd)
+            Array.Reverse(tdo_bits)
         End Sub
 
         Public Sub ShiftTDI(BitCount As UInt32, tdi_bits() As Byte, ByRef tdo_bits() As Byte, exit_tms As Boolean)
@@ -2214,26 +2201,54 @@ Namespace JTAG
             Loop
         End Sub
 
+        Public Function AccessDataRegister32(ir_value As UInt32, Optional dr_value As UInt32 = 0) As UInt32
+            Dim dr_data() As Byte = Utilities.Bytes.FromUInt32(dr_value, False)
+            Array.Reverse(dr_data)
+            Dim tdo(3) As Byte
+            TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
+            If (Me.IR_LEADING > 0) Then Tap_Toggle(Me.IR_LEADING, False)
+            If (Me.IR_TRAILING > 0) Then
+                ShiftTDI(Me.Devices(Me.Chain_SelectedIndex).IR_LENGTH, {ir_value}, Nothing, False)
+                Tap_Toggle(Me.IR_TRAILING, True)
+            Else
+                ShiftTDI(Me.Devices(Me.Chain_SelectedIndex).IR_LENGTH, {ir_value}, Nothing, True)
+            End If
+            TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
+            If (DR_LEADING > 0) Then Tap_Toggle(Me.DR_LEADING, False)
+            If (DR_TRAILING > 0) Then
+                ShiftTDI(32, dr_data, tdo, False)
+                Tap_Toggle(Me.DR_TRAILING, True)
+            Else
+                ShiftTDI(32, dr_data, tdo, True)
+            End If
+            TAP_GotoState(JTAG_MACHINE_STATE.Update_DR)
+            Array.Reverse(tdo)
+            Return Utilities.Bytes.ToUInt32(tdo)
+        End Function
+
 #End Region
 
 #Region "BSDL"
-        Private ReadOnly BSDL_DATABASE As New List(Of BSDL_DEF)
+        Private BSDL_DATABASE As New List(Of BSDL_DEF)
 
         Private Sub BSDL_Init()
             BSDL_DATABASE.Clear()
-            ARM_CORTEXM7()
-            Microsemi_A3P250_FG144()
-            Xilinx_XC2C64A()
-            Xilinx_XC9572XL()
-            Altera_5M160ZE64()
-            Altera_5M570ZT144()
-            Altera_EPM7032ST44()
-            Altera_EPC2L20()
-            LCMXO2_4000HC_XFTG256()
-            LCMXO2_7000HC_XXTG144()
-            LC4032V_TQFP44()
-            LC4064V_TQFP44()
-            Broadcom_BCM3348()
+            BSDL_DATABASE.Add(ARM_CORTEXM7())
+            BSDL_DATABASE.Add(Microsemi_A3P250_FG144())
+            BSDL_DATABASE.Add(Xilinx_XC2C64A())
+            BSDL_DATABASE.Add(Xilinx_XC9572XL())
+            BSDL_DATABASE.Add(Xilinx_XC95144_TQ100())
+            BSDL_DATABASE.Add(Xilinx_XC4013XLA_PQ160())
+            BSDL_DATABASE.Add(Altera_5M160ZE64())
+            BSDL_DATABASE.Add(Altera_5M570ZT144())
+            BSDL_DATABASE.Add(Altera_EPM7032ST44())
+            BSDL_DATABASE.Add(Altera_EPC2L20())
+            BSDL_DATABASE.Add(Lattice_LCMXO2_4000HC_XFTG256())
+            BSDL_DATABASE.Add(Lattice_LCMXO2_7000HC_XXTG144())
+            BSDL_DATABASE.Add(Lattice_LC4032V_TQFP44())
+            BSDL_DATABASE.Add(Lattice_LC4064V_TQFP44())
+            BSDL_DATABASE.Add(Broadcom_BCM3348())
+            BSDL_DATABASE.Add(Motorola_MC68340())
         End Sub
 
         Public Function BSDL_GetDefinition(jedec_id As UInt32) As BSDL_DEF
@@ -2242,318 +2257,6 @@ Namespace JTAG
             Next
             Return Nothing
         End Function
-
-        Private Sub Microsemi_A3P250_FG144()
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "A3P250"
-            J_DEVICE.ID_JEDEC = &H2A141CFUI
-            J_DEVICE.ID_MASK = &H6FFFFFFUI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 708
-            J_DEVICE.BYPASS = &HFF
-            J_DEVICE.IDCODE = &HF
-            J_DEVICE.EXTEST = 0
-            J_DEVICE.SAMPLE = 1
-            J_DEVICE.HIGHZ = &H7
-            J_DEVICE.CLAMP = &H5
-            J_DEVICE.INTEST = &H6
-            J_DEVICE.USERCODE = &HE
-            J_DEVICE.CONTROL_DISABLE = False
-            BSDL_DATABASE.Add(J_DEVICE)
-        End Sub
-
-        Private Sub Xilinx_XC9572XL()
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "XC9572XL"
-            J_DEVICE.ID_JEDEC = &H59604093UI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 216
-            J_DEVICE.IDCODE = &HFE
-            J_DEVICE.BYPASS = &HFF
-            J_DEVICE.INTEST = 2
-            J_DEVICE.EXTEST = 0
-            J_DEVICE.SAMPLE = 1
-            J_DEVICE.CLAMP = &HFA
-            J_DEVICE.HIGHZ = &HFC
-            J_DEVICE.USERCODE = &HFD
-            J_DEVICE.CONTROL_DISABLE = False
-            '"ISPEX ( 11110000)," &
-            '"FBULK ( 11101101),"&
-            '"FBLANK ( 11100101),"&
-            '"FERASE ( 11101100),"&
-            '"FPGM ( 11101010)," &
-            '"FPGMI ( 11101011)," &
-            '"FVFY ( 11101110)," &
-            '"FVFYI ( 11101111)," &
-            '"ISPEN ( 11101000)," &
-            '"ISPENC ( 11101001)," &
-            BSDL_DATABASE.Add(J_DEVICE)
-        End Sub
-
-        Private Sub Xilinx_XC2C64A()
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "XC2C64A"
-            J_DEVICE.ID_JEDEC = &H6E58093UI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 192
-            J_DEVICE.IDCODE = 1
-            J_DEVICE.BYPASS = &HFF
-            J_DEVICE.INTEST = 2
-            J_DEVICE.EXTEST = 0
-            J_DEVICE.SAMPLE = 3
-            J_DEVICE.HIGHZ = &HFC
-            J_DEVICE.USERCODE = &HFD
-            J_DEVICE.CONTROL_DISABLE = False
-            '"ISC_ENABLE_CLAMP (11101001)," &
-            '"ISC_ENABLEOTF  (11100100)," &
-            '"ISC_ENABLE     (11101000)," &
-            '"ISC_SRAM_READ  (11100111)," &
-            '"ISC_SRAM_WRITE (11100110)," &
-            '"ISC_ERASE      (11101101)," &
-            '"ISC_PROGRAM    (11101010)," &
-            '"ISC_READ       (11101110)," &
-            '"ISC_INIT       (11110000)," &
-            '"ISC_DISABLE    (11000000)," &
-            '"TEST_ENABLE    (00010001)," &
-            '"BULKPROG       (00010010)," &
-            '"ERASE_ALL      (00010100)," &
-            '"MVERIFY        (00010011)," &
-            '"TEST_DISABLE   (00010101)," &
-            '"ISC_NOOP       (11100000)";
-            BSDL_DATABASE.Add(J_DEVICE)
-        End Sub
-
-        Private Sub Broadcom_BCM3348()
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "BCM3348"
-            J_DEVICE.ID_JEDEC = &H334817FUI
-            J_DEVICE.IR_LEN = 5
-            J_DEVICE.BS_LEN = 0
-            J_DEVICE.IDCODE = &H1 'Selects Device Identiﬁcation (ID) register
-            J_DEVICE.BYPASS = &H1F 'Select Bypass register
-            J_DEVICE.SAMPLE = 2
-            J_DEVICE.MIPS_IMPCODE = &H3 'Selects Implementation register
-            J_DEVICE.MIPS_ADDRESS = &H8 'Selects Address register
-            J_DEVICE.MIPS_CONTROL = &HA 'Selects EJTAG Control register
-            'DATA_IR = &H9 'Selects Data register
-            'IR_ALL = &HB 'Selects the Address, Data and EJTAG Control registers
-            'EJTAGBOOT = &HC 'Makes the processor take a debug exception after rese
-            'NORMALBOOT = &HD 'Makes the processor execute the reset handler after rese
-            'FASTDATA = &HE 'Selects the Data and Fastdata registers
-            'EJWATCH = &H1C
-            BSDL_DATABASE.Add(J_DEVICE)
-        End Sub
-        '44-pin TQFP
-        Private Sub Altera_5M570ZT144()
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "5M570ZT144"
-            J_DEVICE.ID_JEDEC = &H20A60DDUI
-            J_DEVICE.IR_LEN = 10
-            J_DEVICE.BS_LEN = 480
-            J_DEVICE.IDCODE = 6
-            J_DEVICE.EXTEST = &HF
-            J_DEVICE.SAMPLE = 5
-            J_DEVICE.BYPASS = &H3FF
-            J_DEVICE.CLAMP = &HA
-            J_DEVICE.HIGHZ = &HB
-            J_DEVICE.USERCODE = &H7
-            J_DEVICE.CONTROL_DISABLE = True
-            BSDL_DATABASE.Add(J_DEVICE)
-        End Sub
-        '64-pin EQFP
-        Private Sub Altera_5M160ZE64()
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "5M160ZE64"
-            J_DEVICE.ID_JEDEC = &H20A50DDUI
-            J_DEVICE.IR_LEN = 10
-            J_DEVICE.BS_LEN = 240
-            J_DEVICE.IDCODE = 6
-            J_DEVICE.EXTEST = &HF
-            J_DEVICE.SAMPLE = 5
-            J_DEVICE.BYPASS = &H3FF
-            J_DEVICE.CLAMP = &HA
-            J_DEVICE.HIGHZ = &HB
-            J_DEVICE.USERCODE = 7
-            J_DEVICE.CONTROL_DISABLE = True
-            BSDL_DATABASE.Add(J_DEVICE)
-        End Sub
-        '44-pin TQFP
-        Private Sub Altera_EPM7032ST44()
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "EPM7032"
-            J_DEVICE.ID_JEDEC = &H70320DDUI
-            J_DEVICE.IR_LEN = 10
-            J_DEVICE.BS_LEN = 1
-            J_DEVICE.IDCODE = &H59
-            J_DEVICE.EXTEST = &H3
-            J_DEVICE.SAMPLE = &H57
-            J_DEVICE.BYPASS = &H3FF
-            BSDL_DATABASE.Add(J_DEVICE)
-        End Sub
-        'PLCC20
-        Private Sub Altera_EPC2L20()
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "EPC2L20"
-            J_DEVICE.ID_JEDEC = &H10020DDUI
-            J_DEVICE.IR_LEN = 10
-            J_DEVICE.BS_LEN = 24
-            J_DEVICE.BYPASS = &H3FF
-            J_DEVICE.EXTEST = 0
-            J_DEVICE.SAMPLE = &H55
-            J_DEVICE.IDCODE = &H59
-            J_DEVICE.USERCODE = &H79
-            J_DEVICE.CONTROL_DISABLE = True
-            BSDL_DATABASE.Add(J_DEVICE)
-        End Sub
-
-        Private Sub ARM_CORTEXM7()
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "ARM-CORTEX-M7"
-            J_DEVICE.ID_JEDEC = &HBA02477UI
-            J_DEVICE.IR_LEN = 4
-            J_DEVICE.BS_LEN = 0
-            J_DEVICE.IDCODE = &HE '0b1110 - JTAG Device ID Code Register (DR width: 32)
-            J_DEVICE.BYPASS = &HF '0b1111 - JTAG Bypass Register (DR width: 1)
-            J_DEVICE.RESTART = &H4 '0b0100
-            J_DEVICE.SCAN_N = &H2 '0b0010
-            J_DEVICE.ARM_ABORT = &H8 'b1000 - JTAG-DP Abort Register (DR width: 35)
-            J_DEVICE.ARM_DPACC = &HA 'b1010 - JTAG DP Access Register (DR width: 35)
-            J_DEVICE.ARM_APACC = &HB 'b1011 - JTAG AP Access Register (DR width: 35)
-            BSDL_DATABASE.Add(J_DEVICE)
-        End Sub
-
-        Private Sub LCMXO2_4000HC_XFTG256()
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "LCMXO2_4000HC"
-            J_DEVICE.ID_JEDEC = &H12BC043UI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 552
-            J_DEVICE.IDCODE = &HE0 '0b11100000
-            J_DEVICE.BYPASS = &HFF '0b11111111
-            J_DEVICE.CLAMP = &H78 '01111000
-            J_DEVICE.PRELOAD = &H1C '00011100
-            J_DEVICE.SAMPLE = &H1C '00011100
-            J_DEVICE.HIGHZ = &H18 '00011000
-            J_DEVICE.EXTEST = &H15 '00010101
-            J_DEVICE.USERCODE = 0 '(11000000)
-            J_DEVICE.CONTROL_DISABLE = True
-            '"          ISC_ENABLE		(11000110)," &
-            '"    ISC_PROGRAM_DONE		(01011110)," &
-            '" LSC_PROGRAM_SECPLUS		(11001111)," &
-            '"ISC_PROGRAM_USERCODE		(11000010)," &
-            '"ISC_PROGRAM_SECURITY		(11001110)," &
-            '"         ISC_PROGRAM		(01100111)," &
-            '"        LSC_ENABLE_X		(01110100)," &
-            '"      ISC_DATA_SHIFT		(00001010)," &
-            '"       ISC_DISCHARGE		(00010100)," &
-            '"      ISC_ERASE_DONE		(00100100)," &
-            '"   ISC_ADDRESS_SHIFT		(01000010)," &
-            '"            ISC_READ		(10000000)," &
-            '"         ISC_DISABLE		(00100110)," &
-            '"           ISC_ERASE		(00001110)," &
-            '"            ISC_NOOP		(00110000)," &
-            BSDL_DATABASE.Add(J_DEVICE)
-        End Sub
-        'TQFP-144
-        Private Sub LCMXO2_7000HC_XXTG144()
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "LCMXO2-7000HC"
-            J_DEVICE.ID_JEDEC = &H12BD043UI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 664
-            J_DEVICE.IDCODE = &HE0 '0b11100000
-            J_DEVICE.BYPASS = &HFF '0b11111111
-            J_DEVICE.CLAMP = &H78 '01111000
-            J_DEVICE.PRELOAD = &H1C '00011100
-            J_DEVICE.SAMPLE = &H1C '00011100
-            J_DEVICE.HIGHZ = &H18 '00011000
-            J_DEVICE.EXTEST = &H15 '00010101
-            J_DEVICE.USERCODE = 0 '(11000000)
-            J_DEVICE.CONTROL_DISABLE = True
-            '"          ISC_ENABLE		(11000110)," &
-            '"    ISC_PROGRAM_DONE		(01011110)," &
-            '" LSC_PROGRAM_SECPLUS		(11001111)," &
-            '"ISC_PROGRAM_USERCODE		(11000010)," &
-            '"ISC_PROGRAM_SECURITY		(11001110)," &
-            '"         ISC_PROGRAM		(01100111)," &
-            '"        LSC_ENABLE_X		(01110100)," &
-            '"      ISC_DATA_SHIFT		(00001010)," &
-            '"       ISC_DISCHARGE		(00010100)," &
-            '"      ISC_ERASE_DONE		(00100100)," &
-            '"   ISC_ADDRESS_SHIFT		(01000010)," &
-            '"            ISC_READ		(10000000)," &
-            '"         ISC_DISABLE		(00100110)," &
-            '"           ISC_ERASE		(00001110)," &
-            '"            ISC_NOOP		(00110000)," &
-            BSDL_DATABASE.Add(J_DEVICE)
-        End Sub
-
-        Private Sub LC4032V_TQFP44()
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "LC4032V"
-            J_DEVICE.ID_JEDEC = &H1805043UI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 68
-            J_DEVICE.IDCODE = &H16 '00010110
-            J_DEVICE.BYPASS = &HFF '11111111
-            J_DEVICE.CLAMP = &H20 '00100000
-            J_DEVICE.PRELOAD = &H1C '00011100
-            J_DEVICE.SAMPLE = &H1C '00011100
-            J_DEVICE.HIGHZ = &H18 '00011000
-            J_DEVICE.EXTEST = 0 '00000000
-            J_DEVICE.USERCODE = &H17 '00010111
-            J_DEVICE.CONTROL_DISABLE = False
-
-            '-- ISC instructions
-            '      "ISC_ENABLE                        (00010101),"&
-            '      "ISC_DISABLE                       (00011110),"&
-            '      "ISC_NOOP                          (00110000),"&
-            '      "ISC_ADDRESS_SHIFT                 (00000001),"&
-            '      "ISC_DATA_SHIFT                    (00000010),"&
-            '      "ISC_ERASE                         (00000011),"&
-            '      "ISC_DISCHARGE                     (00010100),"&
-            '      "ISC_PROGRAM_INCR                  (00100111),"&
-            '      "ISC_READ_INCR                     (00101010),"&
-            '      "ISC_PROGRAM_SECURITY              (00001001),"&
-            '      "ISC_PROGRAM_DONE                  (00101111),"&
-            '      "ISC_ERASE_DONE                    (00100100),"&
-            '      "ISC_PROGRAM_USERCODE              (00011010),"&
-            '      "LSC_ADDRESS_INIT                  (00100001)";
-            BSDL_DATABASE.Add(J_DEVICE)
-        End Sub
-
-        Private Sub LC4064V_TQFP44()
-            Dim J_DEVICE As New BSDL_DEF
-            J_DEVICE.PART_NAME = "LC4064V"
-            J_DEVICE.ID_JEDEC = &H1809043UI
-            J_DEVICE.IR_LEN = 8
-            J_DEVICE.BS_LEN = 68
-            J_DEVICE.IDCODE = &H16 '00010110
-            J_DEVICE.BYPASS = &HFF '11111111
-            J_DEVICE.CLAMP = &H20 '00100000
-            J_DEVICE.PRELOAD = &H1C '00011100
-            J_DEVICE.SAMPLE = &H1C '00011100
-            J_DEVICE.HIGHZ = &H18 '00011000
-            J_DEVICE.EXTEST = 0 '00000000
-            J_DEVICE.USERCODE = &H17 '00010111
-            J_DEVICE.CONTROL_DISABLE = False
-            '-- ISC instructions
-            '      "ISC_ENABLE                        (00010101),"&
-            '      "ISC_DISABLE                       (00011110),"&
-            '      "ISC_NOOP                          (00110000),"&
-            '      "ISC_ADDRESS_SHIFT                 (00000001),"&
-            '      "ISC_DATA_SHIFT                    (00000010),"&
-            '      "ISC_ERASE                         (00000011),"&
-            '      "ISC_DISCHARGE                     (00010100),"&
-            '      "ISC_PROGRAM_INCR                  (00100111),"&
-            '      "ISC_READ_INCR                     (00101010),"&
-            '      "ISC_PROGRAM_SECURITY              (00001001),"&
-            '      "ISC_PROGRAM_DONE                  (00101111),"&
-            '      "ISC_ERASE_DONE                    (00100100),"&
-            '      "ISC_PROGRAM_USERCODE              (00011010),"&
-            '      "LSC_ADDRESS_INIT                  (00100001)";
-            BSDL_DATABASE.Add(J_DEVICE)
-        End Sub
 
         Public Function GetJedecDescription(JEDECID As UInt32) As String
             Dim PARTNU = CUShort((JEDECID And &HFFFF000) >> 12)
@@ -2609,14 +2312,378 @@ Namespace JTAG
             Return mfg_name & " " & part_name
         End Function
 
-#End Region
+        Private Function ARM_CORTEXM7() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "ARM-CORTEX-M7"
+            J_DEVICE.ID_JEDEC = &HBA02477UI
+            J_DEVICE.IR_LEN = 4
+            J_DEVICE.BS_LEN = 0
+            J_DEVICE.IDCODE = &HE '0b1110 - JTAG Device ID Code Register (DR width: 32)
+            J_DEVICE.BYPASS = &HF '0b1111 - JTAG Bypass Register (DR width: 1)
+            J_DEVICE.RESTART = &H4 '0b0100
+            J_DEVICE.SCAN_N = &H2 '0b0010
+            J_DEVICE.ARM_ABORT = &H8 'b1000 - JTAG-DP Abort Register (DR width: 35)
+            J_DEVICE.ARM_DPACC = &HA 'b1010 - JTAG DP Access Register (DR width: 35)
+            J_DEVICE.ARM_APACC = &HB 'b1011 - JTAG AP Access Register (DR width: 35)
+            Return J_DEVICE
+        End Function
 
-        Private Sub TAP_EnableSoftwareStateMachine()
-            SW_TAP = New JTAG_STATE_CONTROLLER
-            AddHandler SW_TAP.Shift_TDI, AddressOf ShiftTDI
-            AddHandler SW_TAP.Shift_TMS, AddressOf ShiftTMS
-            SW_TAP.Reset()
-        End Sub
+        Private Function Microsemi_A3P250_FG144() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "A3P250"
+            J_DEVICE.ID_JEDEC = &H2A141CFUI
+            J_DEVICE.ID_MASK = &H6FFFFFFUI
+            J_DEVICE.IR_LEN = 8
+            J_DEVICE.BS_LEN = 708
+            J_DEVICE.BYPASS = &HFF
+            J_DEVICE.IDCODE = &HF
+            J_DEVICE.EXTEST = 0
+            J_DEVICE.SAMPLE = 1
+            J_DEVICE.HIGHZ = &H7
+            J_DEVICE.CLAMP = &H5
+            J_DEVICE.INTEST = &H6
+            J_DEVICE.USERCODE = &HE
+            J_DEVICE.DISVAL = False
+            Return J_DEVICE
+        End Function
+
+        Private Function Xilinx_XC9572XL() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "XC9572XL"
+            J_DEVICE.ID_JEDEC = &H59604093UI
+            J_DEVICE.IR_LEN = 8
+            J_DEVICE.BS_LEN = 216
+            J_DEVICE.IDCODE = &HFE
+            J_DEVICE.BYPASS = &HFF
+            J_DEVICE.INTEST = 2
+            J_DEVICE.EXTEST = 0
+            J_DEVICE.SAMPLE = 1
+            J_DEVICE.CLAMP = &HFA
+            J_DEVICE.HIGHZ = &HFC
+            J_DEVICE.USERCODE = &HFD
+            J_DEVICE.DISVAL = False
+            '"ISPEX ( 11110000)," &
+            '"FBULK ( 11101101),"&
+            '"FBLANK ( 11100101),"&
+            '"FERASE ( 11101100),"&
+            '"FPGM ( 11101010)," &
+            '"FPGMI ( 11101011)," &
+            '"FVFY ( 11101110)," &
+            '"FVFYI ( 11101111)," &
+            '"ISPEN ( 11101000)," &
+            '"ISPENC ( 11101001)," &
+            Return J_DEVICE
+        End Function
+
+        Private Function Xilinx_XC2C64A() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "XC2C64A"
+            J_DEVICE.ID_JEDEC = &H6E58093UI
+            J_DEVICE.IR_LEN = 8
+            J_DEVICE.BS_LEN = 192
+            J_DEVICE.IDCODE = 1
+            J_DEVICE.BYPASS = &HFF
+            J_DEVICE.INTEST = 2
+            J_DEVICE.EXTEST = 0
+            J_DEVICE.SAMPLE = 3
+            J_DEVICE.HIGHZ = &HFC
+            J_DEVICE.USERCODE = &HFD
+            J_DEVICE.DISVAL = False
+            '"ISC_ENABLE_CLAMP (11101001)," &
+            '"ISC_ENABLEOTF  (11100100)," &
+            '"ISC_ENABLE     (11101000)," &
+            '"ISC_SRAM_READ  (11100111)," &
+            '"ISC_SRAM_WRITE (11100110)," &
+            '"ISC_ERASE      (11101101)," &
+            '"ISC_PROGRAM    (11101010)," &
+            '"ISC_READ       (11101110)," &
+            '"ISC_INIT       (11110000)," &
+            '"ISC_DISABLE    (11000000)," &
+            '"TEST_ENABLE    (00010001)," &
+            '"BULKPROG       (00010010)," &
+            '"ERASE_ALL      (00010100)," &
+            '"MVERIFY        (00010011)," &
+            '"TEST_DISABLE   (00010101)," &
+            '"ISC_NOOP       (11100000)";
+            Return J_DEVICE
+        End Function
+        'Xilinx XC95144 (100-pin TQFP)
+        Private Function Xilinx_XC95144_TQ100() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "XC95144"
+            J_DEVICE.ID_JEDEC = &H9608093UI
+            J_DEVICE.ID_MASK = &HFFFFFFFUI
+            J_DEVICE.IR_LEN = 8
+            J_DEVICE.BS_LEN = 432
+            J_DEVICE.BYPASS = &HFF
+            J_DEVICE.IDCODE = &HFE
+            J_DEVICE.EXTEST = 0
+            J_DEVICE.INTEST = 2
+            J_DEVICE.HIGHZ = &HFC
+            J_DEVICE.SAMPLE = 1
+            J_DEVICE.USERCODE = &HFD
+            'J_DEVICE.ISPEX = &HF0
+            'J_DEVICE.FERASE = &HEC
+            'J_DEVICE.FBULK = &HED
+            'J_DEVICE.FPGM = &HEA
+            'J_DEVICE.FPGMI = &HEB
+            'J_DEVICE.FVFY = &HEE
+            'J_DEVICE.FVFYI = &HEF
+            'J_DEVICE.ISPEN = &HE8
+            J_DEVICE.DISVAL = False
+            Return J_DEVICE
+        End Function
+
+        Private Function Xilinx_XC4013XLA_PQ160() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "XC4013XLA"
+            J_DEVICE.ID_JEDEC = &H218093UI
+            J_DEVICE.ID_MASK = &HFFFFFFFUI
+            J_DEVICE.IR_LEN = 3
+            J_DEVICE.BS_LEN = 584
+            J_DEVICE.BYPASS = &H7
+            J_DEVICE.IDCODE = &H6
+            J_DEVICE.EXTEST = &H0
+            J_DEVICE.SAMPLE = &H1
+            'J_DEVICE.READBACK = &H4
+            'J_DEVICE.CONFIGURE = &H5
+            'J_DEVICE.USER2 = &H3
+            'J_DEVICE.USER1 = &H2
+            J_DEVICE.DISVAL = False
+            Return J_DEVICE
+        End Function
+
+        Private Function Broadcom_BCM3348() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "BCM3348"
+            J_DEVICE.ID_JEDEC = &H334817FUI
+            J_DEVICE.IR_LEN = 5
+            J_DEVICE.BS_LEN = 0
+            J_DEVICE.IDCODE = &H1 'Selects Device Identiﬁcation (ID) register
+            J_DEVICE.BYPASS = &H1F 'Select Bypass register
+            J_DEVICE.SAMPLE = 2
+            J_DEVICE.MIPS_IMPCODE = &H3 'Selects Implementation register
+            J_DEVICE.MIPS_ADDRESS = &H8 'Selects Address register
+            J_DEVICE.MIPS_CONTROL = &HA 'Selects EJTAG Control register
+            'DATA_IR = &H9 'Selects Data register
+            'IR_ALL = &HB 'Selects the Address, Data and EJTAG Control registers
+            'EJTAGBOOT = &HC 'Makes the processor take a debug exception after rese
+            'NORMALBOOT = &HD 'Makes the processor execute the reset handler after rese
+            'FASTDATA = &HE 'Selects the Data and Fastdata registers
+            'EJWATCH = &H1C
+            Return J_DEVICE
+        End Function
+        '44-pin TQFP
+        Private Function Altera_5M570ZT144() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "5M570ZT144"
+            J_DEVICE.ID_JEDEC = &H20A60DDUI
+            J_DEVICE.IR_LEN = 10
+            J_DEVICE.BS_LEN = 480
+            J_DEVICE.IDCODE = 6
+            J_DEVICE.EXTEST = &HF
+            J_DEVICE.SAMPLE = 5
+            J_DEVICE.BYPASS = &H3FF
+            J_DEVICE.CLAMP = &HA
+            J_DEVICE.HIGHZ = &HB
+            J_DEVICE.USERCODE = &H7
+            J_DEVICE.DISVAL = True
+            Return J_DEVICE
+        End Function
+        '64-pin EQFP
+        Private Function Altera_5M160ZE64() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "5M160ZE64"
+            J_DEVICE.ID_JEDEC = &H20A50DDUI
+            J_DEVICE.IR_LEN = 10
+            J_DEVICE.BS_LEN = 240
+            J_DEVICE.IDCODE = 6
+            J_DEVICE.EXTEST = &HF
+            J_DEVICE.SAMPLE = 5
+            J_DEVICE.BYPASS = &H3FF
+            J_DEVICE.CLAMP = &HA
+            J_DEVICE.HIGHZ = &HB
+            J_DEVICE.USERCODE = 7
+            J_DEVICE.DISVAL = True
+            Return J_DEVICE
+        End Function
+        '44-pin TQFP
+        Private Function Altera_EPM7032ST44() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "EPM7032"
+            J_DEVICE.ID_JEDEC = &H70320DDUI
+            J_DEVICE.IR_LEN = 10
+            J_DEVICE.BS_LEN = 1
+            J_DEVICE.IDCODE = &H59
+            J_DEVICE.EXTEST = &H3
+            J_DEVICE.SAMPLE = &H57
+            J_DEVICE.BYPASS = &H3FF
+            Return J_DEVICE
+        End Function
+        'PLCC20
+        Private Function Altera_EPC2L20() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "EPC2L20"
+            J_DEVICE.ID_JEDEC = &H10020DDUI
+            J_DEVICE.IR_LEN = 10
+            J_DEVICE.BS_LEN = 24
+            J_DEVICE.BYPASS = &H3FF
+            J_DEVICE.EXTEST = 0
+            J_DEVICE.SAMPLE = &H55
+            J_DEVICE.IDCODE = &H59
+            J_DEVICE.USERCODE = &H79
+            J_DEVICE.DISVAL = True
+            Return J_DEVICE
+        End Function
+
+        Private Function Lattice_LCMXO2_4000HC_XFTG256() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "LCMXO2_4000HC"
+            J_DEVICE.ID_JEDEC = &H12BC043UI
+            J_DEVICE.IR_LEN = 8
+            J_DEVICE.BS_LEN = 552
+            J_DEVICE.IDCODE = &HE0 '0b11100000
+            J_DEVICE.BYPASS = &HFF '0b11111111
+            J_DEVICE.CLAMP = &H78 '01111000
+            J_DEVICE.PRELOAD = &H1C '00011100
+            J_DEVICE.SAMPLE = &H1C '00011100
+            J_DEVICE.HIGHZ = &H18 '00011000
+            J_DEVICE.EXTEST = &H15 '00010101
+            J_DEVICE.USERCODE = 0 '(11000000)
+            J_DEVICE.DISVAL = True
+            '"          ISC_ENABLE		(11000110)," &
+            '"    ISC_PROGRAM_DONE		(01011110)," &
+            '" LSC_PROGRAM_SECPLUS		(11001111)," &
+            '"ISC_PROGRAM_USERCODE		(11000010)," &
+            '"ISC_PROGRAM_SECURITY		(11001110)," &
+            '"         ISC_PROGRAM		(01100111)," &
+            '"        LSC_ENABLE_X		(01110100)," &
+            '"      ISC_DATA_SHIFT		(00001010)," &
+            '"       ISC_DISCHARGE		(00010100)," &
+            '"      ISC_ERASE_DONE		(00100100)," &
+            '"   ISC_ADDRESS_SHIFT		(01000010)," &
+            '"            ISC_READ		(10000000)," &
+            '"         ISC_DISABLE		(00100110)," &
+            '"           ISC_ERASE		(00001110)," &
+            '"            ISC_NOOP		(00110000)," &
+            Return J_DEVICE
+        End Function
+        'TQFP-144
+        Private Function Lattice_LCMXO2_7000HC_XXTG144() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "LCMXO2-7000HC"
+            J_DEVICE.ID_JEDEC = &H12BD043UI
+            J_DEVICE.IR_LEN = 8
+            J_DEVICE.BS_LEN = 664
+            J_DEVICE.IDCODE = &HE0 '0b11100000
+            J_DEVICE.BYPASS = &HFF '0b11111111
+            J_DEVICE.CLAMP = &H78 '01111000
+            J_DEVICE.PRELOAD = &H1C '00011100
+            J_DEVICE.SAMPLE = &H1C '00011100
+            J_DEVICE.HIGHZ = &H18 '00011000
+            J_DEVICE.EXTEST = &H15 '00010101
+            J_DEVICE.USERCODE = 0 '(11000000)
+            J_DEVICE.DISVAL = True
+            '"          ISC_ENABLE		(11000110)," &
+            '"    ISC_PROGRAM_DONE		(01011110)," &
+            '" LSC_PROGRAM_SECPLUS		(11001111)," &
+            '"ISC_PROGRAM_USERCODE		(11000010)," &
+            '"ISC_PROGRAM_SECURITY		(11001110)," &
+            '"         ISC_PROGRAM		(01100111)," &
+            '"        LSC_ENABLE_X		(01110100)," &
+            '"      ISC_DATA_SHIFT		(00001010)," &
+            '"       ISC_DISCHARGE		(00010100)," &
+            '"      ISC_ERASE_DONE		(00100100)," &
+            '"   ISC_ADDRESS_SHIFT		(01000010)," &
+            '"            ISC_READ		(10000000)," &
+            '"         ISC_DISABLE		(00100110)," &
+            '"           ISC_ERASE		(00001110)," &
+            '"            ISC_NOOP		(00110000)," &
+            Return J_DEVICE
+        End Function
+
+        Private Function Lattice_LC4032V_TQFP44() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "LC4032V"
+            J_DEVICE.ID_JEDEC = &H1805043UI
+            J_DEVICE.IR_LEN = 8
+            J_DEVICE.BS_LEN = 68
+            J_DEVICE.IDCODE = &H16 '00010110
+            J_DEVICE.BYPASS = &HFF '11111111
+            J_DEVICE.CLAMP = &H20 '00100000
+            J_DEVICE.PRELOAD = &H1C '00011100
+            J_DEVICE.SAMPLE = &H1C '00011100
+            J_DEVICE.HIGHZ = &H18 '00011000
+            J_DEVICE.EXTEST = 0 '00000000
+            J_DEVICE.USERCODE = &H17 '00010111
+            J_DEVICE.DISVAL = False
+            '-- ISC instructions
+            '"ISC_ENABLE                        (00010101),"&
+            '"ISC_DISABLE                       (00011110),"&
+            '"ISC_NOOP                          (00110000),"&
+            '"ISC_ADDRESS_SHIFT                 (00000001),"&
+            '"ISC_DATA_SHIFT                    (00000010),"&
+            '"ISC_ERASE                         (00000011),"&
+            '"ISC_DISCHARGE                     (00010100),"&
+            '"ISC_PROGRAM_INCR                  (00100111),"&
+            '"ISC_READ_INCR                     (00101010),"&
+            '"ISC_PROGRAM_SECURITY              (00001001),"&
+            '"ISC_PROGRAM_DONE                  (00101111),"&
+            '"ISC_ERASE_DONE                    (00100100),"&
+            '"ISC_PROGRAM_USERCODE              (00011010),"&
+            '"LSC_ADDRESS_INIT                  (00100001)";
+            Return J_DEVICE
+        End Function
+
+        Private Function Lattice_LC4064V_TQFP44() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "LC4064V"
+            J_DEVICE.ID_JEDEC = &H1809043UI
+            J_DEVICE.IR_LEN = 8
+            J_DEVICE.BS_LEN = 68
+            J_DEVICE.IDCODE = &H16 '00010110
+            J_DEVICE.BYPASS = &HFF '11111111
+            J_DEVICE.CLAMP = &H20 '00100000
+            J_DEVICE.PRELOAD = &H1C '00011100
+            J_DEVICE.SAMPLE = &H1C '00011100
+            J_DEVICE.HIGHZ = &H18 '00011000
+            J_DEVICE.EXTEST = 0 '00000000
+            J_DEVICE.USERCODE = &H17 '00010111
+            J_DEVICE.DISVAL = False
+            '-- ISC instructions
+            '      "ISC_ENABLE                        (00010101),"&
+            '      "ISC_DISABLE                       (00011110),"&
+            '      "ISC_NOOP                          (00110000),"&
+            '      "ISC_ADDRESS_SHIFT                 (00000001),"&
+            '      "ISC_DATA_SHIFT                    (00000010),"&
+            '      "ISC_ERASE                         (00000011),"&
+            '      "ISC_DISCHARGE                     (00010100),"&
+            '      "ISC_PROGRAM_INCR                  (00100111),"&
+            '      "ISC_READ_INCR                     (00101010),"&
+            '      "ISC_PROGRAM_SECURITY              (00001001),"&
+            '      "ISC_PROGRAM_DONE                  (00101111),"&
+            '      "ISC_ERASE_DONE                    (00100100),"&
+            '      "ISC_PROGRAM_USERCODE              (00011010),"&
+            '      "LSC_ADDRESS_INIT                  (00100001)";
+            Return J_DEVICE
+        End Function
+
+        Private Function Motorola_MC68340() As BSDL_DEF
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "MC68340"
+            J_DEVICE.ID_JEDEC = 0 'DEVICE DOES NOT SUPPORT IDCODE!
+            J_DEVICE.ID_MASK = 0
+            J_DEVICE.IR_LEN = 3
+            J_DEVICE.BS_LEN = 132
+            J_DEVICE.EXTEST = &H0
+            J_DEVICE.SAMPLE = &H1
+            J_DEVICE.HIGHZ = &H4
+            J_DEVICE.BYPASS = &H7
+            J_DEVICE.DISVAL = False
+            Return J_DEVICE
+        End Function
+
+#End Region
 
     End Class
 
@@ -2657,29 +2724,27 @@ Namespace JTAG
         Public Property MANUID As UInt16
         Public Property PARTNU As UInt16
         Public Property VERSION As Short = 0
-        Public Property IR_LEADING As Integer
-        Public Property IR_TRAILING As Integer
         Public Property ACCESS As JTAG_MEM_ACCESS
+        Public Property IR_LENGTH As Integer 'Loaded from BSDL/single device chain/console command
         Public Property BSDL As BSDL_DEF
-
     End Class
 
     Public Class BSDL_DEF
         Property ID_JEDEC As UInt32
         Property ID_MASK As UInt32 = &HFFFFFFFFUI
         Property PART_NAME As String
-        Property IR_LEN As Integer 'Number of bits the IR uses
-        Property BS_LEN As Integer 'Number of bits for PRELOAD/EXTEST
+        Property IR_LEN As Byte  'Number of bits the IR uses
+        Property BS_LEN As UInt16 'Number of bits for PRELOAD/EXTEST
         Property IDCODE As UInt32
-        Property BYPASS As UInt32
-        Property INTEST As UInt32
-        Property EXTEST As UInt32
-        Property SAMPLE As UInt32
-        Property CLAMP As UInt32
-        Property HIGHZ As UInt32
-        Property PRELOAD As UInt32
-        Property USERCODE As UInt32
-        Property CONTROL_DISABLE As Boolean 'The value that disables the control cell
+        Property BYPASS As UInt16
+        Property INTEST As UInt16
+        Property EXTEST As UInt16
+        Property SAMPLE As UInt16
+        Property CLAMP As UInt16
+        Property HIGHZ As UInt16
+        Property PRELOAD As UInt16
+        Property USERCODE As UInt16
+        Property DISVAL As Boolean 'This is the value that will disable the control cell (false=0, true=1)
         'ARM SPECIFIC REGISTERS
         Property ARM_ABORT As UInt32
         Property ARM_DPACC As UInt32

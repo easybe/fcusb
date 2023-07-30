@@ -1,12 +1,11 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2019 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2020 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB
-'CONTACT EMAIL: contact@embeddedcomputers.net
+'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'ACKNOWLEDGEMENT: USB driver functionality provided by LibUsbDotNet (sourceforge.net/projects/libusbdotnet) 
 
 Imports FlashcatUSB.FlashMemory
 Imports FlashcatUSB.USB
-Imports FlashcatUSB.USB.HostClient
 
 Namespace SPI
 
@@ -264,9 +263,13 @@ Namespace SPI
         End Function
 
         Friend Function EraseDevice() As Boolean Implements MemoryDeviceUSB.EraseDevice
+            RaiseEvent PrintConsole(String.Format(RM.GetString("spi_erasing_flash_device"), Format(Me.DeviceSize, "#,###")))
+            Dim erase_timer As New Stopwatch : erase_timer.Start()
             If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             If MyFlashDevice.ProgramMode = FlashMemory.SPI_ProgramMode.Atmel45Series Then
-                SPIBUS_WriteRead({&HC7, &H94, &H80, &H9A}, Nothing)
+                SPIBUS_WriteRead({&HC7, &H94, &H80, &H9A}, Nothing) 'Chip erase command
+                Utilities.Sleep(100)
+                WaitUntilReady()
             ElseIf MyFlashDevice.ProgramMode = SPI_ProgramMode.SPI_EEPROM Then
                 Dim data(MyFlashDevice.FLASH_SIZE - 1) As Byte
                 Utilities.FillByteArray(data, 255)
@@ -281,11 +284,7 @@ Namespace SPI
                     SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.SE, i}, Nothing)
                     WaitUntilReady()
                 Next
-                RaiseEvent PrintConsole(String.Format(RM.GetString("spi_erase_complete"), Format(nord_timer.ElapsedMilliseconds / 1000, "#.##")))
-                Return True
             Else
-                RaiseEvent PrintConsole(String.Format(RM.GetString("spi_erasing_flash_device"), Format(Me.DeviceSize, "#,###")))
-                Dim erase_timer As New Stopwatch : erase_timer.Start()
                 Select Case MyFlashDevice.CHIP_ERASE
                     Case EraseMethod.Standard
                         SPIBUS_WriteEnable()
@@ -318,8 +317,8 @@ Namespace SPI
                             EraseDie()
                         End If
                 End Select
-                RaiseEvent PrintConsole(String.Format(RM.GetString("spi_erase_complete"), Format(erase_timer.ElapsedMilliseconds / 1000, "#.##")))
             End If
+            RaiseEvent PrintConsole(String.Format(RM.GetString("spi_erase_complete"), Format(erase_timer.ElapsedMilliseconds / 1000, "#.##")))
             Return True
         End Function
         'Reads the SPI status register and waits for the device to complete its current operation
@@ -328,7 +327,7 @@ Namespace SPI
                 Dim Status As UInt32
                 If MyFlashDevice.ProgramMode = SPI_ProgramMode.Atmel45Series Then
                     Do
-                        Dim sr() As Byte = ReadStatusRegister()
+                        Dim sr() As Byte = ReadStatusRegister() 'Check Bit 7 (RDY/BUSY#)
                         Status = sr(0)
                         If Not ((Status And &H80) > 0) Then Utilities.Sleep(50)
                     Loop While Not ((Status And &H80) > 0)
@@ -365,6 +364,8 @@ Namespace SPI
                 Next
                 SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.DIESEL, 0}) : WaitUntilReady() 'We need to make sure DIE 0 is selected
                 Me.DIE_SELECTED = 0
+            ElseIf MyFlashDevice.ProgramMode = SPI_ProgramMode.Atmel45Series Then
+                SPIBUS_WriteRead({&H3D, &H2A, &H7F, &H9A}, Nothing) 'Disable sector protection
             Else
                 If MyFlashDevice.SEND_EN4B Then SPIBUS_SendCommand(MyFlashDevice.OP_COMMANDS.EN4B) '0xB7
                 SPIBUS_SendCommand(MyFlashDevice.OP_COMMANDS.ULBPR) '0x98 (global block unprotect)
@@ -730,7 +731,6 @@ Namespace SPI
         Private Sub SPIBUS_SlaveSelect_Enable()
             Try
                 FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SPI_SS_ENABLE)
-                Utilities.Sleep(1)
             Catch ex As Exception
             End Try
         End Sub
@@ -738,7 +738,6 @@ Namespace SPI
         Private Sub SPIBUS_SlaveSelect_Disable()
             Try
                 FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SPI_SS_DISABLE)
-                Utilities.Sleep(1)
             Catch ex As Exception
             End Try
         End Sub

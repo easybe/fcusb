@@ -1,5 +1,5 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2019 - ALL RIGHTS RESERVED
-'CONTACT EMAIL: contact@embeddedcomputers.net
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2020 - ALL RIGHTS RESERVED
+'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: This class is the entire scripting engine which can control the software
 'via user supplied text files. The langauge format is similar to BASIC.
@@ -97,6 +97,8 @@ Public Class FcScriptEngine : Implements IDisposable
         JTAG_CMD.Add("idcode", Nothing, New ScriptFunction(AddressOf c_jtag_idcode))
         JTAG_CMD.Add("config", {CmdPrm.String_Optional}, New ScriptFunction(AddressOf c_jtag_config))
         JTAG_CMD.Add("select", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_jtag_select))
+        JTAG_CMD.Add("print", Nothing, New ScriptFunction(AddressOf c_jtag_print))
+        JTAG_CMD.Add("set", {CmdPrm.Integer, CmdPrm.String}, New ScriptFunction(AddressOf c_jtag_set))
         JTAG_CMD.Add("writeword", {CmdPrm.Integer, CmdPrm.Integer}, New ScriptFunction(AddressOf c_jtag_write32))
         JTAG_CMD.Add("readword", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_jtag_read32))
         JTAG_CMD.Add("control", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_jtag_control))
@@ -106,7 +108,7 @@ Public Class FcScriptEngine : Implements IDisposable
         JTAG_CMD.Add("runsvf", {CmdPrm.Data}, New ScriptFunction(AddressOf c_jtag_runsvf))
         JTAG_CMD.Add("runxsvf", {CmdPrm.Data}, New ScriptFunction(AddressOf c_jtag_runxsvf))
         JTAG_CMD.Add("shiftdr", {CmdPrm.Data, CmdPrm.Integer, CmdPrm.Bool_Optional}, New ScriptFunction(AddressOf c_jtag_shiftdr))
-        JTAG_CMD.Add("shiftir", {CmdPrm.Data, CmdPrm.Integer, CmdPrm.Bool_Optional}, New ScriptFunction(AddressOf c_jtag_shiftir))
+        JTAG_CMD.Add("shiftir", {CmdPrm.Data}, New ScriptFunction(AddressOf c_jtag_shiftir))
         JTAG_CMD.Add("shiftout", {CmdPrm.Data, CmdPrm.Integer, CmdPrm.Bool_Optional}, New ScriptFunction(AddressOf c_jtag_shiftout))
         JTAG_CMD.Add("tapreset", Nothing, New ScriptFunction(AddressOf c_jtag_tapreset))
         JTAG_CMD.Add("state", {CmdPrm.String}, New ScriptFunction(AddressOf c_jtag_state))
@@ -2542,10 +2544,24 @@ Public Class FcScriptEngine : Implements IDisposable
                     rv.Value = "JTAG"
                 Case FlashcatSettings.DeviceMode.I2C_EEPROM
                     rv.Value = "I2C"
-                Case FlashcatSettings.DeviceMode.NOR_NAND
-                    rv.Value = "EXTIO"
+                Case FlashcatSettings.DeviceMode.PNOR
+                    rv.Value = "Parallel NOR"
+                Case FlashcatSettings.DeviceMode.PNAND
+                    rv.Value = "Parallel NAND"
                 Case FlashcatSettings.DeviceMode.SINGLE_WIRE
-                    rv.Value = "Dallas 1-Wire"
+                    rv.Value = "1-WIRE"
+                Case FlashcatSettings.DeviceMode.SPI_NAND
+                    rv.Value = "SPI-NAND"
+                Case FlashcatSettings.DeviceMode.EPROM
+                    rv.Value = "EPROM/OTP"
+                Case FlashcatSettings.DeviceMode.HyperFlash
+                    rv.Value = "HyperFlash"
+                Case FlashcatSettings.DeviceMode.Microwire
+                    rv.Value = "Microwire"
+                Case FlashcatSettings.DeviceMode.SQI
+                    rv.Value = "QUAD SPI"
+                Case FlashcatSettings.DeviceMode.FWH
+                    rv.Value = "Firmware HUB"
                 Case Else
                     rv.Value = "Other"
             End Select
@@ -2651,7 +2667,7 @@ Public Class FcScriptEngine : Implements IDisposable
 
     Private Function c_parallel(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
-            Dim td As New Threading.Thread(AddressOf MAIN_FCUSB.PARALLEL_IF.PARALLEL_PORT_TEST)
+            Dim td As New Threading.Thread(AddressOf MAIN_FCUSB.PARALLEL_NOR_IF.PARALLEL_PORT_TEST)
             td.Start()
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Parallel function exception"}
@@ -3091,7 +3107,7 @@ Public Class FcScriptEngine : Implements IDisposable
             MEM_IF.GetDevice(Index).FCUSB.USB_LEDBlink()
             Try
                 Dim mem_dev As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
-                Dim write_result As Boolean = mem_dev.WriteBytes(offset, data_to_write, MySettings.VERIFY_WRITE, FlashMemory.FlashArea.Main, cb)
+                Dim write_result As Boolean = mem_dev.WriteBytes(offset, data_to_write, FlashMemory.FlashArea.Main, MySettings.VERIFY_WRITE, cb)
                 If write_result Then
                     RaiseEvent WriteConsole("Sucessfully programmed " & data_len.ToString("N0") & " bytes")
                 Else
@@ -3488,7 +3504,7 @@ Public Class FcScriptEngine : Implements IDisposable
     Private Function c_jtag_idcode(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
-            Dim current_index As Integer = MAIN_FCUSB.JTAG_IF.SELECTED_INDEX
+            Dim current_index As Integer = MAIN_FCUSB.JTAG_IF.Chain_SelectedIndex
             sv.Value = MAIN_FCUSB.JTAG_IF.Devices(current_index).IDCODE
             Return sv
         Catch ex As Exception
@@ -3520,10 +3536,33 @@ Public Class FcScriptEngine : Implements IDisposable
 
     Private Function c_jtag_select(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
-            Dim jtag_device_index As UInt32 = arguments(0).Value
-            MAIN_FCUSB.JTAG_IF.Select_Device(jtag_device_index)
+            Select_JTAG_Device(arguments(0).Value)
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.Select function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_jtag_print(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
+        Try
+            MAIN_FCUSB.JTAG_IF.Chain_Print()
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.Print function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_jtag_set(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
+        Try
+            Dim jtag_device_index As UInt32 = arguments(0).Value
+            Dim bsdl_name As String = arguments(1).Value
+            If MAIN_FCUSB.JTAG_IF.Chain_Set(jtag_device_index, bsdl_name) Then
+                RaiseEvent WriteConsole("Successful set chain index " & jtag_device_index.ToString & " to " & bsdl_name)
+            Else
+                RaiseEvent WriteConsole("Error: unable to find internal BSDL device with name " & bsdl_name)
+            End If
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.Set function exception"}
         End Try
         Return Nothing
     End Function
@@ -3531,12 +3570,14 @@ Public Class FcScriptEngine : Implements IDisposable
     Private Function c_jtag_control(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim control_value As UInt32 = arguments(0).Value
-            Dim j As JTAG_DEVICE = MAIN_FCUSB.JTAG_IF.GetSelectedDevice()
-            Dim result As UInt32 = MAIN_FCUSB.JTAG_IF.ReadWriteReg32(j.BSDL.MIPS_CONTROL, control_value)
-            RaiseEvent WriteConsole("JTAT CONTROL command issued: 0x" & Hex(control_value) & " result: 0x" & Hex(result))
-            Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
-            sv.Value = result
-            Return sv
+            Dim j As BSDL_DEF = MAIN_FCUSB.JTAG_IF.Chain_Get(MAIN_FCUSB.JTAG_IF.Chain_SelectedIndex)
+            If j IsNot Nothing Then
+                Dim result As UInt32 = MAIN_FCUSB.JTAG_IF.AccessDataRegister32(j.MIPS_CONTROL, control_value)
+                RaiseEvent WriteConsole("JTAT CONTROL command issued: 0x" & Hex(control_value) & " result: 0x" & Hex(result))
+                Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
+                sv.Value = result
+                Return sv
+            End If
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.Control function exception"}
         End Try
@@ -3669,16 +3710,12 @@ Public Class FcScriptEngine : Implements IDisposable
         Try
             Dim data_in() As Byte = arguments(0).Value
             Dim data_back() As Byte = Nothing
-            Dim bit_count As Integer = arguments(1).Value
-            If arguments.Length = 3 Then
-                Dim exit_mode As Boolean = arguments(2).Value
-                MAIN_FCUSB.JTAG_IF.JSP_ShiftIR(data_in, data_back, bit_count, exit_mode)
+            If arguments.Length = 2 Then
+                Dim exit_mode As Boolean = arguments(1).Value
+                MAIN_FCUSB.JTAG_IF.JSP_ShiftIR(data_in, Nothing, -1, True)
             Else
-                MAIN_FCUSB.JTAG_IF.JSP_ShiftIR(data_in, data_back, bit_count, True)
+                MAIN_FCUSB.JTAG_IF.JSP_ShiftIR(data_in, Nothing, -1, True)
             End If
-            Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Data)
-            sv.Value = data_back
-            Return sv
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.ShiftIR function exception"}
         End Try
@@ -4025,6 +4062,15 @@ Public Class FcScriptEngine : Implements IDisposable
 
     Private Function c_bsdl_setup(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
+            If MAIN_FCUSB Is Nothing Then
+                Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "FlashcatUSB Professional must be connected via USB"}
+            End If
+            If Not MAIN_FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional_PCB5 Then
+                Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "This command is only supported for FlashcatUSB Professional"}
+            End If
+            If Not MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.JTAG Then
+                Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "This command is only supported when in JTAG mode"}
+            End If
             MAIN_FCUSB.JTAG_IF.BoundaryScan_Setup()
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "BoundaryScan.Setup function exception"}

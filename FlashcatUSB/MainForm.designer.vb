@@ -59,7 +59,8 @@ Partial Class MainForm
         Me.mi_mode_i2c = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_1wire = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_3wire = New System.Windows.Forms.ToolStripMenuItem()
-        Me.mi_mode_nornand = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_mode_pnor = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_mode_fwh = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_eprom_otp = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_hyperflash = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_mmc = New System.Windows.Forms.ToolStripMenuItem()
@@ -109,7 +110,7 @@ Partial Class MainForm
         Me.cmdSaveLog = New System.Windows.Forms.Button()
         Me.txtInput = New System.Windows.Forms.TextBox()
         Me.ConsoleBox = New System.Windows.Forms.ListBox()
-        Me.mi_mode_fwh = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_mode_pnand = New System.Windows.Forms.ToolStripMenuItem()
         Me.MenuStrip1.SuspendLayout()
         Me.FlashStatus.SuspendLayout()
         Me.MyTabs.SuspendLayout()
@@ -197,7 +198,7 @@ Partial Class MainForm
         '
         'mi_mode_menu
         '
-        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.mi_vcc_seperator, Me.mi_1V8, Me.mi_3V3, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_sqi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_3wire, Me.mi_mode_nornand, Me.mi_mode_fwh, Me.mi_mode_eprom_otp, Me.mi_mode_hyperflash, Me.mi_mode_mmc, Me.mi_mode_jtag})
+        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.mi_vcc_seperator, Me.mi_1V8, Me.mi_3V3, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_sqi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_3wire, Me.mi_mode_pnor, Me.mi_mode_pnand, Me.mi_mode_fwh, Me.mi_mode_eprom_otp, Me.mi_mode_hyperflash, Me.mi_mode_mmc, Me.mi_mode_jtag})
         Me.mi_mode_menu.Name = "mi_mode_menu"
         Me.mi_mode_menu.Size = New System.Drawing.Size(50, 20)
         Me.mi_mode_menu.Text = "Mode"
@@ -206,18 +207,18 @@ Partial Class MainForm
         '
         Me.mi_mode_settings.Image = Global.FlashcatUSB.My.Resources.Resources.config
         Me.mi_mode_settings.Name = "mi_mode_settings"
-        Me.mi_mode_settings.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_settings.Size = New System.Drawing.Size(222, 22)
         Me.mi_mode_settings.Text = "Protocol settings"
         '
         'ToolStripSeparator3
         '
         Me.ToolStripSeparator3.Name = "ToolStripSeparator3"
-        Me.ToolStripSeparator3.Size = New System.Drawing.Size(222, 6)
+        Me.ToolStripSeparator3.Size = New System.Drawing.Size(219, 6)
         '
         'mi_verify
         '
         Me.mi_verify.Name = "mi_verify"
-        Me.mi_verify.Size = New System.Drawing.Size(225, 22)
+        Me.mi_verify.Size = New System.Drawing.Size(222, 22)
         Me.mi_verify.Text = "Verify programming"
         '
         'mi_bit_swapping
@@ -225,7 +226,7 @@ Partial Class MainForm
         Me.mi_bit_swapping.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_bitswap_none, Me.mi_bitswap_8bit, Me.mi_bitswap_16bit, Me.mi_bitswap_32bit})
         Me.mi_bit_swapping.Image = Global.FlashcatUSB.My.Resources.Resources.binary
         Me.mi_bit_swapping.Name = "mi_bit_swapping"
-        Me.mi_bit_swapping.Size = New System.Drawing.Size(225, 22)
+        Me.mi_bit_swapping.Size = New System.Drawing.Size(222, 22)
         Me.mi_bit_swapping.Text = "Bit Swapping"
         '
         'mi_bitswap_none
@@ -257,7 +258,7 @@ Partial Class MainForm
         Me.mi_endian.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_bitendian_big_32, Me.mi_bitendian_big_16, Me.mi_bitendian_little_16, Me.mi_bitendian_little_8})
         Me.mi_endian.Image = Global.FlashcatUSB.My.Resources.Resources.binary
         Me.mi_endian.Name = "mi_endian"
-        Me.mi_endian.Size = New System.Drawing.Size(225, 22)
+        Me.mi_endian.Size = New System.Drawing.Size(222, 22)
         Me.mi_endian.Text = "Endian mode"
         '
         'mi_bitendian_big_32
@@ -287,95 +288,101 @@ Partial Class MainForm
         'mi_vcc_seperator
         '
         Me.mi_vcc_seperator.Name = "mi_vcc_seperator"
-        Me.mi_vcc_seperator.Size = New System.Drawing.Size(222, 6)
+        Me.mi_vcc_seperator.Size = New System.Drawing.Size(219, 6)
         '
         'mi_1V8
         '
         Me.mi_1V8.Name = "mi_1V8"
-        Me.mi_1V8.Size = New System.Drawing.Size(225, 22)
+        Me.mi_1V8.Size = New System.Drawing.Size(222, 22)
         Me.mi_1V8.Text = "Voltage (1.8v)"
         '
         'mi_3V3
         '
         Me.mi_3V3.Name = "mi_3V3"
-        Me.mi_3V3.Size = New System.Drawing.Size(225, 22)
+        Me.mi_3V3.Size = New System.Drawing.Size(222, 22)
         Me.mi_3V3.Text = "Voltage (3.3v)"
         '
         'ToolStripSeparator7
         '
         Me.ToolStripSeparator7.Name = "ToolStripSeparator7"
-        Me.ToolStripSeparator7.Size = New System.Drawing.Size(222, 6)
+        Me.ToolStripSeparator7.Size = New System.Drawing.Size(219, 6)
         '
         'mi_mode_spi
         '
         Me.mi_mode_spi.Name = "mi_mode_spi"
-        Me.mi_mode_spi.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_spi.Size = New System.Drawing.Size(222, 22)
         Me.mi_mode_spi.Text = "SPI NOR FLASH"
         '
         'mi_mode_sqi
         '
         Me.mi_mode_sqi.Name = "mi_mode_sqi"
-        Me.mi_mode_sqi.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_sqi.Size = New System.Drawing.Size(222, 22)
         Me.mi_mode_sqi.Text = "SPI QUAD FLASH"
         '
         'mi_mode_spi_nand
         '
         Me.mi_mode_spi_nand.Name = "mi_mode_spi_nand"
-        Me.mi_mode_spi_nand.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_spi_nand.Size = New System.Drawing.Size(222, 22)
         Me.mi_mode_spi_nand.Text = "SPI NAND FLASH"
         '
         'mi_mode_spieeprom
         '
         Me.mi_mode_spieeprom.Name = "mi_mode_spieeprom"
-        Me.mi_mode_spieeprom.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_spieeprom.Size = New System.Drawing.Size(222, 22)
         Me.mi_mode_spieeprom.Text = "SPI EEPROM"
         '
         'mi_mode_i2c
         '
         Me.mi_mode_i2c.Name = "mi_mode_i2c"
-        Me.mi_mode_i2c.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_i2c.Size = New System.Drawing.Size(222, 22)
         Me.mi_mode_i2c.Text = "I2C EEPROM"
         '
         'mi_mode_1wire
         '
         Me.mi_mode_1wire.Name = "mi_mode_1wire"
-        Me.mi_mode_1wire.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_1wire.Size = New System.Drawing.Size(222, 22)
         Me.mi_mode_1wire.Text = "1-Wire EEPROM (SWI/DOW)"
         '
         'mi_mode_3wire
         '
         Me.mi_mode_3wire.Name = "mi_mode_3wire"
-        Me.mi_mode_3wire.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_3wire.Size = New System.Drawing.Size(222, 22)
         Me.mi_mode_3wire.Text = "Microwire EEPROM"
         '
-        'mi_mode_nornand
+        'mi_mode_pnor
         '
-        Me.mi_mode_nornand.Name = "mi_mode_nornand"
-        Me.mi_mode_nornand.Size = New System.Drawing.Size(225, 22)
-        Me.mi_mode_nornand.Text = "Parallel FLASH (NOR/NAND)"
+        Me.mi_mode_pnor.Name = "mi_mode_pnor"
+        Me.mi_mode_pnor.Size = New System.Drawing.Size(222, 22)
+        Me.mi_mode_pnor.Text = "Parallel NOR Flash"
+        '
+        'mi_mode_fwh
+        '
+        Me.mi_mode_fwh.Name = "mi_mode_fwh"
+        Me.mi_mode_fwh.Size = New System.Drawing.Size(222, 22)
+        Me.mi_mode_fwh.Text = "FWH Flash"
         '
         'mi_mode_eprom_otp
         '
         Me.mi_mode_eprom_otp.Name = "mi_mode_eprom_otp"
-        Me.mi_mode_eprom_otp.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_eprom_otp.Size = New System.Drawing.Size(222, 22)
         Me.mi_mode_eprom_otp.Text = "EPROM / OTP"
         '
         'mi_mode_hyperflash
         '
         Me.mi_mode_hyperflash.Name = "mi_mode_hyperflash"
-        Me.mi_mode_hyperflash.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_hyperflash.Size = New System.Drawing.Size(222, 22)
         Me.mi_mode_hyperflash.Text = "HyperFlash"
         '
         'mi_mode_mmc
         '
         Me.mi_mode_mmc.Name = "mi_mode_mmc"
-        Me.mi_mode_mmc.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_mmc.Size = New System.Drawing.Size(222, 22)
         Me.mi_mode_mmc.Text = "SD / MMC / eMMC"
         '
         'mi_mode_jtag
         '
         Me.mi_mode_jtag.Name = "mi_mode_jtag"
-        Me.mi_mode_jtag.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_jtag.Size = New System.Drawing.Size(222, 22)
         Me.mi_mode_jtag.Text = "JTAG"
         '
         'mi_script_menu
@@ -765,11 +772,11 @@ Partial Class MainForm
         Me.ConsoleBox.Size = New System.Drawing.Size(527, 264)
         Me.ConsoleBox.TabIndex = 1
         '
-        'mi_mode_fwh
+        'mi_mode_pnand
         '
-        Me.mi_mode_fwh.Name = "mi_mode_fwh"
-        Me.mi_mode_fwh.Size = New System.Drawing.Size(225, 22)
-        Me.mi_mode_fwh.Text = "FWH Flash"
+        Me.mi_mode_pnand.Name = "mi_mode_pnand"
+        Me.mi_mode_pnand.Size = New System.Drawing.Size(222, 22)
+        Me.mi_mode_pnand.Text = "Parallel NAND Flash"
         '
         'MainForm
         '
@@ -834,7 +841,7 @@ Partial Class MainForm
     Friend WithEvents mi_mode_jtag As ToolStripMenuItem
     Friend WithEvents mi_mode_i2c As ToolStripMenuItem
     Friend WithEvents mi_mode_spieeprom As ToolStripMenuItem
-    Friend WithEvents mi_mode_nornand As ToolStripMenuItem
+    Friend WithEvents mi_mode_pnor As ToolStripMenuItem
     Friend WithEvents mi_script_selected As ToolStripMenuItem
     Friend WithEvents mi_script_load As ToolStripMenuItem
     Friend WithEvents mi_script_unload As ToolStripMenuItem
@@ -886,4 +893,5 @@ Partial Class MainForm
     Friend WithEvents mi_blank_check As ToolStripMenuItem
     Friend WithEvents mi_mode_mmc As ToolStripMenuItem
     Friend WithEvents mi_mode_fwh As ToolStripMenuItem
+    Friend WithEvents mi_mode_pnand As ToolStripMenuItem
 End Class

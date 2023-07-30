@@ -412,8 +412,7 @@ Namespace ECC_LIB
         Private ecc_reedsolomon As New RS_ECC
         Private ecc_bhc As New BinaryBHC
 
-        Public Property ECC_DATA_LOCATION As Byte '= ecc_location_opt.half_of_oob_page
-        Public Property ECC_SEPERATE As Boolean 'We need to seperate each spare into sections
+        Public ECC_DATA_LOCATION() As UInt16
         Public Property REVERSE_ARRAY As Boolean = False 'RS option allows to reverse the input byte array
 
         Sub New(mode As ecc_algorithum, parity_level As Integer)
@@ -506,70 +505,46 @@ Namespace ECC_LIB
                 Case ecc_algorithum.hamming
                     Return 3
                 Case ecc_algorithum.reedsolomon
-                    Return ecc_reedsolomon.GetEccSize
+                    Return ecc_reedsolomon.GetEccSize()
                 Case ecc_algorithum.bhc
-                    Return ecc_bhc.GetEccSize
+                    Return ecc_bhc.GetEccSize()
             End Select
             Return -1
         End Function
 
         Public Function GetEccFromSpare(spare() As Byte, page_size As UInt16, oob_size As UInt16) As Byte()
-            Dim bytes_per_ecc As Integer = Me.GetEccByteSize
-            Dim sub_pages As Integer = (page_size / 512)
-            Dim page_count As Integer = (spare.Length / oob_size)
-            Dim seperate_ecc As Boolean = False
-            If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Separated Then
-                seperate_ecc = Me.ECC_SEPERATE
-            End If
-            Dim ecc_data(page_count * (sub_pages * bytes_per_ecc) - 1) As Byte
-            Utilities.FillByteArray(ecc_data, 255)
-            Dim ptr As Integer = 0
-            For x = 0 To page_count - 1
-                Dim page_offset As Integer = (x * oob_size)
-                Dim page_ecc_size As Integer = (bytes_per_ecc * sub_pages)
-                Dim sub_page_size As Integer = (oob_size / sub_pages)
-                If seperate_ecc AndAlso (sub_pages > 1) Then
-                    If (ECC_DATA_LOCATION + bytes_per_ecc) > sub_page_size Then Return ecc_data
-                    For i = 0 To sub_pages - 1
-                        Dim base_ptr As Integer = (i * sub_page_size) + Me.ECC_DATA_LOCATION
-                        Array.Copy(spare, page_offset + base_ptr, ecc_data, ptr, bytes_per_ecc)
-                        ptr += bytes_per_ecc
-                    Next
-                Else
-                    If ((Me.ECC_DATA_LOCATION + page_ecc_size) > oob_size) Then Return ecc_data
-                    Array.Copy(spare, page_offset + Me.ECC_DATA_LOCATION, ecc_data, ptr, page_ecc_size)
-                    ptr += page_ecc_size
-                End If
+            Dim bytes_per_ecc As Integer = Me.GetEccByteSize() 'Number of ECC byters per sector
+            Dim obb_count As Integer = (spare.Length / oob_size) 'Number of OOB areas to process
+            Dim sector_count As Integer = (page_size / 512) 'Each OOB contains this many sectors
+            Dim ecc_data((obb_count * (sector_count * bytes_per_ecc)) - 1) As Byte
+            Dim ecc_data_ptr As Integer = 0
+            Dim spare_ptr As Integer = 0
+            Dim region_counter As Integer = 0
+            For x = 0 To obb_count - 1
+                For y = 0 To sector_count - 1
+                    Dim ecc_offset As UInt16 = Me.ECC_DATA_LOCATION(y)
+                    Array.Copy(spare, spare_ptr + ecc_offset, ecc_data, ecc_data_ptr, bytes_per_ecc)
+                    ecc_data_ptr += bytes_per_ecc
+                Next
+                spare_ptr += oob_size
             Next
             Return ecc_data
         End Function
         'Writes the ECC bytes into the spare area
         Public Sub SetEccToSpare(spare() As Byte, ecc_data() As Byte, page_size As UInt16, oob_size As UInt16)
-            Dim bytes_per_ecc As Integer = Me.GetEccByteSize
-            Dim sub_pages As Integer = (page_size / 512)
-            Dim page_count As Integer = (spare.Length / oob_size)
-            Dim seperate_ecc As Boolean = False
-            If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Separated Then
-                seperate_ecc = Me.ECC_SEPERATE
-            End If
-            Dim ptr As Integer = 0
-            For x = 0 To page_count - 1
-                Dim page_offset As Integer = (x * oob_size)
-                Dim page_ecc(bytes_per_ecc * sub_pages - 1) As Byte
-                Dim sub_page_size As Integer = (oob_size / sub_pages)
-                Array.Copy(ecc_data, ptr, page_ecc, 0, page_ecc.Length)
-                ptr += page_ecc.Length
-                If seperate_ecc AndAlso (sub_pages > 1) Then
-                    If (ECC_DATA_LOCATION + bytes_per_ecc) > sub_page_size Then Exit Sub
-                    For i = 0 To sub_pages - 1
-                        Dim base_ptr As Integer = (i * sub_page_size)
-                        Dim ecc_ptr As Integer = (i * bytes_per_ecc)
-                        Array.Copy(page_ecc, ecc_ptr, spare, page_offset + base_ptr + Me.ECC_DATA_LOCATION, bytes_per_ecc)
-                    Next
-                Else
-                    If (page_ecc.Length + ECC_DATA_LOCATION > oob_size) Then Exit Sub
-                    Array.Copy(page_ecc, 0, spare, page_offset + Me.ECC_DATA_LOCATION, page_ecc.Length)
-                End If
+            Dim bytes_per_ecc As Integer = Me.GetEccByteSize() 'Number of ECC byters per sector
+            Dim obb_count As Integer = (spare.Length / oob_size) 'Number of OOB areas to process
+            Dim sector_count As Integer = (page_size / 512) 'Each OOB contains this many sectors
+            Dim ecc_data_ptr As Integer = 0
+            Dim spare_ptr As Integer = 0
+            Dim region_counter As Integer = 0
+            For x = 0 To obb_count - 1
+                For y = 0 To sector_count - 1
+                    Dim ecc_offset As UInt16 = Me.ECC_DATA_LOCATION(y)
+                    Array.Copy(ecc_data, ecc_data_ptr, spare, ecc_offset + spare_ptr, bytes_per_ecc)
+                    ecc_data_ptr += bytes_per_ecc
+                Next
+                spare_ptr += oob_size
             Next
         End Sub
 
@@ -614,7 +589,91 @@ Namespace ECC_LIB
             End Select
         End Function
 
+        Public Function GetEccDataSize(item As ECC_Configuration_Entry) As Byte
+            Dim ecc_eng_example As New Engine(item.Algorithm, item.BitError)
+            ecc_eng_example.SetSymbolWidth(item.SymSize)
+            Return ecc_eng_example.GetEccByteSize()
+        End Function
 
     End Module
+
+    Public Class ECC_Configuration_Entry
+        Public Property PageSize As UInt16
+        Public Property SpareSize As UInt16
+        Public Property Algorithm As ecc_algorithum
+        Public Property BitError As Byte 'Number of bits that can be corrected
+        Public Property SymSize As Byte 'Number of bits per symbol (RS only)
+        Public Property ReverseData As Boolean 'Reverses ECC byte order
+
+        Public EccRegion() As UInt16
+
+        Sub New()
+
+        End Sub
+
+        Public Function IsValid() As Boolean
+            If Me.PageSize = 0 OrElse Not Me.PageSize Mod 512 = 0 Then Return False
+            Dim sector_count As Integer = (Me.PageSize / 512)
+            Dim ecc_data_size As Integer = GetEccDataSize(Me)
+            If EccRegion Is Nothing Then Return False
+            If Not EccRegion.Length = sector_count Then Return False
+            For i = 0 To EccRegion.Length - 1
+                Dim start_addr As UInt16 = EccRegion(i)
+                Dim end_addr As UInt16 = start_addr + ecc_data_size - 1
+                If end_addr >= Me.SpareSize Then Return False
+                For x = 0 To EccRegion.Length - 1
+                    If (i <> x) Then
+                        Dim target_addr As UInt16 = EccRegion(x)
+                        Dim target_end As UInt16 = target_addr + ecc_data_size - 1
+                        If start_addr >= target_addr And start_addr <= target_end Then
+                            Return False
+                        End If
+                    End If
+                Next
+            Next
+            Return True
+        End Function
+
+        Public Function GetLV() As ListViewItem
+            Dim AlgorithmStr As String = ""
+            Select Case Algorithm
+                Case ecc_algorithum.hamming
+                    AlgorithmStr = "Hamming"
+                Case ecc_algorithum.reedsolomon
+                    AlgorithmStr = "Reed-Solomon"
+                Case ecc_algorithum.bhc
+                    AlgorithmStr = "Binary BHC"
+            End Select
+            Dim lv As New ListViewItem
+            lv.SubItems.Add(Me.PageSize.ToString)
+            lv.SubItems.Add(Me.SpareSize.ToString)
+            lv.SubItems.Add(AlgorithmStr)
+            lv.SubItems.Add(Me.BitError)
+            If Algorithm = ecc_algorithum.reedsolomon Then
+                lv.SubItems.Add(SymSize.ToString)
+            Else
+                lv.SubItems.Add("")
+            End If
+            If Me.ReverseData Then
+                lv.SubItems.Add("True")
+            Else
+                lv.SubItems.Add("False")
+            End If
+            lv.Tag = Me
+            Return lv
+        End Function
+
+        Public Sub AddRegion(offset As UInt16)
+            If EccRegion Is Nothing Then
+                ReDim EccRegion(0)
+                EccRegion(0) = offset
+            Else
+                ReDim Preserve EccRegion(EccRegion.Length)
+                EccRegion(EccRegion.Length - 1) = offset
+            End If
+        End Sub
+
+    End Class
+
 
 End Namespace

@@ -1,6 +1,6 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2019 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2020 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB
-'CONTACT EMAIL: contact@embeddedcomputers.net
+'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 
 Imports FlashcatUSB.ECC_LIB
@@ -51,7 +51,7 @@ Public Class MemControl_v2
         ' Add any initialization after the InitializeComponent() call.
     End Sub
 
-    Private Sub MemControl_v2_Load(ByVal sender As Object, e As EventArgs) Handles Me.Load
+    Private Sub MemControl_v2_Load(sender As Object, e As EventArgs) Handles Me.Load
         Me.menu_tip.SetToolTip(Me.cmd_read, RM.GetString("mc_button_read"))
         Me.menu_tip.SetToolTip(Me.cmd_write, RM.GetString("mc_button_write"))
         Me.menu_tip.SetToolTip(Me.cmd_erase, RM.GetString("mc_button_erase"))
@@ -496,7 +496,7 @@ Public Class MemControl_v2
                     Case FlashMemory.FlashArea.Main
                         cmd_area.Text = RM.GetString("mc_button_main")
                         Me.FlashAvailable = (CLng(Me.EXTAREA_PAGECOUNT) * CLng(Me.EXTAREA_MAIN_PAGE))
-                        If MySettings.ECC_READ_ENABLED Then pb_ecc.Visible = True
+                        If NAND_ECC IsNot Nothing Then pb_ecc.Visible = True
                         UpdateEccResultImg()
                     Case FlashMemory.FlashArea.OOB
                         cmd_area.Text = RM.GetString("mc_button_spare")
@@ -523,8 +523,8 @@ Public Class MemControl_v2
         ExtendedAreaVisibility(False)
         Me.AreaSelected = FlashMemory.FlashArea.Main 'Lets always default to the main area
         If Me.ParentMemDevice.FlashType = FlashMemory.MemoryType.SERIAL_NAND Then
-            Dim d As FlashMemory.SPI_NAND = DirectCast(FCUSB.SPI_NAND_IF.MyFlashDevice, FlashMemory.SPI_NAND)
-            Dim pages_per_block As UInt32 = (d.BLOCK_SIZE / d.PAGE_SIZE)
+            Dim NandDevice As FlashMemory.SPI_NAND = FCUSB.SPI_NAND_IF.MyFlashDevice
+            Dim pages_per_block As UInt32 = (NandDevice.Block_Size / NandDevice.PAGE_SIZE)
             Dim available_pages As UInt32 = FCUSB.NAND_IF.MAPPED_PAGES
             Me.FlashAvailable = FCUSB.SPI_NAND_IF.DeviceSize
             Me.ParentMemDevice.Size = Me.FlashAvailable
@@ -532,19 +532,19 @@ Public Class MemControl_v2
                 Me.HAS_EXTAREA = False
                 SetSelectedArea(FlashMemory.FlashArea.All)
             Else
-                Me.AddExtendedArea(available_pages, d.PAGE_SIZE, d.PAGE_EXT, pages_per_block)
+                Me.AddExtendedArea(available_pages, NandDevice.PAGE_SIZE, NandDevice.PAGE_EXT, pages_per_block)
             End If
         ElseIf Me.ParentMemDevice.FlashType = FlashMemory.MemoryType.PARALLEL_NAND Then
-            Dim d As FlashMemory.P_NAND = DirectCast(FCUSB.PARALLEL_IF.MyFlashDevice, FlashMemory.P_NAND)
-            Dim pages_per_block As UInt32 = (d.BLOCK_SIZE / d.PAGE_SIZE)
+            Dim NandDevice As FlashMemory.P_NAND = FCUSB.PARALLEL_NAND_IF.MyFlashDevice
+            Dim pages_per_block As UInt32 = (NandDevice.Block_Size / NandDevice.PAGE_SIZE)
             Dim available_pages As UInt32 = FCUSB.NAND_IF.MAPPED_PAGES
-            Me.FlashAvailable = FCUSB.PARALLEL_IF.DeviceSize
+            Me.FlashAvailable = FCUSB.PARALLEL_NAND_IF.DeviceSize
             Me.ParentMemDevice.Size = Me.FlashAvailable
             If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then 'We need to show all data
                 Me.HAS_EXTAREA = False
                 SetSelectedArea(FlashMemory.FlashArea.All)
             Else
-                Me.AddExtendedArea(available_pages, d.PAGE_SIZE, d.PAGE_EXT, pages_per_block)
+                Me.AddExtendedArea(available_pages, NandDevice.PAGE_SIZE, NandDevice.PAGE_EXT, pages_per_block)
             End If
         End If
     End Sub
@@ -577,14 +577,20 @@ Public Class MemControl_v2
     Private Sub cmd_area_Click(sender As Object, e As EventArgs) Handles cmd_area.Click
         Select Case AreaSelected
             Case FlashMemory.FlashArea.Main
+                Dim top_addr As Long = HexEditor64.TopAddress
                 SetSelectedArea(FlashMemory.FlashArea.OOB)
+                Dim new_addr As Long = (top_addr / Me.EXTAREA_MAIN_PAGE) * Me.EXTAREA_EXT_PAGE
+                HexEditor64.GotoAddress(new_addr)
             Case FlashMemory.FlashArea.OOB
+                Dim top_addr As Long = HexEditor64.TopAddress
                 SetSelectedArea(FlashMemory.FlashArea.Main)
+                Dim new_addr As Long = (top_addr / Me.EXTAREA_EXT_PAGE) * Me.EXTAREA_MAIN_PAGE
+                HexEditor64.GotoAddress(new_addr)
         End Select
     End Sub
 
     Private Sub UpdateEccResultImg()
-        If MySettings.ECC_READ_ENABLED Then
+        If NAND_ECC IsNot Nothing Then
             Dim result As ECC_DECODE_RESULT
             RaiseEvent GetEccLastResult(result)
             If result = ECC_DECODE_RESULT.NoErrors Then
@@ -606,7 +612,7 @@ Public Class MemControl_v2
         End Try
     End Sub
 
-    Public Sub SetProgress(ByVal Percent As Integer)
+    Public Sub SetProgress(Percent As Integer)
         Try
             If Me.InvokeRequired Then
                 Dim d As New cbSetProgress(AddressOf SetProgress)
@@ -713,7 +719,7 @@ Public Class MemControl_v2
 
 #Region "Address Box"
 
-    Private Sub AddressUpdate(ByVal Address As Long) Handles HexEditor64.AddressUpdate
+    Private Sub AddressUpdate(Address As Long) Handles HexEditor64.AddressUpdate
         If txtAddress.InvokeRequired Then
             Dim d As New cbAddressUpdate(AddressOf AddressUpdate)
             Me.Invoke(d, New Object() {Address})
@@ -745,7 +751,7 @@ Public Class MemControl_v2
 
     End Sub
 
-    Private Sub txtAddress_LostFocus(ByVal sender As Object, ByVal e As System.EventArgs) Handles txtAddress.LostFocus
+    Private Sub txtAddress_LostFocus(sender As Object, e As EventArgs) Handles txtAddress.LostFocus
         Try
             Dim input As String = Trim(txtAddress.Text.Replace(" ", ""))
             If IsNumeric(input) Then
@@ -783,7 +789,7 @@ Public Class MemControl_v2
         End Try
     End Sub
 
-    Private Function CreateFileForRead(ByVal DefaultName As String, ByRef file As IO.FileInfo, ByRef file_type As FileFilterIndex) As Boolean
+    Private Function CreateFileForRead(DefaultName As String, ByRef file As IO.FileInfo, ByRef file_type As FileFilterIndex) As Boolean
         Try
             Dim SaveMe As New SaveFileDialog
             SaveMe.AddExtension = True
@@ -1466,6 +1472,7 @@ Public Class MemControl_v2
         Dim item As editmode_sector = editmode_getitem(sector_index)
         item.sector_data(addr - base_addr) = dt
     End Sub
+
 
 #End Region
 

@@ -1,6 +1,6 @@
 ﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2020 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB PRODUCTS
-'CONTACT EMAIL: contact@embeddedcomputers.net
+'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: This is the main module that is loaded first.
 
@@ -202,12 +202,12 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
 
     Private Function EPROM_ReadEletronicID_1() As Byte()
         Dim IDENT_DATA(1) As Byte
-        HardwareControl(FCUSB_HW_CTRL.VPP_ENABLE)
+        HardwareControl(FCUSB_HW_CTRL.VPP_ENABLE) 'Enables VPP on adapter (CLE=HIGH)
         HardwareControl(FCUSB_HW_CTRL.OE_LOW)
         HardwareControl(FCUSB_HW_CTRL.WE_LOW)
         HardwareControl(FCUSB_HW_CTRL.VPP_12V)
         HardwareControl(FCUSB_HW_CTRL.RELAY_ON) 'A9=12V and VPP=12V
-        Utilities.Sleep(150)
+        Utilities.Sleep(300) 'Need this to be somewhat high to allow ID CODE to load
         FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, GetSetupPacket(0, 2, 0), IDENT_DATA, 0)
         HardwareControl(FCUSB_HW_CTRL.RELAY_OFF)
         HardwareControl(FCUSB_HW_CTRL.VPP_0V)
@@ -216,19 +216,19 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
         If IDENT_DATA(0) = 0 Or IDENT_DATA(1) = 0 Then
         ElseIf IDENT_DATA(0) = 255 Or IDENT_DATA(1) = 255 Then
         Else
-            RaiseEvent PrintConsole("EPROM IDENT CODE returned MFG: 0x" & Hex(IDENT_DATA(0)) & " and PART 0x" & Hex(IDENT_DATA(1)))
+            RaiseEvent PrintConsole("EPROM IDENT CODE 1 returned MFG: 0x" & Hex(IDENT_DATA(0)) & " and PART 0x" & Hex(IDENT_DATA(1)))
         End If
         Return IDENT_DATA
     End Function
 
     Private Function EPROM_ReadEletronicID_2() As Byte()
         Dim IDENT_DATA(1) As Byte
-        HardwareControl(FCUSB_HW_CTRL.VPP_DISABLE)
+        HardwareControl(FCUSB_HW_CTRL.VPP_DISABLE) 'Disables VPP Pin on Adapter (CLE=LOW)
         HardwareControl(FCUSB_HW_CTRL.OE_LOW)
         HardwareControl(FCUSB_HW_CTRL.WE_LOW)
         HardwareControl(FCUSB_HW_CTRL.VPP_12V)
         HardwareControl(FCUSB_HW_CTRL.RELAY_ON) 'A9=12V and VPP=0V
-        Utilities.Sleep(150)
+        Utilities.Sleep(300) 'Need this to be somewhat high to allow ID CODE to load
         FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, GetSetupPacket(0, 2, 0), IDENT_DATA, 0)
         HardwareControl(FCUSB_HW_CTRL.RELAY_OFF)
         HardwareControl(FCUSB_HW_CTRL.VPP_0V)
@@ -236,7 +236,7 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
         If IDENT_DATA(0) = 0 Or IDENT_DATA(1) = 0 Then
         ElseIf IDENT_DATA(0) = 255 Or IDENT_DATA(1) = 255 Then
         Else
-            RaiseEvent PrintConsole("EPROM IDENT CODE returned MFG: 0x" & Hex(IDENT_DATA(0)) & " and PART 0x" & Hex(IDENT_DATA(1)))
+            RaiseEvent PrintConsole("EPROM IDENT CODE 2 returned MFG: 0x" & Hex(IDENT_DATA(0)) & " and PART 0x" & Hex(IDENT_DATA(1)))
         End If
         Return IDENT_DATA
     End Function
@@ -266,7 +266,6 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
 
     Private Sub HardwareControl(cmd As FCUSB_HW_CTRL)
         FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_CTRL, Nothing, cmd)
-        Utilities.Sleep(10)
     End Sub
 
     Private Function GetSetupPacket(Address As UInt32, Count As UInt32, PageSize As UInt16) As Byte()

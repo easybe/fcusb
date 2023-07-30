@@ -1,5 +1,5 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2019 - ALL RIGHTS RESERVED
-'CONTACT EMAIL: contact@embeddedcomputers.net
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2020 - ALL RIGHTS RESERVED
+'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: This class implements the SVF / XSVF file format developed by Texas Instroments
 '12/29/18: Added Lattice LOOP/LOOPEND commands
@@ -17,8 +17,8 @@ Namespace JTAG
 
         Public Event ResetTap()
         Public Event GotoState(dst_state As JTAG_MACHINE_STATE)
-        Public Event ShiftIR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As Integer, exit_mode As Boolean)
-        Public Event ShiftDR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As Integer, exit_mode As Boolean)
+        Public Event ShiftIR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As Integer, exit_tms As Boolean)
+        Public Event ShiftDR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As Integer, exit_tms As Boolean)
         Public Event ToggleClock(clk_tck As UInt32)
 
         Sub New()
@@ -85,10 +85,7 @@ Namespace JTAG
                             RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, True)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
                             If (Not Result) Then
-                                RaiseEvent Writeconsole("Failed sending XSDR command (line number: " & line_counter & ")")
-                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
-                                RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line.value_expected.data))
-                                RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
+                                PrintCompareError(line_counter, "XSDR", TDO, TDO_MASK.data, line.value_expected.data)
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
                             If Counter > 0 Then Counter -= 1
@@ -110,10 +107,7 @@ Namespace JTAG
                             RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, True)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
                             If Not Result Then
-                                RaiseEvent Writeconsole("Failed sending XSDRTDO command (line number: " & line_counter & ")")
-                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
-                                RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line.value_expected.data))
-                                RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
+                                PrintCompareError(line_counter, "XSDRTDO", TDO, TDO_MASK.data, line.value_expected.data)
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
                         Loop Until Result
@@ -139,10 +133,7 @@ Namespace JTAG
                             RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, False)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
                             If Not Result Then
-                                RaiseEvent Writeconsole("Failed sending XSDRTDOB command (line number: " & line_counter & ")")
-                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
-                                RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line.value_expected.data))
-                                RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
+                                PrintCompareError(line_counter, "XSDRTDOB", TDO, TDO_MASK.data, line.value_expected.data)
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
                             If Counter > 0 Then Counter -= 1
@@ -156,10 +147,7 @@ Namespace JTAG
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
                             If IgnoreErrors Then Exit Do
                             If Not Result Then
-                                RaiseEvent Writeconsole("Failed sending XSDRTDOC command (line number: " & line_counter & ")")
-                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
-                                RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line.value_expected.data))
-                                RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
+                                PrintCompareError(line_counter, "XSDRTDOC", TDO, TDO_MASK.data, line.value_expected.data)
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
                         Loop Until Result
@@ -172,10 +160,7 @@ Namespace JTAG
                             RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, False)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data)
                             If Not Result Then
-                                RaiseEvent Writeconsole("Failed sending XSDRTDOE command (line number: " & line_counter & ")")
-                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
-                                RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line.value_expected.data))
-                                RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
+                                PrintCompareError(line_counter, "XSDRTDOE", TDO, TDO_MASK.data, line.value_expected.data)
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
                         Loop Until Result
@@ -227,7 +212,7 @@ Namespace JTAG
             Try
                 For x = 0 To svf_file.Count - 1
                     Dim line As String = svf_file(x)
-                    If x Mod 100 = 0 Then
+                    If x Mod 10 = 0 Then
                         RaiseEvent Progress(((x + 1) / svf_file.Length) * 100)
                     End If
                     If LOOP_COUNTER = 0 Then
@@ -264,13 +249,17 @@ Namespace JTAG
             If line.ToUpper.StartsWith("SIR ") Then
                 Dim line_svf As New svf_param(line)
                 Dim TDO() As Byte = Nothing
-                If (IR_HEAD.LEN > 0) Then RaiseEvent ShiftIR(IR_HEAD.TDI, Nothing, IR_HEAD.LEN, False)
+
+                If (IR_HEAD.LEN > 0) Then
+                    RaiseEvent ShiftIR(IR_HEAD.TDI, Nothing, IR_HEAD.LEN, False)
+                End If
                 If (IR_TAIL.LEN > 0) Then
                     RaiseEvent ShiftIR(line_svf.TDI, TDO, line_svf.LEN, False)
                     RaiseEvent ShiftIR(IR_TAIL.TDI, Nothing, IR_TAIL.LEN, True)
                 Else
                     RaiseEvent ShiftIR(line_svf.TDI, TDO, line_svf.LEN, True)
                 End If
+
                 Dim MASK_TO_COMPARE() As Byte = line_svf.MASK
                 If MASK_TO_COMPARE Is Nothing Then
                     If line_svf.LEN = SIR_LAST_LEN AndAlso SIR_LAST_MASK IsNot Nothing Then
@@ -284,17 +273,16 @@ Namespace JTAG
                 End If
                 Dim Result As Boolean = CompareResult(TDO, line_svf.TDO, MASK_TO_COMPARE)
                 If (Not Result) AndAlso (Not lattice_loop) Then
-                    RaiseEvent Writeconsole("Failed sending SIR command (line number: " & line_index & ")")
-                    RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
-                    RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line_svf.TDO))
-                    If (line_svf.MASK IsNot Nothing) Then RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(line_svf.MASK))
+                    PrintCompareError(line_index, "SIR", TDO, line_svf.MASK, line_svf.TDO)
                 End If
                 RaiseEvent GotoState(ENDIR)
                 If (Not Result) AndAlso (Not IgnoreErrors) Then Return False
             ElseIf line.ToUpper.StartsWith("SDR ") Then
                 Dim line_svf As New svf_param(line)
                 Dim TDO() As Byte = Nothing
-                If (DR_HEAD.LEN > 0) Then RaiseEvent ShiftDR(DR_HEAD.TDI, Nothing, DR_HEAD.LEN, False)
+                If (DR_HEAD.LEN > 0) Then
+                    RaiseEvent ShiftDR(DR_HEAD.TDI, Nothing, DR_HEAD.LEN, False)
+                End If
                 If (DR_TAIL.LEN > 0) Then
                     RaiseEvent ShiftDR(line_svf.TDI, TDO, line_svf.LEN, False)
                     RaiseEvent ShiftDR(DR_TAIL.TDI, Nothing, DR_TAIL.LEN, True)
@@ -314,10 +302,7 @@ Namespace JTAG
                 End If
                 Dim Result As Boolean = CompareResult(TDO, line_svf.TDO, MASK_TO_COMPARE)
                 If (Not Result) AndAlso (Not lattice_loop) Then
-                    RaiseEvent Writeconsole("Failed sending SDR command (line number: " & line_index & ")")
-                    RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
-                    RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line_svf.TDO))
-                    If (line_svf.MASK IsNot Nothing) Then RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(line_svf.MASK))
+                    PrintCompareError(line_index, "SDR", TDO, line_svf.MASK, line_svf.TDO)
                 End If
                 RaiseEvent GotoState(ENDDR)
                 If (Not Result) AndAlso (Not IgnoreErrors) Then Return False
@@ -361,14 +346,15 @@ Namespace JTAG
 
         Private Function CompareResult(TDO() As Byte, Expected() As Byte, MASK() As Byte) As Boolean
             Try
-                If TDO Is Nothing Then Return False
                 If MASK IsNot Nothing AndAlso Expected IsNot Nothing Then
+                    If TDO Is Nothing Then Return False
                     For i = 0 To TDO.Length - 1
                         Dim masked_tdo As Byte = TDO(i) And MASK(i)
                         Dim masked_exp As Byte = Expected(i) And MASK(i)
                         If Not (masked_tdo = masked_exp) Then Return False
                     Next
                 ElseIf Expected IsNot Nothing Then 'No MASK, use ALL CARE bits
+                    If TDO Is Nothing Then Return False
                     For i = 0 To TDO.Length - 1
                         If Not TDO(i) = Expected(i) Then Return False
                     Next
@@ -378,6 +364,15 @@ Namespace JTAG
                 Return False
             End Try
         End Function
+
+        Private Sub PrintCompareError(LineIndex As Integer, command As String, TDO() As Byte, TDO_MASK() As Byte, EXPECTED() As Byte)
+            RaiseEvent Writeconsole("Failed sending " & command & " command (line index: " & LineIndex.ToString() & ")")
+            RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
+            RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(EXPECTED))
+            If TDO_MASK IsNot Nothing Then
+                RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK))
+            End If
+        End Sub
 
         Private Sub DoXRunTest(wait_amount As UInt32)
             Dim s As Integer = wait_amount / 1000
