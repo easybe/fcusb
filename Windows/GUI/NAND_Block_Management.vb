@@ -19,18 +19,21 @@ Public Class NAND_Block_Management
     Private BLK_UNK As Image = My.Resources.BLOCK_MARIO
 
     Private Property NAND_NAME As String 'Name of this nand device
-    Private Property PAGE_SIZE_TOTAL As UInt32 'This is the entire size of the pages 
-    Private Property PAGE_COUNT As UInt32 'Number of pages per block
-    Private Property BLOCK_COUNT As UInt32 'Number of blocks per device
+    Private Property PAGE_SIZE_TOTAL As UInt16 'This is the entire size of the pages 
+    Private Property PAGE_COUNT As UInt16 'Number of pages per block
+    Private Property BLOCK_COUNT As Integer  'Number of blocks per device
     Private Property NAND_LAYOUT As NANDLAYOUT_STRUCTURE
 
-    Public Sub SetDeviceParameters(Name As String, p_size As UInt32, pages_per_block As UInt32, block_count As UInt32, n_layout As NANDLAYOUT_STRUCTURE)
+    Public Sub SetDeviceParameters(Name As String, p_size As UInt16, pages_per_block As UInt16, block_count As Integer, n_layout As NANDLAYOUT_STRUCTURE)
         Me.NAND_NAME = Name
         Me.PAGE_SIZE_TOTAL = p_size
         Me.PAGE_COUNT = pages_per_block
         Me.BLOCK_COUNT = block_count
         Me.NAND_LAYOUT = n_layout
     End Sub
+
+    Private MyMap As List(Of NAND_BLOCK_IF.MAPPING)
+    Private NandIF As FlashMemory.G_NAND
 
     Sub New(usb_dev As USB.FCUSB_DEVICE)
 
@@ -43,8 +46,13 @@ Public Class NAND_Block_Management
 
     Private Sub NAND_Block_Management_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.MinimumSize = Me.Size
-        Me.MaximumSize = New Point(Me.Size.Width, 5000)
-        Dim TotalRowsNeeded As Integer = Me.BLOCK_COUNT / 32
+        Me.MaximumSize = New Size(Me.Size.Width, 5000)
+        If Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(PARALLEL_NAND)) Then
+            MyMap = Me.FCUSB.PARALLEL_NAND_IF.BlockManager.MAP
+        ElseIf Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(SPINAND_Programmer)) Then
+            MyMap = Me.FCUSB.SPI_NAND_IF.BlockManager.MAP
+        End If
+        Dim TotalRowsNeeded As Integer = (Me.BLOCK_COUNT \ 32)
         BlockMap.Width = 600
         BlockMap.Height = (TotalRowsNeeded * 14) + 8
         DrawImage()
@@ -52,7 +60,7 @@ Public Class NAND_Block_Management
     End Sub
 
     Private Sub Language_Setup()
-        Dim total_block_size As UInt32 = Me.PAGE_SIZE_TOTAL * Me.PAGE_COUNT
+        Dim total_block_size As UInt32 = CUInt(Me.PAGE_SIZE_TOTAL) * Me.PAGE_COUNT
         Me.Text = String.Format(RM.GetString("nandmngr_title"), Me.NAND_NAME) '"NAND Block Management ({0})"
         Dim block_count_str As String = Format(Me.BLOCK_COUNT, "#,###")
         Dim block_size_str As String = Format(total_block_size, "#,###")
@@ -68,7 +76,7 @@ Public Class NAND_Block_Management
 
     Private Declare Function ShowScrollBar Lib "user32.dll" (hWnd As IntPtr, wBar As Integer, bShow As Boolean) As Boolean
 
-    Protected Overrides Sub WndProc(ByRef m As System.Windows.Forms.Message)
+    Protected Overrides Sub WndProc(ByRef m As Message)
         Try
             ShowScrollBar(Panel1.Handle, 0, False)
         Catch ex As Exception
@@ -106,10 +114,10 @@ Public Class NAND_Block_Management
         If ((e.X <= 60) Or (e.Y <= 4)) Or (e.X >= 508) Then
             SELECTED_BLOCK = -1
         Else
-            Dim x As Integer = Math.Floor((e.X - 60) / 14)
-            Dim y As Integer = Math.Floor((e.Y - 4) / 14)
+            Dim x As Integer = CInt(Math.Floor((e.X - 60) / 14))
+            Dim y As Integer = CInt(Math.Floor((e.Y - 4) / 14))
             SELECTED_BLOCK = (y * 32) + x
-            If SELECTED_BLOCK > FCUSB.NAND_IF.MAP.Count - 1 Then SELECTED_BLOCK = -1
+            If SELECTED_BLOCK > MyMap.Count - 1 Then SELECTED_BLOCK = -1
         End If
         If Not PreviousBlock = SELECTED_BLOCK Then
             DrawImage()
@@ -117,10 +125,10 @@ Public Class NAND_Block_Management
         If (SELECTED_BLOCK = -1) Then
             MyStatus.Text = ""
         Else
-            Dim block_info As NAND_BLOCK_IF.MAPPING = FCUSB.NAND_IF.MAP(SELECTED_BLOCK)
-            Dim page_addr As UInt32 = (block_info.BlockIndex * PAGE_COUNT)
-            Dim page_addr_str As String = "0x" & Hex(page_addr).PadLeft(6, "0")
-            MyStatus.Text = String.Format(RM.GetString("nandmngr_selected_page"), page_addr_str, block_info.BlockIndex) '"Selected page: {0} [block: {1}]"
+            Dim block_info As NAND_BLOCK_IF.MAPPING = MyMap(SELECTED_BLOCK)
+            Dim page_addr As Integer = (block_info.BlockIndex * PAGE_COUNT)
+            Dim page_addr_str As String = "0x" & page_addr.ToString("X").PadLeft(6, "0"c)
+            MyStatus.Text = String.Format(RM.GetString("nandmngr_selected_page"), page_addr_str, (block_info.BlockIndex + 1)) '"Selected page: {0} [block: {1}]"
             Select Case block_info.Status
                 Case NAND_BLOCK_IF.BLOCK_STATUS.Valid
                     MyStatus.Text &= " (" & RM.GetString("nandmngr_valid") & ")"
@@ -152,10 +160,10 @@ Public Class NAND_Block_Management
             Dim x As Integer = 0
             Dim y As Integer = 0
             Dim MyFont As New Font("Lucida Console", 8)
-            For i As UInt32 = 0 To Me.BLOCK_COUNT - 1
-                Dim block_info As NAND_BLOCK_IF.MAPPING = FCUSB.NAND_IF.MAP(i)
+            For i As Integer = 0 To Me.BLOCK_COUNT - 1
+                Dim block_info As NAND_BLOCK_IF.MAPPING = MyMap(i)
                 If x = 0 Then
-                    Dim hex_str As String = "0x" & Hex(block_info.PageAddress).PadLeft(6, "0")
+                    Dim hex_str As String = "0x" & (block_info.PagePhysical).ToString("X").PadLeft(6, "0"c)
                     gfx.DrawString(hex_str, MyFont, Brushes.Black, 0, (y * 14) + 5)
                 End If
                 DrawBlockImage(x, y, block_info.Status, gfx)
@@ -181,7 +189,7 @@ Public Class NAND_Block_Management
         Try
             If PERFORMING_ANALYZE Then Exit Sub
             If SELECTED_BLOCK = -1 Then Exit Sub
-            Dim block_info As NAND_BLOCK_IF.MAPPING = FCUSB.NAND_IF.MAP(SELECTED_BLOCK)
+            Dim block_info As NAND_BLOCK_IF.MAPPING = MyMap(SELECTED_BLOCK)
             If block_info.Status = NAND_BLOCK_IF.BLOCK_STATUS.Valid Then
                 block_info.Status = NAND_BLOCK_IF.BLOCK_STATUS.Bad_Marked
             Else
@@ -245,7 +253,7 @@ Public Class NAND_Block_Management
     End Sub
 
     Private Sub AnalyzeTd()
-        Dim verify_data() As Byte
+
         CancelAnalyze = False
         Threading.Thread.CurrentThread.Name = "AnalyzeTd"
         Dim BadBlockCounter As Integer = 0
@@ -253,47 +261,59 @@ Public Class NAND_Block_Management
         PERFORMING_ANALYZE = True
         SELECTED_BLOCK = -1
         Try
-            For i As UInt32 = 0 To FCUSB.NAND_IF.MAP.Count - 1
-                FCUSB.NAND_IF.MAP(i).Status = NAND_BLOCK_IF.BLOCK_STATUS.Unknown
+            For i As Integer = 0 To MyMap.Count - 1
+                MyMap(i).Status = NAND_BLOCK_IF.BLOCK_STATUS.Unknown
             Next
             DrawImage()
-            Dim total_block_size As UInt32 = Me.PAGE_SIZE_TOTAL * Me.PAGE_COUNT
+            Dim total_block_size As Integer = CInt(Me.PAGE_SIZE_TOTAL * Me.PAGE_COUNT)
             Dim test_data(total_block_size - 1) As Byte
             For i = 0 To test_data.Length - 1
-                test_data(i) = ((i + 1) And 255)
+                test_data(i) = CByte((i + 1) And 255)
             Next
-            For i As UInt32 = 0 To FCUSB.NAND_IF.MAP.Count - 1
+            For i As Integer = 0 To MyMap.Count - 1
                 If CancelAnalyze Then
-                    For counter As UInt32 = i To FCUSB.NAND_IF.MAP.Count - 1
-                        FCUSB.NAND_IF.MAP(counter).Status = NAND_BLOCK_IF.BLOCK_STATUS.Valid
+                    For counter As Integer = i To MyMap.Count - 1
+                        MyMap(counter).Status = NAND_BLOCK_IF.BLOCK_STATUS.Valid
                     Next
                     Exit For
                 End If
-                Dim block_info As NAND_BLOCK_IF.MAPPING = FCUSB.NAND_IF.MAP(i)
+                Dim block_info As NAND_BLOCK_IF.MAPPING = MyMap(i)
                 SELECTED_BLOCK = i
                 DrawImage() 'Draw checkbox
-                Dim block_addr_str As String = "0x" & block_info.BlockIndex.ToString.PadLeft(4, "0")
+                Dim block_addr_str As String = "0x" & block_info.BlockIndex.ToString.PadLeft(4, "0"c)
                 SetStatus(String.Format(RM.GetString("nandmngr_verifing_block"), block_addr_str))
                 Dim ErrorCount As Integer = 0
                 Dim ValidBlock As Boolean = True
                 Do 'Write block up to 3 times
                     ValidBlock = True
-                    FCUSB.NAND_IF.ERASEBLOCK(block_info.PageAddress, FlashMemory.FlashArea.Main, False)
-                    FCUSB.NAND_IF.WRITEPAGE(block_info.PageAddress, test_data, FlashMemory.FlashArea.All)
-                    Utilities.Sleep(20)
-                    verify_data = FCUSB.NAND_IF.READPAGE(block_info.PageAddress, 0, test_data.Length, FlashMemory.FlashArea.All)
+                    Dim verify_data() As Byte = Nothing
+                    If Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(PARALLEL_NAND)) Then
+                        FCUSB.PARALLEL_NAND_IF.SectorErase_Physical(block_info.PagePhysical)
+                        FCUSB.PARALLEL_NAND_IF.WritePage_Physical(block_info.PagePhysical, test_data, FlashMemory.FlashArea.All)
+                        Utilities.Sleep(20)
+                        verify_data = FCUSB.PARALLEL_NAND_IF.PageRead_Physical(block_info.PagePhysical, 0, test_data.Length, FlashMemory.FlashArea.All)
+                    ElseIf Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(SPINAND_Programmer)) Then
+                        FCUSB.SPI_NAND_IF.SectorErase_Physical(block_info.PagePhysical)
+                        FCUSB.SPI_NAND_IF.WritePage_Physical(block_info.PagePhysical, test_data, FlashMemory.FlashArea.All)
+                        Utilities.Sleep(20)
+                        verify_data = FCUSB.SPI_NAND_IF.PageRead_Physical(block_info.PagePhysical, 0, test_data.Length, FlashMemory.FlashArea.All)
+                    End If
                     If Not Utilities.ArraysMatch(verify_data, test_data) Then
                         ErrorCount += 1
                         ValidBlock = False
                     End If
                     If ValidBlock Then Exit Do
                 Loop While (ErrorCount < 3)
-                FCUSB.NAND_IF.ERASEBLOCK(block_info.PageAddress, FlashMemory.FlashArea.Main, False) 'Erase again
+                If Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(PARALLEL_NAND)) Then
+                    FCUSB.PARALLEL_NAND_IF.SectorErase_Physical(block_info.PagePhysical)
+                ElseIf Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(SPINAND_Programmer)) Then
+                    FCUSB.SPI_NAND_IF.SectorErase_Physical(block_info.PagePhysical)
+                End If
                 If ValidBlock Then
-                    FCUSB.NAND_IF.MAP(i).Status = NAND_BLOCK_IF.BLOCK_STATUS.Valid
+                    MyMap(i).Status = NAND_BLOCK_IF.BLOCK_STATUS.Valid
                 Else
                     If (cb_write_bad_block_marker.Enabled AndAlso cb_write_bad_block_marker.Checked) Then 'Lets mark the block
-                        Dim LastPageAddr As UInt32 = (block_info.PageAddress + Me.PAGE_COUNT - 1) 'The last page of this block
+                        Dim LastPageAddr As Integer = (block_info.PagePhysical + Me.PAGE_COUNT - 1) 'The last page of this block
                         Dim first_page() As Byte = Nothing
                         Dim second_page() As Byte = Nothing
                         Dim last_page() As Byte = Nothing
@@ -319,17 +339,30 @@ Public Class NAND_Block_Management
                             If second_page Is Nothing Then ReDim second_page(PAGE_SIZE_TOTAL - 1) : Utilities.FillByteArray(second_page, 255)
                             second_page(oob_area + 5) = 0
                         End If
-                        If first_page IsNot Nothing Then
-                            FCUSB.NAND_IF.WRITEPAGE(block_info.PageAddress, first_page, FlashMemory.FlashArea.All)
-                        End If
-                        If second_page IsNot Nothing Then
-                            FCUSB.NAND_IF.WRITEPAGE(block_info.PageAddress + 1, second_page, FlashMemory.FlashArea.All)
-                        End If
-                        If last_page IsNot Nothing Then
-                            FCUSB.NAND_IF.WRITEPAGE(LastPageAddr, last_page, FlashMemory.FlashArea.All)
+
+                        If Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(PARALLEL_NAND)) Then
+                            If first_page IsNot Nothing Then
+                                FCUSB.PARALLEL_NAND_IF.SectorWrite(block_info.PagePhysical, first_page)
+                            End If
+                            If second_page IsNot Nothing Then
+                                FCUSB.PARALLEL_NAND_IF.SectorWrite(block_info.PagePhysical + 1, second_page)
+                            End If
+                            If last_page IsNot Nothing Then
+                                FCUSB.PARALLEL_NAND_IF.SectorWrite(LastPageAddr, last_page)
+                            End If
+                        ElseIf Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(SPINAND_Programmer)) Then
+                            If first_page IsNot Nothing Then
+                                FCUSB.SPI_NAND_IF.SectorWrite(block_info.PagePhysical, first_page)
+                            End If
+                            If second_page IsNot Nothing Then
+                                FCUSB.SPI_NAND_IF.SectorWrite(block_info.PagePhysical + 1, second_page)
+                            End If
+                            If last_page IsNot Nothing Then
+                                FCUSB.SPI_NAND_IF.SectorWrite(LastPageAddr, last_page)
+                            End If
                         End If
                     End If
-                    FCUSB.NAND_IF.MAP(i).Status = NAND_BLOCK_IF.BLOCK_STATUS.Bad_ByError
+                    MyMap(i).Status = NAND_BLOCK_IF.BLOCK_STATUS.Bad_ByError
                     BadBlockCounter += 1
                 End If
             Next

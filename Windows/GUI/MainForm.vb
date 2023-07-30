@@ -10,9 +10,10 @@ Public Class MainForm
         GUI = Me
         Me.MinimumSize = Me.Size
         Me.MyTabs.DrawMode = TabDrawMode.OwnerDrawFixed
+        Language_Setup()
         InitStatusMessage()
         LoadSettingsIntoGui()
-        ScriptEngine.PrintInformation() 'Script Engine
+        ScriptIF.PrintInformation() 'Script Engine
         PrintConsole(RM.GetString("welcome_to_flashcatusb") & ", build: " & FC_BUILD)
         PrintConsole("Running on: " & My.Computer.Info.OSFullName & " (" & GetOsBitsString() & ")")
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Serial NOR memory", FlashDatabase.PartCount(MemoryType.SERIAL_NOR)))
@@ -21,7 +22,6 @@ Public Class MainForm
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Parallel NAND memory", FlashDatabase.PartCount(MemoryType.PARALLEL_NAND)))
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "OTP/UV EPROM memory", FlashDatabase.PartCount(MemoryType.OTP_EPROM)))
         statuspage_progress.Visible = False
-        Language_Setup()
         MyForm_LicenseInit()
         mi_mode_mmc.Visible = False
         mi_jtag_menu.Visible = False
@@ -310,7 +310,7 @@ Public Class MainForm
     'This is so that the console command does not tie up the Form or input boxes etc
     Private Sub CmdThreadExec()
         Try
-            ScriptEngine.ExecuteCommand(ScriptCommand)
+            ScriptIF.ScriptProcessor.ExecuteCommand(ScriptCommand)
         Catch ex As Exception
         End Try
     End Sub
@@ -380,14 +380,14 @@ Public Class MainForm
     Private Delegate Function cbGetSelectedMemoryInterface() As MemoryDeviceInstance
     Private Delegate Sub SetBtnCallback(Value As Button)
     Private Delegate Sub cbSetControlText(usertabind As Integer, ctr_name As String, NewText As String)
-    Private Delegate Function cbGetControlText(usertabind As Integer, ctr_name As String)
+    Private Delegate Function cbGetControlText(usertabind As Integer, ctr_name As String) As String
 
     Public Sub RemoveAllTabs()
         Try
             If Me.MyTabs.InvokeRequired Then
-                Dim d As New cbRemoveAllTabs(AddressOf RemoveAllTabs)
-                Me.Invoke(d)
+                Me.Invoke(New cbRemoveAllTabs(AddressOf RemoveAllTabs))
             Else
+                If AppIsClosing Then Exit Sub
                 Dim list As New List(Of TabPage)
                 For Each tP As TabPage In MyTabs.Controls
                     If tP Is TabStatus Then
@@ -406,8 +406,7 @@ Public Class MainForm
 
     Public Sub AddTab(tb As TabPage)
         If Me.MyTabs.InvokeRequired Then
-            Dim d As New cbAddTab(AddressOf AddTab)
-            Me.Invoke(d, New Object() {tb})
+            Me.Invoke(New cbAddTab(AddressOf AddTab), New Object() {tb})
         Else
             tb.Text = " " & tb.Text & " "
             MyTabs.Controls.Add(tb)
@@ -545,7 +544,7 @@ Public Class MainForm
     Private Function GetSelectedMemoryInterface() As MemoryDeviceInstance
         If Me.MyTabs.InvokeRequired Then
             Dim d As New cbGetSelectedMemoryInterface(AddressOf GetSelectedMemoryInterface)
-            Return Me.Invoke(d)
+            Return CType(Me.Invoke(d), MemoryDeviceInstance)
         Else
             Dim o As Object = MyTabs.SelectedTab.Tag
             If o Is Nothing Then Return Nothing
@@ -556,9 +555,9 @@ Public Class MainForm
     Public Sub HandleButtons(usertabind As Integer, Enabled As Boolean, BtnName As String)
         Dim usertab As TabPage = GetUserTab(usertabind)
         If usertab Is Nothing Then Exit Sub
-        For Each user_control In usertab.Controls
+        For Each user_control As Control In usertab.Controls
             If user_control.GetType Is GetType(Button) Then
-                If (user_control.Name.ToString.ToUpper() = BtnName.ToUpper()) Or BtnName = "" Then
+                If (user_control.Name.ToString.ToUpper() = BtnName.ToUpper()) Or BtnName.Equals("") Then
                     If Enabled Then
                         EnableButton(CType(user_control, Button))
                     Else
@@ -594,8 +593,8 @@ Public Class MainForm
         Else
             Dim usertab As TabPage = GetUserTab(usertabind)
             If usertab Is Nothing Then Exit Sub
-            For Each user_control In usertab.Controls
-                If user_control.Name.ToString.ToUpper = UserControl.ToUpper Then
+            For Each user_control As Control In usertab.Controls
+                If user_control.Name.ToString.ToUpper.Equals(UserControl.ToUpper) Then
                     user_control.Text = NewText
                     If user_control.GetType Is GetType(TextBox) Then
                         Dim t As TextBox = CType(user_control, TextBox)
@@ -610,12 +609,12 @@ Public Class MainForm
     Public Function GetControlText(usertabind As Integer, UserControl As String) As String
         If Me.MyTabs.InvokeRequired Then
             Dim d As New cbGetControlText(AddressOf GetControlText)
-            Return Me.Invoke(d, {usertabind, UserControl})
+            Return d.Invoke(usertabind, UserControl)
         Else
             Dim usertab As TabPage = GetUserTab(usertabind)
             If usertab Is Nothing Then Return ""
-            For Each user_control In usertab.Controls
-                If user_control.Name.ToUpper.Equals(UserControl.ToUpper) Then
+            For Each user_control As Control In usertab.Controls
+                If Not user_control.Name.ToUpper.Equals(UserControl.ToUpper) Then
                     Return user_control.Text
                 End If
             Next
@@ -1007,7 +1006,7 @@ Public Class MainForm
 
     Private Sub EmbLogo_DoubleClick(sender As Object, e As EventArgs) Handles pb_logo.DoubleClick
         If Me.Cursor = Cursors.Hand Then
-            Dim sInfo As New ProcessStartInfo("http://www.embeddedcomputers.net/products/FlashcatUSB_Pro/")
+            Dim sInfo As New ProcessStartInfo("https://www.embeddedcomputers.net/")
             Process.Start(sInfo)
         End If
     End Sub
@@ -1017,7 +1016,7 @@ Public Class MainForm
     End Sub
 
     Private Sub EmbLogo_MouseMove(sender As Object, e As MouseEventArgs) Handles pb_logo.MouseMove
-        Dim x As Integer = (Me.Width / 2) - 130
+        Dim x As Integer = (Me.Width \ 2) - 130
         If e.X >= x AndAlso e.X <= x + 222 Then
             Me.Cursor = Cursors.Hand
         Else
@@ -1041,7 +1040,7 @@ Public Class MainForm
             Dim n As New NAND_Block_Management(mem_dev.FCUSB)
             If mem_dev.FlashType = MemoryType.SERIAL_NAND Then
                 Dim nand As SPI_NAND = mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice
-                Dim pages_per_block As UInt32 = (nand.Block_Size / nand.PAGE_SIZE)
+                Dim pages_per_block As UInt16 = CUShort(nand.Block_Size \ nand.PAGE_SIZE)
                 Dim n_layout As NAND_LAYOUT_TOOL.NANDLAYOUT_STRUCTURE = NAND_LayoutTool.GetStructure(nand)
                 n.SetDeviceParameters(nand.NAME, nand.PAGE_SIZE + nand.PAGE_EXT, pages_per_block, nand.BLOCK_COUNT, n_layout)
             ElseIf mem_dev.FlashType = MemoryType.PARALLEL_NAND Then
@@ -1050,12 +1049,13 @@ Public Class MainForm
                 n.SetDeviceParameters(nand.NAME, nand.PAGE_SIZE + nand.PAGE_EXT, nand.PAGE_COUNT, nand.BLOCK_COUNT, n_layout)
             End If
             n.ShowDialog()
-            mem_dev.FCUSB.NAND_IF.ProcessMap()
             If mem_dev.FlashType = MemoryType.SERIAL_NAND Then
+                mem_dev.FCUSB.SPI_NAND_IF.BlockManager.ProcessMap()
                 mem_dev.GuiControl.InitMemoryDevice(mem_dev.FCUSB, MemControl_v2.access_mode.Writable)
                 mem_dev.GuiControl.SetupLayout()
                 StatusMessages_LoadMemoryDevices()
             ElseIf mem_dev.FlashType = MemoryType.PARALLEL_NAND Then
+                mem_dev.FCUSB.PARALLEL_NAND_IF.BlockManager.ProcessMap()
                 mem_dev.GuiControl.InitMemoryDevice(mem_dev.FCUSB, MemControl_v2.access_mode.Writable)
                 mem_dev.GuiControl.SetupLayout()
                 StatusMessages_LoadMemoryDevices()
@@ -1375,7 +1375,7 @@ Public Class MainForm
         MyLastMemoryDevice = Nothing
         mi_jtag_menu.Visible = False
         ClearStatusMessage()
-        ScriptEngine.Unload() 'Unloads the device script and any objects/tabs
+        ScriptIF.Unload() 'Unloads the device script and any objects/tabs
         RemoveStatusMessage(RM.GetString("gui_active_script"))
         MEM_IF.Clear() 'Removes all tabs
         If MAIN_FCUSB IsNot Nothing Then MAIN_FCUSB.Disconnect()
@@ -1391,7 +1391,7 @@ Public Class MainForm
 
     Private Sub mi_usb_performance_Click(sender As Object, e As EventArgs) Handles mi_usb_performance.Click
         Try
-            Dim frm_usb As New FrmUSBPerformance
+            Dim frm_usb As New FrmPerformance
             frm_usb.ShowDialog()
         Catch ex As Exception
         End Try
@@ -1407,24 +1407,24 @@ Public Class MainForm
 
     Private Class NAND_CONFIG
         Public Property flash_name As String
-        Public Property flash_size As UInt32
-        Public Property page_size As UInt32
-        Public Property oob_size As UInt32
-        Public Property block_count As UInt32
-        Public Property block_size As UInt32
+        Public Property flash_size As Long
+        Public Property page_size As UInt16
+        Public Property oob_size As UInt16
+        Public Property block_count As Integer
+        Public Property block_size As Integer
         Public Property chipid As String
-        Public Property page_count As UInt32
+        Public Property page_count As Integer
 
         Sub New(file_data() As Byte)
             Dim config_file() As String = Utilities.Bytes.ToCharStringArray(file_data)
             Me.flash_name = GetNandCfgParam("MEMORY_DEVICE", config_file.ToArray)
-            Me.flash_size = GetNandCfgParam("FLASH_SIZE", config_file.ToArray)
-            Me.page_size = GetNandCfgParam("PAGE_SIZE", config_file.ToArray)
-            Me.oob_size = GetNandCfgParam("OOB_SIZE", config_file.ToArray)
-            Me.block_count = GetNandCfgParam("BLOCK_COUNT", config_file.ToArray)
-            Me.block_size = GetNandCfgParam("BLOCK_SIZE", config_file.ToArray)
+            Me.flash_size = CLng(GetNandCfgParam("FLASH_SIZE", config_file.ToArray))
+            Me.page_size = CUShort(GetNandCfgParam("PAGE_SIZE", config_file.ToArray))
+            Me.oob_size = CUShort(GetNandCfgParam("OOB_SIZE", config_file.ToArray))
+            Me.block_count = CInt(GetNandCfgParam("BLOCK_COUNT", config_file.ToArray))
+            Me.block_size = CInt(GetNandCfgParam("BLOCK_SIZE", config_file.ToArray))
             Me.chipid = GetNandCfgParam("ID", config_file.ToArray)
-            Me.page_count = GetNandCfgParam("PAGE_COUNT", config_file.ToArray)
+            Me.page_count = CInt(GetNandCfgParam("PAGE_COUNT", config_file.ToArray))
         End Sub
 
         Sub New()
@@ -1460,12 +1460,13 @@ Public Class MainForm
     Private Function ZIP_GetFile(archive As ZipArchive, filename As String) As Byte()
         Dim zipfile As ZipArchiveEntry = archive.GetEntry(filename)
         Using nand_main As New IO.BinaryReader(zipfile.Open)
-            Return nand_main.ReadBytes(zipfile.Length)
+            Return nand_main.ReadBytes(CInt(zipfile.Length))
         End Using
         Return Nothing
     End Function
 
     Private Function ZIP_SetFile(archive As ZipArchive, filename As String, filedata() As Byte) As Boolean
+        If filedata Is Nothing Then Return False
         Dim zipfile As ZipArchiveEntry = archive.CreateEntry(filename)
         Using nand_main As New IO.BinaryWriter(zipfile.Open)
             nand_main.Write(filedata)
@@ -1566,26 +1567,38 @@ Public Class MainForm
     End Sub
 
     Private Sub PrintNandFlashDetails(mem_dev As MemoryDeviceInstance)
-        MainApp.PrintConsole(RM.GetString("gui_creating_nand_file"))
+        Dim mem_name As String
+        Dim flash_size As Long
+        Dim page_size As UInt16
+        Dim spare_size As UInt16
+        Dim block_size As Integer
         If mem_dev.FlashType = MemoryType.SERIAL_NAND Then
-            MainApp.PrintConsole("Memory device name: " & mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice.NAME)
-            MainApp.PrintConsole("Flash size: " & Format(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice.FLASH_SIZE, "#,###") & " bytes")
-            MainApp.PrintConsole("Extended/Spare area: " & Format(mem_dev.FCUSB.NAND_IF.Extra_GetSize(), "#,###") & " bytes")
-            MainApp.PrintConsole("Page size: " & Format(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice.PAGE_SIZE, "#,###") & " bytes")
-            MainApp.PrintConsole("Block size: " & Format(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice.Block_Size, "#,###") & " bytes")
+            mem_name = mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice.NAME
+            flash_size = mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice.FLASH_SIZE
+            page_size = mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice.PAGE_SIZE
+            spare_size = mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice.PAGE_EXT
+            block_size = mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice.Block_Size
         ElseIf mem_dev.FlashType = MemoryType.PARALLEL_NAND Then
-            MainApp.PrintConsole("Memory device name: " & mem_dev.FCUSB.PARALLEL_NOR_IF.MyFlashDevice.NAME)
-            MainApp.PrintConsole("Flash size: " & Format(mem_dev.FCUSB.PARALLEL_NOR_IF.MyFlashDevice.FLASH_SIZE, "#,###") & " bytes")
-            MainApp.PrintConsole("Extended/Spare area: " & Format(mem_dev.FCUSB.NAND_IF.Extra_GetSize(), "#,###") & " bytes")
-            MainApp.PrintConsole("Page size: " & Format(mem_dev.FCUSB.PARALLEL_NOR_IF.MyFlashDevice.PAGE_SIZE, "#,###") & " bytes")
-            MainApp.PrintConsole("Block size: " & Format(mem_dev.FCUSB.PARALLEL_NAND_IF.MyFlashDevice.Block_Size, "#,###") & " bytes")
+            mem_name = mem_dev.FCUSB.PARALLEL_NAND_IF.MyFlashDevice.NAME
+            flash_size = mem_dev.FCUSB.PARALLEL_NAND_IF.MyFlashDevice.FLASH_SIZE
+            page_size = mem_dev.FCUSB.PARALLEL_NAND_IF.MyFlashDevice.PAGE_SIZE
+            spare_size = mem_dev.FCUSB.PARALLEL_NAND_IF.MyFlashDevice.PAGE_EXT
+            block_size = mem_dev.FCUSB.PARALLEL_NAND_IF.MyFlashDevice.Block_Size
+        Else
+            Exit Sub
         End If
+        MainApp.PrintConsole(RM.GetString("gui_creating_nand_file"))
+        MainApp.PrintConsole("Memory device name: " & mem_name)
+        MainApp.PrintConsole("Flash size: " & Format(flash_size, "#,###") & " bytes")
+        MainApp.PrintConsole("Page size: " & Format(page_size, "#,###") & " bytes")
+        MainApp.PrintConsole("Extended size: " & Format(spare_size, "#,###") & " bytes")
+        MainApp.PrintConsole("Block size: " & Format(block_size, "#,###") & " bytes")
     End Sub
 
     Private Function PromptUserForSaveLocation(default_name As String) As String
         If Me.InvokeRequired Then
             Dim d As New cbPromptUserForSaveLocation(AddressOf PromptUserForSaveLocation)
-            Return Me.Invoke(d, {default_name})
+            Return CStr(Me.Invoke(d, {default_name}))
         Else
             Dim SaveMe As New SaveFileDialog
             SaveMe.AddExtension = True
@@ -1613,15 +1626,15 @@ Public Class MainForm
             Using archive As New ZipArchive(new_zip_file, ZipArchiveMode.Update)
                 Dim zipfile As ZipArchiveEntry = archive.CreateEntry("Main.bin")
                 Using main_bin As New IO.BinaryWriter(zipfile.Open)
-                    Dim bytes_left As UInt32 = mem_dev.Size
-                    Dim base_addr As UInt32 = 0
+                    Dim bytes_left As Long = mem_dev.Size
+                    Dim base_addr As Long = 0
                     Do While (bytes_left > 0)
-                        Dim packet_size As UInt32 = Math.Min(Kb512, bytes_left)
+                        Dim packet_size As Integer = CInt(Math.Min(Kb512, bytes_left))
                         Dim packet() As Byte = mem_dev.ReadFlash(base_addr, packet_size)
                         main_bin.Write(packet)
                         base_addr += packet_size
                         bytes_left -= packet_size
-                        Dim Percent As Integer = Math.Round(((mem_dev.Size - bytes_left) / mem_dev.Size) * 100)
+                        Dim Percent As Integer = CInt(Math.Round(((mem_dev.Size - bytes_left) / mem_dev.Size) * 100))
                         mem_dev.GuiControl.SetProgress(Percent)
                         SetStatus(String.Format(RM.GetString("gui_reading_flash"), Format(base_addr, "#,###"), Format(mem_dev.Size, "#,###"), Percent))
                     Loop
@@ -1635,64 +1648,54 @@ Public Class MainForm
     Private Sub NANDBACKUP_SaveImage(mem_dev As MemoryDeviceInstance)
         Try
             mem_dev.IsTaskRunning = True
-            Dim double_read As Boolean = MySettings.NAND_Verify
             Dim nand_cfg As New NAND_CONFIG
             If (MySettings.OPERATION_MODE = DeviceMode.PNAND) Then
                 Dim m As P_NAND = mem_dev.FCUSB.PARALLEL_NAND_IF.MyFlashDevice
                 nand_cfg.flash_name = m.NAME
-                nand_cfg.chipid = Hex(m.MFG_CODE).PadLeft(2, "0") & Hex(m.ID1).PadLeft(4, "0") & Hex(m.ID2).PadLeft(4, "0")
+                nand_cfg.chipid = Hex(m.MFG_CODE).PadLeft(2, "0"c) & Hex(m.ID1).PadLeft(4, "0"c) & Hex(m.ID2).PadLeft(4, "0"c)
                 nand_cfg.flash_size = m.FLASH_SIZE
                 nand_cfg.page_size = m.PAGE_SIZE
                 nand_cfg.oob_size = m.PAGE_EXT
                 nand_cfg.block_count = m.BLOCK_COUNT
                 nand_cfg.page_count = m.PAGE_COUNT
+                nand_cfg.block_size = m.PAGE_COUNT * CInt(m.PAGE_SIZE + m.PAGE_EXT)
             ElseIf (MySettings.OPERATION_MODE = DeviceMode.SPI_NAND) Then
                 Dim m As SPI_NAND = mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice
                 nand_cfg.flash_name = m.NAME
-                nand_cfg.chipid = Hex(m.MFG_CODE).PadLeft(2, "0") & Hex(m.ID1).PadLeft(4, "0")
+                nand_cfg.chipid = Hex(m.MFG_CODE).PadLeft(2, "0"c) & Hex(m.ID1).PadLeft(4, "0"c)
                 nand_cfg.flash_size = m.FLASH_SIZE
                 nand_cfg.page_size = m.PAGE_SIZE
                 nand_cfg.oob_size = m.PAGE_EXT
                 nand_cfg.block_count = m.BLOCK_COUNT
                 nand_cfg.page_count = m.PAGE_COUNT
+                nand_cfg.block_size = m.PAGE_COUNT * CInt(m.PAGE_SIZE + m.PAGE_EXT)
             Else
                 Exit Sub
             End If
             BACKUP_FILE = PromptUserForSaveLocation(nand_cfg.flash_name)
+            If String.IsNullOrEmpty(BACKUP_FILE) Then Exit Sub
             Dim ZipOutputFile As New IO.FileInfo(BACKUP_FILE)
             If ZipOutputFile.Exists Then ZipOutputFile.Delete()
             Using new_zip_file As IO.FileStream = ZipOutputFile.Open(IO.FileMode.Create)
                 Using archive As New ZipArchive(new_zip_file, ZipArchiveMode.Update)
                     ZIP_SetFile(archive, "NAND.cfg", nand_cfg.Save)
-                    Dim page_size_total As UInt32 = (nand_cfg.page_size + nand_cfg.oob_size)
-                    Dim pages_per_block As UInt32 = (nand_cfg.block_size / nand_cfg.page_size)
-                    Dim block_total As UInt32 = pages_per_block * (page_size_total)
-                    Dim page_addr As UInt32 = 0
-                    For i = 0 To nand_cfg.block_count - 1
+                    Dim page_addr As Integer = 0
+                    For block_index As Integer = 0 To nand_cfg.block_count - 1
                         If mem_dev.GuiControl.USER_HIT_CANCEL Then
                             SetStatus(RM.GetString("mc_mem_read_canceled"))
                             Exit Sub
                         End If
-                        Dim Percent As Integer = Math.Round(((i + 1) / nand_cfg.block_count) * 100)
+                        Dim Percent As Integer = CInt(Math.Round(((block_index + 1) / nand_cfg.block_count) * 100))
                         mem_dev.GuiControl.SetProgress(Percent)
-                        SetStatus(String.Format(RM.GetString("nand_reading_block"), Format((i + 1), "#,###"), Format(nand_cfg.block_count, "#,###"), Percent))
-                        Dim block_data_1(block_total - 1) As Byte
-                        Dim block_data_2(block_total - 1) As Byte
+                        SetStatus(String.Format(RM.GetString("nand_reading_block"), Format((block_index + 1), "#,###"), Format(nand_cfg.block_count, "#,###"), Percent))
+                        Dim block_data(nand_cfg.block_size - 1) As Byte
                         If (MySettings.OPERATION_MODE = DeviceMode.PNAND) Then
-                            mem_dev.FCUSB.PARALLEL_NAND_IF.NAND_ReadPages(page_addr, 0, block_data_1.Length, FlashArea.All, block_data_1)
-                            If double_read Then mem_dev.FCUSB.PARALLEL_NAND_IF.NAND_ReadPages(page_addr, 0, block_data_2.Length, FlashArea.All, block_data_2)
+                            mem_dev.FCUSB.PARALLEL_NAND_IF.NAND_ReadPages(page_addr, 0, block_data.Length, FlashArea.All, block_data)
                         ElseIf (MySettings.OPERATION_MODE = DeviceMode.SPI_NAND) Then
-                            mem_dev.FCUSB.SPI_NAND_IF.NAND_ReadPages(page_addr, 0, block_data_1.Length, FlashArea.All, block_data_1)
-                            If double_read Then mem_dev.FCUSB.SPI_NAND_IF.NAND_ReadPages(page_addr, 0, block_data_2.Length, FlashArea.All, block_data_2)
+                            mem_dev.FCUSB.SPI_NAND_IF.NAND_ReadPages(page_addr, 0, block_data.Length, FlashArea.All, block_data)
                         End If
-                        If double_read Then
-                            If Not Utilities.ArraysMatch(block_data_1, block_data_2) Then
-                                SetStatus(RM.GetString("gui_nand_creating_backup")) 'Error creating backup: read memory returned inconsistance results
-                                Exit Sub
-                            End If
-                        End If
-                        page_addr += pages_per_block
-                        ZIP_SetFile(archive, "BLOCK_" & i.ToString.PadLeft(4, "0"), block_data_1)
+                        page_addr += nand_cfg.page_count
+                        ZIP_SetFile(archive, "BLOCK_" & (block_index + 1).ToString.PadLeft(4, "0"c), block_data)
                     Next
                 End Using
             End Using
@@ -1705,23 +1708,23 @@ Public Class MainForm
     End Sub
     'Reads a zip file and writes to the uncompress contents to an attached NOR Flash memory device
     Private Sub NORBACKUP_LoadImage(mem_dev As MemoryDeviceInstance)
-        Dim sector_count As UInt32 = mem_dev.GetSectorCount
-        Dim bytes_left As UInt32 = mem_dev.Size
-        Dim base_addr As UInt32 = 0
+        Dim sector_count As Integer = mem_dev.GetSectorCount()
+        Dim bytes_left As Long = mem_dev.Size
+        Dim base_addr As Long = 0
         Dim ZipInputFile As New IO.FileInfo(BACKUP_FILE)
         Using zip_file As IO.FileStream = ZipInputFile.Open(IO.FileMode.Create)
             Using archive As New ZipArchive(zip_file, ZipArchiveMode.Read)
                 Dim zipfile As ZipArchiveEntry = archive.GetEntry("Main.bin")
                 Using nand_main As New IO.BinaryReader(zipfile.Open)
                     For i = 0 To sector_count - 1
-                        Dim sector_size As UInt32 = mem_dev.GetSectorSize(i)
+                        Dim sector_size As Integer = mem_dev.GetSectorSize(i)
                         Dim data_in() As Byte = nand_main.ReadBytes(sector_size)
                         If data_in Is Nothing Then Exit Sub
                         Dim WriteSuccess As Boolean = mem_dev.WriteBytes(base_addr, data_in, MySettings.VERIFY_WRITE)
                         If Not WriteSuccess Then Exit Sub
                         bytes_left -= sector_size
                         base_addr += sector_size
-                        Dim Percent As Integer = Math.Round(((mem_dev.Size - bytes_left) / mem_dev.Size) * 100)
+                        Dim Percent As Integer = CInt(Math.Round(((mem_dev.Size - bytes_left) / mem_dev.Size) * 100))
                         mem_dev.GuiControl.SetProgress(Percent)
                         SetStatus(String.Format(RM.GetString("gui_writing_flash"), Format(base_addr, "#,###"), Format(mem_dev.Size, "#,###"), Percent))
                     Next
@@ -1734,71 +1737,52 @@ Public Class MainForm
     'Reads a zip file and writes to the uncompress contents to an attached NAND Flash memory device
     Private Sub NANDBACKUP_LoadImage(mem_dev As MemoryDeviceInstance)
         Try
-            If (MySettings.OPERATION_MODE = DeviceMode.SPI_NAND) Then
+            Dim MyBlockManager As NAND_BLOCK_IF = Nothing
+            If (MySettings.OPERATION_MODE = DeviceMode.PNAND) Then
+                MyBlockManager = mem_dev.FCUSB.PARALLEL_NAND_IF.BlockManager
+            ElseIf (MySettings.OPERATION_MODE = DeviceMode.SPI_NAND) Then
                 MainApp.PrintConsole("Disabling SPI NAND ECC")
                 mem_dev.FCUSB.SPI_NAND_IF.ECC_ENABLED = False
                 Utilities.Sleep(20)
+                MyBlockManager = mem_dev.FCUSB.SPI_NAND_IF.BlockManager
             End If
             Dim ZipInputFile As New IO.FileInfo(BACKUP_FILE)
-            Using zip_file As IO.FileStream = ZipInputFile.Open(IO.FileMode.Create)
+            Using zip_file As IO.FileStream = ZipInputFile.Open(IO.FileMode.Open)
                 Using archive As New ZipArchive(zip_file, ZipArchiveMode.Read)
                     Dim nand_cfg_data() As Byte = ZIP_GetFile(archive, "NAND.cfg")
                     If nand_cfg_data Is Nothing Then SetStatus(RM.GetString("gui_not_valid_img")) : Exit Sub
                     Dim nand_cfg As New NAND_CONFIG(nand_cfg_data)
-                    MainApp.PrintConsole(String.Format(RM.GetString("gui_programming_img"), nand_cfg.flash_name))
-                    Dim pages_per_block As UInt32 = (nand_cfg.block_size / nand_cfg.page_size)
-                    Dim page_size_total As UInt32 = (nand_cfg.page_size + nand_cfg.oob_size)
-                    Dim block_total As UInt32 = pages_per_block * (page_size_total)
-                    Dim blocks_left As UInt32 = nand_cfg.block_count
-                    Dim total_pages As UInt32 = (nand_cfg.flash_size / nand_cfg.page_size)
-                    Dim page_addr As UInt32 = 0 'Target page address
-                    Dim block_index As UInt32 = 0
-                    While (blocks_left > 0)
+                    MainApp.PrintConsole(String.Format(RM.GetString("gui_programming_img"), nand_cfg.flash_name), True)
+                    Dim pages_per_block As UInt16 = CUShort(nand_cfg.block_size \ nand_cfg.page_size)
+                    Dim page_size_total As UInt16 = (nand_cfg.page_size + nand_cfg.oob_size)
+                    Dim block_total As Integer = CInt(pages_per_block) * page_size_total
+                    Dim total_pages As Integer = CInt(nand_cfg.flash_size \ nand_cfg.page_size)
+                    Dim page_addr As Integer = 0 'Target page address
+                    Dim BlocksToWrite As Integer = Math.Min(nand_cfg.block_count, MyBlockManager.VALID_BLOCKS)
+                    For block_index As Integer = 0 To BlocksToWrite - 1
                         If mem_dev.GuiControl.USER_HIT_CANCEL Then SetStatus(RM.GetString("mc_wr_user_canceled")) : Exit Sub
-                        Dim block_data() As Byte = ZIP_GetFile(archive, "BLOCK_" & block_index.ToString.PadLeft(4, "0"))
+                        mem_dev.GuiControl.SetProgress(CInt(Math.Round((block_index / nand_cfg.block_count) * 100)))
+                        Dim block_data() As Byte = ZIP_GetFile(archive, "BLOCK_" & (block_index + 1).ToString.PadLeft(4, "0"c))
                         If block_data Is Nothing Then
-                            SetStatus(String.Format(RM.GetString("nand_missing_block"), block_index))
-                            Exit Sub
+                            SetStatus(String.Format(RM.GetString("nand_missing_block"), block_index)) : Exit Sub
                         End If
-                        If NANDBACKUP_IsValid(block_data, nand_cfg.page_size, nand_cfg.oob_size) Then
-                            Dim Percent As Integer = Math.Round(((block_index + 1) / nand_cfg.block_count) * 100)
-                            mem_dev.GuiControl.SetProgress(Percent)
-                            Dim block_ind_str As String = Format(block_index, "#,###")
-                            If block_ind_str = "" Then block_ind_str = "0"
-                            SetStatus(String.Format(RM.GetString("nand_writing_block"), block_ind_str, Format(nand_cfg.block_count, "#,###"), Percent))
-                            Dim valid_page As UInt32 = mem_dev.FCUSB.NAND_IF.GetPageMapping(page_addr)
-                            mem_dev.FCUSB.NAND_IF.ERASEBLOCK(valid_page, FlashArea.All, False) 'We are going to erase the entire block and not make a copy
-                            mem_dev.FCUSB.NAND_IF.WRITEPAGE(valid_page, block_data, FlashArea.All) 'We are going to write the entire block (with spare)
-                            If MySettings.VERIFY_WRITE Then 'Lets read back and compare
-                                SetStatus(RM.GetString("mem_verify_data"))
-                                Dim verify_data() As Byte = mem_dev.FCUSB.NAND_IF.READPAGE(valid_page, 0, block_total, FlashArea.All) 'Read back the entire page
-                                If Utilities.ArraysMatch(block_data, verify_data) Then
-                                    SetStatus(RM.GetString("mem_verify_okay"))
-                                Else
-                                    SetStatus(RM.GetString("mem_verify_failed"))
-                                    PrintConsole(String.Format(RM.GetString("mem_bad_nand_block"), Hex(valid_page).PadLeft(6, "0"), block_index))
-                                    If MySettings.NAND_SkipBadBlock Then 'Bad block (We will write this same block to the next page)
-                                        blocks_left = blocks_left + 1 'This will cause the next block to be written instead
-                                    Else
-                                        Dim block_addr As UInt32 = (valid_page * nand_cfg.page_size)
-                                        Dim TitleTxt As String = String.Format(RM.GetString("mem_verify_failed_at"), Hex(block_addr).PadLeft(8, "0"))
-                                        TitleTxt &= vbCrLf & vbCrLf & RM.GetString("mem_ask_continue")
-                                        If MsgBox(TitleTxt, MsgBoxStyle.YesNo, RM.GetString("mem_verify_failed_title")) = MsgBoxResult.No Then
-                                            SetStatus(RM.GetString("mc_wr_user_canceled"))
-                                            Exit Sub
-                                        End If
-                                    End If
+                        If NANDBACKUP_IsValid(block_data, nand_cfg.page_size, nand_cfg.oob_size) Then 'This block is valid, we are going
+                            If (MySettings.OPERATION_MODE = DeviceMode.PNAND) Then
+                                Dim phy_addr As Integer = mem_dev.FCUSB.PARALLEL_NAND_IF.BlockManager.GetPhysical(page_addr)
+                                mem_dev.FCUSB.PARALLEL_NAND_IF.SectorErase_Physical(phy_addr)
+                                If Not Utilities.IsByteArrayFilled(block_data, 255) Then 'We want to skip blank data
+                                    mem_dev.FCUSB.PARALLEL_NAND_IF.WritePage_Physical(phy_addr, block_data, FlashArea.All)
+                                End If
+                            ElseIf (MySettings.OPERATION_MODE = DeviceMode.SPI_NAND) Then
+                                Dim phy_addr As Integer = mem_dev.FCUSB.SPI_NAND_IF.BlockManager.GetPhysical(page_addr)
+                                mem_dev.FCUSB.SPI_NAND_IF.SectorErase_Physical(phy_addr)
+                                If Not Utilities.IsByteArrayFilled(block_data, 255) Then 'We want to skip blank data
+                                    mem_dev.FCUSB.SPI_NAND_IF.WritePage_Physical(phy_addr, block_data, FlashArea.All)
                                 End If
                             End If
-                            page_addr += pages_per_block
+                            page_addr += nand_cfg.page_count '64
                         End If
-                        blocks_left = blocks_left - 1
-                        block_index += 1
-                        If (page_addr = total_pages) Then
-                            PrintConsole(String.Format(RM.GetString("nand_completed_with_blocks_left"), blocks_left.ToString))
-                            Exit While
-                        End If
-                    End While
+                    Next
                     mem_dev.GuiControl.SetProgress(0)
                     SetStatus(RM.GetString("gui_img_successful"))
                 End Using
@@ -1811,22 +1795,22 @@ Public Class MainForm
         End Try
     End Sub
     'This uses the current settings to indicate if this block is valid
-    Private Function NANDBACKUP_IsValid(block_data() As Byte, page_size As UInt32, oob_size As UInt32) As Boolean
+    Private Function NANDBACKUP_IsValid(block_data() As Byte, page_size As UInt16, oob_size As UInt16) As Boolean
         Try
             If MySettings.NAND_BadBlockManager = BadBlockMode.Disabled Then Return True
-            Dim layout_main As UInt32
-            Dim layout_oob As UInt32
+            Dim layout_main As UInt16
+            Dim layout_oob As UInt16
             If MySettings.NAND_Layout = NandMemLayout.Separated Then
                 layout_main = page_size
                 layout_oob = oob_size
             ElseIf MySettings.NAND_Layout = NandMemLayout.Segmented Then
                 Select Case page_size
                     Case 4096
-                        layout_main = (page_size / 4)
-                        layout_oob = (oob_size / 4)
+                        layout_main = (page_size \ 4US)
+                        layout_oob = (oob_size \ 4US)
                     Case 2048
-                        layout_main = (page_size / 4)
-                        layout_oob = (oob_size / 4)
+                        layout_main = (page_size \ 4US)
+                        layout_oob = (oob_size \ 4US)
                     Case Else
                         layout_main = page_size
                         layout_oob = oob_size
@@ -1834,7 +1818,7 @@ Public Class MainForm
             End If
             Dim oob As New List(Of Byte()) 'contains oob
             Dim page_size_total As UInt16 = (layout_main + layout_oob)
-            Dim page_count As UInt32 = block_data.Length / page_size_total
+            Dim page_count As Integer = block_data.Length \ page_size_total
             For i = 0 To page_count - 1
                 Dim oob_data(layout_oob - 1) As Byte
                 Array.Copy(block_data, i * page_size_total, oob_data, 0, oob_data.Length)
@@ -1989,12 +1973,12 @@ Public Class MainForm
                 MainApp.PrintConsole(RM.GetString("gui_script_non_available"))
             ElseIf (MyScripts.Length / 2) = 1 Then
                 MainApp.PrintConsole(String.Format(RM.GetString("gui_script_loading"), MyScripts(0, 0)))
-                If ScriptEngine.LoadFile(New IO.FileInfo(ScriptPath & MyScripts(0, 0))) Then
+                If ScriptIF.ScriptProcessor.LoadFile(New IO.FileInfo(ScriptPath & MyScripts(0, 0))) Then
                     UpdateStatusMessage(RM.GetString("gui_active_script"), MyScripts(0, 1))
                     mi_script_selected.Enabled = True
                     mi_script_load.Enabled = True
                     mi_script_unload.Enabled = True
-                    Dim tsi As ToolStripMenuItem = mi_script_selected.DropDownItems.Add(MyScripts(0, 0))
+                    Dim tsi As ToolStripMenuItem = CType(mi_script_selected.DropDownItems.Add(MyScripts(0, 0)), ToolStripMenuItem)
                     tsi.Tag = New script_option With {.file_name = MyScripts(0, 0), .jedec_id = JEDEC_ID}
                     AddHandler tsi.Click, AddressOf LoadSelectedScript
                     tsi.Checked = True
@@ -2005,7 +1989,7 @@ Public Class MainForm
                 mi_script_load.Enabled = True
                 mi_script_unload.Enabled = True
                 For i = 0 To CInt((MyScripts.Length / 2) - 1)
-                    Dim tsi As ToolStripMenuItem = mi_script_selected.DropDownItems.Add(MyScripts(i, 1))
+                    Dim tsi As ToolStripMenuItem = CType(mi_script_selected.DropDownItems.Add(MyScripts(i, 1)), ToolStripMenuItem)
                     tsi.Tag = New script_option With {.file_name = MyScripts(i, 0), .jedec_id = JEDEC_ID}
                     AddHandler tsi.Click, AddressOf LoadSelectedScript
                     If pre_script_name = "" AndAlso i = 0 Then
@@ -2017,7 +2001,7 @@ Public Class MainForm
                 Next
                 UpdateStatusMessage(RM.GetString("gui_active_script"), MyScripts(SelectScript, 0))
                 Dim df As New IO.FileInfo(ScriptPath & MyScripts(SelectScript, 0))
-                ScriptEngine.LoadFile(df)
+                ScriptIF.ScriptProcessor.LoadFile(df)
             End If
         End If
     End Sub
@@ -2079,7 +2063,7 @@ Public Class MainForm
     End Sub
 
     Public Sub UnloadActiveScript()
-        ScriptEngine.Unload()
+        ScriptIF.Unload()
         RemoveScriptChecks()
         RemoveStatusMessage(RM.GetString("gui_active_script"))
     End Sub
@@ -2104,8 +2088,8 @@ Public Class MainForm
     Private Sub LoadScriptFile(scriptName As String)
         Dim f As New IO.FileInfo(scriptName)
         If f.Exists Then
-            ScriptEngine.Unload()
-            If ScriptEngine.LoadFile(f) Then
+            ScriptIF.Unload()
+            If ScriptIF.ScriptProcessor.LoadFile(f) Then
                 UpdateStatusMessage(RM.GetString("gui_active_script"), f.Name)
                 SetStatus(String.Format(RM.GetString("gui_script_loaded"), f.Name)) 'RM.GetString("fcusb_script_loaded")
                 mi_script_unload.Enabled = True
@@ -2118,9 +2102,9 @@ Public Class MainForm
     End Sub
 
     Private Sub LoadSelectedScript(sender As Object, e As EventArgs)
-        Dim tsi As ToolStripMenuItem = sender
+        Dim tsi As ToolStripMenuItem = CType(sender, ToolStripMenuItem)
         If (Not tsi.Checked) Then
-            Dim scr_obj As script_option = tsi.Tag
+            Dim scr_obj As script_option = DirectCast(tsi.Tag, script_option)
             LoadScriptFile(Application.StartupPath & "\Scripts\" & scr_obj.file_name)
             RemoveScriptChecks()
             tsi.Checked = True
@@ -2164,9 +2148,7 @@ Public Class MainForm
 
     Public Sub USBDeviceConnected(usb_dev As FCUSB_DEVICE)
         Dim mode As DeviceMode = MySettings.OPERATION_MODE
-        If usb_dev.HWBOARD = FCUSB_BOARD.ATMEL_DFU Then
-            UpdateStatusMessage(RM.GetString("device_mode"), "DFU bootloader mode")
-        ElseIf (mode = DeviceMode.SPI) Then
+        If (mode = DeviceMode.SPI) Then
             UpdateStatusMessage(RM.GetString("device_mode"), "Serial Programmable Interface (SPI)")
         ElseIf (mode = DeviceMode.SQI) Then
             UpdateStatusMessage(RM.GetString("device_mode"), "Serial Programmable Interface (SQI)")
@@ -2215,7 +2197,7 @@ Public Class MainForm
     End Sub
 
     Private Sub JTAG_Init(usb_dev As FCUSB_DEVICE)
-        ScriptEngine.CURRENT_DEVICE_MODE = MySettings.OPERATION_MODE
+        ScriptIF.CURRENT_DEVICE_MODE = MySettings.OPERATION_MODE
         If usb_dev.HasLogic Then
             usb_dev.JTAG_IF.TCK_SPEED = MySettings.JTAG_SPEED
         Else
@@ -2267,7 +2249,7 @@ Public Class MainForm
         Else
             Dim c As ToolStripItemCollection = mi_jtag_menu.DropDownItems
             For i = 0 To c.Count - 1
-                Dim tsi As ToolStripMenuItem = c(i)
+                Dim tsi As ToolStripMenuItem = CType(c(i), ToolStripMenuItem)
                 If i = index Then
                     tsi.Checked = True
                 Else
@@ -2278,9 +2260,9 @@ Public Class MainForm
     End Sub
 
     Private Sub JTAG_device_OnClick(sender As Object, e As EventArgs)
-        Dim tsi As ToolStripMenuItem = sender
+        Dim tsi As ToolStripMenuItem = CType(sender, ToolStripMenuItem)
         If tsi.Checked Then Exit Sub
-        Dim new_index As Integer = tsi.Tag
+        Dim new_index As Integer = CInt(tsi.Tag)
         JTAG_Select(new_index)
     End Sub
     'Selects a device on a JTAG chain
@@ -2310,7 +2292,7 @@ Public Class MainForm
                 GUI.UnloadActiveScript()
                 GUI.RemoveStatusMessage("Device")
             Else
-                ScriptEngine.Unload()
+                ScriptIF.Unload()
             End If
             Dim index As Integer = MAIN_FCUSB.JTAG_IF.Chain_SelectedIndex
             If (Not (MAIN_FCUSB.JTAG_IF.Devices(index).IDCODE = 0)) Then
@@ -2339,25 +2321,29 @@ Public Class MainForm
     End Function
 
     Public Sub SetConnectionStatus()
-        If Me.InvokeRequired Then
-            Dim d As New cbSetConnectionStatus(AddressOf SetConnectionStatus)
-            Me.Invoke(d)
-        Else
-            StatusMessages_LoadMemoryDevices()
-            If (MAIN_FCUSB Is Nothing) Then
-                statuspage_progress.Value = 0
-                statuspage_progress.Visible = False
-                mi_jtag_menu.Visible = False
-                Me.lblStatus.Text = RM.GetString("gui_fcusb_disconnected")
-                ClearStatusMessage()
-                ScriptEngine.Unload() 'Unloads the device script and any objects/tabs
-                RemoveStatusMessage(RM.GetString("gui_active_script"))
-                If frm_vendor IsNot Nothing Then frm_vendor.Close() 'If the vendor form is open, close it
+        Try
+            If Me.InvokeRequired Then
+                Dim d As New cbSetConnectionStatus(AddressOf SetConnectionStatus)
+                Me.Invoke(d)
             Else
-                Me.lblStatus.Text = RM.GetString("gui_fcusb_connected")
+                If AppIsClosing Then Exit Sub
+                StatusMessages_LoadMemoryDevices()
+                If (MAIN_FCUSB Is Nothing) Then
+                    statuspage_progress.Value = 0
+                    statuspage_progress.Visible = False
+                    mi_jtag_menu.Visible = False
+                    Me.lblStatus.Text = RM.GetString("gui_fcusb_disconnected")
+                    ClearStatusMessage()
+                    ScriptIF.Unload() 'Unloads the device script and any objects/tabs
+                    RemoveStatusMessage(RM.GetString("gui_active_script"))
+                    If frm_vendor IsNot Nothing Then frm_vendor.Close() 'If the vendor form is open, close it
+                Else
+                    Me.lblStatus.Text = RM.GetString("gui_fcusb_connected")
+                End If
+                Application.DoEvents()
             End If
-            Application.DoEvents()
-        End If
+        Catch ex As Exception
+        End Try
     End Sub
 
     Public Sub OnNewDeviceConnected(mem_dev As MemoryDeviceInstance)
@@ -2371,10 +2357,10 @@ Public Class MainForm
             mem_dev.VendorMenu = Nothing
             Dim flash_vendor As VENDOR_FEATURE = VENDOR_FEATURE.NotSupported
             Dim flash_programmer As MemoryDeviceUSB = Nothing
-            If mem_dev.FlashType = MemoryType.SERIAL_NOR Then
+            If mem_dev.FCUSB.PROGRAMMER.GetType Is GetType(SPI.SPI_Programmer) Then
                 flash_vendor = MAIN_FCUSB.SPI_NOR_IF.MyFlashDevice.VENDOR_SPECIFIC
                 flash_programmer = MAIN_FCUSB.SPI_NOR_IF
-            ElseIf mem_dev.FlashType = MemoryType.SERIAL_QUAD Then
+            ElseIf mem_dev.FCUSB.PROGRAMMER.GetType Is GetType(SPI.SQI_Programmer) Then
                 flash_vendor = MAIN_FCUSB.SQI_NOR_IF.MyFlashDevice.VENDOR_SPECIFIC
                 flash_programmer = MAIN_FCUSB.SQI_NOR_IF
             End If
@@ -2385,6 +2371,8 @@ Public Class MainForm
                     mem_dev.VendorMenu = New vendor_spansion_FL(flash_programmer)
                 ElseIf (flash_vendor = FlashMemory.VENDOR_FEATURE.ISSI) Then
                     mem_dev.VendorMenu = New vendor_issi(flash_programmer)
+                ElseIf (flash_vendor = FlashMemory.VENDOR_FEATURE.Winbond) Then
+                    mem_dev.VendorMenu = New vendor_winbond(flash_programmer)
                 End If
             End If
             ResizeToFitHexViewer()
@@ -2440,7 +2428,7 @@ Public Class MainForm
         frm_vendor.ShowDialog()
     End Sub
 
-    Private Sub mi_close_vendor_form()
+    Private Sub mi_close_vendor_form(sender As Object)
         Try
             frm_vendor.Close()
         Catch ex As Exception
@@ -2528,12 +2516,12 @@ Public Class MainForm
             memDev.DisableGuiControls()
             Dim is_blank As Boolean = True
             Dim block_size As Integer = 32768
-            Dim block_count As Integer = memDev.Size / block_size
+            Dim block_count As Integer = CInt(memDev.Size \ block_size)
             Dim data_addr As Long
             memDev.GuiControl.SetProgress(0)
             For i = 0 To block_count - 1
                 data_addr = i * block_size
-                memDev.GuiControl.SetProgress((i / block_count) * 100)
+                memDev.GuiControl.SetProgress((i \ block_count) * 100)
                 Dim d() As Byte = memDev.ReadFlash(data_addr, block_size)
                 For x = 0 To d.Length - 1
                     If (Not d(x) = 255) Then
@@ -2549,7 +2537,7 @@ Public Class MainForm
                 SetStatus("EPROM device is blank (erased)")
             Else
                 MainApp.PrintConsole("Blank check performed: device is not blank")
-                SetStatus("EPROM device is not blank (0x" & Hex(data_addr).PadLeft(8, "0") & " contains data)")
+                SetStatus("EPROM device is not blank (0x" & Hex(data_addr).PadLeft(8, "0"c) & " contains data)")
             End If
         Catch ex As Exception
         Finally

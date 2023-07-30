@@ -1,3 +1,7 @@
+Option Strict On
+
+Imports System.Text
+
 Namespace Utilities
 
     Namespace Bytes
@@ -43,8 +47,8 @@ Namespace Utilities
                 Dim ret(str_in.Length - 1) As Byte
                 Dim i As Integer
                 For i = 0 To ret.Length - 1
-                    Dim c As Char = str_in.Substring(i, 1)
-                    ret(i) = AscW(c)
+                    Dim c As Char = CChar(str_in.Substring(i, 1))
+                    ret(i) = CByte(AscW(c))
                 Next
                 Return ret
             End Function
@@ -64,13 +68,11 @@ Namespace Utilities
                 Next
                 Return ret
             End Function
-
             'Converts a string into a byte array (adds string terminator)
             Public Function FromStringZero(str_in As String) As Byte()
                 Dim ret(str_in.Length) As Byte
-                Dim i As Integer
-                For i = 0 To ret.Length - 2
-                    ret(i) = AscW(Mid(str_in, i + 1, 1))
+                For i As Integer = 0 To ret.Length - 2
+                    ret(i) = CByte(AscW(str_in.Substring(i, 1)))
                 Next
                 ret(str_in.Length) = 0
                 Return ret
@@ -106,7 +108,7 @@ Namespace Utilities
                 If hex_string.StartsWith("0X") Then hex_string = hex_string.Substring(2)
                 If hex_string.EndsWith("H") Then hex_string = hex_string.Substring(0, hex_string.Length - 1)
                 If Not hex_string.Length Mod 2 = 0 Then hex_string = "0" & hex_string
-                Dim data_out((hex_string.Length / 2) - 1) As Byte
+                Dim data_out((hex_string.Length \ 2) - 1) As Byte
                 For i = 0 To data_out.Length - 1
                     data_out(i) = Convert.ToByte(hex_string.Substring(i * 2, 2), 16)
                 Next
@@ -117,10 +119,10 @@ Namespace Utilities
                 Do Until bits_in.Length Mod 8 = 0
                     bits_in &= "0"
                 Loop
-                Dim numbytes As Integer = Math.Ceiling(bits_in / 8)
+                Dim numbytes As Integer = CInt(Math.Ceiling(bits_in.Length / 8))
                 Dim bytesout(numbytes - 1) As Byte
                 Dim counter As Integer = 0
-                For i = 1 To bits_in.Length Step 8
+                For i = 0 To bits_in.Length - 1 Step 8
                     bytesout(counter) = Convert.ToByte(bits_in.Substring(i, 8), 2)
                     counter += 1
                 Next
@@ -136,9 +138,9 @@ Namespace Utilities
             'Converts a ipv4/6 address and port into bytes. I.e. "192.168.100.1:80"
             Public Function FromTransport(input As String) As Byte()
                 Try
-                    Dim part1 As String = Mid(input, 1, InStr(input, ":") - 1)
-                    Dim part2 As String = Mid(input, InStr(input, ":") + 1)
-                    Dim port() As Byte = FromUInt16(CInt(part2))
+                    Dim part1 As String = input.Substring(0, input.IndexOf(":"))
+                    Dim part2 As String = input.Substring(input.IndexOf(":") + 1)
+                    Dim port() As Byte = FromUInt16(CUShort(part2))
                     Dim ip() As Byte = FromAnyIpAddress(part1)
                     ReDim Preserve ip(ip.Length + 1)
                     ip(ip.Length - 2) = port(0)
@@ -151,13 +153,13 @@ Namespace Utilities
 
             Public Function FromCharStringArray(str_in() As String) As Byte()
                 Try
-                    Dim total_size As UInt32 = 0
+                    Dim total_size As Integer = 0
                     For Each line In str_in
                         total_size += line.Length + 2
                     Next
                     total_size = total_size - 2 'Removes the last CrLf
                     Dim bytes_out(total_size - 1) As Byte
-                    Dim ptr As UInt32 = 0
+                    Dim ptr As Integer = 0
                     For i = 0 To str_in.Length - 1
                         Dim x() As Byte = Nothing
                         If i = str_in.Length - 1 Then 'last entry
@@ -212,8 +214,8 @@ Namespace Utilities
 
             Public Function ToUInt16(data() As Byte) As UInt16
                 If data Is Nothing OrElse data.Length > 2 Then Return 0
-                If data.Length = 1 Then Return CUInt(data(0))
-                Return (data(0) * 256) + data(1)
+                If data.Length = 1 Then Return CUShort(data(0))
+                Return (CUShort(data(0)) * 256US) + CUShort(data(1))
             End Function
             'Converts up to 4 bytes to a signed integer
             Public Function ToInt32(input() As Byte) As Int32
@@ -308,7 +310,7 @@ Namespace Utilities
             Public Function ToHexString(bytes_Input() As Byte) As String
                 Dim strTemp As New Text.StringBuilder(bytes_Input.Length * 2)
                 For Each b As Byte In bytes_Input
-                    strTemp.Append(b.ToString("X").PadLeft(2, "0"))
+                    strTemp.Append(b.ToString("X").PadLeft(2, "0"c))
                 Next
                 Return strTemp.ToString()
             End Function
@@ -365,7 +367,7 @@ Namespace Utilities
             End Function
 
             Private Function GetByteChar(n As Byte) As Char
-                n = (n And &HF) 'We are only converting first 4 bits
+                n = CByte((n And &HF)) 'We are only converting first 4 bits
                 If n < 10 Then
                     Return ChrW(48 + n) '0-9
                 Else
@@ -448,15 +450,15 @@ Namespace Utilities
                 If input.ToUpper().StartsWith("0X") Then input = input.Substring(2)
                 Dim i As Integer
                 For i = 0 To input.Length - 1
-                    Dim c As Char = input.Substring(i, 1).ToUpper()
+                    Dim c As Char = CChar(input.Substring(i, 1).ToUpper())
                     If Not IsNumeric(c) Then
                         Select Case c
-                            Case "A"
-                            Case "B"
-                            Case "C"
-                            Case "D"
-                            Case "E"
-                            Case "F"
+                            Case "A"c
+                            Case "B"c
+                            Case "C"c
+                            Case "D"c
+                            Case "E"c
+                            Case "F"c
                             Case Else
                                 Return False
                         End Select
@@ -554,10 +556,10 @@ Namespace Utilities
                     If MaximumSize > 0 Then
                         ReDim BytesOut(MaximumSize - 1)
                     Else
-                        ReDim BytesOut(local_file.Length - 1)
+                        ReDim BytesOut(CInt(local_file.Length) - 1)
                     End If
                     Using file_reader As New IO.BinaryReader(local_file.OpenRead)
-                        For i As UInt32 = 0 To BytesOut.Length - 1
+                        For i As Integer = 0 To BytesOut.Length - 1
                             BytesOut(i) = file_reader.ReadByte
                         Next
                         file_reader.Close()
@@ -599,19 +601,15 @@ Namespace Utilities
 
         Public Function IsByteArrayFilled(ByRef data() As Byte, value As Byte) As Boolean
             If data Is Nothing Then Return False
-            Dim counter As Long = 0
             For Each d In data
-                If Not d = value Then
-                    Return False
-                End If
-                counter += 1
+                If (Not d = value) Then Return False
             Next
             Return True
         End Function
 
         Public Function RemoveQuotes(input As String) As String
             If input.StartsWith("""") AndAlso input.EndsWith("""") Then
-                Return Mid(input, 2, input.Length - 2)
+                Return input.Substring(1, input.Length - 2)
             End If
             Return input
         End Function
@@ -641,11 +639,11 @@ Namespace Utilities
                 If pattern_chars.Length > 3 Then Return "" 'can only be max len of 3
                 If data.Length > 4 Then Return "" 'can only be 4 bytes or less
                 Select Case pattern_chars(0)
-                    Case "x"
+                    Case "x"c
                         If data Is Nothing Then data = {0}
                         Dim output As Integer = Bytes.ToInt32(data)
                         Return Pad(Hex(output))
-                    Case "d"
+                    Case "d"c
                         If data Is Nothing Then data = {0}
                         Dim decimal_point As Integer = 0
                         If pattern_chars.Length > 2 AndAlso pattern_chars(1) = "-" Then
@@ -661,11 +659,11 @@ Namespace Utilities
                             output = StrReverse(output)
                         End If
                         Return output
-                    Case "o"
+                    Case "o"c
                         If data Is Nothing Then data = {0}
                         Dim output As UInteger = Bytes.ToUInt32(data)
                         Return Convert.ToString(output, 8)
-                    Case "b"
+                    Case "b"c
                         If data Is Nothing Then data = {0}
                         Dim output As UInteger = Bytes.ToUInt32(data)
                         Return Convert.ToString(output, 2)
@@ -679,13 +677,13 @@ Namespace Utilities
             Dim pattern_chars() As Char = pattern.ToLower.ToCharArray
             If pattern_chars.Length > 3 Then Return Nothing 'can only be max len of 3
             Select Case pattern_chars(0)
-                Case "x"
+                Case "x"c
                     If IsDataType.Hex(input) Then
                         Return Bytes.FromHexString(input)
                     Else
                         Return Nothing
                     End If
-                Case "d"
+                Case "d"c
                     Dim decimal_point As Integer = 0
                     If pattern_chars.Length > 2 AndAlso pattern_chars(1) = "-" Then
                         decimal_point = CInt(CStr(pattern_chars(2)))
@@ -693,27 +691,27 @@ Namespace Utilities
                     If Not IsNumeric(input) Then Return Nothing 'We can only parse an numeric value
                     If decimal_point > 0 Then
                         input = StrReverse(input)
-                        Dim offset As Integer = InStr(input, ".") - 1
+                        Dim offset As Integer = input.IndexOf("."c)
                         If offset = -1 Then 'value contains no decimal
-                            input = Mid(input, 1, decimal_point) & "." & Mid(input, decimal_point + 1)
+                            input = input.Substring(0, decimal_point) & input.Substring(decimal_point + 1)
                         Else
                             If offset > decimal_point Then Return Nothing
                             Do Until offset = decimal_point
                                 input = "0" & input
-                                offset = InStr(input, ".") - 1
+                                offset = input.IndexOf("."c)
                             Loop
                         End If
                         input = StrReverse(input)
                     End If
                     input = input.Replace(".", "")
-                    Return Bytes.FromInt32(input) 'Allow smaller integer? sure, for now
-                Case "o"
+                    Return Bytes.FromInt32(Integer.Parse(input)) 'Allow smaller integer? sure, for now
+                Case "o"c
                     If Not IsNumeric(input) Then Return Nothing 'We can only parse an numeric value
                     Dim output As Int32 = Convert.ToInt32(input, 8)
                     Return Bytes.FromInt32(output)
-                Case "b"
+                Case "b"c
                     If Not IsBinary(input) Then Return Nothing
-                    Dim output As UInt32 = Convert.ToUInt32(output, 2)
+                    Dim output As UInt32 = Convert.ToUInt32(input, 2)
                     Return Bytes.FromUInt32(output)
             End Select
             Return Nothing
@@ -726,18 +724,18 @@ Namespace Utilities
                 Dim repeat_term As Boolean = False
                 If pattern.StartsWith("*") Then
                     data_out.Add(CByte(0)) 'Holder for repeat holder
-                    pattern = Mid(pattern, 2) 'Removes the *
+                    pattern = pattern.Substring(1) 'Removes the *
                     repeat_term = True
                 End If
-                Dim pattern_pointer As Integer = 1 ' to the end of pattern
+                Dim pattern_pointer As Integer = 0 ' to the end of pattern
                 Do Until input = ""
                     Dim octetsize_str As String = ""
-                    Do Until Not IsNumeric(Mid(pattern, pattern_pointer, 1))
-                        octetsize_str &= Mid(pattern, pattern_pointer, 1)
+                    Do Until Not IsNumeric(pattern.Substring(pattern_pointer, 1))
+                        octetsize_str &= pattern.Substring(pattern_pointer, 1)
                         pattern_pointer += 1
                     Loop
-                    If octetsize_str = "" Then octetsize_str = "0"
-                    Dim pattern_cmd As String = Mid(pattern, pattern_pointer, 1)
+                    If octetsize_str.Equals("") Then octetsize_str = "0"
+                    Dim pattern_cmd As String = pattern.Substring(pattern_pointer, 1)
                     pattern_pointer += 1 : If pattern_pointer > pattern.Length Then pattern_pointer = 1
                     Dim requested_size As Integer = CInt(octetsize_str)
                     If requested_size > 0 Then
@@ -746,12 +744,12 @@ Namespace Utilities
                                 '1080:0:0:0:8:800:200C:417A
                                 Dim HexStr As String = ""
                                 For i = 1 To (requested_size * 2)
-                                    HexStr &= Mid(input, 1, 1)
-                                    input = Mid(input, 2)
-                                    If input = "" Then Exit Do
-                                    If Not Utilities.IsDataType.Hex(HexStr & Mid(input, 1, 1)) Then Exit For
+                                    HexStr &= input.Substring(0, 1)
+                                    input = input.Substring(1)
+                                    If input.Equals("") Then Exit Do
+                                    If Not IsDataType.Hex(HexStr & input.Substring(0, 1)) Then Exit For
                                 Next
-                                Dim d() As Byte = Utilities.Bytes.FromHexString(HexStr)
+                                Dim d() As Byte = Bytes.FromHexString(HexStr)
                                 If Not d.Length = requested_size Then
                                     Dim c(requested_size - 1) As Byte
                                     For i = 0 To d.Length - 1
@@ -762,15 +760,15 @@ Namespace Utilities
                                 data_out.AddRange(d)
                             Case "d"  'decimal
                                 Dim d_value As String = ""
-                                Do Until (input = "") OrElse (Not IsNumeric(Mid(input, 1, 1)))
-                                    d_value &= Mid(input, 1, 1)
-                                    input = Mid(input, 2)
+                                Do Until (input.Equals("")) OrElse (Not IsNumeric(input.Substring(0, 1)))
+                                    d_value &= input.Substring(0, 1)
+                                    input = input.Substring(1)
                                 Loop
-                                If d_value = "" Then Return Nothing
+                                If String.IsNullOrEmpty(d_value) Then Return Nothing
                                 Dim data() As Byte = Nothing
                                 Select Case requested_size
                                     Case 1
-                                        data = {CByte(d_value And 255)}
+                                        data = {Byte.Parse(d_value)}
                                     Case 2
                                         data = Bytes.FromUInt16(CUShort(d_value))
                                     Case 3
@@ -785,16 +783,16 @@ Namespace Utilities
                                 Next
                             Case "o" 'octet
                                 Dim d_value As String = ""
-                                Do Until (input = "") OrElse (Not IsNumeric(Mid(input, 1, 1)))
-                                    d_value &= Mid(input, 1, 1)
-                                    input = Mid(input, 2)
+                                Do Until (input.Equals("")) OrElse (Not IsNumeric(input.Substring(0, 1)))
+                                    d_value &= input.Substring(0, 1)
+                                    input = input.Substring(1)
                                 Loop
                                 If d_value = "" Then Return Nothing
                                 Dim data() As Byte = Nothing
                                 Dim output As UInt32 = Convert.ToUInt32(d_value, 8)
                                 Select Case requested_size
                                     Case 1
-                                        data = {CByte(d_value And 255)}
+                                        data = {Byte.Parse(d_value)}
                                     Case 2
                                         data = Bytes.FromUInt16(CUShort(output))
                                     Case 3
@@ -809,41 +807,41 @@ Namespace Utilities
                                 Next
                             Case "a" 'ascii
                                 For i = 1 To requested_size
-                                    Dim c As Char = CChar(Mid(input, 1, 1))
-                                    input = Mid(input, 2)
-                                    data_out.Add(AscW(c))
+                                    Dim c As Char = CChar(input.Substring(0, 1))
+                                    input = input.Substring(1)
+                                    data_out.Add(CByte(AscW(c)))
                                     If input = "" Then Exit For
                                 Next
                             Case "t" 'UTF-8
                                 For i = 1 To requested_size
-                                    Dim c As Char = CChar(Mid(input, 1, 1))
-                                    input = Mid(input, 2)
-                                    data_out.Add(AscW(c))
+                                    Dim c As Char = CChar(input.Substring(0, 1))
+                                    input = input.Substring(1)
+                                    data_out.Add(CByte(AscW(c)))
                                     If input = "" Then Exit For
                                 Next
                         End Select
                     End If
-                    If (Not IsNumeric(Mid(pattern, pattern_pointer, 1))) And (Not input = "") Then 'display separator character (optional)
-                        Dim sep_char As String = Mid(pattern, pattern_pointer, 1)
+                    If (Not IsNumeric(pattern.Substring(pattern_pointer, 1))) And (Not input.Equals("")) Then 'display separator character (optional)
+                        Dim sep_char As String = pattern.Substring(pattern_pointer, 1)
                         pattern_pointer += 1 : If (pattern_pointer > pattern.Length) Then pattern_pointer = 1
-                        If pattern_pointer > 1 And (Not IsNumeric(Mid(pattern, pattern_pointer, 1))) Then
-                            Dim term_char As String = Mid(pattern, pattern_pointer, 1)
+                        If pattern_pointer > 1 And (Not IsNumeric(pattern.Substring(pattern_pointer, 1))) Then
+                            Dim term_char As String = pattern.Substring(pattern_pointer, 1)
                             pattern_pointer += 1 : If (pattern_pointer > pattern.Length) Then pattern_pointer = 1
-                            If sep_char = Mid(input, 1, 1) Then
+                            If sep_char = input.Substring(0, 1) Then
                                 pattern_repeat = data_out.Count - 1
-                                input = Mid(input, 2) 'Removes the seperation character
-                            ElseIf term_char = Mid(input, 1, 1) Then
-                                input = Mid(input, 2) 'Removes the seperation character
+                                input = input.Substring(1) 'Removes the seperation character
+                            ElseIf term_char = input.Substring(0, 1) Then
+                                input = input.Substring(1) 'Removes the seperation character
                             Else
                                 Return Nothing 'error
                             End If
                         Else
-                            If Not sep_char = Mid(input, 1, 1) Then Return Nothing
-                            input = Mid(input, 2) 'Removes the seperation character 
+                            If Not sep_char = input.Substring(0, 1) Then Return Nothing
+                            input = input.Substring(1) 'Removes the seperation character 
                         End If
                     End If
                 Loop
-                If repeat_term Then data_out.Item(0) = pattern_repeat
+                If repeat_term Then data_out.Item(0) = CByte(pattern_repeat And 255)
                 Return data_out.ToArray
             Catch ex As Exception
             End Try
@@ -851,9 +849,9 @@ Namespace Utilities
         End Function
 
         Public Function IsBinary(bin_str As String) As Boolean
-            For i = 1 To bin_str.Length
-                If Mid(bin_str, i, 1) = "1" Then
-                ElseIf Mid(bin_str, i, 1) = "0" Then
+            For Each c As Char In bin_str
+                If c.Equals("1"c) Then
+                ElseIf c.Equals("0"c) Then
                 Else
                     Return False
                 End If
@@ -871,19 +869,19 @@ Namespace Utilities
                 Dim repeat_term As Boolean = False
                 If pattern.StartsWith("*") Then
                     pattern_repeat = data(data_pointer)
-                    pattern = Mid(pattern, 2) 'Removes the *
+                    pattern = pattern.Substring(1) 'Removes the *
                     data_pointer += 1
                     repeat_term = True
                 End If
-                Dim pattern_pointer As Integer = 1 ' to the end of pattern
+                Dim pattern_pointer As Integer = 0 ' to the end of pattern
                 Do
                     Dim octetsize_str As String = ""
-                    Do Until Not IsNumeric(Mid(pattern, pattern_pointer, 1))
-                        octetsize_str &= Mid(pattern, pattern_pointer, 1)
+                    Do Until Not IsNumeric(pattern.Substring(pattern_pointer, 1))
+                        octetsize_str &= pattern.Substring(pattern_pointer, 1)
                         pattern_pointer += 1
                     Loop
                     If octetsize_str = "" Then octetsize_str = "0"
-                    Dim pattern_cmd As String = Mid(pattern, pattern_pointer, 1)
+                    Dim pattern_cmd As Char = CChar(pattern.Substring(pattern_pointer, 1))
                     patterns.Add(pattern_cmd)
                     pattern_pointer += 1 : If pattern_pointer > pattern.Length Then pattern_pointer = 1 : pattern_repeat -= 1
                     Dim requested_size As Integer = CInt(octetsize_str)
@@ -895,24 +893,24 @@ Namespace Utilities
                         Array.Copy(data, data_pointer, data_to_parse, 0, data_to_parse.Length)
                         data_pointer += data_to_parse.Length
                         Select Case pattern_cmd
-                            Case "x" 'hexdecimal
-                                str_out &= Utilities.Bytes.ToHexString(data_to_parse)
-                            Case "d" 'decimal
-                                str_out &= Utilities.Bytes.ToUInt32(data_to_parse)
-                            Case "o" 'octet
-                                Dim output As UInteger = Utilities.Bytes.ToUInt32(data_to_parse)
+                            Case "x"c 'hexdecimal
+                                str_out &= Bytes.ToHexString(data_to_parse)
+                            Case "d"c 'decimal
+                                str_out &= Bytes.ToUInt32(data_to_parse)
+                            Case "o"c 'octet
+                                Dim output As UInteger = Bytes.ToUInt32(data_to_parse)
                                 str_out &= Convert.ToString(output, 8)
-                            Case "a" 'ascii
-                                str_out &= Utilities.Bytes.ToChrString(data_to_parse)
-                            Case "t" 'UTF-8
-                                str_out &= Utilities.Bytes.ToUTF8(data_to_parse)
+                            Case "a"c 'ascii
+                                str_out &= Bytes.ToChrString(data_to_parse)
+                            Case "t"c 'UTF-8
+                                str_out &= Bytes.ToUTF8(data_to_parse)
                         End Select
                     End If
-                    If (Not IsNumeric(Mid(pattern, pattern_pointer, 1))) Then 'display separator character (optional)
-                        Dim sep_char As String = Mid(pattern, pattern_pointer, 1)
+                    If (Not IsNumeric(pattern.Substring(pattern_pointer, 1))) Then 'display separator character (optional)
+                        Dim sep_char As String = pattern.Substring(pattern_pointer, 1)
                         pattern_pointer += 1 : If (pattern_pointer > pattern.Length) Then pattern_pointer = 1 : pattern_repeat -= 1
-                        If pattern_pointer > 1 And (Not IsNumeric(Mid(pattern, pattern_pointer, 1))) Then
-                            Dim term_char As String = Mid(pattern, pattern_pointer, 1)
+                        If pattern_pointer > 1 And (Not IsNumeric(pattern.Substring(pattern_pointer, 1))) Then
+                            Dim term_char As String = pattern.Substring(pattern_pointer, 1)
                             pattern_pointer += 1 : If (pattern_pointer > pattern.Length) Then pattern_pointer = 1 : pattern_repeat -= 1
                             If repeat_term And pattern_repeat = 0 Then
                                 str_out &= term_char
@@ -968,9 +966,9 @@ Namespace Utilities
             Shared Sub New()
                 Dim poly As UInteger = &HEDB88320UI
                 table = New UInteger(255) {}
-                Dim temp As UInteger = 0
-                For i As UInteger = 0 To table.Length - 1
-                    temp = i
+                Dim temp As UInt32 = 0
+                For i As Integer = 0 To table.Length - 1
+                    temp = CUInt(i)
                     For j As Integer = 8 To 1 Step -1
                         If (temp And 1) = 1 Then
                             temp = CUInt((temp >> 1) Xor poly)
@@ -1000,8 +998,8 @@ Namespace Utilities
             Shared Sub New()
                 Dim poly As UShort = &HA001US 'calculates CRC-16 using A001 polynomial (modbus)
                 table = New UShort(255) {}
-                Dim temp As UShort = 0
-                For i As UShort = 0 To table.Length - 1
+                Dim temp As Integer = 0
+                For i As Integer = 0 To table.Length - 1
                     temp = i
                     For j As Integer = 8 To 1 Step -1
                         If (temp And 1) = 1 Then
@@ -1010,7 +1008,7 @@ Namespace Utilities
                             temp >>= 1
                         End If
                     Next
-                    table(i) = temp
+                    table(i) = CUShort(temp)
                 Next
             End Sub
 
@@ -1043,7 +1041,7 @@ Namespace Utilities
         'Returns true if Mac is 00:01:02:03:04:05
         Public Function IsMacInStandardFormat(MacInput As String) As Boolean
             If Not MacInput.Contains(":") Then Return False
-            Dim MacParts() As String = MacInput.Split(":")
+            Dim MacParts() As String = MacInput.Split(":"c)
             If Not MacParts.Length = 6 Then Return False
             For i = 0 To 5
                 If Not MacParts(i).Length = 2 Then Return False
@@ -1055,32 +1053,34 @@ Namespace Utilities
         Public Function IsMacInCiscoFormat(MacInput As String) As Boolean
             If MacInput.Contains(":") Then Return False
             If Not MacInput.Length = 14 Then Return False
-            Dim Part1 As String = Mid(MacInput, 1, 4)
-            Dim Part2 As String = Mid(MacInput, 6, 4)
-            Dim Part3 As String = Mid(MacInput, 11, 4)
+            Dim Part1 As String = MacInput.Substring(0, 4)
+            Dim Part2 As String = MacInput.Substring(5, 4)
+            Dim Part3 As String = MacInput.Substring(10, 4)
             If Not IsDataType.Hex(Part1) Then Return False
             If Not IsDataType.Hex(Part2) Then Return False
             If Not IsDataType.Hex(Part3) Then Return False
-            If Not Mid(MacInput, 5, 1) = "." Then Return False
-            If Not Mid(MacInput, 10, 1) = "." Then Return False
+            If Not MacInput.Substring(4, 1).Equals(".") Then Return False
+            If Not MacInput.Substring(9, 1).Equals(".") Then Return False
             Return True
         End Function
         'Returns true if Mac is 000102030405
         Public Function IsMacInOtherFormat(MacInput As String) As Boolean
             If MacInput.Contains(":") Then Return False
             If MacInput.Length = 12 And IsDataType.Hex(MacInput) Then Return True
+            If MacInput.Length = 12 And IsDataType.Hex(MacInput) Then Return True
             Return False
         End Function
 
         'Returns MAC input as 00:01:02:03:04:05
         Public Function MacToStandardFormat(MacInput As String) As String
-            Dim nStr As String = MacInput.Replace(":", "").Replace(".", "")
-            Return Mid(nStr, 1, 2) & ":" & Mid(nStr, 3, 2) & ":" & Mid(nStr, 5, 2) & ":" & Mid(nStr, 7, 2) & ":" & Mid(nStr, 9, 2) & ":" & Mid(nStr, 11, 2)
+            Dim raw_mac As String = MacInput.Replace(":", "").Replace(".", "")
+            Dim c() As Char = raw_mac.ToCharArray
+            Return c(0) & c(1) & ":" & c(2) & c(3) & ":" & c(4) & c(5) & ":" & c(6) & c(7) & ":" & c(8) & c(9) & ":" & c(10) & c(11)
         End Function
         'Returns MAC input as 0001.0203.0405
         Public Function MacToCiscoFormat(NormalMAC As String) As String
-            Dim nStr As String = NormalMAC.Replace(":", "").Replace(".", "")
-            Return Mid(nStr, 1, 4) & "." & Mid(nStr, 5, 4) & "." & Mid(nStr, 9, 4)
+            Dim raw_mac As String = NormalMAC.Replace(":", "").Replace(".", "")
+            Return raw_mac.Substring(0, 4) & "." & raw_mac.Substring(4, 4) & "." & raw_mac.Substring(8, 4)
         End Function
         'Returns it as 000102030405 
         Public Function MacToPlainFormat(MacString As String) As String
@@ -1091,9 +1091,9 @@ Namespace Utilities
         Public Function MacToCiscoFormat(Mac() As Byte) As String
             If Mac Is Nothing OrElse Mac.Length <> 6 Then Return "0000.0000.0000"
             Dim RetStr As String
-            RetStr = Hex(Mac(0)).PadLeft(2, "0") & Hex(Mac(1)).PadLeft(2, "0") & "."
-            RetStr &= Hex(Mac(2)).PadLeft(2, "0") & Hex(Mac(3)).PadLeft(2, "0") & "."
-            RetStr &= Hex(Mac(4)).PadLeft(2, "0") & Hex(Mac(5)).PadLeft(2, "0")
+            RetStr = Hex(Mac(0)).PadLeft(2, "0"c) & Hex(Mac(1)).PadLeft(2, "0"c) & "."
+            RetStr &= Hex(Mac(2)).PadLeft(2, "0"c) & Hex(Mac(3)).PadLeft(2, "0"c) & "."
+            RetStr &= Hex(Mac(4)).PadLeft(2, "0"c) & Hex(Mac(5)).PadLeft(2, "0"c)
             Return RetStr
         End Function
         'Returns 00:01:02:03:04:05
@@ -1101,7 +1101,7 @@ Namespace Utilities
             If Mac Is Nothing OrElse Mac.Length <> 6 Then Return "00:00:00:00:00:00"
             Dim s As String = ""
             For i = 0 To 5
-                s &= Hex(Mac(i)).PadLeft(2, "0") & ":"
+                s &= Hex(Mac(i)).PadLeft(2, "0"c) & ":"
             Next
             Return s.Substring(0, s.Length - 1).ToUpper()
         End Function
@@ -1110,7 +1110,7 @@ Namespace Utilities
             If mac Is Nothing OrElse mac.Length <> 6 Then Return "000000000000"
             Dim s As String = ""
             For i = 0 To 5
-                s &= CStr(Hex(mac(i))).PadLeft(2, "0")
+                s &= CStr(Hex(mac(i))).PadLeft(2, "0"c)
             Next
             Return s
         End Function
@@ -1119,26 +1119,13 @@ Namespace Utilities
             Dim s As String = MacInput.Replace(":", "").Replace(".", "")
             If Not s.Length = 12 Then Return Nothing 'Not valid input
             Dim b(5) As Byte
-            b(0) = CByte(HexToInt(Mid(s, 1, 2)))
-            b(1) = CByte(HexToInt(Mid(s, 3, 2)))
-            b(2) = CByte(HexToInt(Mid(s, 5, 2)))
-            b(3) = CByte(HexToInt(Mid(s, 7, 2)))
-            b(4) = CByte(HexToInt(Mid(s, 9, 2)))
-            b(5) = CByte(HexToInt(Mid(s, 11, 2)))
+            b(0) = CByte(HexToInt(s.Substring(0, 2)))
+            b(1) = CByte(HexToInt(s.Substring(2, 2)))
+            b(2) = CByte(HexToInt(s.Substring(4, 2)))
+            b(3) = CByte(HexToInt(s.Substring(6, 2)))
+            b(4) = CByte(HexToInt(s.Substring(8, 2)))
+            b(5) = CByte(HexToInt(s.Substring(10, 2)))
             Return b
-        End Function
-
-        Public Function FormatMacStr(input As String) As String
-            If Not input.Length = 12 Then Return input
-            If InStr(input, ":") > 0 Then Return input
-            If Not IsDataType.Hex(input) Then Return input
-            Dim i As Integer
-            Dim strOut As String = ""
-            For i = 0 To 4
-                strOut &= Mid(input, (i * 2) + 1, 2) & ":"
-            Next
-            strOut &= Mid(input, 11, 2)
-            Return strOut
         End Function
 
 #End Region
@@ -1148,7 +1135,7 @@ Namespace Utilities
         'Copies on array to the end of the destination array (for byte arrays)
         Public Function ArrayCopy(ByRef DestinationArray() As Byte, ToCopyArray() As Byte) As Byte()
             If DestinationArray Is Nothing Then
-                DestinationArray = ToCopyArray.Clone
+                DestinationArray = CType(ToCopyArray.Clone, Byte())
             Else
                 Dim nArray(DestinationArray.Length + ToCopyArray.Length - 1) As Byte
                 DestinationArray.CopyTo(nArray, 0)
@@ -1160,7 +1147,7 @@ Namespace Utilities
         'Copies on array to the end of the destination array (for io.filename arrays)
         Public Function ArrayCopy(ByRef DestinationArray() As IO.FileInfo, ToCopyArray() As IO.FileInfo) As IO.FileInfo()
             If DestinationArray Is Nothing Then
-                DestinationArray = ToCopyArray.Clone
+                DestinationArray = CType(ToCopyArray.Clone, IO.FileInfo())
             Else
                 Dim nArray(DestinationArray.Length + ToCopyArray.Length - 1) As IO.FileInfo
                 DestinationArray.CopyTo(nArray, 0)
@@ -1172,7 +1159,7 @@ Namespace Utilities
         'Copies on array to the end of the destination array (for int arrays)
         Public Function ArrayCopy(ByRef DestinationArray() As Integer, ToCopyArray() As Integer) As Integer()
             If DestinationArray Is Nothing Then
-                DestinationArray = ToCopyArray.Clone
+                DestinationArray = CType(ToCopyArray.Clone, Integer())
             Else
                 Dim nArray(DestinationArray.Length + ToCopyArray.Length - 1) As Integer
                 DestinationArray.CopyTo(nArray, 0)
@@ -1184,7 +1171,7 @@ Namespace Utilities
         'Copies on array to the end of the destination array (for str arrays)
         Public Function ArrayCopy(ByRef DestinationArray() As String, ToCopyArray() As String) As String()
             If DestinationArray Is Nothing Then
-                DestinationArray = ToCopyArray.Clone
+                DestinationArray = CType(ToCopyArray.Clone, String())
             Else
                 Dim nArray(DestinationArray.Length + ToCopyArray.Length - 1) As String
                 DestinationArray.CopyTo(nArray, 0)
@@ -1193,34 +1180,6 @@ Namespace Utilities
             End If
             Return DestinationArray
         End Function
-
-        Public Function ArrayCopy(ByRef Destination As Array, Source As Array) As Array
-            If Destination Is Nothing Then
-                Destination = Source.Clone
-            Else
-                Dim collector As New ArrayList
-                For i As UInt32 = 0 To Destination.Length - 1
-                    collector.Add(Destination(i))
-                Next
-                For i As UInt32 = 0 To Source.Length - 1
-                    collector.Add(Source(i))
-                Next
-                Destination = collector.ToArray(collector(0).GetType)
-            End If
-            Return Destination
-        End Function
-
-        Public Sub RemoveDuplicates(ByRef data_in As Array)
-            If data_in Is Nothing OrElse data_in.Length = 0 Then Exit Sub
-            Dim input_type As Type = data_in(0).GetType
-            Dim collector As New ArrayList
-            For Each item In data_in
-                If Not (collector.Contains(item)) Then
-                    collector.Add(item)
-                End If
-            Next
-            data_in = collector.ToArray(input_type)
-        End Sub
 
         Public Sub ArrayAdd(ByRef DestinationArray() As UInt32, NewItem As UInt32)
             ReDim Preserve DestinationArray(DestinationArray.Length)
@@ -1232,7 +1191,7 @@ Namespace Utilities
             ToAdd(ToAdd.Length - 1) = NewItem
         End Sub
 
-        Public Function ArrayMid(ArrIn() As Byte, Start As Integer, Count As Integer) As Byte()
+        Public Function ArraySection(ArrIn() As Byte, Start As Integer, Count As Integer) As Byte()
             Dim out(Count - 1) As Byte
             For i = 0 To Count - 1
                 out(i) = ArrIn(i + (Start - 1))
@@ -1297,35 +1256,35 @@ Namespace Utilities
             If input.EndsWith("MBPS") Then
                 firstpart = input.Substring(0, input.IndexOf("MBPS") - 1).Trim()
                 If Not IsDataType.Integer(firstpart) Then Return 0
-                Return firstpart * 1000000
+                Return Integer.Parse(firstpart) * 1000000
             ElseIf input.EndsWith("KBPS") Then
                 firstpart = input.Substring(0, input.IndexOf("KBPS") - 1).Trim()
                 If Not IsDataType.Integer(firstpart) Then Return 0
-                Return firstpart * 1000
+                Return Integer.Parse(firstpart) * 1000
             ElseIf input.EndsWith("M") Then
                 firstpart = input.Substring(0, input.IndexOf("M") - 1).Trim()
                 If Not IsDataType.Integer(firstpart) Then Return 0
-                Return firstpart * 1000000
+                Return Integer.Parse(firstpart) * 1000000
             ElseIf input.EndsWith("K") Then
                 firstpart = input.Substring(0, input.IndexOf("K") - 1).Trim()
                 If Not IsDataType.Integer(firstpart) Then Return 0
-                Return firstpart * 1000
+                Return Integer.Parse(firstpart) * 1000
             ElseIf input.EndsWith("MB") Then
                 firstpart = input.Substring(0, input.IndexOf("MB") - 1).Trim()
                 If Not IsDataType.Integer(firstpart) Then Return 0
-                Return firstpart * 1000000
+                Return Integer.Parse(firstpart) * 1000000
             ElseIf input.EndsWith("KB") Then
                 firstpart = input.Substring(0, input.IndexOf("KB") - 1).Trim()
                 If Not IsDataType.Integer(firstpart) Then Return 0
-                Return firstpart * 1000
+                Return Integer.Parse(firstpart) * 1000
             Else
-                If IsDataType.Integer(input) Then Return input
+                If IsDataType.Integer(input) Then Return Integer.Parse(input)
                 Return 0
             End If
         End Function
         'Converts a string that contains a number to single (all region compatible)
         Public Function StringToSingle(input As String) As Single
-            Return Convert.ToSingle(input, New System.Globalization.CultureInfo("en-US"))
+            Return Convert.ToSingle(input, New Globalization.CultureInfo("en-US"))
         End Function
 
 #End Region
@@ -1333,9 +1292,9 @@ Namespace Utilities
 #Region "Endian/Byte/Bit Changing"
         '0x01020304 = 0x03040102
         Public Sub ChangeEndian32_LSB16(ByRef Buffer() As Byte)
-            Dim step_value As UInteger = 4
-            Dim last_index As UInt32 = Buffer.Length - (Buffer.Length Mod step_value)
-            For i = 0 To last_index - 1 Step step_value
+            Dim step_value As Integer = 4
+            Dim last_index As Integer = Buffer.Length - (Buffer.Length Mod step_value)
+            For i As Integer = 0 To last_index - 1 Step step_value
                 Dim B1 As Byte = Buffer(i + 3)
                 Dim B2 As Byte = Buffer(i + 2)
                 Dim B3 As Byte = Buffer(i + 1)
@@ -1348,9 +1307,9 @@ Namespace Utilities
         End Sub
         '0x01020304 = 0x04030201
         Public Sub ChangeEndian32_LSB8(ByRef Buffer() As Byte)
-            Dim step_value As UInteger = 4
-            Dim last_index As UInt32 = Buffer.Length - (Buffer.Length Mod step_value)
-            For i = 0 To last_index - 1 Step step_value
+            Dim step_value As Integer = 4
+            Dim last_index As Integer = Buffer.Length - (Buffer.Length Mod step_value)
+            For i As Integer = 0 To last_index - 1 Step step_value
                 Dim B1 As Byte = Buffer(i + 3)
                 Dim B2 As Byte = Buffer(i + 2)
                 Dim B3 As Byte = Buffer(i + 1)
@@ -1363,9 +1322,9 @@ Namespace Utilities
         End Sub
         '0x01020304 = 0x02010403
         Public Sub ChangeEndian16_MSB(ByRef Buffer() As Byte)
-            Dim step_value As UInteger = 2
-            Dim last_index As UInt32 = Buffer.Length - (Buffer.Length Mod step_value)
-            For i = 0 To last_index - 1 Step step_value
+            Dim step_value As Integer = 2
+            Dim last_index As Integer = Buffer.Length - (Buffer.Length Mod step_value)
+            For i As Integer = 0 To last_index - 1 Step step_value
                 Dim b_high As Byte = Buffer(i)
                 Dim b_low As Byte = Buffer(i + 1)
                 Buffer(i) = b_low
@@ -1374,14 +1333,14 @@ Namespace Utilities
         End Sub
         '0b11110000 = 0b00001111
         Public Sub ChangeEndian_Nibble(ByRef Buffer() As Byte)
-            For i = 0 To Buffer.Length - 1
+            For i As Integer = 0 To Buffer.Length - 1
                 Dim b As Byte = Buffer(i)
                 Buffer(i) = (b << 4) Or (b >> 4)
             Next
         End Sub
         '0b00000001 = 0b10000000 (reversed bit order for 8-bit)
         Public Sub ReverseBits_Byte(ByRef Buffer() As Byte)
-            For i = 0 To Buffer.Length - 1 Step 1
+            For i As Integer = 0 To Buffer.Length - 1 Step 1
                 Dim b As Byte = Buffer(i)
                 Dim bo() As Boolean = ByteToBooleanArray({b})
                 Array.Reverse(bo)
@@ -1391,9 +1350,9 @@ Namespace Utilities
         End Sub
         '0b0000000100000010 = 0b0100000010000000 (reversed bit order for 16-bit)
         Public Sub ReverseBits_HalfWord(ByRef Buffer() As Byte)
-            Dim step_value As UInteger = 2
-            Dim last_index As UInt32 = Buffer.Length - (Buffer.Length Mod step_value)
-            For i = 0 To last_index - 1 Step step_value
+            Dim step_value As Integer = 2
+            Dim last_index As Integer = Buffer.Length - (Buffer.Length Mod step_value)
+            For i As Integer = 0 To last_index - 1 Step step_value
                 Dim high_b As Byte = Buffer(i)
                 Dim low_b As Byte = Buffer(i + 1)
                 Dim bo() As Boolean = ByteToBooleanArray({high_b, low_b})
@@ -1405,9 +1364,9 @@ Namespace Utilities
         End Sub
         '0b00000001000000100000001100000100 = 0b00100000110000000100000010000000 (reversed bit order for 32-bit)
         Public Sub ReverseBits_Word(ByRef Buffer() As Byte)
-            Dim step_value As UInteger = 4
-            Dim last_index As UInt32 = Buffer.Length - (Buffer.Length Mod step_value)
-            For i = 0 To last_index - 1 Step step_value
+            Dim step_value As Integer = 4
+            Dim last_index As Integer = Buffer.Length - (Buffer.Length Mod step_value)
+            For i As Integer = 0 To last_index - 1 Step step_value
                 Dim b1 As Byte = Buffer(i)
                 Dim b2 As Byte = Buffer(i + 1)
                 Dim b3 As Byte = Buffer(i + 2)
@@ -1426,7 +1385,7 @@ Namespace Utilities
             Dim y As UInt32 = 0
             For i = 0 To count - 1
                 y <<= 1
-                y = y Or (x And 1)
+                y = y Or (x And 1UI)
                 x >>= 1
             Next
             x = y
@@ -1436,7 +1395,7 @@ Namespace Utilities
             Dim y As UInt64 = 0
             For i = 0 To count - 1
                 y <<= 1
-                y = y Or (x And 1)
+                y = y Or (x And 1UI)
                 x >>= 1
             Next
             x = y
@@ -1446,8 +1405,8 @@ Namespace Utilities
             Dim y As UInt32
             Dim offset As Integer = 7
             For i = 0 To 31
-                If (x And 1) Then
-                    y = y Or (1 << (offset + ((i \ 8) * 8)))
+                If ((x And 1UI) = 1) Then
+                    y = y Or (1UI << (offset + ((i \ 8) * 8)))
                 End If
                 offset -= 1
                 If offset = -1 Then offset = 7
@@ -1471,7 +1430,7 @@ Namespace Utilities
             Dim CurrentAssembly As Reflection.Assembly = Reflection.Assembly.GetCallingAssembly
             Dim resStream As IO.Stream = CurrentAssembly.GetManifestResourceStream(ns_embedded_name)
             If resStream Is Nothing Then Return Nothing
-            Dim SizeOfFile As Integer = resStream.Length
+            Dim SizeOfFile As Integer = CInt(resStream.Length)
             Dim data As Byte() = New Byte(SizeOfFile - 1) {}
             resStream.Read(data, 0, data.Length)
             Return data
@@ -1504,7 +1463,7 @@ Namespace Utilities
             Dim MakeString As String = ""
             Dim sChr As Char
             For i = 0 To cmdStr.Length - 1
-                sChr = CChar(Mid(cmdStr, i + 1, 1))
+                sChr = CChar(cmdStr.Substring(i, 1))
                 If InStr Then
                     If sChr = """" Then
                         MakeString &= """"
@@ -1585,7 +1544,7 @@ Namespace Utilities
         End Sub
         '"A" returns "0A"
         Public Function Pad(input As String) As String
-            If Not input.Length Mod 2 = 0 Then
+            If (Not input.Length Mod 2 = 0) Then
                 Return "0" & input
             Else
                 Return input
@@ -1644,22 +1603,6 @@ Namespace Utilities
             Dest = CUInt((CLng(ultra) And &HFFFFFFFF))
         End Sub
 
-        Public Function BoolToTruthValue(TrueFalse As Boolean) As Integer
-            If TrueFalse Then
-                Return 1
-            Else
-                Return 2
-            End If
-        End Function
-
-        Public Function TruthValueToBool(value As Integer) As Boolean
-            If value = "1" Then
-                Return True
-            Else '"2"
-                Return False
-            End If
-        End Function
-
         Public Function ReverseSplit(input() As String, Delimeter As Char) As String
             If input Is Nothing Then Return ""
             If input.Length = 1 Then Return input(0)
@@ -1667,8 +1610,7 @@ Namespace Utilities
             For Each item In input
                 strbuild &= item & Delimeter
             Next
-            strbuild = Mid(strbuild, 1, strbuild.Length - 2) 'Removes the last delimeter
-            Return strbuild
+            Return strbuild.Substring(0, strbuild.Length - 1) 'Removes the last delimeter
         End Function
 
         Public Function DownloadFile(URL As String) As Byte()
@@ -1705,7 +1647,7 @@ Namespace Utilities
         Public Function FormatToMegabits(bytes As UInt64, Optional LeadingZeros As Integer = 0) As String
             Dim MB01 As Double = 1048576
             Dim d As Double = (CDbl(bytes) / MB01)
-            Dim Mbits As UInt32 = d * 8
+            Dim Mbits As UInt32 = CUInt(d * 8)
             Return Mbits.ToString("F" & LeadingZeros.ToString, Globalization.CultureInfo.InvariantCulture) & " Mbit"
         End Function
 
@@ -1748,13 +1690,13 @@ Namespace Utilities
                 Dim encrypted As String = ""
                 Try
                     Dim hash(31) As Byte
-                    Dim temp As Byte() = Hash_AES.ComputeHash(System.Text.ASCIIEncoding.ASCII.GetBytes(password))
+                    Dim temp As Byte() = Hash_AES.ComputeHash(ASCIIEncoding.ASCII.GetBytes(password))
                     Array.Copy(temp, 0, hash, 0, 16)
                     Array.Copy(temp, 0, hash, 15, 16)
                     AES.Key = hash
                     AES.Mode = Security.Cryptography.CipherMode.ECB
                     Dim DESEncrypter As System.Security.Cryptography.ICryptoTransform = AES.CreateEncryptor
-                    Dim Buffer As Byte() = System.Text.ASCIIEncoding.ASCII.GetBytes(input)
+                    Dim Buffer As Byte() = ASCIIEncoding.ASCII.GetBytes(input)
                     encrypted = Convert.ToBase64String(DESEncrypter.TransformFinalBlock(Buffer, 0, Buffer.Length))
                     Return encrypted
                 Catch ex As Exception
@@ -1763,29 +1705,26 @@ Namespace Utilities
             End Function
 
             Public Function AES_Encrypt(input() As Byte, password As String) As Byte()
-                Dim AES As New System.Security.Cryptography.RijndaelManaged
-                Dim Hash_AES As New System.Security.Cryptography.MD5CryptoServiceProvider
+                Dim AES As New Security.Cryptography.RijndaelManaged
+                Dim Hash_AES As New Security.Cryptography.MD5CryptoServiceProvider
                 Try
                     Dim hash(31) As Byte
-                    Dim temp As Byte() = Hash_AES.ComputeHash(System.Text.ASCIIEncoding.ASCII.GetBytes(password))
+                    Dim temp As Byte() = Hash_AES.ComputeHash(ASCIIEncoding.ASCII.GetBytes(password))
                     Array.Copy(temp, 0, hash, 0, 16)
                     Array.Copy(temp, 0, hash, 15, 16)
                     AES.Key = hash
                     AES.Mode = Security.Cryptography.CipherMode.ECB
-                    Dim DESEncrypter As System.Security.Cryptography.ICryptoTransform = AES.CreateEncryptor
+                    Dim DESEncrypter As Security.Cryptography.ICryptoTransform = AES.CreateEncryptor
                     Dim encrypted() As Byte = DESEncrypter.TransformFinalBlock(input, 0, input.Length)
                     Return encrypted
                 Catch ex As Exception
                     Return Nothing
                 End Try
-
-
             End Function
 
             Public Function AES_Decrypt(input As String, password As String) As String
                 Dim AES As New System.Security.Cryptography.RijndaelManaged
                 Dim Hash_AES As New System.Security.Cryptography.MD5CryptoServiceProvider
-                Dim decrypted As String = ""
                 Try
                     Dim hash(31) As Byte
                     Dim temp As Byte() = Hash_AES.ComputeHash(System.Text.ASCIIEncoding.ASCII.GetBytes(password))
@@ -1795,8 +1734,7 @@ Namespace Utilities
                     AES.Mode = Security.Cryptography.CipherMode.ECB
                     Dim DESDecrypter As System.Security.Cryptography.ICryptoTransform = AES.CreateDecryptor
                     Dim Buffer As Byte() = Convert.FromBase64String(input)
-                    decrypted = System.Text.ASCIIEncoding.ASCII.GetString(DESDecrypter.TransformFinalBlock(Buffer, 0, Buffer.Length))
-                    Return decrypted
+                    Return ASCIIEncoding.ASCII.GetString(DESDecrypter.TransformFinalBlock(Buffer, 0, Buffer.Length))
                 Catch ex As Exception
                     Return Nothing
                 End Try
@@ -1865,44 +1803,17 @@ Namespace Utilities
         End Function
 
         Public Function IsIP(Address As String) As Boolean
-            If Address = "" Then Return False
-            Dim i As Integer
-            Dim oct As String
-            i = InStr(Address, ".")
-            If i = 0 Then Return False
-            oct = Mid(Address, 1, i - 1)
-            Address = Mid(Address, i + 1)
-            If Not IsNumeric(oct) Then Return False
-            If Not (oct >= 0 And oct <= 255) Then Return False
-            i = InStr(Address, ".")
-            If i = 0 Then Return False
-            oct = Mid(Address, 1, i - 1)
-            Address = Mid(Address, i + 1)
-            If Not IsNumeric(oct) Then Return False
-            If Not (oct >= 0 And oct <= 255) Then Return False
-            i = InStr(Address, ".")
-            If i = 0 Then Return False
-            oct = Mid(Address, 1, i - 1)
-            Address = Mid(Address, i + 1)
-            If Not IsNumeric(oct) Then Return False
-            If Not InStr(Address, ".") = 0 Then Return False
-            If Not (oct >= 0 And oct <= 255) Then Return False
-            If Not IsNumeric(Address) Then Return False
-            If Not (Address >= 0 And Address <= 255) Then Return False
-            Return True
+            Dim ipv4 As Net.IPAddress = Nothing
+            If Net.IPAddress.TryParse(Address, ipv4) Then
+                If ipv4.AddressFamily = Net.Sockets.AddressFamily.InterNetwork Then Return True
+            End If
+            Return False
         End Function
 
         Public Function IsIpV6(v6Ip As String) As Boolean
-            Try
-                Dim ip6 As Net.IPAddress = Net.IPAddress.Parse(v6Ip)
-                If ip6.AddressFamily = Net.Sockets.AddressFamily.InterNetworkV6 Then
-                    Return True
-                Else
-                    Return False
-                End If
-            Catch ex As Exception
-                Return False
-            End Try
+            Dim ipv6 As Net.IPAddress = Net.IPAddress.Parse(v6Ip)
+            If ipv6.AddressFamily = Net.Sockets.AddressFamily.InterNetworkV6 Then Return True
+            Return False
         End Function
         'Returns true if address provided is a valid subnet
         Public Function IsSubnet(Address As String) As Boolean
@@ -1985,7 +1896,7 @@ Namespace Utilities
                 Dim PrefixNet As Integer = GetNetworkPrefix(Subnet)
                 Dim IpS As UInt32 = IpToUint32(IP)
                 Dim BaseAdr As UInt32 = CUInt(IpS And IpToUint32(Subnet))
-                Return Uint32ToIP(BaseAdr + 1)
+                Return Uint32ToIP(BaseAdr + 1UI)
             Catch ex As Exception
                 Return Nothing
             End Try
@@ -1996,8 +1907,8 @@ Namespace Utilities
                 Dim StartIP As Net.IPAddress = GetStartingAddress(IP, Subnet)
                 If StartIP Is Nothing Then Return Nothing
                 Dim Hosts As Integer = GetHostsForSubnet(Subnet)
-                Dim IpInt As UInt32 = IpToUint32(StartIP) - 1
-                Dim EndIp As UInt32 = (IpInt + Hosts) - 2
+                Dim IpInt As UInt32 = IpToUint32(StartIP) - 1UI
+                Dim EndIp As UInt32 = CUInt(IpInt + Hosts) - 2UI
                 Return Uint32ToIP(EndIp)
             Catch ex As Exception
                 Return Nothing
@@ -2050,8 +1961,6 @@ Namespace Utilities
         End Function
 
         Public Function HasResponseTicket(TicketID As UInt32, Ticket_Data() As Byte) As Boolean
-            'Debug.WriteLine("Incoming data for ticket " & Ticket.ResponseTag.ToString)
-            'Debug.WriteLine(RemoteIP.IpAddr.ToString & ": Incoming data for ticket " & incoming.ResponseTag.ToString & " - " & incoming.GetCommands(0).Type)
             Try : Threading.Monitor.Enter(TicketLock)
                 For i = 0 To Tickets.Count - 1
                     If Tickets(i).TicketNumber = TicketID Then
@@ -2121,73 +2030,65 @@ Namespace Utilities
     Public Class BackwardReader
         Implements IDisposable
 
-        Private _fs As IO.FileStream = Nothing
-        Private disposedValue As Boolean = False
+        Private MyBaseStream As IO.Stream
+        Private IsDisposed As Boolean = False
 
         Public Sub New(path As String)
-            _fs = New IO.FileStream(path, IO.FileMode.Open, IO.FileAccess.Read, IO.FileShare.ReadWrite)
-            _fs.Seek(0, IO.SeekOrigin.[End])
+            Me.MyBaseStream = New IO.FileStream(path, IO.FileMode.Open, IO.FileAccess.Read, IO.FileShare.ReadWrite)
+            Me.MyBaseStream.Seek(0, IO.SeekOrigin.[End])
         End Sub
 
-        Public Sub New(file_stream As IO.FileStream)
-            _fs = file_stream
-            _fs.Seek(0, IO.SeekOrigin.[End])
+        Public Sub New(file_stream As IO.Stream)
+            Me.MyBaseStream = file_stream
+            Me.MyBaseStream.Seek(0, IO.SeekOrigin.[End])
         End Sub
 
         Public Function ReadLine() As String
-            Dim line As Byte()
-            Dim text As Byte() = New Byte(0) {}
-            Dim position As Long = 0
+            Me.MyBaseStream.Seek(0, IO.SeekOrigin.Current)
             Dim count As Integer = 0
-            _fs.Seek(0, IO.SeekOrigin.Current)
-            position = _fs.Position
-            If _fs.Length > 1 Then
-                Dim vagnretur As Byte() = New Byte(1) {}
-                _fs.Seek(-2, IO.SeekOrigin.Current)
-                _fs.Read(vagnretur, 0, 2)
-                If System.Text.ASCIIEncoding.ASCII.GetString(vagnretur).Equals(vbCr & vbLf) Then
-                    _fs.Seek(-2, IO.SeekOrigin.Current)
-                    position = _fs.Position
-                End If
-            End If
-            While _fs.Position > 0
-                text.Initialize()
-                _fs.Read(text, 0, 1)
-                Dim asciiText As String = System.Text.ASCIIEncoding.ASCII.GetString(text)
-                _fs.Seek(-2, IO.SeekOrigin.Current)
-                If asciiText.Equals(vbLf) Then
-                    _fs.Read(text, 0, 1)
-                    asciiText = System.Text.ASCIIEncoding.ASCII.GetString(text)
-                    If asciiText.Equals(vbCr) Then
-                        _fs.Seek(1, IO.SeekOrigin.Current)
-                        Exit While
-                    End If
+            Dim SeekPosition As Integer = CInt(Me.MyBaseStream.Position - Me.MyBaseStream.Length) + 1
+            If SeekPosition = 1 Then SeekPosition = -1
+            While (Not Math.Abs(SeekPosition) = Me.MyBaseStream.Length + 1)
+                Dim sel_bytes(0) As Byte
+                Me.MyBaseStream.Seek(SeekPosition, IO.SeekOrigin.End)
+                Me.MyBaseStream.Read(sel_bytes, 0, 1)
+                SeekPosition -= 1
+                If (sel_bytes(0) = 10) Then 'Cr
+                    If (Not count = 0) Then Exit While
+                ElseIf (sel_bytes(0) = 13) Then 'Lf
+                Else
+                    count += 1
                 End If
             End While
-            count = Integer.Parse((position - _fs.Position).ToString())
-            line = New Byte(count - 1) {}
-            _fs.Read(line, 0, count)
-            _fs.Seek(-count, IO.SeekOrigin.Current)
-            Return System.Text.ASCIIEncoding.ASCII.GetString(line)
+            Dim line(count - 1) As Byte
+            If (Math.Abs(SeekPosition) = Me.MyBaseStream.Length + 1) Then
+                Me.MyBaseStream.Seek(-1, IO.SeekOrigin.Current)
+                Me.MyBaseStream.Read(line, 0, count)
+                Me.MyBaseStream.Seek(0, IO.SeekOrigin.Begin) 'We are now at the beginning of the file
+            Else
+                Me.MyBaseStream.Read(line, 0, count)
+                Me.MyBaseStream.Seek(SeekPosition - 1, IO.SeekOrigin.End)
+            End If
+            Return ASCIIEncoding.ASCII.GetString(line)
         End Function
 
+        Public Sub Close()
+            MyBaseStream.Close() : MyBaseStream.Dispose()
+        End Sub
+        'Indicates if we are at the start of the file
         Public ReadOnly Property SOF() As Boolean
             Get
-                Return _fs.Position = 0
+                Return (MyBaseStream.Position = 0)
             End Get
         End Property
 
-        Public Sub Close()
-            _fs.Close() : _fs.Dispose()
-        End Sub
-
         Protected Overridable Sub Dispose(disposing As Boolean)
-            If Not Me.disposedValue Then
+            If Not Me.IsDisposed Then
                 If disposing Then
                     Me.Close()
                 End If
             End If
-            Me.disposedValue = True
+            Me.IsDisposed = True
         End Sub
 
         Public Sub Dispose() Implements IDisposable.Dispose
@@ -2196,6 +2097,5 @@ Namespace Utilities
         End Sub
 
     End Class
-
 
 End Namespace

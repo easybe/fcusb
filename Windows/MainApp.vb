@@ -1,8 +1,10 @@
-﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2020 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2021 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB PRODUCTS
 'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: This is the main module that is loaded first.
+
+Option Strict On
 
 Imports System.Threading
 Imports FlashcatUSB.FlashMemory
@@ -15,17 +17,17 @@ Public Module MainApp
     Public GUI As MainForm
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
     Public MySettings As New FlashcatSettings
-    Public Const FC_BUILD As Integer = 618
-    Private Const PRO_PCB5_FW As Single = 1.1F 'This is the embedded firmware version for pro
-    Private Const MACH1_PCB2_FW As Single = 2.22F 'Firmware version for Mach1
-    Private Const XPORT_PCB2_FW As Single = 5.21F 'XPORT PCB 2.x
-    Private Const CLASSIC_FW As Single = 4.52F 'Min revision allowed for classic (PCB 2.x)
+    Public Const FC_BUILD As Integer = 622
+    Private Const PRO_PCB5_FW As Single = 1.13F 'This is the embedded firmware version for pro
+    Private Const MACH1_PCB2_FW As Single = 2.23F 'Firmware version for Mach1
+    Private Const XPORT_PCB2_FW As Single = 5.23F 'XPORT PCB 2.x
+    Private Const CLASSIC_FW As Single = 4.53F 'Min revision allowed for classic (PCB 2.x)
     Private Const MACH1_FGPA_3V3 As UInt32 = &HAF330006UI
     Private Const MACH1_FGPA_1V8 As UInt32 = &HAF180006UI
     Private Const MACH1_SPI_3V3 As UInt32 = &HAF330101UI 'Passthrough for SPI
     Private Const MACH1_SPI_1V8 As UInt32 = &HAF180102UI 'Passthrough for SPI
     Public AppIsClosing As Boolean = False
-    Public WithEvents ScriptEngine As New FlashcatScript.Processor
+    Public WithEvents ScriptIF As New ScriptInterface
     Public WithEvents USBCLIENT As New HostClient
     Public ScriptPath As String = Application.StartupPath & "\Scripts\" 'Holds the full directory name of where scripts are located
     Public Platform As String
@@ -59,8 +61,8 @@ Public Module MainApp
         Thread.CurrentThread.Name = "rootApp"
         Platform = Environment.OSVersion.Platform & " (" & GetOsBitsString() & ")"
         GUI = New MainForm
-        AddHandler ScriptEngine.PrintConsole, AddressOf PrintConsole
-        AddHandler ScriptEngine.SetStatus, AddressOf SetStatus
+        AddHandler ScriptIF.PrintConsole, AddressOf PrintConsole
+        AddHandler ScriptIF.SetStatus, AddressOf SetStatus
         USBCLIENT.StartService()
         Application.Run(GUI)
         AppClosing()
@@ -119,7 +121,7 @@ Public Module MainApp
         If (w IsNot Nothing AndAlso w.Length > 0) Then
             Dim response As String = Utilities.Bytes.ToChrString(w).Replace(vbLf, "").Replace(vbCr, "")
             If (response.Equals("ERROR")) Then Return False
-            Dim result() As String = response.Split(vbTab)
+            Dim result() As String = response.Split(ChrW(9)) 'Split by tab
             Dim data_str As String = result(1)
             Dim LicensedDate As DateTime = New DateTime
             If Not data_str.Equals("01/01/0001") Then
@@ -274,8 +276,8 @@ Public Module MainApp
     Public gray_code_table(255) As Byte
 
     Public Sub CreateGrayCodeTable()
-        For i = 0 To 255
-            Dim data_in() As Byte = {(i >> 1) Xor i}
+        For i As Integer = 0 To 255
+            Dim data_in() As Byte = {CByte((i >> 1) Xor i)}
             gray_code_table(i) = data_in(0)
             Utilities.ReverseBits_Byte(data_in)
             gray_code_table_reverse(i) = data_in(0)
@@ -287,7 +289,7 @@ Public Module MainApp
 #Region "SPI Settings"
 
     Public Function GetSpiClockString(usb_dev As FCUSB_DEVICE, desired_speed As UInt32) As String
-        Dim current_speed As UInt32 = GetMaxSpiClock(usb_dev.HWBOARD, desired_speed)
+        Dim current_speed As UInt32 = GetMaxSpiClock(usb_dev.HWBOARD, CType(desired_speed, SPI_SPEED))
         Return (current_speed / 1000000).ToString & " Mhz"
     End Function
 
@@ -309,13 +311,13 @@ Public Module MainApp
             Case FCUSB_BOARD.Professional_PCB5
                 If (desired_speed > SQI_SPEED.MHZ_40) Then Return SQI_SPEED.MHZ_40
         End Select
-        Return desired_speed
+        Return CType(desired_speed, SQI_SPEED)
     End Function
 
     Public Function GetDevices_SPI_EEPROM() As SPI_NOR()
         Dim spi_eeprom As New List(Of SPI_NOR)
         Dim d() As Device = FlashDatabase.GetFlashDevices(MemoryType.SERIAL_NOR)
-        For Each dev In d
+        For Each dev As SPI_NOR In d
             If DirectCast(dev, SPI_NOR).ProgramMode = SPI_ProgramMode.SPI_EEPROM Then
                 spi_eeprom.Add(dev)
             ElseIf DirectCast(dev, SPI_NOR).ProgramMode = SPI_ProgramMode.Nordic Then
@@ -389,34 +391,26 @@ Public Module MainApp
         Select Case usb_dev.HWBOARD
             Case FCUSB_BOARD.ATMEL_DFU
                 PrintConsole(RM.GetString("connected_bl_mode"), True)
+                AVR_UpdateFirmware(usb_dev) 'Programs the current AVR firmware into ATMEL device
+                Exit Sub
             Case FCUSB_BOARD.Classic
-                If Not FirmwareCheck(fw_str, CLASSIC_FW) Then Exit Sub
                 PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Classic", fw_str}))
+                If Not FirmwareCheck(usb_dev, CLASSIC_FW) Then Exit Sub
             Case FCUSB_BOARD.XPORT_PCB2
-                If Not FirmwareCheck(fw_str, XPORT_PCB2_FW) Then Exit Sub
                 PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB XPORT", fw_str}))
+                If Not FirmwareCheck(usb_dev, XPORT_PCB2_FW) Then Exit Sub
             Case FCUSB_BOARD.Professional_PCB5
                 If usb_dev.BOOTLOADER() Then
-                    FCUSBPRO_Bootloader(usb_dev, "PCB5_Source.bin") 'Current PCB5 firmware
-                    Exit Sub
+                    FCUSBPRO_Bootloader(usb_dev, "PCB5_Source.bin") : Exit Sub
                 End If
                 PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Pro (PCB 5.x)", fw_str}))
-                Dim AvrVerSng As Single = Utilities.StringToSingle(fw_str)
-                If (Not AvrVerSng = PRO_PCB5_FW) Then 'Current firmware is newer or different, do unit update
-                    FCUSBPRO_RebootToBootloader(usb_dev)
-                    Exit Sub
-                End If
+                If Not FirmwareCheck(usb_dev, PRO_PCB5_FW) Then Exit Sub
             Case FCUSB_BOARD.Mach1 'Designed for high-density/high-speed devices (such as 1Gbit+ NOR/MLC NAND)
                 If usb_dev.BOOTLOADER() Then
-                    FCUSBPRO_Bootloader(usb_dev, "Mach1_v2_Source.bin")
-                    Exit Sub
+                    FCUSBPRO_Bootloader(usb_dev, "Mach1_v2_Source.bin") : Exit Sub
                 End If
                 PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Mach¹", fw_str}))
-                Dim AvrVerSng As Single = Utilities.StringToSingle(fw_str)
-                If Not AvrVerSng = MACH1_PCB2_FW Then
-                    FCUSBPRO_RebootToBootloader(usb_dev)
-                    Exit Sub
-                End If
+                If Not FirmwareCheck(usb_dev, MACH1_PCB2_FW) Then Exit Sub
             Case FCUSB_BOARD.NotSupported
                 PrintConsole("Hardware version is no longer supported", True)
                 Exit Sub
@@ -460,7 +454,6 @@ Public Module MainApp
         End If
         PrintConsole(String.Format(RM.GetString("disconnected_from_device"), fcusb_hardware), True)
         If GUI IsNot Nothing Then GUI.SetConnectionStatus()
-        MAIN_FCUSB = Nothing
     End Sub
 
     Public Structure DetectParams
@@ -478,9 +471,8 @@ Public Module MainApp
     End Structure
 
     Public Function DetectDevice(usb_dev As FCUSB_DEVICE, Params As DetectParams) As Boolean
-        If usb_dev.HWBOARD = FCUSB_BOARD.ATMEL_DFU Then Return DetectDevice_DFU(usb_dev, Params)
         usb_dev.SelectProgrammer(Params.OPER_MODE)
-        ScriptEngine.CURRENT_DEVICE_MODE = Params.OPER_MODE
+        ScriptIF.CURRENT_DEVICE_MODE = Params.OPER_MODE
         NAND_LayoutTool = New NAND_LAYOUT_TOOL(Params.NAND_Layout)
         PrintConsole(RM.GetString("detecting_device"), True)
         Utilities.Sleep(100) 'Allow time for USB to power up devices
@@ -520,7 +512,7 @@ Public Module MainApp
             usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, SPI_SPEED.MHZ_8))
             If usb_dev.SPI_NOR_IF.DeviceInit() Then
                 usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, Params.SPI_CLOCK))
-                Dim block_size As UInt32 = 65536
+                Dim block_size As Integer = 65536
                 If usb_dev.HasLogic() Then block_size = 262144
                 Connected_Event(usb_dev, block_size)
                 PrintConsole(RM.GetString("spi_detected_spi")) '"Detected SPI Flash on high-speed SPI port" 
@@ -554,11 +546,21 @@ Public Module MainApp
         usb_dev.SQI_NOR_IF.SQIBUS_Setup(GetMaxSqiClock(usb_dev.HWBOARD, SQI_SPEED.MHZ_10))
         If usb_dev.SQI_NOR_IF.DeviceInit() Then
             usb_dev.SQI_NOR_IF.SQIBUS_Setup(GetMaxSqiClock(usb_dev.HWBOARD, Params.SQI_CLOCK))
-            If usb_dev.HasLogic() Then
-                Connected_Event(usb_dev, 131072)
-            Else
-                Connected_Event(usb_dev, 16384)
+            Dim packet_size As Integer = 16384
+            If usb_dev.HasLogic() AndAlso (Params.SQI_CLOCK > SQI_SPEED.MHZ_10) Then
+                If usb_dev.SQI_NOR_IF.SQI_DEVICE_MODE = SQI_IO_MODE.QUAD_ONLY Then
+                    packet_size = 524288 'I feel the need... the need for speed
+                ElseIf usb_dev.SQI_NOR_IF.SQI_DEVICE_MODE = SQI_IO_MODE.SPI_QUAD Then
+                    packet_size = 524288
+                ElseIf usb_dev.SQI_NOR_IF.SQI_DEVICE_MODE = SQI_IO_MODE.DUAL_ONLY Then
+                    packet_size = 262144
+                ElseIf usb_dev.SQI_NOR_IF.SQI_DEVICE_MODE = SQI_IO_MODE.SPI_DUAL Then
+                    packet_size = 262144
+                Else
+                    packet_size = 131072
+                End If
             End If
+            Connected_Event(usb_dev, packet_size)
             PrintConsole(RM.GetString("spi_detected_sqi"))
             Return True
         Else
@@ -756,27 +758,6 @@ Public Module MainApp
         End If
         Return False
     End Function
-
-    Public Function DetectDevice_DFU(usb_dev As FCUSB_DEVICE, Params As DetectParams) As Boolean
-        PrintConsole("Initializing DFU programming mode")
-        usb_dev.SelectProgrammer(DeviceMode.DFU)
-        usb_dev.DFU_IF.DeviceInit()
-        Dim dev_inst As MemoryDeviceInstance = MEM_IF.Add(usb_dev, usb_dev.PROGRAMMER.GetDevice)
-        AddHandler dev_inst.PrintConsole, AddressOf MainApp.PrintConsole
-        AddHandler dev_inst.SetStatus, AddressOf MainApp.SetStatus
-        If GUI IsNot Nothing Then
-            Dim newTab As New TabPage("  " & GetTypeString(dev_inst.FlashType) & "  ")
-            newTab.Tag = dev_inst
-            Dim user_control As New DfuControl(usb_dev)
-            user_control.Width = newTab.Width
-            user_control.Height = newTab.Height
-            user_control.Anchor = AnchorStyles.Left Or AnchorStyles.Right Or AnchorStyles.Top Or AnchorStyles.Bottom
-            newTab.Controls.Add(user_control)
-            GUI.AddTab(newTab)
-            GUI.OnNewDeviceConnected(dev_inst)
-        End If
-        Return True
-    End Function
     'Called whent the device is closing
     Public Sub AppClosing()
         MEM_IF.AbortOperations()
@@ -788,7 +769,7 @@ Public Module MainApp
         MySettings.Save()
     End Sub
 
-    Public Function Connected_Event(usb_dev As FCUSB_DEVICE, block_size As UInt32) As MemoryDeviceInstance
+    Public Function Connected_Event(usb_dev As FCUSB_DEVICE, block_size As Integer) As MemoryDeviceInstance
         Try
             Utilities.Sleep(150) 'Some devices (such as Spansion 128mbit devices) need a delay here
             Dim dev_inst As MemoryDeviceInstance = MEM_IF.Add(usb_dev, usb_dev.PROGRAMMER.GetDevice)
@@ -816,22 +797,15 @@ Public Module MainApp
         Return Nothing
     End Function
 
-    Public Sub OnDeviceUpdateProgress(percent As Integer, device As FCUSB_DEVICE) Handles MAIN_FCUSB.UpdateProgress
+    Public Sub OnDeviceUpdateProgress(device As FCUSB_DEVICE, percent As Integer) Handles MAIN_FCUSB.OnUpdateProgress
         If GUI IsNot Nothing Then
             GUI.SetStatusPageProgress(percent)
         End If
     End Sub
-    'Makes sure the current firmware is installed
-    Private Function FirmwareCheck(fw_str As String, current_version As Single) As Boolean
-        If IS_DEBUG_VER Then Return True
-        Dim AvrVerSng As Single = Utilities.StringToSingle(fw_str)
-        If (Not AvrVerSng = current_version) Then
-            PrintConsole(String.Format(RM.GetString("sw_requires_fw"), current_version.ToString))
-            PrintConsole(RM.GetString("fw_out_of_date"), True)
-            Return False
-        End If
-        Return True
-    End Function
+
+    Public Sub OnDevicePrintconsole(device As FCUSB_DEVICE, msg As String) Handles MAIN_FCUSB.OnPrintConsole
+        PrintConsole(msg, False)
+    End Sub
 
 #End Region
 
@@ -874,17 +848,6 @@ Public Module MainApp
         Utilities.Sleep(200)
     End Sub
 
-    Private Sub FCUSBPRO_RebootToBootloader(usb_dev As FCUSB_DEVICE)
-        GUI.SetStatus(RM.GetString("fw_update_available"))
-        Utilities.Sleep(2000)
-        If usb_dev.HasLogic() Then
-            usb_dev.USB_CONTROL_MSG_OUT(USBREQ.FW_REBOOT, Nothing, &HFFFFFFFFUI) 'Removes firmware version
-        End If
-        usb_dev.Disconnect()
-        Application.DoEvents()
-        Utilities.Sleep(300)
-    End Sub
-
     Public Sub FCUSBPRO_Update_Logic()
         Try
             If MAIN_FCUSB.IS_CONNECTED Then
@@ -918,10 +881,12 @@ Public Module MainApp
         Return SPI_CFG_IF.SSPI_ProgramICE(bit_data)
     End Function
 
-    Public Sub OnUpdateProgress(percent As Integer)
+    Public Sub SetProgress(percent As Integer)
         Static LastPercent As Integer = -1
         If LastPercent = percent Then Exit Sub
-        GUI.SetStatusPageProgress(percent)
+        If GUI IsNot Nothing Then
+            GUI.SetStatusPageProgress(percent)
+        End If
     End Sub
 
     Private Enum LOGIC_MODE
@@ -995,7 +960,7 @@ Public Module MainApp
         Try
             Dim SPI_CFG_IF As New ISC_LOGIC_PROG(usb_dev)
             AddHandler SPI_CFG_IF.PrintConsole, AddressOf PrintConsole
-            AddHandler SPI_CFG_IF.SetProgress, AddressOf OnUpdateProgress
+            AddHandler SPI_CFG_IF.SetProgress, AddressOf SetProgress
             Dim SPI_INIT_RES As Boolean = SPI_CFG_IF.SSPI_Init(0, 1, 24) 'CS_1
             Dim SPI_ID As UInt32 = SPI_CFG_IF.SSPI_ReadIdent()
             If Not (SPI_ID = &H12BC043) Then
@@ -1034,12 +999,12 @@ Public Module MainApp
             End If
             usb_dev.USB_VCC_ON(MySettings.VOLT_SELECT)
             Dim svf_file() As String = Utilities.Bytes.ToCharStringArray(svf_data)
-            RemoveHandler usb_dev.JTAG_IF.JSP.Progress, AddressOf OnUpdateProgress
-            AddHandler usb_dev.JTAG_IF.JSP.Progress, AddressOf OnUpdateProgress
+            RemoveHandler usb_dev.JTAG_IF.JSP.Progress, AddressOf SetProgress
+            AddHandler usb_dev.JTAG_IF.JSP.Progress, AddressOf SetProgress
             PrintConsole("Programming SVF data into Logic device")
             usb_dev.LOGIC_SetVersion(&HFFFFFFFFUI)
             Dim result As Boolean = usb_dev.JTAG_IF.JSP.RunFile_SVF(svf_file)
-            OnUpdateProgress(100)
+            SetProgress(100)
             If result Then
                 PrintConsole("FPGA successfully programmed!", True)
                 usb_dev.LOGIC_SetVersion(svf_code)
@@ -1073,8 +1038,8 @@ Public Module MainApp
 
     Public Function PromptUser_SaveFile(Optional title As String = "Choose location to save", Optional filter As String = "All files (*.*)|*.*", Optional default_file As String = "") As String
         Dim fileio_diagbox As New SaveFileDialog
-        fileio_diagbox.Filter = title
-        fileio_diagbox.Title = filter
+        fileio_diagbox.Filter = filter
+        fileio_diagbox.Title = title
         fileio_diagbox.FileName = default_file
         fileio_diagbox.InitialDirectory = Application.StartupPath
         If fileio_diagbox.ShowDialog = DialogResult.OK Then
@@ -1097,7 +1062,7 @@ Public Module MainApp
 
     Private ScriptBar As ProgressBar = Nothing
     Private Delegate Sub cbProgressBarPercent(percent As Integer)
-    Private Delegate Sub cbProgressBarDispose(percent As Integer)
+    Private Delegate Sub cbProgressBarDispose()
 
     Public Sub ProgressBar_Add(index As Integer, bar_left As Integer, bar_top As Integer, bar_width As Integer)
         If GUI IsNot Nothing Then
@@ -1233,6 +1198,68 @@ Public Module MainApp
         End Select
         Return modes.ToArray()
     End Function
+
+    Private Function FirmwareCheck(usb_dev As FCUSB_DEVICE, supported_fw As Single) As Boolean
+        Dim current_fw As Single = Utilities.StringToSingle(usb_dev.FW_VERSION())
+        If IS_DEBUG_VER Then Return True
+        If (Not current_fw = supported_fw) Then
+            PrintConsole(String.Format(RM.GetString("sw_requires_fw"), supported_fw.ToString)) 'Software requires firmware version {0}
+            PrintConsole(RM.GetString("fw_update_available"), True) 'Firmware update available, performing automatic update
+            RebootToBootloader(usb_dev)
+            Return False
+        End If
+        Return True
+    End Function
+
+    Private Sub RebootToBootloader(usb_dev As FCUSB_DEVICE)
+        Utilities.Sleep(1000)
+        If usb_dev.HasLogic() Then
+            usb_dev.USB_CONTROL_MSG_OUT(USBREQ.FW_REBOOT, Nothing, &HFFFFFFFFUI) 'Removes firmware version
+        Else
+            usb_dev.USB_CONTROL_MSG_OUT(USBREQ.JUMP_BOOT) 'Jumps to DFU bootloader
+        End If
+        usb_dev.Disconnect()
+        Application.DoEvents()
+        Utilities.Sleep(300)
+    End Sub
+
+    Private Sub AVR_UpdateFirmware(usb_dev As FCUSB_DEVICE)
+        PrintConsole("Initializing DFU programming mode")
+        usb_dev.SelectProgrammer(DeviceMode.DFU)
+        AddHandler usb_dev.DFU_IF.SetProgress, AddressOf MainApp.SetProgress
+        Dim emb_fw_hex() As Byte = Nothing
+        Dim hw_model As String = ""
+        If usb_dev.USBHANDLE.UsbRegistryInfo.Vid = &H3EB AndAlso usb_dev.USBHANDLE.UsbRegistryInfo.Pid = &H2FF9 Then
+            emb_fw_hex = Utilities.GetResourceAsBytes("XPORT_PCB2.hex")
+            hw_model = "XPORT (PCB 2.x)"
+        ElseIf usb_dev.USBHANDLE.UsbRegistryInfo.Vid = &H3EB AndAlso usb_dev.USBHANDLE.UsbRegistryInfo.Pid = &H2FF0 Then
+            emb_fw_hex = Utilities.GetResourceAsBytes("CLASSIC_U2.hex")
+            hw_model = "Classic (U2)"
+        ElseIf usb_dev.USBHANDLE.UsbRegistryInfo.Vid = &H3EB AndAlso usb_dev.USBHANDLE.UsbRegistryInfo.Pid = &H2FF4 Then
+            emb_fw_hex = Utilities.GetResourceAsBytes("CLASSIC_U4.hex")
+            hw_model = "Classic (U4)"
+        End If
+        SetStatus("Programming new FlashcatUSB " & hw_model & " firmware (" & emb_fw_hex.Length.ToString("#,###") & " bytes)")
+        usb_dev.DFU_IF.DeviceInit()
+        If (Not MAIN_FCUSB.DFU_IF.EraseDevice()) Then
+            SetStatus("Error: device erase was not successful") : Exit Sub
+        End If
+        Dim hex_stream As New IO.StreamReader(New IO.MemoryStream(emb_fw_hex))
+        Dim ihex_tool As New IHEX.StreamReader(hex_stream)
+        If ihex_tool.IsValid Then
+            Dim emb_firmware(CInt(ihex_tool.Length) - 1) As Byte
+            ihex_tool.Read(emb_firmware, 0, emb_firmware.Length)
+            If MAIN_FCUSB.DFU_IF.WriteData(0, emb_firmware) Then
+                Utilities.Sleep(250)
+                MAIN_FCUSB.DFU_IF.RunApp() 'Start application (hardware reset)
+            Else
+                SetStatus("Error: programming firmware via DFU mode was not successful")
+            End If
+        Else
+            SetStatus("Error: file is corrupt or not a valid Intel Hex file")
+        End If
+        SetProgress(100) 'Hides progress bar
+    End Sub
 
 
 End Module

@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2020 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2021 - ALL RIGHTS RESERVED
 'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: this class creates a flash memory interface that is used by the main program
@@ -62,7 +62,7 @@ Public Class MemoryInterface
         End Try
     End Sub
 
-    Public Function GetDevice(index As UInt32) As MemoryDeviceInstance
+    Public Function GetDevice(index As Integer) As MemoryDeviceInstance
         If index >= MyDevices.Count Then Return Nothing
         Return MyDevices(index)
     End Function
@@ -76,7 +76,7 @@ Public Class MemoryInterface
         Public Property BaseAddress As UInt32 = 0 'Only changes for JTAG devices
         Public Property FlashType As MemoryType = MemoryType.UNSPECIFIED
         Public Property [ReadOnly] As Boolean = False 'Set to true to disable write/erase functions
-        Public Property PreferredBlockSize As UInt32 = 32768
+        Public Property PreferredBlockSize As Int32 = 32768
         Public Property VendorMenu As Control = Nothing
         Public Property NoErrors As Boolean = False 'Indicates there was a physical error
         Private Property IsErasing As Boolean = False
@@ -103,9 +103,6 @@ Public Class MemoryInterface
             Me.GuiControl = New MemControl_v2(Me)
             Me.FCUSB = usb_interface
             Me.MEMDEVICE = flash_device
-
-
-
         End Sub
 
         Public Class StatusCallback
@@ -193,20 +190,20 @@ Public Class MemoryInterface
             End Try
         End Sub
 
-        Private Sub OnGetSectorSize(sector_int As UInt32, ByRef sector_size As UInt32) Handles GuiControl.GetSectorSize
+        Private Sub OnGetSectorSize(sector_int As Integer, ByRef sector_size As Integer) Handles GuiControl.GetSectorSize
             sector_size = Me.GetSectorSize(sector_int)
-            If sector_size = 0 Then sector_size = Me.Size
+            If sector_size = 0 Then sector_size = CInt(Me.Size)
         End Sub
 
-        Private Sub OnGetSectorCount(ByRef count As UInt32) Handles GuiControl.GetSectorCount
+        Private Sub OnGetSectorCount(ByRef count As Integer) Handles GuiControl.GetSectorCount
             count = Me.GetSectorCount()
             If count = 0 Then count = 1
         End Sub
 
-        Private Sub OnGetSectorIndex(addr As Long, ByRef sector_int As UInt32) Handles GuiControl.GetSectorIndex
+        Private Sub OnGetSectorIndex(addr As Long, ByRef sector_int As Integer) Handles GuiControl.GetSectorIndex
             sector_int = 0
-            Dim s_count As UInt32 = GetSectorCount()
-            For i = 0 To s_count - 1
+            Dim s_count As Integer = GetSectorCount()
+            For i As Integer = 0 To CInt(s_count) - 1
                 Dim sector As SectorInfo = GetSectorInfo(i)
                 If addr >= sector.BaseAddress AndAlso addr < (sector.BaseAddress + sector.Size) Then
                     sector_int = i
@@ -215,7 +212,7 @@ Public Class MemoryInterface
             Next
         End Sub
 
-        Private Sub OnGetSectorAddress(sector_int As UInt32, ByRef addr As Long) Handles GuiControl.GetSectorBaseAddress
+        Private Sub OnGetSectorAddress(sector_int As Integer, ByRef addr As Long) Handles GuiControl.GetSectorBaseAddress
             addr = GetSectorBaseAddress(sector_int)
         End Sub
 
@@ -247,7 +244,7 @@ Public Class MemoryInterface
                 End If
                 If ReadStream(n, f_params) Then
                     data_out = n.GetBuffer()
-                    ReDim Preserve data_out(n.Length - 1)
+                    ReDim Preserve data_out(CInt(n.Length) - 1)
                 End If
             End Using
             Return data_out
@@ -278,9 +275,8 @@ Public Class MemoryInterface
                 Threading.Thread.CurrentThread.Name = "MemIf.ReadStream_" & td_int
             End If
             Try
-                Dim BytesTransfered As Long = 0
-                Dim BlockSize As UInt32 = Me.PreferredBlockSize
-                Dim Loops As Integer = CUInt(Math.Ceiling(Params.Count / BlockSize)) 'Calcuates iterations
+                Dim BlockSize As Integer = Me.PreferredBlockSize
+                Dim Loops As Integer = CInt(Math.Ceiling(Params.Count / BlockSize)) 'Calcuates iterations
                 Dim read_buffer() As Byte 'Temp Byte buffer
                 Dim BytesRead As Long = 0 'Number of bytes read from the Flash device
                 If Params.Status.UpdateOperation IsNot Nothing Then
@@ -292,9 +288,12 @@ Public Class MemoryInterface
                 End If
                 Dim BytesRemaining As Long = Params.Count
                 For i = 1 To Loops
-                    Dim BytesCountToRead As Long = BytesRemaining
-                    If (BytesCountToRead > BlockSize) Then BytesCountToRead = BlockSize
-                    ReDim read_buffer(BytesCountToRead - 1) 'Erase block data
+                    Dim buffer_size As Integer
+                    If (BytesRemaining > CLng(BlockSize)) Then
+                        buffer_size = BlockSize
+                    Else
+                        buffer_size = CInt(BytesRemaining)
+                    End If
                     Dim FlashAddress As Long = Params.Address + BytesRead
                     If Params.Status.UpdateBase IsNot Nothing Then
                         Params.Status.UpdateBase.DynamicInvoke(FlashAddress)
@@ -305,18 +304,18 @@ Public Class MemoryInterface
                     End If
                     Dim packet_timer As New Stopwatch
                     packet_timer.Start()
-                    read_buffer = ReadFlash(FlashAddress, BytesCountToRead)
+                    read_buffer = ReadFlash(FlashAddress, buffer_size)
                     packet_timer.Stop()
                     If Params.AbortOperation OrElse (Not Me.NoErrors) OrElse read_buffer Is Nothing Then Return False
-                    BytesTransfered += BytesCountToRead
-                    data_stream.Write(read_buffer, 0, BytesCountToRead)
-                    BytesRead += BytesCountToRead 'Increment location address
-                    BytesRemaining -= BytesCountToRead
+                    data_stream.Write(read_buffer, 0, buffer_size)
+                    BytesRemaining -= buffer_size
+                    BytesRead += buffer_size
                     If i = 1 OrElse i = Loops OrElse (i Mod 4 = 0) Then
                         Try
                             Threading.Thread.CurrentThread.Join(10) 'Pump a message
                             If Params.Status.UpdateSpeed IsNot Nothing Then
-                                Dim bytes_per_second As UInt32 = Math.Round(BytesCountToRead / (packet_timer.ElapsedMilliseconds / 1000))
+                                Dim transfer_seconds As Single = CSng(packet_timer.ElapsedMilliseconds) / 1000
+                                Dim bytes_per_second As UInt32 = CUInt(Math.Round(buffer_size / transfer_seconds))
                                 Dim speed_text As String = UpdateSpeed_GetText(bytes_per_second)
                                 Params.Status.UpdateSpeed.DynamicInvoke(speed_text)
                             End If
@@ -368,10 +367,10 @@ Public Class MemoryInterface
             Me.WaitUntilReady() 'Some flash devices requires us to wait before sending data
             Dim FailedAttempts As Integer = 0
             Dim ReadResult As Boolean
-            Dim BlockSize As UInt32 = 8192
+            Dim BlockSize As Integer = 8192
             While (Params.BytesLeft > 0)
                 If Params.AbortOperation Then Return False
-                Dim PacketSize As Long = Params.BytesLeft
+                Dim PacketSize As Integer = CInt(Params.BytesLeft)
                 If PacketSize > BlockSize Then PacketSize = BlockSize
                 If Params.Status.UpdateBase IsNot Nothing Then Params.Status.UpdateBase.DynamicInvoke(Params.Address)
                 If Params.Status.UpdateOperation IsNot Nothing Then Params.Status.UpdateOperation.DynamicInvoke(2) 'WRITE IMG
@@ -429,7 +428,7 @@ Public Class MemoryInterface
                 Dim percent_done As Single = CSng(CSng((Params.BytesWritten) / CSng(Params.BytesTotal)) * 100)
                 If Params.Status.UpdateSpeed IsNot Nothing Then
                     Try
-                        Dim bytes_per_second As UInt32 = Math.Round(Params.BytesWritten / (Params.Timer.ElapsedMilliseconds / 1000))
+                        Dim bytes_per_second As UInt32 = CUInt(Math.Round(Params.BytesWritten / (Params.Timer.ElapsedMilliseconds / 1000)))
                         Dim speed_text As String = UpdateSpeed_GetText(bytes_per_second)
                         Params.Status.UpdateSpeed.DynamicInvoke(speed_text)
                     Catch ex As Exception
@@ -444,31 +443,31 @@ Public Class MemoryInterface
 
         Private Function WriteBytes_NonVolatile(data_stream As IO.Stream, Params As WriteParameters) As Boolean
             Me.WaitUntilReady() 'Some flash devices requires us to wait before sending data
-            Dim TotalSectors As UInt32 = GetSectorCount()
+            Dim TotalSectors As Integer = GetSectorCount()
             Params.BytesTotal = Params.BytesLeft 'Total size of the data we are writing
             Dim percent_done As Single = 0
-            For i As UInt32 = 0 To (TotalSectors - 1)
+            For i As Integer = 0 To TotalSectors - 1
                 Dim sector As SectorInfo = GetSectorInfo(i)
                 Dim sector_start As Long = sector.BaseAddress 'First byte of the sector
                 Dim sector_end As Long = sector_start + sector.Size - 1 'Last byte of the sector
                 If (Params.Address >= sector_start) And (Params.Address <= sector_end) Then 'This sector contains data we want to change
                     Dim SectorData(sector.Size - 1) As Byte 'The array that will contain the sector data to write
-                    Dim SectorStart As Long = Params.Address - sector.BaseAddress 'This is where in the sector we are going to fill from stream
+                    Dim SectorStart As Long = (Params.Address - sector.BaseAddress) 'This is where in the sector we are going to fill from stream
                     Dim SectorEnd As Long = Math.Min(sector.Size, (SectorStart + Params.BytesLeft)) - 1  'This is where we will stop filling from stream
                     Dim StreamCount As Integer = CInt((SectorEnd - SectorStart) + 1) 'This is the number of bytes we are going to read for this sector
                     If (SectorStart > 0) Then 'We need to fill beginning
-                        Dim data_segment() As Byte = ReadFlash(sector.BaseAddress, SectorStart)
+                        Dim data_segment() As Byte = ReadFlash(sector.BaseAddress, CInt(SectorStart))
                         Array.Copy(data_segment, 0, SectorData, 0, data_segment.Length)
                         Params.Address = sector.BaseAddress 'This is to adjust the base address, as we are going to write data before our starting point
                     End If
-                    data_stream.Read(SectorData, SectorStart, StreamCount) 'This reads data from our stream
+                    data_stream.Read(SectorData, CInt(SectorStart), StreamCount) 'This reads data from our stream
                     If (SectorEnd < (sector.Size - 1)) Then 'We need to fill the end
-                        Dim BytesNeeded As UInt32 = sector.Size - (SectorEnd + 1)
                         WaitUntilReady()
-                        Dim data_segment() As Byte = ReadFlash(sector.BaseAddress + SectorEnd + 1, BytesNeeded)
+                        Dim BytesNeeded As Integer = CInt(sector.Size - (SectorEnd + 1))
+                        Dim data_segment() As Byte = ReadFlash(sector.BaseAddress + SectorEnd + 1L, BytesNeeded)
                         Array.Copy(data_segment, 0, SectorData, SectorEnd + 1, data_segment.Length)
                     End If
-                    Dim WriteResult As Boolean = WriteBytes_EraseSectorAndWrite(i, SectorData, Math.Floor(percent_done), Params) 'Writes data
+                    Dim WriteResult As Boolean = WriteBytes_EraseSectorAndWrite(i, SectorData, CInt(Math.Floor(percent_done)), Params) 'Writes data
                     If Params.AbortOperation Then Return False
                     If Not Me.NoErrors Then Return False
                     Threading.Thread.CurrentThread.Join(10) 'Pump a message
@@ -478,7 +477,7 @@ Public Class MemoryInterface
                         Params.Address = sector.BaseAddress + sector.Size
                         percent_done = CSng(CSng((Params.BytesWritten) / CSng(Params.BytesTotal)) * 100)
                         If Params.Status.UpdateSpeed IsNot Nothing Then
-                            Dim bytes_per_second As UInt32 = Math.Round(Params.BytesWritten / (Params.Timer.ElapsedMilliseconds / 1000))
+                            Dim bytes_per_second As UInt32 = CUInt(Math.Round(Params.BytesWritten / (Params.Timer.ElapsedMilliseconds / 1000)))
                             Dim speed_text As String = UpdateSpeed_GetText(bytes_per_second)
                             Params.Status.UpdateSpeed.DynamicInvoke(speed_text)
                         End If
@@ -506,14 +505,14 @@ Public Class MemoryInterface
 
         Private Function WriteBytes_I2C(data_stream As IO.Stream, Params As WriteParameters) As Boolean
             Try
-                Dim TotalSize As UInt32 = Params.BytesLeft
-                Dim BytesPerPacket As UInt32 = PreferredBlockSize
+                Dim TotalSize As Integer = CInt(Params.BytesLeft)
+                Dim BytesPerPacket As Integer = CInt(PreferredBlockSize)
                 Dim percent_done As Single = 0
                 Dim BytesTransfered As UInt32 = 0
                 Do While Params.BytesLeft > 0
                     If Params.AbortOperation Then Return False
                     Threading.Thread.CurrentThread.Join(10)
-                    Dim PacketSize As UInt16 = Math.Min(Params.BytesLeft, BytesPerPacket)
+                    Dim PacketSize As Integer = Math.Min(CInt(Params.BytesLeft), BytesPerPacket)
                     Dim packet_data(PacketSize - 1) As Byte
                     data_stream.Read(packet_data, 0, PacketSize) 'Reads data from the stream
                     If Params.Status.UpdateTask IsNot Nothing Then
@@ -563,12 +562,12 @@ Public Class MemoryInterface
                         End If
                     End If
                     If write_result Then
-                        BytesTransfered += PacketSize
+                        BytesTransfered += CUInt(PacketSize)
                         Params.BytesLeft -= PacketSize
                         Params.Address += PacketSize
-                        percent_done = CSng(CSng((BytesTransfered) / CSng(TotalSize)) * 100)
+                        percent_done = ((CSng(BytesTransfered) / CSng(TotalSize)) * 100)
                         If Params.Status.UpdateSpeed IsNot Nothing Then
-                            Dim bytes_per_second As UInt32 = Math.Round(BytesTransfered / (Params.Timer.ElapsedMilliseconds / 1000))
+                            Dim bytes_per_second As UInt32 = CUInt(Math.Round(BytesTransfered / (Params.Timer.ElapsedMilliseconds / 1000)))
                             Dim speed_text As String = UpdateSpeed_GetText(bytes_per_second)
                             Params.Status.UpdateSpeed.DynamicInvoke(speed_text)
                         End If
@@ -585,7 +584,7 @@ Public Class MemoryInterface
             End Try
         End Function
 
-        Private Function GetSectorInfo(sector_index As UInt32) As SectorInfo
+        Private Function GetSectorInfo(sector_index As Integer) As SectorInfo
             Dim si As SectorInfo
             si.BaseAddress = GetSectorBaseAddress(sector_index)
             si.Size = GetSectorSize(sector_index)
@@ -594,10 +593,10 @@ Public Class MemoryInterface
 
         Private Structure SectorInfo
             Dim BaseAddress As Long
-            Dim Size As UInt32
+            Dim Size As Integer
         End Structure
         'Does the actual erase sector and program functions
-        Private Function WriteBytes_EraseSectorAndWrite(ByRef sector As UInt32, data() As Byte, Percent As Integer, Params As WriteParameters) As Boolean
+        Private Function WriteBytes_EraseSectorAndWrite(ByRef sector As Integer, data() As Byte, Percent As Integer, Params As WriteParameters) As Boolean
             Try
                 Dim FailedAttempts As Integer = 0
                 Dim ReadResult As Boolean
@@ -614,7 +613,7 @@ Public Class MemoryInterface
                         End If
                         EraseSector(sector)
                         If Not Me.NoErrors Then
-                            RaiseEvent PrintConsole("Failed to erase memory at address: 0x" & Hex(Params.Address).PadLeft(8, "0"))
+                            RaiseEvent PrintConsole("Failed to erase memory at address: 0x" & Hex(Params.Address).PadLeft(8, "0"c))
                             If Not GetMessageBoxForSectorErase(Params.Address, sector) Then Return False
                         End If
                     End If
@@ -651,17 +650,17 @@ Public Class MemoryInterface
                             If FailedAttempts = MySettings.RETRY_WRITE_ATTEMPTS Then
                                 If (FlashType = FlashMemory.MemoryType.PARALLEL_NAND) Then
                                     Dim n_dev As P_NAND = FCUSB.PARALLEL_NAND_IF.MyFlashDevice
-                                    Dim pages_per_block As UInt32 = (n_dev.Block_Size / n_dev.PAGE_SIZE)
-                                    Dim page_addr As UInt32 = NAND_LayoutTool.GetNandPageAddress(n_dev, Params.Address, FCUSB.PARALLEL_NAND_IF.MemoryArea)
-                                    Dim block_addr As UInt32 = Math.Floor(page_addr / pages_per_block)
-                                    RaiseEvent PrintConsole(String.Format(RM.GetString("mem_bad_nand_block"), Hex(page_addr).PadLeft(6, "0"), block_addr))
+                                    Dim pages_per_block As Integer = (n_dev.Block_Size \ n_dev.PAGE_SIZE)
+                                    Dim page_addr As Integer = NAND_LayoutTool.GetNandPageAddress(n_dev, Params.Address, FCUSB.PARALLEL_NAND_IF.MemoryArea)
+                                    Dim block_addr As UInt32 = CUInt(page_addr \ pages_per_block)
+                                    RaiseEvent PrintConsole(String.Format(RM.GetString("mem_bad_nand_block"), Hex(page_addr).PadLeft(6, "0"c), block_addr))
                                     Return False
                                 ElseIf (FlashType = FlashMemory.MemoryType.SERIAL_NAND) Then
                                     Dim n_dev As SPI_NAND = DirectCast(FCUSB.SPI_NAND_IF.MyFlashDevice, SPI_NAND)
-                                    Dim pages_per_block As UInt32 = (n_dev.Block_Size / n_dev.PAGE_SIZE)
-                                    Dim page_addr As UInt32 = NAND_LayoutTool.GetNandPageAddress(n_dev, Params.Address, FCUSB.PARALLEL_NAND_IF.MemoryArea)
-                                    Dim block_addr As UInt32 = Math.Floor(page_addr / pages_per_block)
-                                    RaiseEvent PrintConsole(String.Format(RM.GetString("mem_bad_nand_block"), Hex(page_addr).PadLeft(6, "0"), block_addr))
+                                    Dim pages_per_block As Integer = (n_dev.Block_Size \ n_dev.PAGE_SIZE)
+                                    Dim page_addr As Integer = NAND_LayoutTool.GetNandPageAddress(n_dev, Params.Address, FCUSB.PARALLEL_NAND_IF.MemoryArea)
+                                    Dim block_addr As UInt32 = CUInt(page_addr \ pages_per_block)
+                                    RaiseEvent PrintConsole(String.Format(RM.GetString("mem_bad_nand_block"), Hex(page_addr).PadLeft(6, "0"c), block_addr))
                                     Return False
                                 ElseIf (FlashType = FlashMemory.MemoryType.PARALLEL_NOR) AndAlso (FCUSB.PARALLEL_NOR_IF.MyFlashDevice.GetType Is GetType(OTP_EPROM)) Then
                                     RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(Params.Address)))
@@ -727,7 +726,7 @@ Public Class MemoryInterface
 
         Public Function WriteErrorOnVerifyWrite(address As Long) As Boolean
             If (GUI IsNot Nothing) Then
-                Dim TitleTxt As String = String.Format(RM.GetString("mem_verify_failed_at"), Hex(address).PadLeft(8, "0"))
+                Dim TitleTxt As String = String.Format(RM.GetString("mem_verify_failed_at"), Hex(address).PadLeft(8, "0"c))
                 TitleTxt &= vbCrLf & vbCrLf & RM.GetString("mem_ask_continue")
                 If MsgBox(TitleTxt, MsgBoxStyle.YesNo, RM.GetString("mem_verify_failed_title")) = MsgBoxResult.No Then
                     Return False 'Stop operation
@@ -735,13 +734,13 @@ Public Class MemoryInterface
                     Return True
                 End If
             Else
-                RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(address).PadLeft(8, "0")))
+                RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(address).PadLeft(8, "0"c)))
                 Return False 'Stop console operation
             End If
         End Function
 
-        Public Function GetMessageBoxForSectorErase(address As Long, sector_index As UInt32) As Boolean
-            Dim TitleTxt As String = String.Format(RM.GetString("mem_erase_failed_at"), Hex(address).PadLeft(8, "0"), sector_index)
+        Public Function GetMessageBoxForSectorErase(address As Long, sector_index As Integer) As Boolean
+            Dim TitleTxt As String = String.Format(RM.GetString("mem_erase_failed_at"), Hex(address).PadLeft(8, "0"c), sector_index)
             TitleTxt &= vbCrLf & vbCrLf & RM.GetString("mem_ask_continue")
             If MsgBox(TitleTxt, MsgBoxStyle.YesNo, RM.GetString("mem_erase_failed_title")) = MsgBoxResult.No Then
                 Return False 'Stop working
@@ -774,15 +773,15 @@ Public Class MemoryInterface
             End Select
         End Sub
 
-        Public Function ReadFlash(Address As Long, Count As Long) As Byte()
+        Public Function ReadFlash(Address As Long, Count As Integer) As Byte()
             If Not WaitForNotBusy() Then Return Nothing
             Try : Me.IsReading = True
                 Dim data_out() As Byte = Nothing
                 Dim offset As Integer = BitSwap_Offset()
-                Dim data_read_count As Long = Count
+                Dim data_read_count As Integer = Count
                 Dim data_offset As Long = Address
-                Dim align As Long = 0
-                If (offset > 0) Then align = Address Mod offset
+                Dim align As Integer = 0
+                If (offset > 0) Then align = CInt(Address Mod offset)
                 If (align > 0) Then
                     data_offset -= align
                     data_read_count += align
@@ -793,11 +792,11 @@ Public Class MemoryInterface
                 Try : Threading.Monitor.Enter(InterfaceLock)
                     Select Case Me.FlashType
                         Case MemoryType.JTAG_CFI
-                            data_out = FCUSB.JTAG_IF.CFI_ReadFlash(data_offset, data_read_count)
+                            data_out = FCUSB.JTAG_IF.CFI_ReadFlash(CUInt(data_offset), data_read_count)
                         Case MemoryType.JTAG_SPI
-                            data_out = FCUSB.JTAG_IF.SPI_ReadFlash(data_offset, data_read_count)
+                            data_out = FCUSB.JTAG_IF.SPI_ReadFlash(CUInt(data_offset), data_read_count)
                         Case MemoryType.JTAG_BSDL
-                            data_out = FCUSB.JTAG_IF.BoundaryScan_ReadFlash(data_offset, data_read_count)
+                            data_out = FCUSB.JTAG_IF.BoundaryScan_ReadFlash(CUInt(data_offset), data_read_count)
                         Case Else
                             data_out = FCUSB.PROGRAMMER.ReadData(data_offset, data_read_count)
                     End Select
@@ -845,7 +844,7 @@ Public Class MemoryInterface
             Return True
         End Function
 
-        Public Sub EraseSector(sector_index As UInt32)
+        Public Sub EraseSector(sector_index As Integer)
             If Not WaitForNotBusy() Then Exit Sub
             Me.IsErasing = True
             Try : Threading.Monitor.Enter(InterfaceLock)
@@ -866,7 +865,7 @@ Public Class MemoryInterface
             Me.IsErasing = False
         End Sub
 
-        Public Sub WriteSector(sector_index As UInt32, Data() As Byte, Params As WriteParameters)
+        Public Sub WriteSector(sector_index As Integer, Data() As Byte, Params As WriteParameters)
             If Not WaitForNotBusy() Then Exit Sub
             Me.IsWriting = True
             Try : Threading.Monitor.Enter(InterfaceLock)
@@ -892,7 +891,7 @@ Public Class MemoryInterface
             Application.DoEvents()
         End Sub
 
-        Public Function GetSectorCount() As UInt32
+        Public Function GetSectorCount() As Integer
             Select Case Me.FlashType
                 Case MemoryType.JTAG_CFI
                     Return FCUSB.JTAG_IF.CFI_SectorCount()
@@ -905,7 +904,7 @@ Public Class MemoryInterface
             End Select
         End Function
 
-        Public Function GetSectorSize(sector_index As UInt32) As UInt32
+        Public Function GetSectorSize(sector_index As Integer) As Integer 
             Select Case Me.FlashType
                 Case MemoryType.JTAG_CFI
                     Return FCUSB.JTAG_IF.CFI_GetSectorSize(sector_index)
@@ -918,7 +917,7 @@ Public Class MemoryInterface
             End Select
         End Function
 
-        Public Function GetSectorBaseAddress(sector_index As UInt32) As Long
+        Public Function GetSectorBaseAddress(sector_index As Integer) As Long
             Select Case Me.FlashType
                 Case MemoryType.JTAG_CFI
                     Return FCUSB.JTAG_IF.CFI_FindSectorBase(sector_index)
@@ -949,7 +948,7 @@ Public Class MemoryInterface
 
     Public Sub AbortOperations()
         Try
-            Dim Counter As UInt16 = 0
+            Dim Counter As Integer = 0
             For Each memdev In MyDevices
                 If memdev.GuiControl IsNot Nothing Then memdev.GuiControl.AbortAnyOperation()
                 Do While memdev.IsBusy
@@ -962,12 +961,12 @@ Public Class MemoryInterface
         End Try
     End Sub
 
-    Private Shared Function UpdateSpeed_GetText(bytes_per_second As Integer) As String
+    Private Shared Function UpdateSpeed_GetText(bytes_per_second As UInt32) As String
         Dim speed_str As String
         If (bytes_per_second > (Mb008 - 1)) Then '1MB or higher
-            speed_str = Format(CSng(bytes_per_second / CSng(Mb008)), "#,###.000") & " MB/s"
+            speed_str = Format((CSng(bytes_per_second) / CSng(Mb008)), "#,###.000") & " MB/s"
         ElseIf (bytes_per_second > 8191) Then
-            speed_str = Format(CSng(bytes_per_second / CSng(1024)), "#,###.00") & " KB/s"
+            speed_str = Format((CSng(bytes_per_second) / CSng(1024)), "#,###.00") & " KB/s"
         Else
             speed_str = Format(bytes_per_second, "#,###") & " B/s"
         End If

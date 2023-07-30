@@ -11,7 +11,8 @@ Namespace ECC_LIB
 
 
 #Region "Parity Table"
-        Private byte_parity_table() As Byte = {&HFF, &HD4, &HD2, &HF9, &HCC, &HE7, &HE1, &HCA,
+        Private byte_parity_table() As Byte = {
+                &HFF, &HD4, &HD2, &HF9, &HCC, &HE7, &HE1, &HCA,
                 &HCA, &HE1, &HE7, &HCC, &HF9, &HD2, &HD4, &HFF,
                 &HB4, &H9F, &H99, &HB2, &H87, &HAC, &HAA, &H81,
                 &H81, &HAA, &HAC, &H87, &HB2, &H99, &H9F, &HB4,
@@ -51,15 +52,15 @@ Namespace ECC_LIB
             Dim word_reg As UInt16
             Dim LP0, LP1, LP2, LP3, LP4, LP5, LP6, LP7, LP8, LP9, LP10, LP11, LP12, LP13, LP14, LP15, LP16, LP17 As UInt32
             Dim uddata() As UInt32 = Utilities.Bytes.ToUIntArray(block)
-            For j = 0 To 127
+            For j As Integer = 0 To 127
                 Dim temp As UInt32 = uddata(j)
-                If j And &H1 Then LP5 = LP5 Xor temp Else LP4 = LP4 Xor temp
-                If j And &H2 Then LP7 = LP7 Xor temp Else LP6 = LP6 Xor temp
-                If j And &H4 Then LP9 = LP9 Xor temp Else LP8 = LP8 Xor temp
-                If j And &H8 Then LP11 = LP11 Xor temp Else LP10 = LP10 Xor temp
-                If j And &H10 Then LP13 = LP13 Xor temp Else LP12 = LP12 Xor temp
-                If j And &H20 Then LP15 = LP15 Xor temp Else LP14 = LP14 Xor temp
-                If j And &H40 Then LP17 = LP17 Xor temp Else LP16 = LP16 Xor temp
+                If CBool(j And &H1) Then LP5 = LP5 Xor temp Else LP4 = LP4 Xor temp
+                If CBool(j And &H2) Then LP7 = LP7 Xor temp Else LP6 = LP6 Xor temp
+                If CBool(j And &H4) Then LP9 = LP9 Xor temp Else LP8 = LP8 Xor temp
+                If CBool(j And &H8) Then LP11 = LP11 Xor temp Else LP10 = LP10 Xor temp
+                If CBool(j And &H10) Then LP13 = LP13 Xor temp Else LP12 = LP12 Xor temp
+                If CBool(j And &H20) Then LP15 = LP15 Xor temp Else LP14 = LP14 Xor temp
+                If CBool(j And &H40) Then LP17 = LP17 Xor temp Else LP16 = LP16 Xor temp
             Next
             Dim reg32 As UInt32 = (LP15 Xor LP14)
             Dim byte_reg As Byte = CByte((reg32) And &HFF)
@@ -71,7 +72,7 @@ Namespace ECC_LIB
             LP16 = CByte(CByte(word_reg And &HFF) Xor CByte(word_reg >> 8))
             word_reg = CUShort(LP17 >> 16) Xor CUShort(LP17 And &HFFFF)
             LP17 = CByte(CByte(word_reg And &HFF) Xor CByte(word_reg >> 8))
-            ecc_code(2) = CByte(CByte(byte_reg And &HFE) << 1) Or (byte_parity_table(CByte(LP16 And 255)) And &H1) Or ((byte_parity_table(CByte(LP17 And 255)) And &H1) << 1)
+            ecc_code(2) = ((byte_reg And CByte(&HFE)) << 1) Or byte_parity_table(CByte(LP16 And &HFF) And CByte(&H1)) Or (byte_parity_table(CByte(LP17 And &HFF) And CByte(&H1)) << 1)
             LP0 = CByte((reg32 Xor (reg32 >> 16)) And 255)
             LP1 = CByte(((reg32 >> 8) Xor (reg32 >> 24)) And 255)
             LP2 = CByte((reg32 Xor (reg32 >> 8)) And 255)
@@ -101,23 +102,23 @@ Namespace ECC_LIB
             word_reg = CUShort(LP15 >> 16) Xor CUShort(LP15 And &HFFFF)
             LP15 = CByte(CByte(word_reg And 255) Xor (CByte(word_reg >> 8)))
 
-            ecc_code(0) = (byte_parity_table(CByte(LP0 And 255)) And &H1) Or
-                ((byte_parity_table(CByte(LP1 And 255)) And &H1) << 1) Or
-                ((byte_parity_table(CByte(LP2 And 255)) And &H1) << 2) Or
-                ((byte_parity_table(CByte(LP3 And 255)) And &H1) << 3) Or
-                ((byte_parity_table(CByte(LP4 And 255)) And &H1) << 4) Or
-                ((byte_parity_table(CByte(LP5 And 255)) And &H1) << 5) Or
-                ((byte_parity_table(CByte(LP6 And 255)) And &H1) << 6) Or
-                ((byte_parity_table(CByte(LP7 And 255)) And &H1) << 7)
+            ecc_code(0) = (byte_parity_table(CByte(LP0 And 255)) And CByte(&H1)) Or
+                ((byte_parity_table(CByte(LP1 And 255)) And CByte(&H1)) << 1) Or
+                ((byte_parity_table(CByte(LP2 And 255)) And CByte(&H1)) << 2) Or
+                ((byte_parity_table(CByte(LP3 And 255)) And CByte(&H1)) << 3) Or
+                ((byte_parity_table(CByte(LP4 And 255)) And CByte(&H1)) << 4) Or
+                ((byte_parity_table(CByte(LP5 And 255)) And CByte(&H1)) << 5) Or
+                ((byte_parity_table(CByte(LP6 And 255)) And CByte(&H1)) << 6) Or
+                ((byte_parity_table(CByte(LP7 And 255)) And CByte(&H1)) << 7)
 
-            ecc_code(1) = ((byte_parity_table(CByte(LP8 And 255)) And &H1)) Or
-                (byte_parity_table(CByte(LP9 And 255)) And &H1) << 1 Or
-                (byte_parity_table(CByte(LP10 And 255)) And &H1) << 2 Or
-                (byte_parity_table(CByte(LP11 And 255)) And &H1) << 3 Or
-                (byte_parity_table(CByte(LP12 And 255)) And &H1) << 4 Or
-                (byte_parity_table(CByte(LP13 And 255)) And &H1) << 5 Or
-                (byte_parity_table(CByte(LP14 And 255)) And &H1) << 6 Or
-                (byte_parity_table(CByte(LP15 And 255)) And &H1) << 7
+            ecc_code(1) = ((byte_parity_table(CByte(LP8 And 255)) And CByte(&H1))) Or
+                (byte_parity_table(CByte(LP9 And 255)) And CByte(&H1)) << 1 Or
+                (byte_parity_table(CByte(LP10 And 255)) And CByte(&H1)) << 2 Or
+                (byte_parity_table(CByte(LP11 And 255)) And CByte(&H1)) << 3 Or
+                (byte_parity_table(CByte(LP12 And 255)) And CByte(&H1)) << 4 Or
+                (byte_parity_table(CByte(LP13 And 255)) And CByte(&H1)) << 5 Or
+                (byte_parity_table(CByte(LP14 And 255)) And CByte(&H1)) << 6 Or
+                (byte_parity_table(CByte(LP15 And 255)) And CByte(&H1)) << 7
 
             Return ecc_code
         End Function
@@ -133,15 +134,18 @@ Namespace ECC_LIB
             Else
                 Dim bit_count As Integer = BitCount(ecc_xor) 'Counts the bit number
                 If (bit_count = 12) Then
-                    Dim bit_addr As Byte = (ecc_xor(2) >> 3) And 1 Or (ecc_xor(2) >> 4) And 2 Or (ecc_xor(2) >> 5) And 4
-                    Dim byte_addr As UInt32 = (ecc_xor(0) >> 1) And &H1 Or (ecc_xor(0) >> 2) And &H2 Or (ecc_xor(0) >> 3) And &H4 Or
-                           (ecc_xor(0) >> 4) And &H8 Or
-                           (ecc_xor(1) << 3) And &H10 Or
-                           (ecc_xor(1) << 2) And &H20 Or
-                           (ecc_xor(1) << 1) And &H40 Or
-                           (ecc_xor(1) And &H80) Or ((CUShort(ecc_xor(2)) << 7) And &H100)
-
-                    block(byte_addr - 1) = block(byte_addr - 1) Xor (1 << bit_addr)
+                    Dim bit_addr As Byte = ((ecc_xor(2) >> 3) And CByte(1)) Or ((ecc_xor(2) >> 4) And CByte(2)) Or ((ecc_xor(2) >> 5) And CByte(4))
+                    Dim byte_addr As UInt16 =
+                    (ecc_xor(0) >> 1) And &H1US Or
+                    (ecc_xor(0) >> 2) And &H2US Or
+                    (ecc_xor(0) >> 3) And &H4US Or
+                    (ecc_xor(0) >> 4) And &H8US Or
+                    (ecc_xor(1) << 3) And &H10US Or
+                    (ecc_xor(1) << 2) And &H20US Or
+                    (ecc_xor(1) << 1) And &H40US Or
+                    (ecc_xor(1) << 0) And &H80US Or
+                    (ecc_xor(2) << 7) And &H100US
+                    block(byte_addr - 1) = block(byte_addr - 1) Xor (CByte(1) << bit_addr)
                     Return ECC_DECODE_RESULT.Correctable
                 ElseIf (bit_count = 1) Then
                     stored_ecc = new_ecc
@@ -174,7 +178,7 @@ Namespace ECC_LIB
 
         End Sub
 
-        Public Function GetEccSize() As Integer
+        Public Function GetEccSize() As UInt16
             If Me.SYM_WIDTH = 9 Then
                 Select Case PARITY_BITS
                     Case 1
@@ -206,7 +210,7 @@ Namespace ECC_LIB
                         Return 35
                 End Select
             End If
-            Return -1
+            Return 0
         End Function
 
         Public Function GenerateECC(block() As Byte) As Byte()
@@ -283,7 +287,7 @@ Namespace ECC_LIB
         End Function
         'Converts data stored in 32-bit to byte by the specified symbol width
         Private Function symbols_to_bytes(data_in() As Integer, sym_width As Integer) As Byte()
-            Dim ecc_size As Integer = Math.Ceiling((data_in.Length * sym_width) / 8)
+            Dim ecc_size As Integer = CInt(Math.Ceiling((data_in.Length * sym_width) / 8))
             Dim data_out(ecc_size - 1) As Byte 'This needs to be 0x00
             Dim counter As Integer = 0
             Dim spare_data As Byte = 0
@@ -292,15 +296,15 @@ Namespace ECC_LIB
                 Do
                     Dim next_bits As Integer = (8 - bits_left)
                     bits_left = (sym_width - next_bits)
-                    Dim byte_to_add As Byte = (spare_data << next_bits) Or ((item >> bits_left) And ((1 << next_bits) - 1))
+                    Dim byte_to_add As Byte = CByte((spare_data << next_bits) Or ((item >> bits_left) And ((1 << next_bits) - 1)))
                     data_out(counter) = byte_to_add : counter += 1
                     Dim x As Integer = Math.Min(bits_left, 8)
                     Dim offset As Integer = (bits_left - x)
-                    spare_data = ((item And ((1 << x) - 1) << offset) >> offset)
+                    spare_data = CByte((item And ((1 << x) - 1) << offset) >> offset)
                     If x = 8 Then
                         data_out(counter) = spare_data : counter += 1
                         bits_left -= 8
-                        spare_data = (item And ((1 << offset) - 1))
+                        spare_data = CByte(item And ((1 << offset) - 1))
                     End If
                 Loop While bits_left > 8
             Next
@@ -313,7 +317,7 @@ Namespace ECC_LIB
         End Function
 
         Private Function bytes_to_symbols(data_in() As Byte, sym_width As Integer) As Integer()
-            Dim sym_count As Integer = Math.Ceiling((data_in.Length * 8) / sym_width)
+            Dim sym_count As Integer = CInt(Math.Ceiling((data_in.Length * 8) / sym_width))
             Dim data_out(sym_count - 1) As Integer
             Dim counter As Integer = 0
             Dim int_data As Integer
@@ -326,7 +330,7 @@ Namespace ECC_LIB
                     Dim target_offset As Integer = sym_width - (bit_offset + sel_count)
                     data_in_bitcount -= sel_count
                     Dim src_offset As Integer = data_in_bitcount
-                    Dim bit_mask As Byte = ((1 << sel_count) - 1) << src_offset
+                    Dim bit_mask As Byte = CByte(((1 << sel_count) - 1) << src_offset)
                     Dim data_selected As Integer = (data_in(i) And bit_mask) >> src_offset
                     int_data = int_data Or (data_selected << target_offset)
                     bit_offset += sel_count
@@ -362,7 +366,7 @@ Namespace ECC_LIB
 
         End Sub
 
-        Public Function GetEccSize() As Integer
+        Public Function GetEccSize() As UInt16
             Select Case PARITY_BITS
                 Case 1
                     Return 2
@@ -377,7 +381,7 @@ Namespace ECC_LIB
                 Case 14
                     Return 23
                 Case Else
-                    Return -1
+                    Return 0
             End Select
         End Function
 
@@ -482,7 +486,7 @@ Namespace ECC_LIB
                 If Not (data_in.Length Mod 512 = 0) Then Exit Sub
                 If Me.REVERSE_ARRAY Then Array.Reverse(data_in)
                 Dim ecc_byte_size As Integer = GetEccByteSize()
-                Dim blocks As Integer = (data_in.Length / 512)
+                Dim blocks As Integer = (data_in.Length \ 512)
                 ReDim ecc((blocks * ecc_byte_size) - 1)
                 Utilities.FillByteArray(ecc, 255)
                 Dim ecc_ptr As Integer = 0
@@ -505,7 +509,7 @@ Namespace ECC_LIB
             End Try
         End Sub
 
-        Public Function GetEccByteSize() As Integer
+        Public Function GetEccByteSize() As UInt16
             Select Case ecc_mode
                 Case ecc_algorithum.hamming
                     Return 3
@@ -514,13 +518,13 @@ Namespace ECC_LIB
                 Case ecc_algorithum.bhc
                     Return ecc_bhc.GetEccSize()
             End Select
-            Return -1
+            Return 0
         End Function
 
         Public Function GetEccFromSpare(spare() As Byte, page_size As UInt16, oob_size As UInt16) As Byte()
             Dim bytes_per_ecc As Integer = Me.GetEccByteSize() 'Number of ECC byters per sector
-            Dim obb_count As Integer = (spare.Length / oob_size) 'Number of OOB areas to process
-            Dim sector_count As Integer = (page_size / 512) 'Each OOB contains this many sectors
+            Dim obb_count As Integer = (spare.Length \ oob_size) 'Number of OOB areas to process
+            Dim sector_count As Integer = (page_size \ 512) 'Each OOB contains this many sectors
             Dim ecc_data((obb_count * (sector_count * bytes_per_ecc)) - 1) As Byte
             Dim ecc_data_ptr As Integer = 0
             Dim spare_ptr As Integer = 0
@@ -537,8 +541,8 @@ Namespace ECC_LIB
         'Writes the ECC bytes into the spare area
         Public Sub SetEccToSpare(spare() As Byte, ecc_data() As Byte, page_size As UInt16, oob_size As UInt16)
             Dim bytes_per_ecc As Integer = Me.GetEccByteSize() 'Number of ECC byters per sector
-            Dim obb_count As Integer = (spare.Length / oob_size) 'Number of OOB areas to process
-            Dim sector_count As Integer = (page_size / 512) 'Each OOB contains this many sectors
+            Dim obb_count As Integer = (spare.Length \ oob_size) 'Number of OOB areas to process
+            Dim sector_count As Integer = (page_size \ 512) 'Each OOB contains this many sectors
             Dim ecc_data_ptr As Integer = 0
             Dim spare_ptr As Integer = 0
             For x = 0 To obb_count - 1
@@ -586,7 +590,7 @@ Namespace ECC_LIB
             End Select
         End Function
 
-        Public Function GetEccDataSize(item As ECC_Configuration_Entry) As Byte
+        Public Function GetEccDataSize(item As ECC_Configuration_Entry) As UInt16
             Dim ecc_eng_example As New Engine(item.Algorithm, item.BitError, item.SymSize)
             Return ecc_eng_example.GetEccByteSize()
         End Function
@@ -609,18 +613,18 @@ Namespace ECC_LIB
 
         Public Function IsValid() As Boolean
             If Me.PageSize = 0 OrElse Not Me.PageSize Mod 512 = 0 Then Return False
-            Dim sector_count As Integer = (Me.PageSize / 512)
-            Dim ecc_data_size As Integer = GetEccDataSize(Me)
+            Dim sector_count As Integer = (Me.PageSize \ 512)
+            Dim ecc_data_size As UInt16 = GetEccDataSize(Me)
             If EccRegion Is Nothing Then Return False
             If Not EccRegion.Length = sector_count Then Return False
             For i = 0 To EccRegion.Length - 1
                 Dim start_addr As UInt16 = EccRegion(i)
-                Dim end_addr As UInt16 = start_addr + ecc_data_size - 1
+                Dim end_addr As UInt16 = start_addr + ecc_data_size - 1US
                 If end_addr >= Me.SpareSize Then Return False
                 For x = 0 To EccRegion.Length - 1
                     If (i <> x) Then
                         Dim target_addr As UInt16 = EccRegion(x)
-                        Dim target_end As UInt16 = target_addr + ecc_data_size - 1
+                        Dim target_end As UInt16 = target_addr + ecc_data_size - 1US
                         If start_addr >= target_addr And start_addr <= target_end Then
                             Return False
                         End If

@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2020 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2021 - ALL RIGHTS RESERVED
 'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: This class implements the SVF / XSVF file format developed by Texas Instroments
@@ -61,16 +61,16 @@ Namespace JTAG
             RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             For Each line In xsvf_file
                 line_counter += 1
-                RaiseEvent Progress((line_counter / xsvf_file.Length) * 100)
+                RaiseEvent Progress((line_counter \ xsvf_file.Length) * 100)
                 Select Case line.instruction
                     Case xsvf_instruction.XTDOMASK
                         TDO_MASK = line.value_data
                     Case xsvf_instruction.XREPEAT
-                        TDO_REPEAT = line.value_uint
+                        TDO_REPEAT = CUInt(line.value_uint)
                     Case xsvf_instruction.XRUNTEST
-                        XRUNTEST = line.value_uint
+                        XRUNTEST = CUInt(line.value_uint)
                     Case xsvf_instruction.XSIR
-                        RaiseEvent ShiftIR(line.value_data.data, Nothing, line.value_data.bits, True)
+                        RaiseEvent ShiftIR(line.value_data.data, Nothing, CShort(line.value_data.bits), True)
                         If Not XRUNTEST = 0 Then
                             RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
                             DoXRunTest(XRUNTEST) 'wait for the last specified XRUNTEST time. 
@@ -88,7 +88,7 @@ Namespace JTAG
                                 PrintCompareError(line_counter, "XSDR", TDO, TDO_MASK.data, line.value_expected.data)
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
-                            If Counter > 0 Then Counter -= 1
+                            If Counter > 0 Then Counter -= 1UI
                         Loop Until Result
                         If Not XRUNTEST = 0 Then
                             RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
@@ -97,12 +97,12 @@ Namespace JTAG
                             RaiseEvent GotoState(ENDDR)  'Otherwise, go to the last specified XENDDR state.
                         End If
                     Case xsvf_instruction.XSDRSIZE
-                        XSDRSIZE = line.value_uint    'Specifies the length of all XSDR/XSDRTDO records that follow.
+                        XSDRSIZE = CUInt(line.value_uint)    'Specifies the length of all XSDR/XSDRTDO records that follow.
                     Case xsvf_instruction.XSDRTDO
                         Dim Counter As UInt32 = TDO_REPEAT
                         Dim Result As Boolean = False
                         Do
-                            If Counter > 0 Then Counter -= 1
+                            If Counter > 0 Then Counter -= 1UI
                             Dim TDO() As Byte = Nothing
                             RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, True)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
@@ -125,10 +125,10 @@ Namespace JTAG
                         RaiseEvent ShiftDR(line.value_data.data, Nothing, line.value_data.bits, False)
                         RaiseEvent GotoState(ENDDR)
                     Case xsvf_instruction.XSDRTDOB
-                        Dim Counter As UInt32 = TDO_REPEAT
+                        Dim counter As UInt32 = TDO_REPEAT
                         Dim Result As Boolean = False
                         Do
-                            If Counter > 0 Then Counter -= 1
+                            If counter > 0 Then counter -= 1UI
                             Dim TDO() As Byte = Nothing
                             RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, False)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
@@ -136,7 +136,7 @@ Namespace JTAG
                                 PrintCompareError(line_counter, "XSDRTDOB", TDO, TDO_MASK.data, line.value_expected.data)
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
-                            If Counter > 0 Then Counter -= 1
+                            If counter > 0 Then counter -= 1UI
                         Loop Until Result
                     Case xsvf_instruction.XSDRTDOC
                         Dim Counter As UInt32 = TDO_REPEAT
@@ -152,10 +152,10 @@ Namespace JTAG
                             End If
                         Loop Until Result
                     Case xsvf_instruction.XSDRTDOE
-                        Dim Counter As UInt32 = TDO_REPEAT
+                        Dim counter As UInt32 = TDO_REPEAT
                         Dim Result As Boolean = False
                         Do
-                            If Counter > 0 Then Counter -= 1
+                            If counter > 0 Then counter -= 1UI
                             Dim TDO() As Byte = Nothing
                             RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, False)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data)
@@ -180,17 +180,17 @@ Namespace JTAG
                     Case xsvf_instruction.XENDDR
                         ENDDR = line.state
                     Case xsvf_instruction.XSIR2 'Same as XSIR (since we should all support 255 bit lengths or more)
-                        RaiseEvent ShiftIR(line.value_data.data, Nothing, line.value_data.bits, True)
+                        RaiseEvent ShiftIR(line.value_data.data, Nothing, CShort(line.value_data.bits), True)
                         If Not XRUNTEST = 0 Then
                             RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
-                            DoXRunTest(line.value_uint) 'wait for the last specified XRUNTEST time. 
+                            DoXRunTest(CUInt(line.value_uint)) 'wait for the last specified XRUNTEST time. 
                         Else
                             RaiseEvent GotoState(ENDIR)  'Otherwise, go to the last specified XENDIR state.
                         End If
                     Case xsvf_instruction.XCOMMENT 'No need to display this
                     Case xsvf_instruction.XWAIT
                         RaiseEvent GotoState(line.state)
-                        Dim Sleep As Double = line.value_uint / 1000
+                        Dim Sleep As Integer = CInt(line.value_uint) \ 1000
                         Threading.Thread.Sleep(Sleep)
                         RaiseEvent GotoState(line.state_end)
                     Case Else
@@ -213,7 +213,8 @@ Namespace JTAG
                 For x = 0 To svf_file.Count - 1
                     Dim line As String = svf_file(x)
                     If x Mod 10 = 0 Then
-                        RaiseEvent Progress(((x + 1) / svf_file.Length) * 100)
+                        Dim percent As Integer = CInt((CSng(x + 1) / CSng(svf_file.Length)) * 100)
+                        RaiseEvent Progress(percent)
                     End If
                     If LOOP_COUNTER = 0 Then
                         If line.ToUpper.StartsWith("LOOP ") Then 'Lattice's Extended SVF command
@@ -249,17 +250,15 @@ Namespace JTAG
             If line.ToUpper.StartsWith("SIR ") Then
                 Dim line_svf As New svf_param(line)
                 Dim TDO() As Byte = Nothing
-
                 If (IR_HEAD.LEN > 0) Then
-                    RaiseEvent ShiftIR(IR_HEAD.TDI, Nothing, IR_HEAD.LEN, False)
+                    RaiseEvent ShiftIR(IR_HEAD.TDI, Nothing, CShort(IR_HEAD.LEN), False)
                 End If
                 If (IR_TAIL.LEN > 0) Then
-                    RaiseEvent ShiftIR(line_svf.TDI, TDO, line_svf.LEN, False)
-                    RaiseEvent ShiftIR(IR_TAIL.TDI, Nothing, IR_TAIL.LEN, True)
+                    RaiseEvent ShiftIR(line_svf.TDI, TDO, CShort(line_svf.LEN), False)
+                    RaiseEvent ShiftIR(IR_TAIL.TDI, Nothing, CShort(IR_TAIL.LEN), True)
                 Else
-                    RaiseEvent ShiftIR(line_svf.TDI, TDO, line_svf.LEN, True)
+                    RaiseEvent ShiftIR(line_svf.TDI, TDO, CShort(line_svf.LEN), True)
                 End If
-
                 Dim MASK_TO_COMPARE() As Byte = line_svf.MASK
                 If MASK_TO_COMPARE Is Nothing Then
                     If line_svf.LEN = SIR_LAST_LEN AndAlso SIR_LAST_MASK IsNot Nothing Then
@@ -307,28 +306,41 @@ Namespace JTAG
                 RaiseEvent GotoState(ENDDR)
                 If (Not Result) AndAlso (Not IgnoreErrors) Then Return False
             ElseIf line.ToUpper.StartsWith("ENDIR ") Then
-                ENDIR = GetStateFromInput(Mid(line, 7).Trim)
+                Dim stable_state As String = line.Substring(6).Trim
+                If ValidStableState(stable_state) Then
+                    ENDIR = GetStateFromInput(stable_state)
+                End If
             ElseIf line.ToUpper.StartsWith("ENDDR ") Then
-                ENDDR = GetStateFromInput(Mid(line, 7).Trim)
+                Dim stable_state As String = line.Substring(6).Trim
+                If ValidStableState(stable_state) Then
+                    ENDDR = GetStateFromInput(stable_state)
+                End If
             ElseIf line.ToUpper.StartsWith("TRST ") Then 'Disable Test Reset line
-                Dim s As String = Mid(line, 6).Trim.ToUpper
+                Dim s As String = line.Substring(5).Trim.ToUpper
                 Dim EnableTrst As Boolean = False
                 If s.Equals("ON") OrElse s.Equals("YES") OrElse s.Equals("TRUE") Then EnableTrst = True
                 RaiseEvent SetTRST(EnableTrst)
             ElseIf line.ToUpper.StartsWith("FREQUENCY ") Then 'Sets the max freq of the device
                 Try
-                    Dim s As String = Mid(line, 11).Trim
-                    If s.ToUpper.EndsWith("HZ") Then s = Mid(s, 1, s.Length - 2).Trim
+                    Dim s As String = line.Substring(10).Trim
+                    If s.ToUpper.EndsWith("HZ") Then
+                        s = s.Substring(0, s.Length - 2).Trim()
+                    End If
                     Dim FREQ32 As UInt32 = CUInt(Decimal.Parse(s, Globalization.NumberStyles.Float))
                     RaiseEvent SetFrequency(FREQ32)
                 Catch ex As Exception
                     RaiseEvent SetFrequency(1000000)
                 End Try
             ElseIf line.ToUpper.StartsWith("RUNTEST ") Then
-                DoRuntest(Mid(line, 9).Trim)
+                DoRuntest(line.Substring(8).Trim)
             ElseIf line.ToUpper.StartsWith("STATE ") Then
-                Dim Desired_State As String = Mid(line, 7).Trim.ToUpper 'Possibly a list?
-                RaiseEvent GotoState(GetStateFromInput(Desired_State))
+                Dim stable_state As String = line.Substring(6).Trim
+                Dim state_list() As String = stable_state.Split(" "c)
+                For Each e_state In state_list
+                    If ValideTapState(e_state) Then
+                        RaiseEvent GotoState(GetStateFromInput(e_state))
+                    End If
+                Next
             ElseIf line.ToUpper.StartsWith("TIR ") Then
                 IR_TAIL.LoadParams(line)
             ElseIf line.ToUpper.StartsWith("HIR ") Then
@@ -375,12 +387,12 @@ Namespace JTAG
         End Sub
 
         Private Sub DoXRunTest(wait_amount As UInt32)
-            Dim s As Integer = wait_amount / 1000
-            If s < 30 Then s = 30
+            Dim s As Integer = CInt(wait_amount \ 1000)
+            If (s < 30) Then s = 30
             Threading.Thread.Sleep(s)
         End Sub
 
-        Private Function IsValidRunState(input As String) As Boolean
+        Private Function ValidStableState(input As String) As Boolean
             Select Case input.Trim.ToUpper
                 Case "IRPAUSE"
                 Case "DRPAUSE"
@@ -392,13 +404,37 @@ Namespace JTAG
             Return True
         End Function
 
+        Private Function ValideTapState(input As String) As Boolean
+            Select Case input.Trim.ToUpper
+                Case "RESET"
+                Case "IDLE"
+                Case "DRSELECT"
+                Case "DRCAPTURE"
+                Case "DRSHIFT"
+                Case "DREXIT1"
+                Case "DRPAUSE"
+                Case "DREXIT2"
+                Case "DRUPDATE"
+                Case "IRSELECT"
+                Case "IRCAPTURE"
+                Case "IRSHIFT"
+                Case "IREXIT1"
+                Case "IRPAUSE"
+                Case "IREXIT2"
+                Case "IRUPDATE"
+                Case Else
+                    Return False
+            End Select
+            Return True
+        End Function
+
         Private Sub DoRuntest(line As String)
             Try
                 Dim start_state As JTAG_MACHINE_STATE = JTAG_MACHINE_STATE.RunTestIdle 'Default
-                Dim Params() As String = line.Split(" ")
+                Dim Params() As String = line.Split(" "c)
                 If Params Is Nothing Then Exit Sub
                 Dim Counter As Integer = 0
-                If IsValidRunState(Params(Counter)) Then
+                If ValidStableState(Params(Counter)) Then
                     start_state = GetStateFromInput(Params(Counter))
                     Counter += 1
                 End If
@@ -409,9 +445,9 @@ Namespace JTAG
                     Case "TCK" 'Toggle test-clock
                         RaiseEvent ToggleClock(CUInt(wait_time))
                     Case "SCK" 'Toggle system-clock
-                        Threading.Thread.Sleep(wait_time)
+                        Threading.Thread.Sleep(CInt(wait_time))
                     Case "SEC"
-                        Dim sleep_int As Integer = (wait_time * 1000)
+                        Dim sleep_int As Integer = CInt(wait_time * 1000)
                         If sleep_int < 1 Then sleep_int = 20
                         Threading.Thread.Sleep(sleep_int)
                     Case Else
@@ -421,7 +457,7 @@ Namespace JTAG
                 If (Counter = Params.Length) Then Exit Sub 'The rest are optional
                 If (Params(Counter + 1).Trim.ToUpper = "SEC") Then
                     Dim min_time As Decimal = Decimal.Parse(Params(Counter), Globalization.NumberStyles.Float)
-                    Dim sleep_int As Integer = (min_time * 1000)
+                    Dim sleep_int As Integer = CInt((min_time * 1000))
                     If sleep_int < 1 Then sleep_int = 20
                     Threading.Thread.Sleep(sleep_int)
                     Counter += 2
@@ -432,7 +468,7 @@ Namespace JTAG
                     Counter += 3 'THIRD ARG MUST BE SEC
                 End If
                 If (Counter = Params.Length) Then Exit Sub 'The rest are optional
-                If (Params(Counter).Trim.ToUpper = "ENDSTATE") AndAlso IsValidRunState(Params(Counter + 1)) Then
+                If (Params(Counter).Trim.ToUpper = "ENDSTATE") AndAlso ValidStableState(Params(Counter + 1)) Then
                     Dim end_state As JTAG_MACHINE_STATE = GetStateFromInput(Params(Counter))
                     RaiseEvent GotoState(end_state)
                 End If
@@ -444,18 +480,81 @@ Namespace JTAG
         Private Function GetStateFromInput(input As String) As JTAG_MACHINE_STATE
             input = Utilities.RemoveComment(input, "!")
             input = Utilities.RemoveComment(input, "//")
-            If input.EndsWith(";") Then input = Mid(input, 1, input.Length - 1).Trim
+            If input.EndsWith(";") Then input.Substring(0, input.Length - 1).Trim()
             Select Case input.ToUpper
-                Case "IRPAUSE"
-                    Return JTAG_MACHINE_STATE.Pause_IR
-                Case "DRPAUSE"
-                    Return JTAG_MACHINE_STATE.Pause_DR
                 Case "RESET"
                     Return JTAG_MACHINE_STATE.TestLogicReset
                 Case "IDLE"
                     Return JTAG_MACHINE_STATE.RunTestIdle
+                Case "DRSELECT"
+                    Return JTAG_MACHINE_STATE.Select_DR
+                Case "DRCAPTURE"
+                    Return JTAG_MACHINE_STATE.Capture_DR
+                Case "DRSHIFT"
+                    Return JTAG_MACHINE_STATE.Shift_DR
+                Case "DREXIT1"
+                    Return JTAG_MACHINE_STATE.Exit1_DR
+                Case "DRPAUSE"
+                    Return JTAG_MACHINE_STATE.Pause_DR
+                Case "DREXIT2"
+                    Return JTAG_MACHINE_STATE.Exit2_DR
+                Case "DRUPDATE"
+                    Return JTAG_MACHINE_STATE.Update_DR
+                Case "IRSELECT"
+                    Return JTAG_MACHINE_STATE.Select_IR
+                Case "IRCAPTURE"
+                    Return JTAG_MACHINE_STATE.Capture_IR
+                Case "IRSHIFT"
+                    Return JTAG_MACHINE_STATE.Shift_IR
+                Case "IREXIT1"
+                    Return JTAG_MACHINE_STATE.Exit1_IR
+                Case "IRPAUSE"
+                    Return JTAG_MACHINE_STATE.Pause_IR
+                Case "IREXIT2"
+                    Return JTAG_MACHINE_STATE.Exit2_IR
+                Case "IRUPDATE"
+                    Return JTAG_MACHINE_STATE.Update_IR
                 Case Else
+                    Throw New Exception("STATE not valid: " & input)
+            End Select
+        End Function
+
+        Private Function GetStateFromInput(input As Byte) As JTAG_MACHINE_STATE
+            Select Case input
+                Case 0
+                    Return JTAG_MACHINE_STATE.TestLogicReset
+                Case 1
                     Return JTAG_MACHINE_STATE.RunTestIdle
+                Case 2
+                    Return JTAG_MACHINE_STATE.Select_DR
+                Case 3
+                    Return JTAG_MACHINE_STATE.Capture_DR
+                Case 4
+                    Return JTAG_MACHINE_STATE.Shift_DR
+                Case 5
+                    Return JTAG_MACHINE_STATE.Exit1_DR
+                Case 6
+                    Return JTAG_MACHINE_STATE.Pause_DR
+                Case 7
+                    Return JTAG_MACHINE_STATE.Exit2_DR
+                Case 8
+                    Return JTAG_MACHINE_STATE.Update_DR
+                Case 9
+                    Return JTAG_MACHINE_STATE.Select_IR
+                Case 10
+                    Return JTAG_MACHINE_STATE.Capture_IR
+                Case 11
+                    Return JTAG_MACHINE_STATE.Shift_IR
+                Case 12
+                    Return JTAG_MACHINE_STATE.Exit1_IR
+                Case 13
+                    Return JTAG_MACHINE_STATE.Pause_IR
+                Case 14
+                    Return JTAG_MACHINE_STATE.Exit2_IR
+                Case 15
+                    Return JTAG_MACHINE_STATE.Update_IR
+                Case Else
+                    Throw New Exception("XSTATE not valid: 0x" & input.ToString("X"))
             End Select
         End Function
 
@@ -501,7 +600,7 @@ Namespace JTAG
             Dim x As New List(Of xsvf_param)
             Dim XSDRSIZE As UInt32 = 8 'number of bits
             Do Until pointer = data.Length
-                Dim n As New xsvf_param(data(pointer))
+                Dim n As New xsvf_param(CType(data(pointer), xsvf_instruction))
                 Select Case n.instruction
                     Case xsvf_instruction.XTDOMASK
                         Load_TDI(data, pointer, n, XSDRSIZE)
@@ -511,7 +610,7 @@ Namespace JTAG
                     Case xsvf_instruction.XRUNTEST
                         n.value_uint = Load_Uint32_Value(data, pointer)
                     Case xsvf_instruction.XSIR
-                        Dim num_bytes As Integer = Math.Ceiling(data(pointer + 1) / 8)
+                        Dim num_bytes As Integer = CInt(Math.Ceiling(data(pointer + 1) / 8))
                         Dim new_Data(num_bytes - 1) As Byte
                         Array.Copy(data, pointer + 2, new_Data, 0, num_bytes)
                         n.value_data = New svf_data With {.data = new_Data, .bits = data(pointer + 1)}
@@ -522,13 +621,13 @@ Namespace JTAG
                         XSDRSIZE = Load_Uint32_Value(data, pointer)
                         n.value_uint = XSDRSIZE
                     Case xsvf_instruction.XSDRTDO
-                        Dim num_bytes As Integer = Math.Ceiling(XSDRSIZE / 8)
+                        Dim num_bytes As Integer = CInt(Math.Ceiling(XSDRSIZE / 8))
                         Dim data1(num_bytes - 1) As Byte
                         Dim data2(num_bytes - 1) As Byte
                         Array.Copy(data, pointer + 1, data1, 0, num_bytes)
                         Array.Copy(data, pointer + 1 + num_bytes, data2, 0, num_bytes)
-                        n.value_data = New svf_data With {.data = data1, .bits = XSDRSIZE}
-                        n.value_expected = New svf_data With {.data = data2, .bits = XSDRSIZE}
+                        n.value_data = New svf_data With {.data = data1, .bits = CUShort(XSDRSIZE)}
+                        n.value_expected = New svf_data With {.data = data2, .bits = CUShort(XSDRSIZE)}
                         pointer += num_bytes + num_bytes + 1
                     Case xsvf_instruction.XSDRB
                         Load_TDI(data, pointer, n, XSDRSIZE)
@@ -561,18 +660,14 @@ Namespace JTAG
                         pointer += 2
                     Case xsvf_instruction.XENDDR
                         n.value_uint = data(pointer + 1)
-                        Select Case n.value_uint
-                            Case 0
-                                n.state = JTAG_MACHINE_STATE.RunTestIdle
-                            Case 1
-                                n.state = JTAG_MACHINE_STATE.Pause_DR
-                        End Select
+                        n.state = GetStateFromInput(data(pointer + 1))
+
                         pointer += 2
                     Case xsvf_instruction.XSIR2 'Same as XSIR (since we should all support 255 bit lengths or more)
-                        Dim num_bytes As Integer = Math.Ceiling(data(pointer + 1) / 8)
+                        Dim num_bytes As Integer = CInt(Math.Ceiling(data(pointer + 1) / 8))
                         Dim new_Data(num_bytes - 1) As Byte
                         Array.Copy(data, pointer + 2, new_Data, 0, num_bytes)
-                        n.value_data = New svf_data With {.data = new_Data, .bits = XSDRSIZE}
+                        n.value_data = New svf_data With {.data = new_Data, .bits = CUShort(XSDRSIZE)}
                         pointer += num_bytes + 2
                     Case xsvf_instruction.XCOMMENT
                         Do
@@ -594,22 +689,22 @@ Namespace JTAG
             Return x.ToArray
         End Function
 
-        Private Sub Load_TDI(ByRef data() As Byte, ByRef pointer As Integer, ByRef line As xsvf_param, XSDRSIZE As Integer)
-            Dim num_bytes As Integer = Math.Ceiling(XSDRSIZE / 8)
+        Private Sub Load_TDI(ByRef data() As Byte, ByRef pointer As Integer, ByRef line As xsvf_param, XSDRSIZE As UInt32)
+            Dim num_bytes As Integer = CInt(Math.Ceiling(XSDRSIZE / 8))
             Dim new_Data(num_bytes - 1) As Byte
             Array.Copy(data, pointer + 1, new_Data, 0, num_bytes)
-            line.value_data = New svf_data With {.data = new_Data, .bits = XSDRSIZE}
+            line.value_data = New svf_data With {.data = new_Data, .bits = CUShort(XSDRSIZE)}
             pointer += num_bytes + 1
         End Sub
 
-        Private Sub Load_TDI_Expected(ByRef data() As Byte, ByRef pointer As Integer, ByRef line As xsvf_param, XSDRSIZE As Integer)
-            Dim num_bytes As Integer = XSDRSIZE / 8 'Possible problem
+        Private Sub Load_TDI_Expected(ByRef data() As Byte, ByRef pointer As Integer, ByRef line As xsvf_param, XSDRSIZE As UInt32)
+            Dim num_bytes As Integer = CInt(XSDRSIZE \ 8)
             Dim data1(num_bytes - 1) As Byte
             Dim data2(num_bytes - 1) As Byte
             Array.Copy(data, pointer + 1, data1, 0, num_bytes)
             Array.Copy(data, pointer + 5, data2, 0, num_bytes)
-            line.value_data = New svf_data With {.data = data1, .bits = XSDRSIZE}
-            line.value_expected = New svf_data With {.data = data2, .bits = XSDRSIZE}
+            line.value_data = New svf_data With {.data = data1, .bits = CUShort(XSDRSIZE)}
+            line.value_expected = New svf_data With {.data = data2, .bits = CUShort(XSDRSIZE)}
             pointer += 9
         End Sub
 
@@ -625,11 +720,11 @@ Namespace JTAG
 
         Private Function GetBytes_FromUint(input As UInt32, MinBits As Integer) As Byte()
             Dim current(3) As Byte
-            current(0) = (input And &HFF000000) >> 24
-            current(1) = (input And &HFF0000) >> 16
-            current(2) = (input And &HFF00) >> 8
-            current(3) = (input And &HFF)
-            Dim MaxSize As Integer = Math.Ceiling(MinBits / 8)
+            current(0) = CByte((input >> 24) And &HFF)
+            current(1) = CByte((input >> 16) And &HFF)
+            current(2) = CByte((input >> 8) And &HFF)
+            current(3) = CByte((input >> 0) And &HFF)
+            Dim MaxSize As Integer = CInt(Math.Ceiling(MinBits / 8))
             Dim out(MaxSize - 1) As Byte
             For i = 0 To MaxSize - 1
                 out(out.Length - (1 + i)) = current(current.Length - (1 + i))
@@ -641,11 +736,11 @@ Namespace JTAG
 
     Public Structure svf_data
         Dim data() As Byte
-        Dim bits As Integer
+        Dim bits As UInt16
     End Structure
 
     Public Class svf_param
-        Public LEN As Integer = 0
+        Public LEN As UShort = 0
         Public TDI As Byte()
         Public SMASK As Byte()
         Public TDO As Byte()
@@ -660,24 +755,24 @@ Namespace JTAG
         End Sub
 
         Public Sub LoadParams(input As String)
-            input = Mid(input, InStr(input, " ") + 1) 'We remove the first part (TIR, etc)
-            If Not input.Contains(" ") Then
-                LEN = CInt(input)
+            input = input.Substring(input.IndexOf(" "c) + 1).Trim 'We remove the first part (TIR, etc)
+            If Not input.Contains(" ") AndAlso IsNumeric(input) Then
+                LEN = UShort.Parse(input)
             Else
-                LEN = CInt(Mid(input, 1, InStr(input, " ") - 1))
-                input = Mid(input, InStr(input, " ") + 1)
+                LEN = UShort.Parse(input.Substring(0, input.IndexOf(" "c)))
+                input = input.Substring(input.IndexOf(" "c) + 1).Trim
                 Do Until input.Equals("")
-                    If input.ToUpper.StartsWith("TDI") Then
-                        input = Mid(input, 4).Trim
+                    If input.ToUpper.StartsWith("TDI ") Then
+                        input = input.Substring(4).Trim
                         TDI = GetBytes_Param(input)
-                    ElseIf input.ToUpper.StartsWith("TDO") Then
-                        input = Mid(input, 4).Trim
+                    ElseIf input.ToUpper.StartsWith("TDO ") Then
+                        input = input.Substring(4).Trim
                         TDO = GetBytes_Param(input)
-                    ElseIf input.ToUpper.StartsWith("SMASK") Then
-                        input = Mid(input, 6).Trim
+                    ElseIf input.ToUpper.StartsWith("SMASK ") Then
+                        input = input.Substring(6).Trim
                         SMASK = GetBytes_Param(input)
-                    ElseIf input.ToUpper.StartsWith("MASK") Then
-                        input = Mid(input, 5).Trim
+                    ElseIf input.ToUpper.StartsWith("MASK ") Then
+                        input = input.Substring(5).Trim
                         MASK = GetBytes_Param(input)
                     End If
                 Loop
@@ -688,9 +783,8 @@ Namespace JTAG
             Dim x1 As Integer = InStr(line, "(")
             Dim x2 As Integer = InStr(line, ")")
             Dim HexStr As String = line.Substring(x1, x2 - 2).Replace(" ", "")
-            line = Mid(line, x2 + 1).Trim
-            Dim data() As Byte = Utilities.Bytes.FromHexString(HexStr)
-            Return data
+            line = line.Substring(x2).Trim
+            Return Utilities.Bytes.FromHexString(HexStr)
         End Function
 
     End Class
@@ -703,7 +797,7 @@ Namespace JTAG
         Public value_data As svf_data
         Public value_expected As svf_data
 
-        Sub New(code As Byte)
+        Sub New(code As xsvf_instruction)
             instruction = code
         End Sub
 

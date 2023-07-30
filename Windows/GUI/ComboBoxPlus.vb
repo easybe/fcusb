@@ -205,7 +205,7 @@ Namespace CustomComboPlus
         Public Const CBN_CLOSEUP As UInteger = 8
 
         Public Shared Function HIWORD(n As Integer) As UInteger
-            Return CUInt(n >> 16) And &HFFFF
+            Return CUInt(n >> 16) And &HFFFFUI
         End Function
 
         Public Overrides Function PreProcessMessage(ByRef m As Message) As Boolean

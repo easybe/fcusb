@@ -21,7 +21,7 @@
             Dim line_data() As Byte = Utilities.Bytes.FromHexString(line.Substring(1))
             Dim byte_count As Integer = line_data(0)
             Me.Address = (CUShort(line_data(1)) << 8) Or CUShort(line_data(2))
-            Me.RecordField = line_data(3)
+            Me.RecordField = CType(line_data(3), FIELD_TYPE)
             If (byte_count > 0) Then
                 ReDim Data(byte_count - 1)
                 Array.Copy(line_data, 4, Me.Data, 0, byte_count)
@@ -36,7 +36,7 @@
             End If
         End Sub
 
-        Sub New(record As FIELD_TYPE, addr As UInt32, data() As Byte)
+        Sub New(record As FIELD_TYPE, addr As UInt16, data() As Byte)
             Me.RecordField = record
             Me.Address = addr
             Me.Data = data
@@ -47,21 +47,21 @@
             Dim line_out As New Text.StringBuilder(":", 80)
             Dim data_len As Integer = 0
             If Data IsNot Nothing Then data_len = Data.Length
-            Dim crc As UInt32 = Me.RecordField + data_len + (Address >> 8) + (Address And 255)
+            Dim crc As UInt32 = CUInt(Me.RecordField) + CUInt(data_len) + CUInt(Address >> 8) + CUInt(Address And 255)
             If Data IsNot Nothing Then
                 For i = 0 To Data.Length - 1
                     crc += Data(i)
                 Next
             End If
-            crc = ((crc Xor 255) + 1)
-            line_out.Append(Hex(data_len And 255).PadLeft(2, "0"))
-            line_out.Append(Hex(Address).PadLeft(4, "0"))
-            line_out.Append(Hex(Me.RecordField).PadLeft(2, "0"))
+            crc = ((crc Xor 255UI) + 1UI)
+            line_out.Append(Hex(data_len And 255).PadLeft(2, "0"c))
+            line_out.Append(Hex(Address).PadLeft(4, "0"c))
+            line_out.Append(Hex(Me.RecordField).PadLeft(2, "0"c))
             If Data IsNot Nothing Then
                 Dim s As String = Utilities.Bytes.ToHexString(Data)
                 line_out.Append(s)
             End If
-            line_out.Append(Hex(crc And 255).PadLeft(2, "0"))
+            line_out.Append(Hex(crc And 255).PadLeft(2, "0"c))
             Return line_out.ToString()
         End Function
 
@@ -76,7 +76,7 @@
 
         Private BUFFER() As Byte
         Private BUFFER_PTR As Integer = 0
-        Private STREAM_ADDR As UInt32 = 0 'The last address of data from the stream
+        Private STREAM_ADDR As Integer = 0 'The last address of data from the stream
         Private STREAM_POS As Integer = 0 'Number of bytes read from this stream
 
         Private Const BUFF_MIN As Integer = 65536
@@ -101,7 +101,7 @@
                     If n.Data Is Nothing Then Return False
                     RecordAddr = n.Address + n.Data.Length
                 ElseIf n.RecordField = FIELD_TYPE.ExtLinearAddr Then
-                    Me.m_data_size = (CUInt(n.Data(0)) << 24) Or (CUInt(n.Data(1)) << 16) Or RecordAddr
+                    Me.m_data_size = (CInt(n.Data(0)) << 24) Or (CInt(n.Data(1)) << 16) Or RecordAddr
                     Return True
                 End If
             Loop
@@ -121,7 +121,7 @@
                 If Me.m_local_steam.Peek = -1 Then Exit Do
                 DataLine = New IRECORD(Me.m_local_steam.ReadLine())
                 If DataLine.RecordField = FIELD_TYPE.Data Then
-                    Dim offset As Integer = ((DataLine.Address + EXT_ADDR32) - Me.STREAM_ADDR)
+                    Dim offset As Integer = (CInt(DataLine.Address + EXT_ADDR32) - Me.STREAM_ADDR)
                     If (offset > 0) Then
                         Dim blank_data() As Byte = Enumerable.Repeat(CByte(255), offset).ToArray
                         io_buffer.Write(blank_data, 0, blank_data.Length)
@@ -273,13 +273,13 @@
             Dim buffer_ptr As Integer = 0
             Dim bytes_left As Integer = count
             Do While (bytes_left > 0)
-                Dim packet_size As Integer = IIf(bytes_left > BytesPerLine, BytesPerLine, bytes_left)
+                Dim packet_size As Integer = CInt(IIf(bytes_left > BytesPerLine, BytesPerLine, bytes_left))
                 Dim data(packet_size - 1) As Byte
                 Array.Copy(buffer, buffer_ptr, data, 0, packet_size)
                 Me.output_stream.WriteLine((New IRECORD(FIELD_TYPE.Data, CUShort(Me.DataAddress And &HFFFF), data)).ToString())
                 buffer_ptr += packet_size
                 Dim upper16 As UInt16 = CUShort(Me.DataAddress >> 16)
-                Me.DataAddress += packet_size
+                Me.DataAddress += CUInt(packet_size)
                 Dim current16 As UInt16 = CUShort(Me.DataAddress >> 16)
                 bytes_left -= packet_size
                 If (Not current16 = upper16) Then

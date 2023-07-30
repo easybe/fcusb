@@ -46,39 +46,39 @@ Public Class vendor_spansion_FL
             End If
             status_reg_1 = sr1(0)
             status_reg_2 = sr2(0)
-            PrintConsole("Status register-1: 0x" & Hex(status_reg_1).PadLeft(2, "0"))
-            PrintConsole("Status register-2: 0x" & Hex(status_reg_2).PadLeft(2, "0"))
-            If ((status_reg_1 >> 7) And 1) Then
+            PrintConsole("Status register-1: 0x" & Hex(status_reg_1).PadLeft(2, "0"c))
+            PrintConsole("Status register-2: 0x" & Hex(status_reg_2).PadLeft(2, "0"c))
+            If ((status_reg_1 >> 7) And 1) = 1 Then
                 cb_sr1_7.Checked = True
             Else
                 cb_sr1_7.Checked = False
             End If
-            If ((status_reg_1 >> 6) And 1) Then
+            If ((status_reg_1 >> 6) And 1) = 1 Then
                 cb_sr1_6.Checked = True
             Else
                 cb_sr1_6.Checked = False
             End If
-            If ((status_reg_1 >> 5) And 1) Then
+            If ((status_reg_1 >> 5) And 1) = 1 Then
                 cb_sr1_5.Checked = True
             Else
                 cb_sr1_5.Checked = False
             End If
-            If ((status_reg_1 >> 4) And 1) Then
+            If ((status_reg_1 >> 4) And 1) = 1 Then
                 cb_sr1_4.Checked = True
             Else
                 cb_sr1_4.Checked = False
             End If
-            If ((status_reg_1 >> 3) And 1) Then
+            If ((status_reg_1 >> 3) And 1) = 1 Then
                 cb_sr1_3.Checked = True
             Else
                 cb_sr1_3.Checked = False
             End If
-            If ((status_reg_1 >> 2) And 1) Then
+            If ((status_reg_1 >> 2) And 1) = 1 Then
                 cb_sr1_2.Checked = True
             Else
                 cb_sr1_2.Checked = False
             End If
-            If ((status_reg_2 >> 1) And 1) Then 'QUAD EN
+            If ((status_reg_2 >> 1) And 1) = 1 Then 'QUAD EN
                 cb_sr2_1.Checked = True
             Else
                 cb_sr2_1.Checked = False
@@ -98,13 +98,13 @@ Public Class vendor_spansion_FL
             PrintConsole("Writing status and non-vol registers")
             status_reg_1 = 0
             status_reg_2 = 0
-            If cb_sr1_7.Checked Then status_reg_1 = status_reg_1 Or (1 << 7)
-            If cb_sr1_6.Checked Then status_reg_1 = status_reg_1 Or (1 << 6)
-            If cb_sr1_5.Checked Then status_reg_1 = status_reg_1 Or (1 << 5)
-            If cb_sr1_4.Checked Then status_reg_1 = status_reg_1 Or (1 << 4)
-            If cb_sr1_3.Checked Then status_reg_1 = status_reg_1 Or (1 << 3)
-            If cb_sr1_2.Checked Then status_reg_1 = status_reg_1 Or (1 << 2)
-            If cb_sr2_1.Checked Then status_reg_2 = status_reg_2 Or (1 << 1) 'QUAD EN
+            If cb_sr1_7.Checked Then status_reg_1 = status_reg_1 Or CByte(1 << 7)
+            If cb_sr1_6.Checked Then status_reg_1 = status_reg_1 Or CByte(1 << 6)
+            If cb_sr1_5.Checked Then status_reg_1 = status_reg_1 Or CByte(1 << 5)
+            If cb_sr1_4.Checked Then status_reg_1 = status_reg_1 Or CByte(1 << 4)
+            If cb_sr1_3.Checked Then status_reg_1 = status_reg_1 Or CByte(1 << 3)
+            If cb_sr1_2.Checked Then status_reg_1 = status_reg_1 Or CByte(1 << 2)
+            If cb_sr2_1.Checked Then status_reg_2 = status_reg_2 Or CByte(1 << 1) 'QUAD EN
             PrintConsole("Verifing the nonvolatile registers have been successfully programmed")
             Dim sr1_confirm() As Byte = Nothing
             Dim sr2_confirm(0) As Byte
@@ -122,20 +122,20 @@ Public Class vendor_spansion_FL
             Dim Successful As Boolean = True
             If (Not sr1_confirm(0) = status_reg_1) Then
                 Successful = False
-                Dim wrote_str As String = "0x" & Hex(status_reg_1).PadLeft(2, "0")
-                Dim read_str As String = "0x" & Hex(sr1_confirm(0)).PadLeft(2, "0")
+                Dim wrote_str As String = "0x" & Hex(status_reg_1).PadLeft(2, "0"c)
+                Dim read_str As String = "0x" & Hex(sr1_confirm(0)).PadLeft(2, "0"c)
                 PrintConsole("Error programming status register-1, wrote: " & wrote_str & ", and read back: " & read_str)
             End If
             If (Not (status_reg_2 And &HFB) = (sr2_confirm(0) And &HFB)) Then
                 Successful = False
-                Dim wrote_str As String = "0x" & Hex(status_reg_2 And &HFB).PadLeft(2, "0")
-                Dim read_str As String = "0x" & Hex(sr2_confirm(0) And &HFB).PadLeft(2, "0")
+                Dim wrote_str As String = "0x" & Hex(status_reg_2 And &HFB).PadLeft(2, "0"c)
+                Dim read_str As String = "0x" & Hex(sr2_confirm(0) And &HFB).PadLeft(2, "0"c)
                 PrintConsole("Error programming status register-2, wrote: " & wrote_str & ", and read back: " & read_str)
             End If
             If Successful Then
                 SetStatus("Nonvolatile configuration bits successfully programmed")
-                PrintConsole("Status register-1: 0x" & Hex(status_reg_1).PadLeft(2, "0"))
-                PrintConsole("Status register-2: 0x" & Hex(status_reg_2).PadLeft(2, "0"))
+                PrintConsole("Status register-1: 0x" & Hex(status_reg_1).PadLeft(2, "0"c))
+                PrintConsole("Status register-2: 0x" & Hex(status_reg_2).PadLeft(2, "0"c))
             Else
                 SetStatus("Nonvolatile configuration programming failed")
             End If

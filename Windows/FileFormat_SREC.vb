@@ -21,7 +21,7 @@
     Public Class SRECORD
         Public ReadOnly Property IsValid As Boolean = False
         Public ReadOnly Property RecordField As FIELD_TYPE
-        Public ReadOnly Property Address As UInt32 'Line address, Count or Start Address
+        Public ReadOnly Property Address As Integer  'Line address, Count or Start Address
 
         Public Data() As Byte = Nothing
 
@@ -29,7 +29,7 @@
             line = line.ToUpper
             If Not line.Substring(0, 1).StartsWith("S") Then Exit Sub
             If Not IsNumeric(line.Substring(1, 1)) Then Exit Sub
-            Me.RecordField = CInt(line.Substring(1, 1))
+            Me.RecordField = CType(line.Substring(1, 1), FIELD_TYPE)
             Dim crc As Byte = Convert.ToByte(line.Substring(line.Length - 2), 16)
             Dim line_length As Byte = Convert.ToByte(line.Substring(2, 2), 16)
             If Not ((line.Length / 2) - 2) = line_length Then Exit Sub
@@ -42,31 +42,31 @@
                     Me.Data = Utilities.Bytes.FromHexString(header_line_body)
                 Case FIELD_TYPE.Data16
                     Dim addr() As Byte = Utilities.Bytes.FromHexString(line.Substring(4, 4))
-                    Me.Address = Utilities.Bytes.ToUInt32(addr)
+                    Me.Address = Utilities.Bytes.ToInt32(addr)
                     Me.Data = Utilities.Bytes.FromHexString(line.Substring(8, line.Length - 10))
                 Case FIELD_TYPE.Data24
                     Dim addr() As Byte = Utilities.Bytes.FromHexString(line.Substring(4, 6))
-                    Me.Address = Utilities.Bytes.ToUInt32(addr)
+                    Me.Address = Utilities.Bytes.ToInt32(addr)
                     Me.Data = Utilities.Bytes.FromHexString(line.Substring(10, line.Length - 12))
                 Case FIELD_TYPE.Data32
                     Dim addr() As Byte = Utilities.Bytes.FromHexString(line.Substring(4, 8))
-                    Me.Address = Utilities.Bytes.ToUInt32(addr)
+                    Me.Address = Utilities.Bytes.ToInt32(addr)
                     Me.Data = Utilities.Bytes.FromHexString(line.Substring(12, line.Length - 14))
                 Case FIELD_TYPE.Count16
                     Dim addr() As Byte = Utilities.Bytes.FromHexString(line.Substring(4, 4))
-                    Me.Address = Utilities.Bytes.ToUInt32(addr)
+                    Me.Address = Utilities.Bytes.ToInt32(addr)
                 Case FIELD_TYPE.Count24
                     Dim addr() As Byte = Utilities.Bytes.FromHexString(line.Substring(4, 6))
-                    Me.Address = Utilities.Bytes.ToUInt32(addr)
+                    Me.Address = Utilities.Bytes.ToInt32(addr)
                 Case FIELD_TYPE.StartAddr32
                     Dim addr() As Byte = Utilities.Bytes.FromHexString(line.Substring(4, 8))
-                    Me.Address = Utilities.Bytes.ToUInt32(addr)
+                    Me.Address = Utilities.Bytes.ToInt32(addr)
                 Case FIELD_TYPE.StartAddr24
                     Dim addr() As Byte = Utilities.Bytes.FromHexString(line.Substring(4, 6))
-                    Me.Address = Utilities.Bytes.ToUInt32(addr)
+                    Me.Address = Utilities.Bytes.ToInt32(addr)
                 Case FIELD_TYPE.StartAddr16
                     Dim addr() As Byte = Utilities.Bytes.FromHexString(line.Substring(4, 4))
-                    Me.Address = Utilities.Bytes.ToUInt32(addr)
+                    Me.Address = Utilities.Bytes.ToInt32(addr)
                 Case Else
                     Exit Sub
             End Select
@@ -80,12 +80,12 @@
                     my_crc_calc += Me.Data(i)
                 Next
             End If
-            Dim my_crc As Byte = ((my_crc_calc And 255) Xor 255)
+            Dim my_crc As Byte = (CByte(my_crc_calc And 255) Xor CByte(255))
             If Not my_crc = crc Then Exit Sub 'CRC FAIL!
             Me.IsValid = True
         End Sub
 
-        Sub New(record As FIELD_TYPE, addr As UInt32, data() As Byte)
+        Sub New(record As FIELD_TYPE, addr As Integer, data() As Byte)
             Me.RecordField = record
             Me.Address = addr
             Me.Data = data
@@ -98,77 +98,77 @@
             If Not Me.IsValid Then Return ""
             Dim line_length As Byte = 0
             Dim DataFieldSize As Byte = 0 'Number of bytes for data field
-            If Data IsNot Nothing Then DataFieldSize = Data.Length
+            If Data IsNot Nothing Then DataFieldSize = CByte(Data.Length)
             Select Case Me.RecordField
                 Case FIELD_TYPE.Header
                     AddrSize = 2
-                    line_length = AddrSize + DataFieldSize + 1
+                    line_length = AddrSize + DataFieldSize + CByte(1)
                     line_out.Insert(0, "S0")
-                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"))
+                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"c))
                     line_out.Insert(4, "0000")
                 Case FIELD_TYPE.Data16
                     AddrSize = 2
-                    line_length = AddrSize + DataFieldSize + 1
+                    line_length = AddrSize + DataFieldSize + CByte(1)
                     line_out.Insert(0, "S1")
-                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"))
-                    line_out.Insert(4, Hex(Address).PadLeft(4, "0"))
+                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"c))
+                    line_out.Insert(4, Hex(Address).PadLeft(4, "0"c))
                 Case FIELD_TYPE.Data24
                     AddrSize = 3
-                    line_length = AddrSize + DataFieldSize + 1
+                    line_length = AddrSize + DataFieldSize + CByte(1)
                     line_out.Insert(0, "S2")
-                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"))
-                    line_out.Insert(4, Hex(Address).PadLeft(6, "0"))
+                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"c))
+                    line_out.Insert(4, Hex(Address).PadLeft(6, "0"c))
                 Case FIELD_TYPE.Data32
                     AddrSize = 4
-                    line_length = AddrSize + DataFieldSize + 1
+                    line_length = AddrSize + DataFieldSize + CByte(1)
                     line_out.Insert(0, "S3")
-                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"))
-                    line_out.Insert(4, Hex(Address).PadLeft(8, "0"))
+                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"c))
+                    line_out.Insert(4, Hex(Address).PadLeft(8, "0"c))
                 Case FIELD_TYPE.Count16
                     AddrSize = 2
-                    line_length = AddrSize + DataFieldSize + 1
+                    line_length = AddrSize + DataFieldSize + CByte(1)
                     line_out.Insert(0, "S5")
-                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"))
-                    line_out.Insert(4, Hex(Address).PadLeft(4, "0"))
+                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"c))
+                    line_out.Insert(4, Hex(Address).PadLeft(4, "0"c))
                 Case FIELD_TYPE.Count24
                     AddrSize = 3
-                    line_length = AddrSize + DataFieldSize + 1
+                    line_length = AddrSize + DataFieldSize + CByte(1)
                     line_out.Insert(0, "S6")
-                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"))
-                    line_out.Insert(4, Hex(Address).PadLeft(6, "0"))
+                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"c))
+                    line_out.Insert(4, Hex(Address).PadLeft(6, "0"c))
                 Case FIELD_TYPE.StartAddr32
                     AddrSize = 4
-                    line_length = AddrSize + DataFieldSize + 1
+                    line_length = AddrSize + DataFieldSize + CByte(1)
                     line_out.Insert(0, "S7")
-                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"))
-                    line_out.Insert(4, Hex(Address).PadLeft(8, "0"))
+                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"c))
+                    line_out.Insert(4, Hex(Address).PadLeft(8, "0"c))
                 Case FIELD_TYPE.StartAddr24
                     AddrSize = 3
-                    line_length = AddrSize + DataFieldSize + 1
+                    line_length = AddrSize + DataFieldSize + CByte(1)
                     line_out.Insert(0, "S8")
-                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"))
-                    line_out.Insert(4, Hex(Address).PadLeft(6, "0"))
+                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"c))
+                    line_out.Insert(4, Hex(Address).PadLeft(6, "0"c))
                 Case FIELD_TYPE.StartAddr16
                     AddrSize = 2
-                    line_length = AddrSize + DataFieldSize + 1
+                    line_length = AddrSize + DataFieldSize + CByte(1)
                     line_out.Insert(0, "S9")
-                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"))
-                    line_out.Insert(4, Hex(Address).PadLeft(4, "0"))
+                    line_out.Insert(2, Hex(line_length).PadLeft(2, "0"c))
+                    line_out.Insert(4, Hex(Address).PadLeft(4, "0"c))
                 Case Else
                     Return ""
             End Select
-            Dim my_crc_calc As UInt32 = line_length + ((Me.Address >> 24) And 255) + ((Me.Address >> 16) And 255) + ((Me.Address >> 8) And 255) + (Me.Address And 255)
+            Dim my_crc_calc As UInt32 = CUInt(line_length) + CUInt((Me.Address >> 24) And 255) + CUInt((Me.Address >> 16) And 255) + CUInt((Me.Address >> 8) And 255) + CUInt(Me.Address And 255)
             If Me.Data IsNot Nothing Then
                 For i = 0 To Me.Data.Length - 1
                     my_crc_calc += Me.Data(i)
                 Next
             End If
-            Dim my_crc As Byte = ((my_crc_calc And 255) Xor 255)
+            Dim my_crc As Byte = (CByte(my_crc_calc And 255) Xor CByte(255))
             If DataFieldSize > 0 Then
                 line_out.Insert((AddrSize * 2) + 4, Utilities.Bytes.ToHexString(Data))
             End If
-            Dim x As Byte = (AddrSize * 2) + (DataFieldSize * 2)
-            line_out.Insert(x + 4, Hex(my_crc).PadLeft(2, "0"))
+            Dim x As Byte = CByte((AddrSize * 2) + (DataFieldSize * 2))
+            line_out.Insert(x + 4, Hex(my_crc).PadLeft(2, "0"c))
             Return line_out.ToString()
         End Function
 
@@ -184,7 +184,7 @@
 
         Private BUFFER() As Byte
         Private BUFFER_PTR As Integer = 0
-        Private STREAM_ADDR As UInt32 = 0 'The last address of data from the stream
+        Private STREAM_ADDR As Integer = 0 'The last address of data from the stream
         Private STREAM_POS As Integer = 0 'Number of bytes read from this stream
         Private MyDataWidth As RECORD_DATAWIDTH
 
@@ -200,7 +200,7 @@
             Me.m_local_steam.BaseStream.Seek(0, IO.SeekOrigin.Begin)
             Me.m_local_steam.ReadLine()
             If LastRecord Is Nothing Then Exit Sub
-            Dim LastAddr As UInt32 = LastRecord.Address
+            Dim LastAddr As Integer = LastRecord.Address
             If MyDataWidth = RECORD_DATAWIDTH.WORD Then LastAddr = (LastAddr * 2)
             Me.m_data_size = LastAddr + LastRecord.Data.Length
             ProcessBuffer()
@@ -218,13 +218,13 @@
                 If Me.m_local_steam.Peek = -1 Then Exit Do
                 DataLine = New SRECORD(Me.m_local_steam.ReadLine())
                 If IsDataField(DataLine.RecordField) Then
-                    Dim CurrentAddr As UInt32 = DataLine.Address
+                    Dim CurrentAddr As Integer = DataLine.Address
                     If MyDataWidth = RECORD_DATAWIDTH.WORD Then CurrentAddr = (CurrentAddr * 2)
                     Dim offset As Integer = (CurrentAddr - Me.STREAM_ADDR)
                     If (offset > 0) Then
                         Dim blank_data() As Byte = Enumerable.Repeat(CByte(255), offset).ToArray
                         io_buffer.Write(blank_data, 0, blank_data.Length)
-                        BytesProcessed += offset
+                        BytesProcessed += CInt(offset)
                         Me.STREAM_ADDR += offset
                     End If
                     io_buffer.Write(DataLine.Data, 0, DataLine.Data.Length)
@@ -348,7 +348,7 @@
         Public Property BytesPerLine As Integer = 32
 
         Private output_stream As IO.StreamWriter
-        Private DataAddress As UInt32 = 0
+        Private DataAddress As Integer = 0
         Private DataRecordSize As FIELD_TYPE
         Private StartAddrSize As FIELD_TYPE
         Private RecordCount As Integer = 0
@@ -417,16 +417,16 @@
             Dim buffer_ptr As Integer = 0
             Dim bytes_left As Integer = count
             Do While (bytes_left > 0)
-                Dim packet_size As Integer = IIf(bytes_left > BytesPerLine, BytesPerLine, bytes_left)
+                Dim packet_size As Integer = CInt(IIf(bytes_left > BytesPerLine, BytesPerLine, bytes_left))
                 Dim data(packet_size - 1) As Byte
                 Array.Copy(buffer, buffer_ptr, data, 0, packet_size)
-                Dim DataAddr32 As UInt32 = Me.DataAddress
-                If Me.MyDataWidth = RECORD_DATAWIDTH.WORD Then MyDataWidth = (MyDataWidth * 2)
+                Dim DataAddr32 As Integer = Me.DataAddress
+                If Me.MyDataWidth = RECORD_DATAWIDTH.WORD Then MyDataWidth = CType((MyDataWidth * 2), RECORD_DATAWIDTH)
                 Me.output_stream.WriteLine((New SRECORD(Me.DataRecordSize, DataAddr32, data)).ToString())
                 Me.RecordCount += 1
                 buffer_ptr += packet_size
                 If Me.MyDataWidth = RECORD_DATAWIDTH.WORD Then
-                    Me.DataAddress += (packet_size / 2)
+                    Me.DataAddress += (packet_size \ 2)
                 Else
                     Me.DataAddress += packet_size
                 End If

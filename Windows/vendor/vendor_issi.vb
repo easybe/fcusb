@@ -27,28 +27,28 @@ Public Class vendor_issi
             ElseIf FCUSB_PROG.GetType Is GetType(SPI.SQI_Programmer) Then
                 sr = DirectCast(FCUSB_PROG, SPI.SQI_Programmer).ReadStatusRegister(1)
             End If
-            PrintConsole("Status register: 0x" & Hex(sr(0)).PadLeft(2, "0"))
-            If ((sr(0) >> 2) And 1) Then 'bit 2
+            PrintConsole("Status register: 0x" & Hex(sr(0)).PadLeft(2, "0"c))
+            If ((sr(0) >> 2) And 1) = 1 Then 'bit 2
                 cb_bp0.Checked = True
             Else
                 cb_bp0.Checked = False
             End If
-            If ((sr(0) >> 3) And 1) Then 'bit 3
+            If ((sr(0) >> 3) And 1) = 1 Then 'bit 3
                 cb_bp1.Checked = True
             Else
                 cb_bp1.Checked = False
             End If
-            If ((sr(0) >> 4) And 1) Then 'bit 4
+            If ((sr(0) >> 4) And 1) = 1 Then 'bit 4
                 cb_bp2.Checked = True
             Else
                 cb_bp2.Checked = False
             End If
-            If ((sr(0) >> 5) And 1) Then 'bit 5
+            If ((sr(0) >> 5) And 1) = 1 Then 'bit 5
                 cb_bp3.Checked = True
             Else
                 cb_bp3.Checked = False
             End If
-            If ((sr(0) >> 6) And 1) Then 'bit 6
+            If ((sr(0) >> 6) And 1) = 1 Then 'bit 6
                 cb_qspi.Checked = True
             Else
                 cb_qspi.Checked = False
@@ -66,11 +66,11 @@ Public Class vendor_issi
         Try
             PrintConsole("Writing non-vol register")
             Dim sr_to_write(0) As Byte
-            If cb_bp0.Checked Then sr_to_write(0) = sr_to_write(0) Or (1 << 2)
-            If cb_bp1.Checked Then sr_to_write(0) = sr_to_write(0) Or (1 << 3)
-            If cb_bp2.Checked Then sr_to_write(0) = sr_to_write(0) Or (1 << 4)
-            If cb_bp3.Checked Then sr_to_write(0) = sr_to_write(0) Or (1 << 5)
-            If cb_qspi.Checked Then sr_to_write(0) = sr_to_write(0) Or (1 << 6)
+            If cb_bp0.Checked Then sr_to_write(0) = sr_to_write(0) Or CByte(1 << 2)
+            If cb_bp1.Checked Then sr_to_write(0) = sr_to_write(0) Or CByte(1 << 3)
+            If cb_bp2.Checked Then sr_to_write(0) = sr_to_write(0) Or CByte(1 << 4)
+            If cb_bp3.Checked Then sr_to_write(0) = sr_to_write(0) Or CByte(1 << 5)
+            If cb_qspi.Checked Then sr_to_write(0) = sr_to_write(0) Or CByte(1 << 6)
             PrintConsole("Verifing the nonvolatile register have been successfully programmed")
             Dim sr_read_back() As Byte = Nothing
             If FCUSB_PROG.GetType Is GetType(SPI.SPI_Programmer) Then
@@ -85,13 +85,13 @@ Public Class vendor_issi
             Dim Successful As Boolean = True
             If (Not sr_to_write(0) = sr_read_back(0)) Then
                 Successful = False
-                Dim wrote_str As String = "0x" & Hex(sr_to_write(0)).PadLeft(2, "0")
-                Dim read_str As String = "0x" & Hex(sr_read_back(0)).PadLeft(2, "0")
+                Dim wrote_str As String = "0x" & Hex(sr_to_write(0)).PadLeft(2, "0"c)
+                Dim read_str As String = "0x" & Hex(sr_read_back(0)).PadLeft(2, "0"c)
                 PrintConsole("Error programming status register, wrote: " & wrote_str & ", and read back: " & read_str)
             End If
             If Successful Then
                 SetStatus("Nonvolatile configuration bits successfully programmed")
-                PrintConsole("Status register: 0x" & Hex(sr_read_back(0)).PadLeft(2, "0"))
+                PrintConsole("Status register: 0x" & Hex(sr_read_back(0)).PadLeft(2, "0"c))
             Else
                 SetStatus("Nonvolatile configuration programming failed")
             End If

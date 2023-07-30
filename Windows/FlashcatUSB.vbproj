@@ -11,7 +11,7 @@
     <AssemblyName>FlashcatUSB</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <MyType>WindowsFormsWithCustomSubMain</MyType>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -22,8 +22,10 @@
     <DefineTrace>true</DefineTrace>
     <OutputPath>..\Binaries\</OutputPath>
     <DocumentationFile>FlashcatUSB.xml</DocumentationFile>
-    <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+    <NoWarn>
+    </NoWarn>
     <Prefer32Bit>true</Prefer32Bit>
+    <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42032,42036</WarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -33,8 +35,10 @@
     <Optimize>true</Optimize>
     <OutputPath>..\Binaries\</OutputPath>
     <DocumentationFile>FlashcatUSB.xml</DocumentationFile>
-    <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+    <NoWarn>
+    </NoWarn>
     <Prefer32Bit>true</Prefer32Bit>
+    <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42032,42036</WarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup>
     <OptionExplicit>On</OptionExplicit>
@@ -43,7 +47,7 @@
     <OptionCompare>Binary</OptionCompare>
   </PropertyGroup>
   <PropertyGroup>
-    <OptionStrict>Off</OptionStrict>
+    <OptionStrict>On</OptionStrict>
   </PropertyGroup>
   <PropertyGroup>
     <OptionInfer>On</OptionInfer>
@@ -98,12 +102,6 @@
     <Compile Include="GUI\ComboBoxPlus.vb">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="GUI\DfuControl.designer.vb">
-      <DependentUpon>DfuControl.vb</DependentUpon>
-    </Compile>
-    <Compile Include="GUI\DfuControl.vb">
-      <SubType>UserControl</SubType>
-    </Compile>
     <Compile Include="GUI\DropPanelList.designer.vb">
       <DependentUpon>DropPanelList.vb</DependentUpon>
     </Compile>
@@ -138,10 +136,10 @@
     <Compile Include="GUI\FrmSettings.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="GUI\FrmUSBPerformance.Designer.vb">
-      <DependentUpon>FrmUSBPerformance.vb</DependentUpon>
+    <Compile Include="GUI\FrmPerformance.Designer.vb">
+      <DependentUpon>FrmPerformance.vb</DependentUpon>
     </Compile>
-    <Compile Include="GUI\FrmUSBPerformance.vb">
+    <Compile Include="GUI\FrmPerformance.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="GUI\HexAsciiByteBox.vb">
@@ -239,6 +237,7 @@
     <Compile Include="programmers\SPI_QUAD.vb" />
     <Compile Include="FileFormat_SREC.vb" />
     <Compile Include="programmers\SWI.vb" />
+    <Compile Include="ScriptInterface.vb" />
     <Compile Include="vendor\vendor_microchip_at21.Designer.vb">
       <DependentUpon>vendor_microchip_at21.vb</DependentUpon>
     </Compile>
@@ -268,12 +267,14 @@
     <Compile Include="programmers\SPI_NAND.vb" />
     <Compile Include="USB.vb" />
     <Compile Include="Utilities.vb" />
+    <Compile Include="vendor\vendor_winbond.Designer.vb">
+      <DependentUpon>vendor_winbond.vb</DependentUpon>
+    </Compile>
+    <Compile Include="vendor\vendor_winbond.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="GUI\DfuControl.resx">
-      <DependentUpon>DfuControl.vb</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
     <EmbeddedResource Include="GUI\DropPanelList.resx">
       <DependentUpon>DropPanelList.vb</DependentUpon>
     </EmbeddedResource>
@@ -286,8 +287,8 @@
     <EmbeddedResource Include="GUI\FrmSettings.resx">
       <DependentUpon>FrmSettings.vb</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="GUI\FrmUSBPerformance.resx">
-      <DependentUpon>FrmUSBPerformance.vb</DependentUpon>
+    <EmbeddedResource Include="GUI\FrmPerformance.resx">
+      <DependentUpon>FrmPerformance.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="GUI\HexEditor_v2.resx">
       <DependentUpon>HexEditor_v2.vb</DependentUpon>
@@ -367,6 +368,9 @@
     <EmbeddedResource Include="vendor\vendor_issi.resx">
       <DependentUpon>vendor_issi.vb</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="vendor\vendor_winbond.resx">
+      <DependentUpon>vendor_winbond.vb</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\Firmware\MACH1_1V8.bit">
@@ -395,6 +399,15 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\Firmware\PRO5_3V.bit">
       <Link>Firmware\PRO5_3V.bit</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Firmware\XPORT_PCB2.hex">
+      <Link>Firmware\XPORT_PCB2.hex</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Firmware\CLASSIC_U2.hex">
+      <Link>Firmware\CLASSIC_U2.hex</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Firmware\CLASSIC_U4.hex">
+      <Link>Firmware\CLASSIC_U4.hex</Link>
     </EmbeddedResource>
     <None Include="app.config" />
     <None Include="My Project\app.manifest" />

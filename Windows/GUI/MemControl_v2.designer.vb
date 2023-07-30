@@ -26,8 +26,8 @@ Partial Class MemControl_v2
         Me.pbar = New System.Windows.Forms.ProgressBar()
         Me.cmd_area = New System.Windows.Forms.Button()
         Me.gb_flash = New System.Windows.Forms.GroupBox()
-        Me.cmd_edit = New System.Windows.Forms.CheckBox()
         Me.pb_ecc = New System.Windows.Forms.PictureBox()
+        Me.cmd_edit = New System.Windows.Forms.CheckBox()
         Me.cmd_compare = New System.Windows.Forms.Button()
         Me.HexEditor64 = New FlashcatUSB.HexEditor_v2()
         Me.txtAddress = New System.Windows.Forms.TextBox()
@@ -64,8 +64,8 @@ Partial Class MemControl_v2
         Me.gb_flash.Anchor = CType((((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Bottom) _
             Or System.Windows.Forms.AnchorStyles.Left) _
             Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.gb_flash.Controls.Add(Me.cmd_edit)
         Me.gb_flash.Controls.Add(Me.pb_ecc)
+        Me.gb_flash.Controls.Add(Me.cmd_edit)
         Me.gb_flash.Controls.Add(Me.cmd_compare)
         Me.gb_flash.Controls.Add(Me.HexEditor64)
         Me.gb_flash.Controls.Add(Me.txtAddress)
@@ -82,6 +82,16 @@ Partial Class MemControl_v2
         Me.gb_flash.TabStop = False
         Me.gb_flash.Text = "(FLASH_NAME PART_NUMBER)"
         '
+        'pb_ecc
+        '
+        Me.pb_ecc.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.pb_ecc.InitialImage = Global.FlashcatUSB.My.Resources.Resources.ecc_blue
+        Me.pb_ecc.Location = New System.Drawing.Point(190, 22)
+        Me.pb_ecc.Name = "pb_ecc"
+        Me.pb_ecc.Size = New System.Drawing.Size(20, 20)
+        Me.pb_ecc.TabIndex = 41
+        Me.pb_ecc.TabStop = False
+        '
         'cmd_edit
         '
         Me.cmd_edit.Appearance = System.Windows.Forms.Appearance.Button
@@ -95,16 +105,6 @@ Partial Class MemControl_v2
         Me.cmd_edit.Text = "   "
         Me.menu_tip.SetToolTip(Me.cmd_edit, "Enable edit buffer")
         Me.cmd_edit.UseVisualStyleBackColor = True
-        '
-        'pb_ecc
-        '
-        Me.pb_ecc.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.pb_ecc.Image = Global.FlashcatUSB.My.Resources.Resources.ecc_blue
-        Me.pb_ecc.Location = New System.Drawing.Point(190, 22)
-        Me.pb_ecc.Name = "pb_ecc"
-        Me.pb_ecc.Size = New System.Drawing.Size(20, 20)
-        Me.pb_ecc.TabIndex = 28
-        Me.pb_ecc.TabStop = False
         '
         'cmd_compare
         '
@@ -209,6 +209,6 @@ Partial Class MemControl_v2
     Friend WithEvents cmd_cancel As Button
     Friend WithEvents cmd_compare As Button
     Friend WithEvents menu_tip As ToolTip
-    Friend WithEvents pb_ecc As PictureBox
     Friend WithEvents cmd_edit As CheckBox
+    Friend WithEvents pb_ecc As PictureBox
 End Class

@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2020 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2021 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB PRODUCTS
 'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
@@ -12,7 +12,7 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
 
     Private FCUSB As FCUSB_DEVICE
 
-    Public Property MyFlashDevice As Device
+    Public Property MyFlashDevice As OTP_EPROM
     Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
     Public Property MyAdapter As MEM_PROTOCOL 'This is the kind of socket adapter connected and the mode it is in
 
@@ -49,7 +49,7 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
         End Get
     End Property
 
-    Public Function SectorSize(sector As UInteger) As UInteger Implements MemoryDeviceUSB.SectorSize
+    Public Function SectorSize(sector As Integer) As Integer Implements MemoryDeviceUSB.SectorSize
         Return 8192 'Program 8KB at a time
     End Function
 
@@ -60,13 +60,12 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
         MyFlashDevice = Nothing
         If EPROM_Detect() Then
-            Dim o As OTP_EPROM = MyFlashDevice
-            If o.IFACE = VCC_IF.X16_5V_12VPP Then
+            If MyFlashDevice.IFACE = VCC_IF.X16_5V_12VPP Then
                 EXPIO_SETUP_USB(MEM_PROTOCOL.EPROM_X16)
                 FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_WRITE, Nothing, E_DEV_MODE.EPROM_X16)
                 Me.MyAdapter = MEM_PROTOCOL.EPROM_X16
                 RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": EPROM (16-bit)")
-            ElseIf o.IFACE = VCC_IF.X8_5V_12VPP Then
+            ElseIf MyFlashDevice.IFACE = VCC_IF.X8_5V_12VPP Then
                 EXPIO_SETUP_USB(MEM_PROTOCOL.EPROM_X8)
                 Me.MyAdapter = MEM_PROTOCOL.EPROM_X8
                 FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_WRITE, Nothing, E_DEV_MODE.EPROM_X8)
@@ -87,10 +86,10 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
         Return True
     End Function
 
-    Public Function ReadData(flash_offset As Long, data_count As Long) As Byte() Implements MemoryDeviceUSB.ReadData
-        Dim M27C160 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &HB1, 0, MemoryType.OTP_EPROM)
-        Dim M27C801 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &H42, 0, MemoryType.OTP_EPROM)
-        Dim M27C1001 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &H5, 0, MemoryType.OTP_EPROM)
+    Public Function ReadData(flash_offset As Long, data_count As Integer) As Byte() Implements MemoryDeviceUSB.ReadData
+        Dim M27C160 As OTP_EPROM = CType(FlashDatabase.FindDevice(&H20, &HB1, 0, MemoryType.OTP_EPROM), OTP_EPROM)
+        Dim M27C801 As OTP_EPROM = CType(FlashDatabase.FindDevice(&H20, &H42, 0, MemoryType.OTP_EPROM), OTP_EPROM)
+        Dim M27C1001 As OTP_EPROM = CType(FlashDatabase.FindDevice(&H20, &H5, 0, MemoryType.OTP_EPROM), OTP_EPROM)
         If MyFlashDevice Is M27C160 Then
             HardwareControl(FCUSB_HW_CTRL.VPP_5V)
             HardwareControl(FCUSB_HW_CTRL.VPP_ENABLE) 'Must enable VPP for BYTEvpp=HIGH(5V)
@@ -103,7 +102,7 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
         End If
         HardwareControl(FCUSB_HW_CTRL.WE_LOW)
         Utilities.Sleep(100)
-        Dim data_out() As Byte = ReadBulk(flash_offset, data_count)
+        Dim data_out() As Byte = ReadBulk(CUInt(flash_offset), CInt(data_count))
         HardwareControl(FCUSB_HW_CTRL.WE_HIGH)
         HardwareControl(FCUSB_HW_CTRL.VPP_0V)
         HardwareControl(FCUSB_HW_CTRL.VPP_DISABLE)
@@ -113,9 +112,8 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
     Public Function WriteData(flash_offset As Long, data_to_write() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
         Try
             Dim EPROM_DEV As OTP_EPROM = DirectCast(MyFlashDevice, OTP_EPROM)
-            Dim BytesWritten As UInt32 = 0
-            Dim DataToWrite As UInt32 = data_to_write.Length
-            Dim PacketSize As UInt32 = 2048
+            Dim DataToWrite As Integer = data_to_write.Length
+            Dim PacketSize As Integer = 2048
             Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / PacketSize)) 'Calcuates iterations
             HardwareControl(FCUSB_HW_CTRL.WE_HIGH)
             HardwareControl(FCUSB_HW_CTRL.VPP_12V)
@@ -128,11 +126,10 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
                 If (BufferSize > PacketSize) Then BufferSize = PacketSize
                 Dim data_packet(BufferSize - 1) As Byte
                 Array.Copy(data_to_write, (i * PacketSize), data_packet, 0, data_packet.Length)
-                Dim result As Boolean = WriteBulk(flash_offset, data_packet)
+                Dim result As Boolean = WriteBulk(CUInt(flash_offset), data_packet)
                 If (Not result) Then Return False
                 flash_offset += data_packet.Length
                 DataToWrite -= data_packet.Length
-                BytesWritten += data_packet.Length
             Next
             HardwareControl(FCUSB_HW_CTRL.VPP_0V)
             HardwareControl(FCUSB_HW_CTRL.VPP_DISABLE)
@@ -142,22 +139,22 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
         Return True
     End Function
 
-    Public Function SectorFind(sector_index As UInteger) As Long Implements MemoryDeviceUSB.SectorFind
+    Public Function SectorFind(sector_index As Integer) As Long Implements MemoryDeviceUSB.SectorFind
         Dim base_addr As UInt32 = 0
         If sector_index > 0 Then
-            For i As UInt32 = 0 To sector_index - 1
-                base_addr += Me.SectorSize(i)
+            For i As Integer = 0 To sector_index - 1
+                base_addr += CUInt(Me.SectorSize(i))
             Next
         End If
         Return base_addr
     End Function
 
-    Public Function SectorCount() As UInteger Implements MemoryDeviceUSB.SectorCount
+    Public Function SectorCount() As Integer Implements MemoryDeviceUSB.SectorCount
         Return MyFlashDevice.Sector_Count
     End Function
 
-    Public Function SectorWrite(sector_index As UInteger, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
-        Dim Addr32 As UInteger = Me.SectorFind(sector_index)
+    Public Function SectorWrite(sector_index As Integer, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
+        Dim Addr32 As UInteger = CUInt(Me.SectorFind(sector_index))
         Return WriteData(Addr32, data, Params)
     End Function
 
@@ -165,7 +162,7 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
         Throw New NotSupportedException()
     End Function
 
-    Public Function SectorErase(SectorIndex As UInteger) As Boolean Implements MemoryDeviceUSB.SectorErase
+    Public Function SectorErase(SectorIndex As Integer) As Boolean Implements MemoryDeviceUSB.SectorErase
         Throw New NotSupportedException()
     End Function
 
@@ -174,10 +171,10 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
         Utilities.Sleep(200)
         Dim IDENT_DATA() As Byte
         IDENT_DATA = EPROM_ReadEletronicID_1()
-        MyFlashDevice = FlashDatabase.FindDevice(IDENT_DATA(0), IDENT_DATA(1), 0, MemoryType.OTP_EPROM)
+        MyFlashDevice = CType(FlashDatabase.FindDevice(IDENT_DATA(0), IDENT_DATA(1), 0, MemoryType.OTP_EPROM), OTP_EPROM)
         If MyFlashDevice IsNot Nothing Then Return True 'Detected!
         IDENT_DATA = EPROM_ReadEletronicID_2()
-        MyFlashDevice = FlashDatabase.FindDevice(IDENT_DATA(0), IDENT_DATA(1), 0, MemoryType.OTP_EPROM)
+        MyFlashDevice = CType(FlashDatabase.FindDevice(IDENT_DATA(0), IDENT_DATA(1), 0, MemoryType.OTP_EPROM), OTP_EPROM)
         If MyFlashDevice IsNot Nothing Then Return True 'Detected!
         Return False
     End Function
@@ -243,14 +240,14 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
     Public Function EPROM_BlankCheck() As Boolean
         RaiseEvent PrintConsole("Performing EPROM blank check")
         RaiseEvent SetProgress(0)
-        Dim entire_data(MyFlashDevice.FLASH_SIZE - 1) As Byte
-        Dim BlockCount As Integer = (entire_data.Length / 8192)
-        For i = 0 To BlockCount - 1
+        Dim entire_data(CInt(MyFlashDevice.FLASH_SIZE) - 1) As Byte
+        Dim BlockCount As Integer = (entire_data.Length \ 8192)
+        For i As Integer = 0 To BlockCount - 1
             If AppIsClosing Then Return False
-            Dim block() As Byte = ReadBulk(i * 8191, 8191)
+            Dim block() As Byte = ReadBulk(CUInt(i * 8191), 8191)
             Array.Copy(block, 0, entire_data, i * 8191, 8191)
-            Dim percent As Single = (i / BlockCount) * 100
-            RaiseEvent SetProgress(Math.Floor(percent))
+            Dim percent As Single = (i \ BlockCount) * 100
+            RaiseEvent SetProgress(CInt(Math.Floor(percent)))
         Next
         If Utilities.IsByteArrayFilled(entire_data, 255) Then
             RaiseEvent PrintConsole("EPROM device is blank and can be programmed")
@@ -283,7 +280,7 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
     End Function
 
     Private Function ByteToWordArray(byte_arr() As Byte) As UInt16()
-        Dim out(byte_arr.Length / 2 - 1) As UInt16
+        Dim out(byte_arr.Length \ 2 - 1) As UInt16
         Dim ptr As Integer = 0
         For i = 0 To out.Length - 1
             out(i) = CUShort(byte_arr(ptr + 1)) << 8 Or byte_arr(ptr)
@@ -292,14 +289,14 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
         Return out
     End Function
 
-    Private Function ReadBulk(address As UInt32, count As UInt32) As Byte()
+    Private Function ReadBulk(address As UInt32, count As Integer) As Byte()
         Try
-            Dim read_count As UInt32 = count
+            Dim read_count As Integer = count
             Dim addr_offset As Boolean = False
             If (MyAdapter = MEM_PROTOCOL.EPROM_X16) Then
                 If (address Mod 2 = 1) Then
                     addr_offset = True
-                    address = (address - 1)
+                    address = (address - 1UI)
                     read_count += 1
                 End If
                 If (read_count Mod 2 = 1) Then
@@ -307,9 +304,9 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
                 End If
             End If
             Dim data_out(read_count - 1) As Byte 'Bytes we want to read
-            Dim page_size As Integer = 512
+            Dim page_size As UInt16 = 512
             If MyFlashDevice IsNot Nothing Then page_size = MyFlashDevice.PAGE_SIZE
-            Dim setup_data() As Byte = GetSetupPacket(address, read_count, page_size)
+            Dim setup_data() As Byte = GetSetupPacket(address, CUInt(read_count), page_size)
             Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, data_out, 0)
             If Not result Then Return Nothing
             If addr_offset Then
@@ -327,7 +324,7 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
 
     Private Function WriteBulk(address As UInt32, data_out() As Byte) As Boolean
         Try
-            Dim setup_data() As Byte = GetSetupPacket(address, data_out.Length, MyFlashDevice.PAGE_SIZE)
+            Dim setup_data() As Byte = GetSetupPacket(address, CUInt(data_out.Length), MyFlashDevice.PAGE_SIZE)
             Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USBREQ.EXPIO_WRITEDATA, setup_data, data_out, 0)
             Return result
         Catch ex As Exception

@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2020 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2021 - ALL RIGHTS RESERVED
 'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: This class interfaces the CFI flashes (over JTAG) via FlashcatUSB hardware/firmware
@@ -11,24 +11,24 @@ Namespace CFI
 
 #Region "Sector / Addresses"
         Private Flash_BlockCount As UShort 'Number of blocks
-        Private Flash_EraseBlock() As Integer 'Number of erase sectors per block
-        Private Flash_EraseSize() As Integer 'Size of sectors per block
-        Private Flash_Address() As Integer 'Addresses of all sectors
+        Private Flash_EraseBlock() As Int32 'Number of erase sectors per block
+        Private Flash_EraseSize() As UInt32 'Size of sectors per block
+        Private Flash_Address() As UInt32 'Addresses of all sectors
         Private Flash_Supported As Boolean 'Indicates that we support the device for writing
 
         Private Sub InitSectorAddresses()
             Dim i As Integer
             Dim AllSects() As Integer = GetAllSectors()
             Dim SectorInt As Integer = AllSects.Length
-            Dim SecAdd As Integer = 0
+            Dim SecAdd As UInt32 = 0
             ReDim Flash_Address(SectorInt - 1)
             For i = 0 To SectorInt - 1
                 Flash_Address(i) = SecAdd
-                SecAdd += AllSects(i)
+                SecAdd += CUInt(AllSects(i))
             Next
         End Sub
         'Returns the base address given the sector
-        Public Function FindSectorBase(sector As UInt32) As UInt32
+        Public Function FindSectorBase(sector As Integer) As UInt32
             Try
                 Return CUInt(Flash_Address(sector))
             Catch ex As Exception
@@ -36,15 +36,15 @@ Namespace CFI
             End Try
         End Function
         'Returns the sector that contains the offset address (verified)
-        Public Function FindSectorOffset(Offset As Integer) As Integer
+        Public Function FindSectorOffset(Offset As UInt32) As Integer
             Dim allSectors() As Integer = GetAllSectors()
             Dim i As Integer
-            Dim MinAddress As Int32 = 0
-            Dim MaxAddress As Int32
+            Dim MinAddress As UInt32 = 0
+            Dim MaxAddress As UInt32
             For i = 0 To allSectors.Length - 1
-                MaxAddress += allSectors(i) - 1
+                MaxAddress += CUInt(allSectors(i)) - 1UI
                 If Offset >= MinAddress And Offset <= MaxAddress Then Return i 'Found it
-                MinAddress = MaxAddress + 1
+                MinAddress = MaxAddress + 1UI
             Next
             Return -1 'Did not find it
         End Function
@@ -61,16 +61,15 @@ Namespace CFI
             For i = 0 To Flash_BlockCount - 1
                 numSectors = Flash_EraseBlock(i)
                 For x = 0 To numSectors - 1
-                    list.Add(Flash_EraseSize(i))
+                    list.Add(CInt(Flash_EraseSize(i)))
                 Next
             Next
             Return list.ToArray
         End Function
         'Returns the total number of sectors
         Public Function GetFlashSectors() As Integer
-            Dim i As Integer
             Dim TotalSectors As Integer = 0
-            For i = 0 To Flash_BlockCount - 1
+            For i As Integer = 0 To Flash_BlockCount - 1
                 TotalSectors += Flash_EraseBlock(i)
             Next
             Return TotalSectors
@@ -124,16 +123,16 @@ Namespace CFI
             WriteData(Addr32, data)
         End Sub
         'Waits until a sector is blank (using the AMD read sector method)
-        Private Sub amd_erasewait(SectorOffset As Integer, Optional AllowTimeout As Boolean = True)
+        Private Sub amd_erasewait(SectorOffset As UInt32, Optional AllowTimeout As Boolean = True)
             Try
                 Utilities.Sleep(500) 'Incase the data is already blank
                 Dim Counter As UInt32 = 0
                 Dim mydata As UInt32 = 0
                 Do Until mydata = &HFFFFFFFFL
                     Utilities.Sleep(100)
-                    mydata = Readword(CUInt(MyDeviceBase + SectorOffset))
+                    mydata = ReadWord(CUInt(MyDeviceBase + SectorOffset))
                     If AllowTimeout Then
-                        Counter += 1
+                        Counter += 1UI
                         If Counter = 20 Then Exit Do
                     End If
                 Loop
@@ -180,7 +179,7 @@ Namespace CFI
                     Dim FirstWord As UInt32 = Readword(MyDeviceBase)
                     FirstWord = Readword(MyDeviceBase) 'Read this twice for some unknown reason
                     MyDeviceID.MFG = CByte(FirstWord And &HFF)
-                    MyDeviceID.ID1 = ((FirstWord And &HFFFF0000) >> 16)
+                    MyDeviceID.ID1 = CUShort(FirstWord >> 16)
                     If Not Detect_NonCFI_Device(MyDeviceID.MFG, MyDeviceID.ID1) Then Return False
                     RaiseEvent SetBaseAddress(BaseAddress)
                 Else
@@ -196,15 +195,15 @@ Namespace CFI
                     If MyDeviceID.MFG = 1 And MyDeviceID.ID1 = &H227E Then 'Updates the full PartNumber for SPANSION devices
                         Dim cycle_two As Byte = CByte(&HFF And ReadHalfword(CUInt(MyDeviceBase + +&H1C)))
                         Dim cycle_thr As Byte = CByte(&HFF And ReadHalfword(CUInt(MyDeviceBase + +&H1E)))
-                        MyDeviceID.ID2 = (CUInt(cycle_two) << 8) + CUInt(cycle_thr)
+                        MyDeviceID.ID2 = (CUShort(cycle_two) << 8) + CUShort(cycle_thr)
                     End If
                     Read_Mode() 'Puts the flash back into read mode
-                    Dim BaseStr As String = Hex(BaseAddress).PadLeft(8, "0")
+                    Dim BaseStr As String = Hex(BaseAddress).PadLeft(8, "0"c)
                     RaiseEvent WriteConsole(String.Format(RM.GetString("cfi_flash_detected"), BaseStr))
                 End If
                 LoadFlashName()
                 RaiseEvent WriteConsole(String.Format(RM.GetString("ext_connected_chipid"), MyDeviceID.ToString))
-                RaiseEvent WriteConsole(String.Format(RM.GetString("cfi_flash_base"), "0x" & Hex(MyDeviceBase).PadLeft(8, "0")))
+                RaiseEvent WriteConsole(String.Format(RM.GetString("cfi_flash_base"), "0x" & Hex(MyDeviceBase).PadLeft(8, "0"c)))
                 RaiseEvent WriteConsole(String.Format(RM.GetString("cfi_flash_info"), Me.FlashName, Format(Me.FlashSize, "#,###")))
                 PrintProgrammingMode() '"Programming mode: etc"
             Else
@@ -346,9 +345,9 @@ Namespace CFI
         Private Sub write_command(offset As UInt32, data As UInt32)
             Select Case MyDeviceBus
                 Case DeviceBus.X8
-                    RaiseEvent Memory_Write_B(CUInt(MyDeviceBase + offset), data)
+                    RaiseEvent Memory_Write_B(CUInt(MyDeviceBase + offset), CByte(data And &HFFUI))
                 Case DeviceBus.X16
-                    RaiseEvent Memory_Write_H(CUInt(MyDeviceBase + offset), data)
+                    RaiseEvent Memory_Write_H(CUInt(MyDeviceBase + offset), CUShort(data And &HFFFFUI))
                 Case DeviceBus.X32
                     RaiseEvent Memory_Write_W(CUInt(MyDeviceBase + offset), data)
             End Select
@@ -367,7 +366,7 @@ Namespace CFI
             Dim ReadBack1 As UInt16 = ReadHalfword(MyDeviceBase + &H20UI)
             Dim ReadBack2 As UInt16 = ReadHalfword(MyDeviceBase + &H22UI)
             Dim ReadBack3 As UInt16 = ReadHalfword(MyDeviceBase + &H24UI)
-            Dim QRY As UInt32 = ((ReadBack1 And 255) << 16) Or ((ReadBack2 And 255) << 8) Or (ReadBack3 And 255)
+            Dim QRY As UInt32 = (CUInt(ReadBack1 And 255) << 16) Or (CUInt(ReadBack2 And 255) << 8) Or CUInt(ReadBack3 And 255)
             If (QRY = &H515259) Then
                 MyDeviceBus = BusMode 'Flash Device Interface description (refer to CFI publication 100)
                 Return True
@@ -402,10 +401,10 @@ Namespace CFI
             Return True
         End Function
         'Puts the device back into READ mode
-        Private Function Enable_CFI_Mode_ForSST()
-            RaiseEvent Memory_Write_B(MyDeviceBase + &HAAAA, &HAA)
-            RaiseEvent Memory_Write_B(MyDeviceBase + &H5554, &H55)
-            RaiseEvent Memory_Write_B(MyDeviceBase + &HAAAA, &H98)
+        Private Function Enable_CFI_Mode_ForSST() As Boolean
+            RaiseEvent Memory_Write_B(MyDeviceBase + &HAAAAUI, &HAA)
+            RaiseEvent Memory_Write_B(MyDeviceBase + &H5554UI, &H55)
+            RaiseEvent Memory_Write_B(MyDeviceBase + &HAAAAUI, &H98)
             Utilities.Sleep(50) 'If the command succeeded, we need to wait for the device to switch modes
             Dim ReadBack As UInt32 = CUInt(ReadHalfword(MyDeviceBase + &H20UI))
             ReadBack = CUInt((ReadBack << 8) + ReadHalfword(MyDeviceBase + &H22UI))
@@ -418,22 +417,22 @@ Namespace CFI
             Return False
         End Function
 
-        Private Function Load_CFI_Data()
+        Private Function Load_CFI_Data() As Boolean
             Try
-                Me.FlashSize = CInt(2 ^ ReadHalfword(CUInt(MyDeviceBase + &H4E))) '&H00200000
+                Me.FlashSize = CUInt((2UI ^ ReadHalfword(MyDeviceBase + &H4EUI))) '&H00200000
                 Dim DeviceCommandSet As UShort = CUShort(&HFF And ReadHalfword(CUInt(MyDeviceBase + &H26))) << 8 '&H0200
-                DeviceCommandSet += CByte(&HFF And ReadHalfword(CUInt(MyDeviceBase + &H28)))
-                MyDeviceMode = DeviceCommandSet
-                MyDeviceInterface = CInt(ReadHalfword(CUInt(MyDeviceBase + &H50))) '0x02
+                DeviceCommandSet += (ReadHalfword(CUInt(MyDeviceBase + &H28) And &HFFUS))
+                MyDeviceMode = CType(DeviceCommandSet, DeviceAlgorithm)
+                MyDeviceInterface = CType(ReadHalfword(MyDeviceBase + &H50UI), DeviceInterface) '0x02
                 Flash_BlockCount = ReadHalfword(CUInt(MyDeviceBase + &H58)) '0x04
                 Dim BootFlag As UInt32 = ReadHalfword(CUInt(MyDeviceBase + &H9E)) '&H0000FFFF
                 ReDim Flash_EraseBlock(Flash_BlockCount - 1)
                 ReDim Flash_EraseSize(Flash_BlockCount - 1)
                 Dim BlockAddress As UInt32 = &H5A 'Start address of block 1 information
                 For i = 1 To Flash_BlockCount
-                    Flash_EraseBlock(i - 1) = ((ReadHalfword(CUInt(MyDeviceBase + BlockAddress + 2)) << 8) + ReadHalfword(CUInt(MyDeviceBase + BlockAddress))) + 1
-                    Flash_EraseSize(i - 1) = ((ReadHalfword(CUInt(MyDeviceBase + BlockAddress + 6)) << 8) + ReadHalfword(CUInt(MyDeviceBase + BlockAddress + 4))) * 256
-                    BlockAddress += 8 'Increase address by 8
+                    Flash_EraseBlock(i - 1) = (ReadHalfword(CUInt(MyDeviceBase + BlockAddress + 2)) << 8) + ReadHalfword(CUInt(MyDeviceBase + BlockAddress)) + 1
+                    Flash_EraseSize(i - 1) = (ReadHalfword(CUInt(MyDeviceBase + BlockAddress + 6)) << 8) + ReadHalfword(CUInt(MyDeviceBase + BlockAddress + 4)) * 256UI
+                    BlockAddress += 8UI 'Increase address by 8
                 Next
                 If BootFlag = 3 Then 'warning: might only be designed for TC58FVT160
                     Array.Reverse(Flash_EraseBlock)
@@ -450,11 +449,11 @@ Namespace CFI
             If MyDeviceMode = DeviceAlgorithm.NotDefined Then
                 RaiseEvent Memory_Write_B(MyDeviceBase, &HFF) 'For Intel / Sharp
                 RaiseEvent Memory_Write_B(MyDeviceBase, &H50)
-                RaiseEvent Memory_Write_B(MyDeviceBase + &HAAA, &HAA) 'For AMD
-                RaiseEvent Memory_Write_B(MyDeviceBase + &H555, &H55)
-                RaiseEvent Memory_Write_B(MyDeviceBase + &HAAAA, &HAA) 'For SST
-                RaiseEvent Memory_Write_B(MyDeviceBase + &H5554, &H55)
-                RaiseEvent Memory_Write_B(MyDeviceBase + &HAAAA, &HF0)
+                RaiseEvent Memory_Write_B(MyDeviceBase + &HAAAUI, &HAA) 'For AMD
+                RaiseEvent Memory_Write_B(MyDeviceBase + &H555UI, &H55)
+                RaiseEvent Memory_Write_B(MyDeviceBase + &HAAAAUI, &HAA) 'For SST
+                RaiseEvent Memory_Write_B(MyDeviceBase + &H5554UI, &H55)
+                RaiseEvent Memory_Write_B(MyDeviceBase + &HAAAAUI, &HF0)
                 RaiseEvent Memory_Write_B(MyDeviceBase, &HF0) 'For LEGACY
             ElseIf MyDeviceMode = DeviceAlgorithm.Intel Or MyDeviceMode = DeviceAlgorithm.Intel_Sharp Then
                 write_command(0, &HFF)
@@ -530,7 +529,7 @@ Namespace CFI
             Return True
         End Function
 
-        Public Function ReadData(Offset As UInt32, count As UInt32) As Byte()
+        Public Function ReadData(Offset As UInt32, count As Integer) As Byte()
             Dim DataOut() As Byte = Nothing
             Try
                 If USE_BULK Then 'This is significantly faster
@@ -541,11 +540,11 @@ Namespace CFI
                     Dim c As Integer = 0
                     ReDim DataOut(count - 1)
                     For i = 0 To (count / 4) - 1
-                        Dim word As UInt32 = Readword(MyDeviceBase + Offset + (i * 4))
-                        DataOut(c + 3) = (word And &HFF000000) >> 24
-                        DataOut(c + 2) = (word And &HFF0000) >> 16
-                        DataOut(c + 1) = (word And &HFF00) >> 8
-                        DataOut(c + 0) = (word And &HFF)
+                        Dim word As UInt32 = ReadWord(MyDeviceBase + Offset + CUInt(i * 4))
+                        DataOut(c + 3) = CByte((word >> 24) And &HFFUI)
+                        DataOut(c + 2) = CByte((word >> 16) And &HFFUI)
+                        DataOut(c + 1) = CByte((word >> 8) And &HFFUI)
+                        DataOut(c + 0) = CByte((word >> 0) And &HFFUI)
                         c = c + 4
                     Next
                 End If
@@ -561,11 +560,11 @@ Namespace CFI
                     If Me.USE_BULK Then
                         RaiseEvent WriteFlash(MyDeviceBase + Offset, data_to_write, CFI_FLASH_MODE.Intel_16)
                     Else
-                        For i = 0 To (data_to_write.Length - 1) Step 4 'We will write data 4 bytes at a time
-                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + i, &H40)
-                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + i, (CInt(data_to_write(i + 1)) << 8) + data_to_write(i + 0))
-                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + i + 2, &H40)
-                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + i + 2, (CInt(data_to_write(i + 3)) << 8) + data_to_write(i + 2))
+                        For i As Int32 = 0 To (data_to_write.Length - 1) Step 4 'We will write data 4 bytes at a time
+                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + CUInt(i), &H40)
+                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + CUInt(i), (CUShort(data_to_write(i + 1)) << 8) + data_to_write(i + 0))
+                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + CUInt(i) + 2UI, &H40)
+                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + CUInt(i) + 2UI, (CUShort(data_to_write(i + 3)) << 8) + data_to_write(i + 2))
                         Next
                     End If
                     Read_Mode()
@@ -576,11 +575,11 @@ Namespace CFI
                     If (Me.USE_BULK) Then 'Our fast method only works for DMA enabled targets
                         RaiseEvent WriteFlash(MyDeviceBase + Offset, data_to_write, CFI_FLASH_MODE.AMD_16)
                     Else
-                        For i = 0 To (data_to_write.Length - 1) Step 4 'We will write data 4 bytes at a time
+                        For i As Int32 = 0 To (data_to_write.Length - 1) Step 4 'We will write data 4 bytes at a time
                             RaiseEvent Memory_Write_H(MyDeviceBase, &HA0)
-                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + i, (CInt(data_to_write(i + 1)) << 8) + data_to_write(i + 0))
+                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + CUInt(i), (CUShort(data_to_write(i + 1)) << 8) + data_to_write(i + 0))
                             RaiseEvent Memory_Write_H(MyDeviceBase, &HA0)
-                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + i + 2, (CInt(data_to_write(i + 3)) << 8) + data_to_write(i + 2))
+                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + CUInt(i) + 2UI, (CUShort(data_to_write(i + 3)) << 8) + data_to_write(i + 2))
                         Next
                     End If
                     write_command(0, &H90)
@@ -589,30 +588,30 @@ Namespace CFI
                     If (Me.USE_BULK) Then 'Our fast method only works for DMA enabled targets
                         RaiseEvent WriteFlash(MyDeviceBase + Offset, data_to_write, CFI_FLASH_MODE.NoBypass)
                     Else
-                        For i = 0 To (data_to_write.Length - 1) Step 4 'We will write data 4 bytes at a time
+                        For i As Int32 = 0 To (data_to_write.Length - 1) Step 4 'We will write data 4 bytes at a time
                             write_command(&HAAA, &HAA)
                             write_command(&H555, &H55)
                             write_command(&HAAA, &HA0)
-                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + i, (CInt(data_to_write(i + 1)) << 8) + data_to_write(i + 0))
+                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + CUInt(i), (CUShort(data_to_write(i + 1)) << 8) + data_to_write(i + 0))
                             write_command(&HAAA, &HAA)
                             write_command(&H555, &H55)
                             write_command(&HAAA, &HA0)
-                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + i + 2, (CInt(data_to_write(i + 3)) << 8) + data_to_write(i + 2))
+                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + CUInt(i) + 2UI, (CUShort(data_to_write(i + 3)) << 8) + data_to_write(i + 2))
                         Next
                     End If
                 ElseIf MyDeviceMode = DeviceAlgorithm.SST Then
                     If (Me.USE_BULK) Then
                         RaiseEvent WriteFlash(MyDeviceBase + Offset, data_to_write, CFI_FLASH_MODE.SST)
                     Else
-                        For i = 0 To (data_to_write.Length - 1) Step 4 'We will write data 4 bytes at a time
+                        For i As Int32 = 0 To (data_to_write.Length - 1) Step 4 'We will write data 4 bytes at a time
                             write_command(&HAAAA, &HAA)
                             write_command(&H5554, &H55)
                             write_command(&HAAAA, &HA0)
-                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + i, (CInt(data_to_write(i + 1)) << 8) + data_to_write(i + 0))
+                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + CUInt(i), (CUShort(data_to_write(i + 1)) << 8) + data_to_write(i + 0))
                             write_command(&HAAAA, &HAA)
                             write_command(&H5554, &H55)
                             write_command(&HAAAA, &HA0)
-                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + i + 2, (CInt(data_to_write(i + 3)) << 8) + data_to_write(i + 2))
+                            RaiseEvent Memory_Write_H(MyDeviceBase + Offset + CUInt(i) + 2UI, (CUShort(data_to_write(i + 3)) << 8) + data_to_write(i + 2))
                         Next
                     End If
                 End If

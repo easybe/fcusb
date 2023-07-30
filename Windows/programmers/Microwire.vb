@@ -14,11 +14,11 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
         Dim s93_devices() As Device = FlashDatabase.GetFlashDevices(MemoryType.SERIAL_MICROWIRE)
         Me.MICROWIRE_DEVIE = Nothing
-        Dim org_mode As UInt32 = MySettings.S93_DEVICE_ORG '0=8-bit,1=16-bit
+        Dim org_mode As Integer = MySettings.S93_DEVICE_ORG '0=8-bit,1=16-bit
         If Not MySettings.S93_DEVICE.Equals("") Then
             For Each mem_device In s93_devices
                 If mem_device.NAME.ToUpper.Equals(MySettings.S93_DEVICE.ToUpper) Then
-                    Me.MICROWIRE_DEVIE = mem_device
+                    Me.MICROWIRE_DEVIE = CType(mem_device, MICROWIRE)
                     Exit For
                 End If
             Next
@@ -37,7 +37,7 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
             addr_bits = Me.MICROWIRE_DEVIE.X16_ADDRSIZE
         End If
         RaiseEvent PrintConsole("Microwire device: " & Me.DeviceName & " (" & Me.MICROWIRE_DEVIE.FLASH_SIZE & " bytes) " & org_str & " mode")
-        Dim setup_data As UInt32 = (addr_bits << 8) Or (org_mode)
+        Dim setup_data As UInt32 = CUInt((addr_bits << 8) Or (org_mode))
         Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.S93_INIT, Nothing, setup_data)
         Return result
     End Function
@@ -60,23 +60,23 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
         End Get
     End Property
 
-    Public Function SectorSize(sector As UInteger) As UInt32 Implements MemoryDeviceUSB.SectorSize
-        Return Me.DeviceSize
+    Public Function SectorSize(sector As Integer) As Integer Implements MemoryDeviceUSB.SectorSize
+        Return CInt(Me.DeviceSize)
     End Function
 
-    Public Function ReadData(flash_offset As Long, data_count As Long) As Byte() Implements MemoryDeviceUSB.ReadData
+    Public Function ReadData(flash_offset As Long, data_count As Integer) As Byte() Implements MemoryDeviceUSB.ReadData
         Try
             Dim setup_data(7) As Byte
             Dim result As Boolean
-            setup_data(0) = ((data_count >> 24) And 255)
-            setup_data(1) = ((data_count >> 16) And 255)
-            setup_data(2) = ((data_count >> 8) And 255)
-            setup_data(3) = (data_count And 255)
-            setup_data(4) = ((flash_offset >> 24) And 255)
-            setup_data(5) = ((flash_offset >> 16) And 255)
-            setup_data(6) = ((flash_offset >> 8) And 255)
-            setup_data(7) = (flash_offset And 255)
-            Dim data_out(data_count - 1) As Byte
+            setup_data(0) = CByte((data_count >> 24) And 255)
+            setup_data(1) = CByte((data_count >> 16) And 255)
+            setup_data(2) = CByte((data_count >> 8) And 255)
+            setup_data(3) = CByte(data_count And 255)
+            setup_data(4) = CByte((flash_offset >> 24) And 255)
+            setup_data(5) = CByte((flash_offset >> 16) And 255)
+            setup_data(6) = CByte((flash_offset >> 8) And 255)
+            setup_data(7) = CByte(flash_offset And 255)
+            Dim data_out(CInt(data_count) - 1) As Byte
             result = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.S93_READEEPROM, setup_data, data_out, 0)
             If Not result Then Return Nothing
             Return data_out
@@ -87,18 +87,18 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
 
     Public Function WriteData(flash_offset As Long, data_to_write() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
         Try
-            Dim data_count As UInt32 = data_to_write.Length
+            Dim data_count As Integer = data_to_write.Length
             Dim setup_data(7) As Byte
             Dim result As Boolean
-            setup_data(0) = ((data_count >> 24) And 255)
-            setup_data(1) = ((data_count >> 16) And 255)
-            setup_data(2) = ((data_count >> 8) And 255)
-            setup_data(3) = (data_count And 255)
-            setup_data(4) = ((flash_offset >> 24) And 255)
-            setup_data(5) = ((flash_offset >> 16) And 255)
-            setup_data(6) = ((flash_offset >> 8) And 255)
-            setup_data(7) = (flash_offset And 255)
-            result = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.S93_WRITEEEPROM, setup_data, data_to_write, data_count)
+            setup_data(0) = CByte((data_count >> 24) And 255)
+            setup_data(1) = CByte((data_count >> 16) And 255)
+            setup_data(2) = CByte((data_count >> 8) And 255)
+            setup_data(3) = CByte(data_count And 255)
+            setup_data(4) = CByte((flash_offset >> 24) And 255)
+            setup_data(5) = CByte((flash_offset >> 16) And 255)
+            setup_data(6) = CByte((flash_offset >> 8) And 255)
+            setup_data(7) = CByte(flash_offset And 255)
+            result = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.S93_WRITEEEPROM, setup_data, data_to_write, CUInt(data_count))
             Utilities.Sleep(100)
             FCUSB.USB_WaitForComplete()
             If result Then ReadData(0, 16) 'Some devices need us to read a page of data
@@ -117,19 +117,19 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
         Utilities.Sleep(10)
     End Sub
 
-    Public Function SectorFind(SectorIndex As UInt32) As Long Implements MemoryDeviceUSB.SectorFind
+    Public Function SectorFind(SectorIndex As Integer) As Long Implements MemoryDeviceUSB.SectorFind
         Return 0
     End Function
 
-    Public Function SectorErase(SectorIndex As UInteger) As Boolean Implements MemoryDeviceUSB.SectorErase
+    Public Function SectorErase(SectorIndex As Integer) As Boolean Implements MemoryDeviceUSB.SectorErase
         Return True
     End Function
 
-    Public Function SectorCount() As UInteger Implements MemoryDeviceUSB.SectorCount
+    Public Function SectorCount() As Integer Implements MemoryDeviceUSB.SectorCount
         Return 1
     End Function
 
-    Public Function SectorWrite(SectorIndex As UInteger, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
+    Public Function SectorWrite(SectorIndex As Integer, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
         Return WriteData(0, data)
     End Function
 

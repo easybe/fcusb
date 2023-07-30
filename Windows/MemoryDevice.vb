@@ -26,11 +26,11 @@
     ''' <summary>
     ''' Returns the size (in bytes) of the sector/block
     ''' </summary>
-    Function SectorSize(sector As UInt32) As UInt32
+    Function SectorSize(sector As Integer) As Integer
     ''' <summary>
     ''' Reads data from the external memory device
     ''' </summary>
-    Function ReadData(flash_offset As Long, data_count As Long) As Byte()
+    Function ReadData(flash_offset As Long, data_count As Integer) As Byte()
     ''' <summary>
     ''' Writes data to an external memory device
     ''' </summary>
@@ -40,9 +40,9 @@
     ''' </summary>
     Function EraseDevice() As Boolean
     Sub WaitUntilReady()
-    Function SectorFind(SectorIndex As UInt32) As Long
-    Function SectorErase(SectorIndex As UInt32) As Boolean
-    Function SectorCount() As UInt32
-    Function SectorWrite(SectorIndex As UInt32, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean
+    Function SectorFind(SectorIndex As Integer) As Long
+    Function SectorErase(SectorIndex As Integer) As Boolean
+    Function SectorCount() As Integer
+    Function SectorWrite(SectorIndex As Integer, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean
 
 End Interface

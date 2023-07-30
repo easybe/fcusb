@@ -32,7 +32,7 @@ Public Class FrmSettings
         End If
         Dim all_bytes(254) As String
         For i = 1 To 255
-            all_bytes(i - 1) = "0x" & Hex(i).PadLeft(2, "0")
+            all_bytes(i - 1) = "0x" & Hex(i).PadLeft(2, "0"c)
         Next
         op_read.Items.AddRange(all_bytes)
         op_prog.Items.AddRange(all_bytes)
@@ -111,13 +111,13 @@ Public Class FrmSettings
                 cb_jtag_tck_speed.SelectedIndex = 2
         End Select
         For Each item In cb_nor_read_access.Items
-            If item.ToString.StartsWith(MySettings.NOR_READ_ACCESS) Then
+            If item.ToString.StartsWith(CStr(MySettings.NOR_READ_ACCESS)) Then
                 cb_nor_read_access.SelectedItem = item
                 Exit For
             End If
         Next
         For Each item In cb_nor_we_pulse.Items
-            If item.ToString.StartsWith(MySettings.NOR_WE_PULSE) Then
+            If item.ToString.StartsWith(CStr(MySettings.NOR_WE_PULSE)) Then
                 cb_nor_we_pulse.SelectedItem = item
                 Exit For
             End If
@@ -278,15 +278,15 @@ Public Class FrmSettings
         End If
         'i2c tab
         Dim i2c_address As Byte = &HA0 'Initial address
-        If cb_i2c_a2.Checked Then i2c_address = i2c_address Or (1 << 3)
-        If cb_i2c_a1.Checked Then i2c_address = i2c_address Or (1 << 2)
-        If cb_i2c_a0.Checked Then i2c_address = i2c_address Or (1 << 1)
+        If cb_i2c_a2.Checked Then i2c_address = CByte(i2c_address Or (1 << 3))
+        If cb_i2c_a1.Checked Then i2c_address = CByte(i2c_address Or (1 << 2))
+        If cb_i2c_a0.Checked Then i2c_address = CByte(i2c_address Or (1 << 1))
         MySettings.I2C_ADDRESS = i2c_address
         'swi
         Dim swi_address As Byte = 0
-        If cb_swi_a2.Checked Then swi_address = swi_address Or (1 << 3)
-        If cb_swi_a1.Checked Then swi_address = swi_address Or (1 << 2)
-        If cb_swi_a0.Checked Then swi_address = swi_address Or (1 << 1)
+        If cb_swi_a2.Checked Then swi_address = CByte(swi_address Or (1 << 3))
+        If cb_swi_a1.Checked Then swi_address = CByte(swi_address Or (1 << 2))
+        If cb_swi_a0.Checked Then swi_address = CByte(swi_address Or (1 << 1))
         MySettings.SWI_ADDRESS = swi_address
 
         If rb_speed_100khz.Checked Then
@@ -300,9 +300,9 @@ Public Class FrmSettings
         MySettings.SPI_EEPROM = cb_spi_eeprom.SelectedItem.ToString
         MySettings.SPI_NAND_DISABLE_ECC = cb_spinand_disable_ecc.Checked
         MySettings.NAND_Verify = cb_nand_image_readverify.Checked
-        MySettings.NAND_Speed = cbNAND_Speed.SelectedIndex
+        MySettings.NAND_Speed = CType(cbNAND_Speed.SelectedIndex, NandMemSpeed)
         MySettings.RETRY_WRITE_ATTEMPTS = cb_retry_write.SelectedIndex + 1
-        MySettings.SREC_DATAMODE = cbSrec.SelectedIndex
+        MySettings.SREC_DATAMODE = CType(cbSrec.SelectedIndex, SREC.RECORD_DATAWIDTH)
         Microwire_Save()
         Select Case cb_jtag_tck_speed.SelectedIndex
             Case 0
@@ -334,7 +334,7 @@ Public Class FrmSettings
         op_rs.SelectedIndex = (CUSTOM_SPI_DEV.OP_COMMANDS.RDSR - 1)
         op_ws.SelectedIndex = (CUSTOM_SPI_DEV.OP_COMMANDS.WRSR - 1)
         op_ewsr.SelectedIndex = (CUSTOM_SPI_DEV.OP_COMMANDS.EWSR - 1)
-        SPICUSTOM_SetDensity(CUSTOM_SPI_DEV.FLASH_SIZE)
+        SPICUSTOM_SetDensity(CUInt(CUSTOM_SPI_DEV.FLASH_SIZE))
         Select Case CUSTOM_SPI_DEV.ADDRESSBITS
             Case 16
                 cb_addr_size.SelectedIndex = 0
@@ -417,14 +417,14 @@ Public Class FrmSettings
 
     Private Sub CustomDevice_SaveSettings()
         MySettings.SPI_AUTO = RadioUseSpiAuto.Checked
-        CUSTOM_SPI_DEV.OP_COMMANDS.READ = (op_read.SelectedIndex + 1)
-        CUSTOM_SPI_DEV.OP_COMMANDS.PROG = (op_prog.SelectedIndex + 1)
-        CUSTOM_SPI_DEV.OP_COMMANDS.SE = (op_sectorerase.SelectedIndex + 1)
-        CUSTOM_SPI_DEV.OP_COMMANDS.WREN = (op_we.SelectedIndex + 1)
-        CUSTOM_SPI_DEV.OP_COMMANDS.BE = (op_ce.SelectedIndex + 1)
-        CUSTOM_SPI_DEV.OP_COMMANDS.RDSR = (op_rs.SelectedIndex + 1)
-        CUSTOM_SPI_DEV.OP_COMMANDS.WRSR = (op_ws.SelectedIndex + 1)
-        CUSTOM_SPI_DEV.OP_COMMANDS.EWSR = (op_ewsr.SelectedIndex + 1)
+        CUSTOM_SPI_DEV.OP_COMMANDS.READ = CByte(op_read.SelectedIndex + 1)
+        CUSTOM_SPI_DEV.OP_COMMANDS.PROG = CByte(op_prog.SelectedIndex + 1)
+        CUSTOM_SPI_DEV.OP_COMMANDS.SE = CByte(op_sectorerase.SelectedIndex + 1)
+        CUSTOM_SPI_DEV.OP_COMMANDS.WREN = CByte(op_we.SelectedIndex + 1)
+        CUSTOM_SPI_DEV.OP_COMMANDS.BE = CByte(op_ce.SelectedIndex + 1)
+        CUSTOM_SPI_DEV.OP_COMMANDS.RDSR = CByte(op_rs.SelectedIndex + 1)
+        CUSTOM_SPI_DEV.OP_COMMANDS.WRSR = CByte(op_ws.SelectedIndex + 1)
+        CUSTOM_SPI_DEV.OP_COMMANDS.EWSR = CByte(op_ewsr.SelectedIndex + 1)
         CUSTOM_SPI_DEV.FLASH_SIZE = SPICUSTOM_GetDensity()
         Select Case cb_addr_size.SelectedIndex
             Case 0
@@ -494,15 +494,15 @@ Public Class FrmSettings
             Case 0
                 CUSTOM_SPI_DEV.PAGE_SIZE_EXTENDED = 0
             Case 1
-                CUSTOM_SPI_DEV.PAGE_SIZE_EXTENDED = CUSTOM_SPI_DEV.PAGE_SIZE + 8
+                CUSTOM_SPI_DEV.PAGE_SIZE_EXTENDED = CUSTOM_SPI_DEV.PAGE_SIZE + 8US
             Case 2
-                CUSTOM_SPI_DEV.PAGE_SIZE_EXTENDED = CUSTOM_SPI_DEV.PAGE_SIZE + 16
+                CUSTOM_SPI_DEV.PAGE_SIZE_EXTENDED = CUSTOM_SPI_DEV.PAGE_SIZE + 16US
             Case 3
-                CUSTOM_SPI_DEV.PAGE_SIZE_EXTENDED = CUSTOM_SPI_DEV.PAGE_SIZE + 32
+                CUSTOM_SPI_DEV.PAGE_SIZE_EXTENDED = CUSTOM_SPI_DEV.PAGE_SIZE + 32US
             Case 4
-                CUSTOM_SPI_DEV.PAGE_SIZE_EXTENDED = CUSTOM_SPI_DEV.PAGE_SIZE + 64
+                CUSTOM_SPI_DEV.PAGE_SIZE_EXTENDED = CUSTOM_SPI_DEV.PAGE_SIZE + 64US
             Case 5
-                CUSTOM_SPI_DEV.PAGE_SIZE_EXTENDED = CUSTOM_SPI_DEV.PAGE_SIZE + 128
+                CUSTOM_SPI_DEV.PAGE_SIZE_EXTENDED = CUSTOM_SPI_DEV.PAGE_SIZE + 128US
         End Select
     End Sub
 
@@ -643,7 +643,7 @@ Public Class FrmSettings
             Else
                 dev_size_str = i2c_eeprom.FLASH_SIZE.ToString
             End If
-            Dim dev_name As String = (dev_size_str & " bytes ").PadRight(12, " ")
+            Dim dev_name As String = (dev_size_str & " bytes ").PadRight(12, " "c)
             cb_i2c_device.Items.Add(dev_name & " (" & i2c_eeprom.Name & ")")
         Next
         cb_i2c_device.SelectedIndex = (MySettings.I2C_INDEX + 1)
@@ -730,7 +730,7 @@ Public Class FrmSettings
 
     Private Sub Microwire_Save()
         If (cb_s93_devices.SelectedIndex > 0) Then
-            Dim s93 As FlashMemory.MICROWIRE = cb_s93_devices.SelectedItem
+            Dim s93 As FlashMemory.MICROWIRE = CType(cb_s93_devices.SelectedItem, FlashMemory.MICROWIRE)
             MySettings.S93_DEVICE = s93.NAME
         Else
             MySettings.S93_DEVICE = ""
@@ -740,7 +740,7 @@ Public Class FrmSettings
 
     Private Sub Cb_s93_devices_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cb_s93_devices.SelectedIndexChanged
         If (cb_s93_devices.SelectedIndex > 0) Then
-            Dim s93 As FlashMemory.MICROWIRE = cb_s93_devices.SelectedItem
+            Dim s93 As FlashMemory.MICROWIRE = CType(cb_s93_devices.SelectedItem, FlashMemory.MICROWIRE)
             lbl_s93_size.Text = "Device Size: " & s93.FLASH_SIZE.ToString & " bytes"
             lbl_s93_size.Visible = True
             If s93.X8_ADDRSIZE = 0 And (Not s93.X16_ADDRSIZE = 0) Then 'X16 only
@@ -792,7 +792,7 @@ Public Class FrmSettings
         lv.SubItems.Add(ecc_entry.PageSize.ToString)
         lv.SubItems.Add(ecc_entry.SpareSize.ToString)
         lv.SubItems.Add(AlgorithmStr)
-        lv.SubItems.Add(ecc_entry.BitError)
+        lv.SubItems.Add(CStr(ecc_entry.BitError))
         If ecc_entry.Algorithm = ecc_algorithum.reedsolomon Then
             lv.SubItems.Add(ecc_entry.SymSize.ToString)
         Else
@@ -810,7 +810,7 @@ Public Class FrmSettings
     Private Sub lv_nand_type_SelectedIndexChanged(sender As Object, e As EventArgs) Handles lv_nand_type.SelectedIndexChanged
         If lv_nand_type.SelectedItems IsNot Nothing AndAlso lv_nand_type.SelectedItems.Count > 0 Then
             Dim lv As ListViewItem = lv_nand_type.SelectedItems(0)
-            Dim nand_ecc_cfg As ECC_Configuration_Entry = lv.Tag
+            Dim nand_ecc_cfg As ECC_Configuration_Entry = CType(lv.Tag, ECC_Configuration_Entry)
             lv_nand_region.Items.Clear()
             If nand_ecc_cfg.EccRegion Is Nothing Then Exit Sub
             Dim ecc_size As Integer = GetEccDataSize(nand_ecc_cfg)
@@ -891,7 +891,7 @@ Public Class FrmSettings
         If lv_nand_type.SelectedItems IsNot Nothing AndAlso lv_nand_type.SelectedItems.Count > 0 Then
             Dim lv As ListViewItem = lv_nand_type.SelectedItems(0)
             Dim entry_index As Integer = lv_nand_type.SelectedIndices(0)
-            Dim cfg As ECC_Configuration_Entry = lv.Tag
+            Dim cfg As ECC_Configuration_Entry = CType(lv.Tag, ECC_Configuration_Entry)
             Dim f As New FrmECC(cfg)
             If (f.ShowDialog = DialogResult.OK) Then
                 NAND_ECC_CFG(entry_index) = f.MyConfiguration
@@ -928,14 +928,14 @@ Public Class FrmSettings
             InputSelectionForm.Height = 67
             InputSelectionForm.ShowDialog()
             Dim new_value As String = inputbox.Text
-            Dim start_addr As Integer
+            Dim start_addr As UInt16
             If new_value.Equals("") Then
                 MsgBox("No input was entered.", MsgBoxStyle.Critical, "Error with input")
                 Exit Sub
             ElseIf IsNumeric(new_value) Then
-                start_addr = CInt(new_value)
+                start_addr = CUShort(new_value)
             ElseIf Utilities.IsDataType.Hex(new_value) Then
-                start_addr = Utilities.HexToInt(new_value)
+                start_addr = CUShort(Utilities.HexToInt(new_value))
             Else
                 MsgBox("Value must be numeric or hexadecimal.", MsgBoxStyle.Critical, "Error with input")
                 Exit Sub

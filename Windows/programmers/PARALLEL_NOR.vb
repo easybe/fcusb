@@ -1,10 +1,9 @@
-﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2020 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2021 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB PRODUCTS
 'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: This is the main module that is loaded first.
 
-Imports FlashcatUSB.ECC_LIB
 Imports FlashcatUSB.FlashMemory
 Imports FlashcatUSB.USB
 
@@ -41,10 +40,10 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
             RaiseEvent PrintConsole(RM.GetString("io_mode_initalized"))
         End If
         If DetectFlashDevice() Then
-            Dim chip_id_str As String = Hex(FLASH_IDENT.MFG).PadLeft(2, "0") & Hex(FLASH_IDENT.PART).PadLeft(8, "0")
+            Dim chip_id_str As String = Hex(FLASH_IDENT.MFG).PadLeft(2, "0"c) & Hex(FLASH_IDENT.PART).PadLeft(8, "0"c)
             RaiseEvent PrintConsole(String.Format(RM.GetString("ext_connected_chipid"), chip_id_str))
             If (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB2) Then
-                If (FLASH_IDENT.ID1 >> 8 = 255) Then FLASH_IDENT.ID1 = (FLASH_IDENT.ID1 And 255)
+                If (FLASH_IDENT.ID1 >> 8 = 255) Then FLASH_IDENT.ID1 = (FLASH_IDENT.ID1 And 255US)
             End If
             Dim device_matches() As Device
             If MyAdapter = MEM_PROTOCOL.NOR_X8 Then
@@ -87,7 +86,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
                     Case MFP_PRG.Buffer2
                         EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Buffer_2)
                 End Select
-                WaitForReady()
+                WaitUntilReady()
                 EXPIO_PrintCurrentWriteMode()
                 Utilities.Sleep(10) 'We need to wait here (device is being configured)
                 Me.MyFlashStatus = DeviceStatus.Supported
@@ -104,14 +103,14 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
 
     Private Sub MyFlashDevice_SelectBest(device_matches() As Device)
         If device_matches.Length = 1 Then
-            MyFlashDevice = device_matches(0)
+            MyFlashDevice = CType(device_matches(0), P_NOR)
             Exit Sub
         End If
         If (device_matches(0).MFG_CODE = &H1 AndAlso device_matches(0).ID1 = &HAD) Then 'AM29F016x (we need to figure out which one)
             If Not CFI.IS_VALID Then
-                MyFlashDevice = device_matches(0) : Exit Sub 'AM29F016B (Uses Legacy programming)
+                MyFlashDevice = CType(device_matches(0), P_NOR) : Exit Sub 'AM29F016B (Uses Legacy programming)
             Else
-                MyFlashDevice = device_matches(1) : Exit Sub 'AM29F016D (Uses Bypass programming)
+                MyFlashDevice = CType(device_matches(1), P_NOR) : Exit Sub 'AM29F016D (Uses Bypass programming)
             End If
         Else
             If Me.CFI.IS_VALID Then
@@ -122,17 +121,17 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
                     End If
                 Next
                 If flash_dev.Count = 1 Then
-                    MyFlashDevice = flash_dev(0) : Exit Sub
+                    MyFlashDevice = CType(flash_dev(0), P_NOR) : Exit Sub
                 Else
                     For i = 0 To flash_dev.Count - 1
                         If flash_dev(i).PAGE_SIZE = Me.CFI.WRITE_BUFFER_SIZE Then
-                            MyFlashDevice = flash_dev(i) : Exit Sub
+                            MyFlashDevice = CType(flash_dev(i), P_NOR) : Exit Sub
                         End If
                     Next
                 End If
             End If
         End If
-        If MyFlashDevice Is Nothing Then MyFlashDevice = device_matches(0)
+        If MyFlashDevice Is Nothing Then MyFlashDevice = CType(device_matches(0), P_NOR)
     End Sub
 
 #Region "Public Interface"
@@ -164,13 +163,13 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         End Get
     End Property
 
-    Public Function ReadData(logical_address As Long, data_count As Long) As Byte() Implements MemoryDeviceUSB.ReadData
+    Public Function ReadData(logical_address As Long, data_count As Integer) As Byte() Implements MemoryDeviceUSB.ReadData
         If Me.DUALDIE_EN Then
             Dim data_to_read(data_count - 1) As Byte
-            Dim buffer_size As UInt32 = 0
-            Dim array_ptr As UInt32 = 0
+            Dim buffer_size As Integer = 0
+            Dim array_ptr As Integer = 0
             Do Until data_count = 0
-                Dim die_address As UInt32 = GetAddressForMultiDie(logical_address, data_count, buffer_size)
+                Dim die_address As UInt32 = GetAddressForMultiDie(CUInt(logical_address), data_count, buffer_size)
                 Dim die_data() As Byte = ReadBulk(die_address, buffer_size)
                 If die_data Is Nothing Then Return Nothing
                 Array.Copy(die_data, 0, data_to_read, array_ptr, die_data.Length) : array_ptr += buffer_size
@@ -181,25 +180,25 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         End If
     End Function
     'Returns the die address from the flash_offset (and increases by the buffersize) and also selects the correct die
-    Private Function GetAddressForMultiDie(ByRef flash_offset As UInt32, ByRef count As UInt32, ByRef buffer_size As UInt32) As UInt32
-        Dim die_size As UInt32 = MyFlashDevice.FLASH_SIZE
+    Private Function GetAddressForMultiDie(ByRef flash_offset As UInt32, ByRef count As Integer, ByRef buffer_size As Integer) As UInt32
+        Dim die_size As UInt32 = CUInt(MyFlashDevice.FLASH_SIZE)
         Dim die_id As Byte = CByte(Math.Floor(flash_offset / die_size))
         Dim die_addr As UInt32 = (flash_offset Mod die_size)
-        buffer_size = Math.Min(count, (die_size - die_addr))
+        buffer_size = CInt(Math.Min(count, (die_size - die_addr)))
         If (die_id <> Me.DIE_SELECTED) Then
             If (die_id = 0) Then
                 FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_ADDRESS_CE, Nothing, 0)
             Else
-                FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_ADDRESS_CE, Nothing, Me.DUALDIE_CE2)
+                FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_ADDRESS_CE, Nothing, CUInt(Me.DUALDIE_CE2))
             End If
             Me.DIE_SELECTED = die_id
         End If
         count -= buffer_size
-        flash_offset += buffer_size
+        flash_offset += CUInt(buffer_size)
         Return die_addr
     End Function
 
-    Public Function SectorErase(sector_index As UInt32) As Boolean Implements MemoryDeviceUSB.SectorErase
+    Public Function SectorErase(sector_index As Integer) As Boolean Implements MemoryDeviceUSB.SectorErase
         If Not MyFlashDevice.ERASE_REQUIRED Then Return True
         Try
             If sector_index = 0 AndAlso SectorSize(0) = MyFlashDevice.FLASH_SIZE Then
@@ -207,9 +206,9 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
             Else
                 Dim Logical_Address As UInt32 = 0
                 If (sector_index > 0) Then
-                    For i As UInt32 = 0 To sector_index - 1
-                        Dim s_size As UInt32 = SectorSize(i)
-                        Logical_Address += s_size
+                    For i As Integer = 0 To sector_index - 1
+                        Dim s_size As Integer = SectorSize(i)
+                        Logical_Address += CUInt(s_size)
                     Next
                 End If
                 EXPIO_VPP_ENABLE() 'Enables +12V for supported devices
@@ -228,7 +227,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
                 Do Until blank_result
                     If MyFlashDevice.RESET_ENABLED Then ResetDevice()
                     blank_result = BlankCheck(Logical_Address)
-                    timeout += 1
+                    timeout += 1UI
                     If (timeout = 10) Then Return False
                     If Not blank_result Then Utilities.Sleep(100)
                 Loop
@@ -241,10 +240,11 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
 
     Public Function WriteData(logical_address As Long, data_to_write() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
         Try
+            Dim flash_addr32 As UInt32 = CUInt(logical_address)
             EXPIO_VPP_ENABLE()
             Dim ReturnValue As Boolean
-            Dim DataToWrite As UInt32 = data_to_write.Length
-            Dim PacketSize As UInt32 = 8192 'Possibly /2 for IsFlashX8Mode
+            Dim DataToWrite As Integer = data_to_write.Length
+            Dim PacketSize As Integer = 8192
             Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / PacketSize)) 'Calcuates iterations
             For i As Integer = 0 To Loops - 1
                 Dim BufferSize As Integer = DataToWrite
@@ -252,17 +252,17 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
                 Dim data(BufferSize - 1) As Byte
                 Array.Copy(data_to_write, (i * PacketSize), data, 0, data.Length)
                 If Me.DUALDIE_EN Then
-                    Dim die_address As UInt32 = GetAddressForMultiDie(logical_address, 0, 0)
+                    Dim die_address As UInt32 = GetAddressForMultiDie(flash_addr32, 0, 0)
                     ReturnValue = WriteBulk(die_address, data)
                 Else
-                    ReturnValue = WriteBulk(logical_address, data)
+                    ReturnValue = WriteBulk(flash_addr32, data)
                 End If
                 If (Not ReturnValue) Then Return False
                 If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 AndAlso MyFlashDevice.WriteMode = MFP_PRG.BypassMode Then
                     Utilities.Sleep(300) 'Board is too fast! We need a delay between writes (i.e. AM29LV160B)
                 End If
                 FCUSB.USB_WaitForComplete()
-                logical_address += data.Length
+                flash_addr32 += CUInt(data.Length)
                 DataToWrite -= data.Length
             Next
             If MyFlashDevice.DELAY_MODE = MFP_DELAY.DQ7 Or MyFlashDevice.DELAY_MODE = MFP_DELAY.SR1 Or MyFlashDevice.DELAY_MODE = MFP_DELAY.SR2 Then
@@ -278,26 +278,26 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         Return True
     End Function
 
-    Public Sub WaitForReady() Implements MemoryDeviceUSB.WaitUntilReady
+    Public Sub WaitUntilReady() Implements MemoryDeviceUSB.WaitUntilReady
         Utilities.Sleep(100) 'Some flash devices have registers, some rely on delays
     End Sub
 
-    Public Function SectorFind(sector_index As UInt32) As Long Implements MemoryDeviceUSB.SectorFind
-        Dim base_addr As UInt32 = 0
+    Public Function SectorFind(sector_index As Integer) As Long Implements MemoryDeviceUSB.SectorFind
+        Dim base_addr As Long = 0
         If sector_index > 0 Then
-            For i As UInt32 = 0 To sector_index - 1
-                base_addr += Me.SectorSize(i)
+            For i As Integer = 0 To sector_index - 1
+                base_addr += CLng(Me.SectorSize(i))
             Next
         End If
         Return base_addr
     End Function
 
-    Public Function SectorWrite(sector_index As UInt32, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
-        Dim Addr32 As UInteger = Me.SectorFind(sector_index)
+    Public Function SectorWrite(sector_index As Integer, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
+        Dim Addr32 As Long = Me.SectorFind(sector_index)
         Return WriteData(Addr32, data, Params)
     End Function
 
-    Public Function SectorCount() As UInt32 Implements MemoryDeviceUSB.SectorCount
+    Public Function SectorCount() As Integer Implements MemoryDeviceUSB.SectorCount
         If (Me.DUALDIE_EN) Then
             Return (MyFlashDevice.Sector_Count * 2)
         Else
@@ -318,8 +318,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
                             RaiseEvent SetProgress(0)
                             Return False 'Error erasing sector
                         Else
-                            Dim percent As Single = (i / BlockCount) * 100
-                            RaiseEvent SetProgress(Math.Floor(percent))
+                            RaiseEvent SetProgress(CInt(Math.Floor((i / BlockCount) * 100)))
                         End If
                     Next
                     RaiseEvent SetProgress(0)
@@ -344,7 +343,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         Return False
     End Function
 
-    Friend Function SectorSize(sector As UInt32) As UInt32 Implements MemoryDeviceUSB.SectorSize
+    Friend Function SectorSize(sector As Integer) As Integer Implements MemoryDeviceUSB.SectorSize
         If Not MyFlashStatus = USB.DeviceStatus.Supported Then Return 0
         If (Me.DUALDIE_EN) Then sector = ((MyFlashDevice.Sector_Count - 1) And sector)
         Return MyFlashDevice.GetSectorSize(sector)
@@ -500,7 +499,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
     '0xAAA=0xAA;0x555=0x55;0xAAA=0x90; (X8/X16 DEVICES)
     Private Function EXPIO_ReadIdent(X16_MODE As Boolean) As Byte()
         Dim ident(7) As Byte
-        Dim SHIFT As UInt32 = 0
+        Dim SHIFT As Integer = 0
         If X16_MODE Then SHIFT = 1
         EXPIO_ResetDevice()
         Utilities.Sleep(10)
@@ -509,12 +508,12 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         WriteCommandData(&H5555, &H90)
         Utilities.Sleep(10)
         ident(0) = CByte(ReadMemoryAddress(0) And &HFF)             'MFG
-        Dim ID1 As UInt16 = ReadMemoryAddress(1 << SHIFT)
-        If Not X16_MODE Then ID1 = (ID1 And &HFF)                   'X8 ID1
+        Dim ID1 As UInt16 = ReadMemoryAddress(1UI << SHIFT)
+        If Not X16_MODE Then ID1 = (ID1 And &HFFUS)                   'X8 ID1
         ident(1) = CByte((ID1 >> 8) And &HFF)                       'ID1(UPPER)
         ident(2) = CByte(ID1 And &HFF)                              'ID1(LOWER)
-        ident(3) = CByte(ReadMemoryAddress(&HE << SHIFT) And &HFF)  'ID2
-        ident(4) = CByte(ReadMemoryAddress(&HF << SHIFT) And &HFF)  'ID3
+        ident(3) = CByte(ReadMemoryAddress(&HEUI << SHIFT) And &HFF)  'ID2
+        ident(4) = CByte(ReadMemoryAddress(&HFUI << SHIFT) And &HFF)  'ID3
         EXPIO_ResetDevice()
         Utilities.Sleep(1)
         Me.CURRENT_SECTOR_ERASE = E_EXPIO_SECTOR.Standard
@@ -525,7 +524,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
     'Sets access and write pulse timings for MACH1 using NOR PARALLEL mode
     Public Sub EXPIO_SetTiming(read_access As Integer, we_pulse As Integer)
         If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_TIMING, Nothing, (read_access << 8 Or we_pulse))
+            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_TIMING, Nothing, CUInt(read_access << 8 Or we_pulse))
         End If
     End Sub
 
@@ -627,11 +626,11 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
     Private Function CFI_ExecuteCommand(cfi_cmd As cfi_cmd_sub) As Boolean
         cfi_cmd.Invoke()
         ReDim cfi_data(31)
-        Dim SHIFT As UInt32 = 0
+        Dim SHIFT As Integer = 0
         If Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X16 Then SHIFT = 1
         ReDim cfi_data(31)
         For i = 0 To cfi_data.Length - 1
-            cfi_data(i) = CByte(ReadMemoryAddress((&H10 + i) << SHIFT) And 255)
+            cfi_data(i) = CByte(ReadMemoryAddress((&H10UI + CUInt(i)) << SHIFT) And 255)
         Next
         If cfi_data(0) = &H51 And cfi_data(1) = &H52 And cfi_data(2) = &H59 Then 'QRY
             Return True
@@ -647,12 +646,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         addr_data(3) = CByte(cmd_addr And 255)
         addr_data(4) = CByte((cmd_data >> 8) And 255)
         addr_data(5) = CByte(cmd_data And 255)
-        If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.LOAD_PAYLOAD, addr_data)
-            Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRCMDDATA)
-        Else
-            Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRCMDDATA, addr_data)
-        End If
+        Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRCMDDATA, addr_data)
     End Function
 
     Public Function WriteMemoryAddress(mem_addr As UInt32, mem_data As UInt16) As Boolean
@@ -663,12 +657,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         addr_data(3) = CByte(mem_addr And 255)
         addr_data(4) = CByte((mem_data >> 8) And 255)
         addr_data(5) = CByte(mem_data And 255)
-        If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.LOAD_PAYLOAD, addr_data)
-            Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRMEMDATA)
-        Else
-            Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRMEMDATA, addr_data)
-        End If
+        Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRMEMDATA, addr_data)
     End Function
 
     Public Function ReadMemoryAddress(mem_addr As UInt32) As UInt16
@@ -752,7 +741,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         End Select
         If result.Successful Then
             Dim part As UInt32 = (CUInt(result.ID1) << 16) Or (result.ID2)
-            Dim chip_id_str As String = Hex(result.MFG).PadLeft(2, "0") & Hex(part).PadLeft(8, "0")
+            Dim chip_id_str As String = Hex(result.MFG).PadLeft(2, "0"c) & Hex(part).PadLeft(8, "0"c)
             RaiseEvent PrintConsole("Mode " & mode_name & " returned ident code: 0x" & chip_id_str)
         End If
         Return result
@@ -841,7 +830,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         Return True
     End Function
 
-    Private Function GetSetupPacket_NOR(Address As UInt32, Count As UInt32, PageSize As UInt16) As Byte()
+    Private Function GetSetupPacket_NOR(Address As UInt32, Count As Integer, PageSize As UInt16) As Byte()
         Dim data_in(19) As Byte '18 bytes total
         data_in(0) = CByte(Address And 255)
         data_in(1) = CByte((Address >> 8) And 255)
@@ -874,14 +863,14 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         End Try
     End Function
 
-    Private Function ReadBulk(address As UInt32, count As UInt32) As Byte()
+    Private Function ReadBulk(address As UInt32, count As Integer) As Byte()
         Try
-            Dim read_count As UInt32 = count
+            Dim read_count As Integer = count
             Dim addr_offset As Boolean = False
             If Not (MyAdapter = MEM_PROTOCOL.NOR_X8) Then
                 If (address Mod 2 = 1) Then
                     addr_offset = True
-                    address = (address - 1)
+                    address = (address - 1UI)
                     read_count += 1
                 End If
                 If (read_count Mod 2 = 1) Then
@@ -889,7 +878,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
                 End If
             End If
             Dim data_out(read_count - 1) As Byte 'Bytes we want to read
-            Dim page_size As Integer = 512
+            Dim page_size As UInt16 = 512
             If MyFlashDevice IsNot Nothing Then page_size = MyFlashDevice.PAGE_SIZE
             Dim setup_data() As Byte = GetSetupPacket_NOR(address, read_count, page_size)
             Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, data_out, 0)
@@ -966,13 +955,13 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         Utilities.Sleep(300)
         If (Not FCUSB.CheckConnection) Then Exit Sub
         HardwareControl(FCUSB_HW_CTRL.RB0_LOW)
-        For i = 0 To 7
-            WriteCommandData(0, 1 << i)
+        For i As Integer = 0 To 7
+            WriteCommandData(0, 1US << i)
             Utilities.Sleep(300)
             If (Not FCUSB.CheckConnection) Then Exit Sub
         Next
-        For i = 15 To 8 Step -1
-            WriteCommandData(0, 1 << i)
+        For i As Integer = 15 To 8 Step -1
+            WriteCommandData(0, 1US << i)
             Utilities.Sleep(300)
             If (Not FCUSB.CheckConnection) Then Exit Sub
         Next
@@ -990,8 +979,8 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         Utilities.Sleep(300)
         If (Not FCUSB.CheckConnection) Then Exit Sub
         HardwareControl(FCUSB_HW_CTRL.OE_LOW)
-        For i = 0 To 27
-            WriteCommandData(1 << i, 0)
+        For i As Integer = 0 To 27
+            WriteCommandData(1UI << i, 0)
             Utilities.Sleep(300)
             If (Not FCUSB.CheckConnection) Then Exit Sub
         Next

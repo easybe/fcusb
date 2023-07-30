@@ -16,7 +16,7 @@
     End Sub
 
     Public Function GetItem(listindex As Integer, index As Integer) As String
-        Dim d As dpl_item = ObjCollection(listindex)
+        Dim d As dpl_item = CType(ObjCollection(listindex), dpl_item)
         Return d.Items(index)
     End Function
 
@@ -43,7 +43,7 @@
 
     Private Sub RefreshItems()
         Dim labelfont As New Font("Microsoft Sans Serif", 8.25, FontStyle.Bold)
-        Dim AnchorFlags As Integer = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Dim AnchorFlags As AnchorStyles = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
 
         Dim MyPanelWidth As Integer = Me.Width
         Dim TotalItemCount As Integer = 0
@@ -79,24 +79,24 @@
 
     End Sub
 
-    Private Sub Label_MouseEnter(sender As System.Object, e As System.EventArgs)
-        Dim p As Label = sender
+    Private Sub Label_MouseEnter(sender As Object, e As EventArgs)
+        Dim p As Label = CType(sender, Label)
         p.BackColor = Color.FromArgb(10, 36, 106)
         p.ForeColor = Color.White
     End Sub
 
-    Private Sub Label_MouseLeave(sender As System.Object, e As System.EventArgs)
-        Dim p As Label = sender
+    Private Sub Label_MouseLeave(sender As Object, e As EventArgs)
+        Dim p As Label = CType(sender, Label)
         p.BackColor = Color.White
         p.ForeColor = Color.Black
     End Sub
 
-    Private Sub Label_MouseClick(sender As System.Object, e As System.EventArgs)
-        Dim p As Label = sender
+    Private Sub Label_MouseClick(sender As Object, e As EventArgs)
+        Dim p As Label = CType(sender, Label)
         RaiseEvent ItemClicked(p.Text)
     End Sub
 
-    Private Sub DropPanelList_MouseWheel(sender As Object, e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseWheel
+    Private Sub DropPanelList_MouseWheel(sender As Object, e As MouseEventArgs) Handles Me.MouseWheel
         Try
             Dim v As Integer = MainPanel.VerticalScroll.Value
             Dim n As Integer

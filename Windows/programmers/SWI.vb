@@ -15,9 +15,9 @@ Public Class SWI_Programmer : Implements MemoryDeviceUSB
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
         Dim chip_id(2) As Byte
         Dim detect_result As Boolean = FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.SWI_DETECT, chip_id, MySettings.SWI_ADDRESS)
-        Dim SWI_ID_DATA As UInt32 = (CInt(chip_id(0)) << 16) Or (CInt(chip_id(1)) << 8) Or CInt(chip_id(2))
-        Dim MFG_CODE As Byte = ((SWI_ID_DATA >> 12) And &HF)
-        Dim PART As UInt16 = ((SWI_ID_DATA >> 3) And &H1FF)
+        Dim SWI_ID_DATA As UInt32 = (CUInt(chip_id(0)) << 16) Or (CUInt(chip_id(1)) << 8) Or CUInt(chip_id(2))
+        Dim MFG_CODE As Byte = CByte(CUInt(SWI_ID_DATA >> 12) And &HF)
+        Dim PART As UInt16 = CUShort(SWI_ID_DATA >> 3) And &H1FFUS
         If MFG_CODE = &HD Then Return False
         If PART = &H40 Then
             MyFlashDevice = New SWI("Microchip AT21CS01", &HD, &H40, 128, 8)
@@ -47,20 +47,20 @@ Public Class SWI_Programmer : Implements MemoryDeviceUSB
         End Get
     End Property
 
-    Public Function SectorSize(sector As UInteger) As UInteger Implements MemoryDeviceUSB.SectorSize
-        Return Me.DeviceSize
+    Public Function SectorSize(sector As Integer) As Integer Implements MemoryDeviceUSB.SectorSize
+        Return CInt(Me.DeviceSize)
     End Function
 
-    Public Function ReadData(flash_offset As Long, data_count As Long) As Byte() Implements MemoryDeviceUSB.ReadData
-        Dim setup_data() As Byte = GetSetupPacket(flash_offset, data_count, CUShort(Me.MyFlashDevice.PAGE_SIZE))
-        Dim data_out(data_count - 1) As Byte
+    Public Function ReadData(flash_offset As Long, data_count As Integer) As Byte() Implements MemoryDeviceUSB.ReadData
+        Dim setup_data() As Byte = GetSetupPacket(CUInt(flash_offset), CUInt(data_count), CUShort(Me.MyFlashDevice.PAGE_SIZE))
+        Dim data_out(CInt(data_count) - 1) As Byte
         Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.SWI_READ, setup_data, data_out, 0)
         If Not result Then Return Nothing
         Return data_out
     End Function
 
     Public Function WriteData(flash_offset As Long, data_to_write() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
-        Dim setup_data() As Byte = GetSetupPacket(flash_offset, data_to_write.Length, CUShort(Me.MyFlashDevice.PAGE_SIZE))
+        Dim setup_data() As Byte = GetSetupPacket(CUInt(flash_offset), CUInt(data_to_write.Length), CUShort(Me.MyFlashDevice.PAGE_SIZE))
         Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.SWI_WRITE, setup_data, data_to_write, 0)
         Return result
     End Function
@@ -73,19 +73,19 @@ Public Class SWI_Programmer : Implements MemoryDeviceUSB
         Utilities.Sleep(10)
     End Sub
 
-    Public Function SectorFind(SectorIndex As UInteger) As Long Implements MemoryDeviceUSB.SectorFind
+    Public Function SectorFind(SectorIndex As Integer) As Long Implements MemoryDeviceUSB.SectorFind
         Return 0
     End Function
 
-    Public Function SectorErase(SectorIndex As UInteger) As Boolean Implements MemoryDeviceUSB.SectorErase
+    Public Function SectorErase(SectorIndex As Integer) As Boolean Implements MemoryDeviceUSB.SectorErase
         Return True
     End Function
 
-    Public Function SectorCount() As UInteger Implements MemoryDeviceUSB.SectorCount
+    Public Function SectorCount() As Integer Implements MemoryDeviceUSB.SectorCount
         Return 1
     End Function
 
-    Public Function SectorWrite(SectorIndex As UInteger, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
+    Public Function SectorWrite(SectorIndex As Integer, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
         Return False 'Not supported
     End Function
 

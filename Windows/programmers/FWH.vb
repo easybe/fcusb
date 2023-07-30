@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2020 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2021 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB PRODUCTS
 'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
@@ -30,12 +30,12 @@ Public Class FWH_Programmer : Implements MemoryDeviceUSB
         Me.FLASH_IDENT = GetFlashResult(ident_data)
         If Not FLASH_IDENT.Successful Then Return False
         Dim part As UInt32 = (CUInt(FLASH_IDENT.ID1) << 16) Or (FLASH_IDENT.ID2)
-        Dim chip_id_str As String = Hex(FLASH_IDENT.MFG).PadLeft(2, "0") & Hex(part).PadLeft(8, "0")
+        Dim chip_id_str As String = Hex(FLASH_IDENT.MFG).PadLeft(2, "0"c) & Hex(part).PadLeft(8, "0"c)
         RaiseEvent PrintConsole("Mode FWH returned ident code: 0x" & chip_id_str)
         Dim DevList() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, 0, MemoryType.FWH_NOR)
         If (DevList.Length = 1) Then
             RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "FWH"))
-            MyFlashDevice = DevList(0)
+            MyFlashDevice = CType(DevList(0), FWH)
             MyFlashStatus = DeviceStatus.Supported
             Return True
         Else
@@ -63,7 +63,7 @@ Public Class FWH_Programmer : Implements MemoryDeviceUSB
         End Get
     End Property
 
-    Public Function SectorSize(sector As UInteger) As UInteger Implements MemoryDeviceUSB.SectorSize
+    Public Function SectorSize(sector As Integer) As Integer Implements MemoryDeviceUSB.SectorSize
         If MyFlashDevice Is Nothing Then Return 0
         Return DirectCast(MyFlashDevice, FWH).SECTOR_SIZE
     End Function
@@ -72,15 +72,15 @@ Public Class FWH_Programmer : Implements MemoryDeviceUSB
         Utilities.Sleep(100)
     End Sub
 
-    Public Function ReadData(flash_offset As Long, data_count As Long) As Byte() Implements MemoryDeviceUSB.ReadData
+    Public Function ReadData(flash_offset As Long, data_count As Integer) As Byte() Implements MemoryDeviceUSB.ReadData
         Dim data_out(data_count - 1) As Byte
         Dim ptr As Integer = 0
         Dim bytes_left As Integer = data_count
-        Dim PacketSize As UInt32 = 2048
+        Dim PacketSize As Integer = 2048
         While (bytes_left > 0)
             Dim BufferSize As Integer = bytes_left
             If (BufferSize > PacketSize) Then BufferSize = PacketSize
-            Dim data() As Byte = ReadBulk_NOR(flash_offset, BufferSize)
+            Dim data() As Byte = ReadBulk_NOR(CUInt(flash_offset), BufferSize)
             If data Is Nothing Then Return Nothing
             Array.Copy(data, 0, data_out, ptr, BufferSize)
             flash_offset += data.Length
@@ -92,8 +92,8 @@ Public Class FWH_Programmer : Implements MemoryDeviceUSB
 
     Public Function WriteData(flash_offset As Long, data_to_write() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
         Try
-            Dim PacketSize As UInt32 = 4096
-            Dim DataToWrite As UInt32 = data_to_write.Length
+            Dim PacketSize As Integer = 4096
+            Dim DataToWrite As Integer = data_to_write.Length
             Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / PacketSize)) 'Calcuates iterations
             For i As Integer = 0 To Loops - 1
                 If Params IsNot Nothing Then If Params.AbortOperation Then Return False
@@ -101,7 +101,7 @@ Public Class FWH_Programmer : Implements MemoryDeviceUSB
                 If (BufferSize > PacketSize) Then BufferSize = PacketSize
                 Dim data(BufferSize - 1) As Byte
                 Array.Copy(data_to_write, (i * PacketSize), data, 0, data.Length)
-                Dim ReturnValue As Boolean = WriteBulk_NOR(flash_offset, data)
+                Dim ReturnValue As Boolean = WriteBulk_NOR(CUInt(flash_offset), data)
                 If (Not ReturnValue) Then Return False
                 FCUSB.USB_WaitForComplete()
                 flash_offset += data.Length
@@ -118,7 +118,7 @@ Public Class FWH_Programmer : Implements MemoryDeviceUSB
         Try
             For i = 0 To sec_count - 1
                 If Not SectorErase(i) Then Return False
-                RaiseEvent SetProgress(((i + 1) / sec_count) * 100)
+                RaiseEvent SetProgress(CInt((i + 1) / sec_count) * 100)
             Next
         Catch ex As Exception
             Return False
@@ -128,23 +128,23 @@ Public Class FWH_Programmer : Implements MemoryDeviceUSB
         Return True
     End Function
 
-    Public Function SectorFind(SectorIndex As UInteger) As Long Implements MemoryDeviceUSB.SectorFind
+    Public Function SectorFind(SectorIndex As Integer) As Long Implements MemoryDeviceUSB.SectorFind
         Dim base_addr As UInt32 = 0
         If SectorIndex > 0 Then
-            For i As UInt32 = 0 To SectorIndex - 1
-                base_addr += Me.SectorSize(i)
+            For i As Integer = 0 To SectorIndex - 1
+                base_addr += CUInt(Me.SectorSize(i))
             Next
         End If
         Return base_addr
     End Function
 
-    Public Function SectorErase(SectorIndex As UInteger) As Boolean Implements MemoryDeviceUSB.SectorErase
+    Public Function SectorErase(SectorIndex As Integer) As Boolean Implements MemoryDeviceUSB.SectorErase
         Dim Result As Boolean = False
         Dim Logical_Address As UInt32 = 0
         If (SectorIndex > 0) Then
-            For i As UInt32 = 0 To SectorIndex - 1
-                Dim s_size As UInt32 = SectorSize(i)
-                Logical_Address += s_size
+            For i As Integer = 0 To SectorIndex - 1
+                Dim s_size As Integer = SectorSize(i)
+                Logical_Address += CUInt(s_size)
             Next
         End If
         Dim erase_setup As UInt32 = (CUInt(MyFlashDevice.ERASE_CMD) << 24) Or Logical_Address
@@ -154,12 +154,12 @@ Public Class FWH_Programmer : Implements MemoryDeviceUSB
         Return BlankCheck(Logical_Address)
     End Function
 
-    Public Function SectorCount() As UInteger Implements MemoryDeviceUSB.SectorCount
+    Public Function SectorCount() As Integer Implements MemoryDeviceUSB.SectorCount
         Return MyFlashDevice.Sector_Count
     End Function
 
-    Public Function SectorWrite(SectorIndex As UInteger, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
-        Dim Addr32 As UInteger = Me.SectorFind(SectorIndex)
+    Public Function SectorWrite(SectorIndex As Integer, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
+        Dim Addr32 As Long = Me.SectorFind(SectorIndex)
         Return WriteData(Addr32, data, Params)
     End Function
 
@@ -181,12 +181,12 @@ Public Class FWH_Programmer : Implements MemoryDeviceUSB
         End Try
     End Function
 
-    Private Function ReadBulk_NOR(address As UInt32, count As UInt32) As Byte()
+    Private Function ReadBulk_NOR(address As UInt32, count As Integer) As Byte()
         Try
-            Dim read_count As UInt32 = count
+            Dim read_count As Integer = count
             Dim addr_offset As Boolean = False
             Dim data_out(read_count - 1) As Byte 'Bytes we want to read
-            Dim page_size As Integer = 512
+            Dim page_size As UInt16 = 512
             If MyFlashDevice IsNot Nothing Then page_size = MyFlashDevice.PAGE_SIZE
             Dim setup_data() As Byte = GetSetupPacket(address, read_count, page_size)
             Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, data_out, 0)
@@ -214,7 +214,7 @@ Public Class FWH_Programmer : Implements MemoryDeviceUSB
         Return False
     End Function
 
-    Private Function GetSetupPacket(Address As UInt32, Count As UInt32, PageSize As UInt16) As Byte()
+    Private Function GetSetupPacket(Address As UInt32, Count As Integer, PageSize As UInt16) As Byte()
         Dim data_in(19) As Byte '18 bytes total
         data_in(0) = CByte(Address And 255)
         data_in(1) = CByte((Address >> 8) And 255)

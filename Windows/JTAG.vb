@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2020 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2021 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB
 'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
@@ -33,7 +33,7 @@ Namespace JTAG
                 Me.Chain_BitLength = 0
                 Me.Chain_SelectedIndex = 0
                 Me.Chain_IsValid = False
-                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_INIT, Nothing, Me.TCK_SPEED)
+                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_INIT, Nothing, CUInt(Me.TCK_SPEED))
                 JTAG_PrintClockSpeed()
                 Utilities.Sleep(200) 'We need to wait
                 If Not TAP_Detect() Then Return False
@@ -53,19 +53,19 @@ Namespace JTAG
             Dim REG_VALUE As UInt32
             Reset_StateMachine() 'Now at Select_DR
             TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
-            ShiftTDI(4, {Devices(0).BSDL.IDCODE}, Nothing, True)
+            ShiftTDI(4, {CByte(Devices(0).BSDL.IDCODE)}, Nothing, True)
             TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
             ShiftTDI(32, {0, 0, 0, 0}, tdo, True)
             TAP_GotoState(JTAG_MACHINE_STATE.Update_DR)
             Array.Reverse(tdo)
             Dim ARM_ID As UInt32 = Utilities.Bytes.ToUInt32(tdo) '0x0BA02477
-            PrintConsole("ARM ID code: 0x" & Conversion.Hex(ARM_ID).PadLeft(8, "0"))
+            PrintConsole("ARM ID code: 0x" & Conversion.Hex(ARM_ID).PadLeft(8, "0"c))
             ARM_MDAP_INIT()
             REG_VALUE = CTRLSTAT.CSYSPWRUPREQ Or CTRLSTAT.CDBGPWRUPREQ Or CTRLSTAT.STICKYERR
             ARM_DPACC(REG_VALUE, ARM_DP_REG.CTRL_STAT, ARM_RnW.WR)
             ARM_APACC(&H0, ARM_AP_REG.IDR, ARM_RnW.RD)
             Dim AHB_AP As UInt32 = ARM_APACC(&H0, ARM_AP_REG.IDR, ARM_RnW.RD, False) '0x04770041
-            PrintConsole("AHB-AP (IDR: 0x" & Conversion.Hex(AHB_AP).PadLeft(8, "0") & ")")
+            PrintConsole("AHB-AP (IDR: 0x" & Conversion.Hex(AHB_AP).PadLeft(8, "0"c) & ")")
             ARM_APACC(&H0, ARM_AP_REG.BASE, ARM_RnW.RD)
             Dim BASE_REG As UInt32 = ARM_APACC(&H0, ARM_AP_REG.BASE, ARM_RnW.RD, False) '0xE00FB003
 
@@ -107,7 +107,7 @@ Namespace JTAG
             JSP_ToggleClock(200)
             Dim tdi_high_64() As Byte = {255, 255, 255, 255, 255, 255, 255, 255}
             Dim epc2_data(211959) As Byte
-            Dim loops As Integer = (epc2_data.Length / 8)
+            Dim loops As Integer = (epc2_data.Length \ 8)
             For i = 0 To loops - 1
                 Dim tdo_out(7) As Byte '64 bits / 8 bytes at a time
                 JSP_ShiftDR(tdi_high_64, tdo_out, 64, True) : JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
@@ -215,12 +215,12 @@ Namespace JTAG
             PrintConsole("Programming EPC2 device")
             JSP_ShiftIR({&H0, &H6}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_ToggleClock(50)
-            JSP_ShiftDR(ctr_reg.Clone(), Nothing, 64, True) : JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
+            JSP_ShiftDR(CType(ctr_reg.Clone(), Byte()), Nothing, 64, True) : JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             JSP_ShiftIR({&H1, &HA}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_ToggleClock(50)
             JSP_ShiftIR({&H1, &H96}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_ToggleClock(9000)
-            Dim loops As Integer = (epc2_data.Length / 8)
+            Dim loops As Integer = (epc2_data.Length \ 8)
             For i = 0 To loops - 1
                 Dim tdi_in(7) As Byte
                 Array.Copy(epc2_data, i * 8, tdi_in, 0, 8)
@@ -239,7 +239,7 @@ Namespace JTAG
             'PROGRAMMING DONE BIT
             JSP_ShiftIR({&H0, &H6}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_ToggleClock(50)
-            ctr_reg(4) = (ctr_reg(4) And &HBF) 'Set BIT 7 to LOW
+            ctr_reg(4) = (ctr_reg(4) And CByte(&HBF)) 'Set BIT 7 to LOW
             JSP_ShiftDR(ctr_reg, Nothing, 64, True) : JSP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             JSP_ShiftIR({&H1, &HA}, Nothing, -1, True) : JSP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
             JSP_ToggleClock(50)
@@ -260,19 +260,17 @@ Namespace JTAG
 #Region "ARM DAP"
         'IR=0xA
         Private Sub ARM_DP_Decode(data_in As UInt64, ByRef data_out As UInt32, ByRef dp_reg As ARM_DP_REG, ByRef r_w As ARM_RnW)
-            r_w = (data_in And 1)
-            Dim b As Byte = ((data_in >> 1) And 3)
-            dp_reg = (b << 2)
-            data_out = (data_in >> 3)
-            'data_out = REVERSE32(data_out)
+            r_w = CType((CInt(data_in) And 1), ARM_RnW)
+            Dim b As Byte = CByte(CInt((data_in >> 1)) And 3)
+            dp_reg = CType((b << CByte(2)), ARM_DP_REG)
+            data_out = CUInt((data_in >> 3))
         End Sub
         'IR=0xB
         Private Sub ARM_AP_Decode(data_in As UInt64, ByRef data_out As UInt32, ByRef ap_reg As ARM_AP_REG, ByRef r_w As ARM_RnW)
-            r_w = (data_in And 1)
-            Dim b As Byte = ((data_in >> 1) And 3)
-            ap_reg = (b << 2)
-            data_out = (data_in >> 3)
-            'data_out = REVERSE32(data_out)
+            r_w = CType((CInt(data_in) And 1), ARM_RnW)
+            Dim b As Byte = CByte(CInt((data_in >> 1)) And 3)
+            ap_reg = CType((b << CByte(2)), ARM_AP_REG)
+            data_out = CUInt((data_in >> 3))
         End Sub
         'Accesses CTRL/STAT, SELECT and RDBUFF
         Private Function ARM_DPACC(reg32 As UInt32, dp_reg As ARM_DP_REG, read_write As ARM_RnW, Optional goto_state As Boolean = True) As UInt32
@@ -282,15 +280,15 @@ Namespace JTAG
                 ShiftTDI(Devices(0).BSDL.IR_LEN, {Devices(0).BSDL.ARM_DPACC}, Nothing, True)
             End If
             TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
-            Dim b5 As Byte = ((reg32 And &H1F) << 3) Or ((dp_reg And &HF) >> 1) Or read_write : reg32 >>= 5
-            Dim b4 As Byte = (reg32 And &HFF) : reg32 >>= 8
-            Dim b3 As Byte = (reg32 And &HFF) : reg32 >>= 8
-            Dim b2 As Byte = (reg32 And &HFF) : reg32 >>= 8
-            Dim b1 As Byte = (reg32 And &H7)
+            Dim b5 As Byte = (CByte(reg32 And &H1F) << 3) Or (CByte(dp_reg And &HF) >> 1) Or read_write : reg32 >>= 5
+            Dim b4 As Byte = CByte(reg32 And &HFF) : reg32 >>= 8
+            Dim b3 As Byte = CByte(reg32 And &HFF) : reg32 >>= 8
+            Dim b2 As Byte = CByte(reg32 And &HFF) : reg32 >>= 8
+            Dim b1 As Byte = CByte(reg32 And &H7)
             ShiftTDI(35, {b5, b4, b3, b2, b1}, tdo, True)
             TAP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
-            Dim status As Byte = (tdo(0) And 3)
-            Dim reg32_out As UInt32 = ((tdo(1) And 7) << 5) Or (tdo(0) >> 3)
+            Dim status As Byte = CByte(tdo(0) And 3)
+            Dim reg32_out As UInt32 = CByte((tdo(1) And 7) << 5) Or CByte(tdo(0) >> 3)
             reg32_out = reg32_out Or (CUInt(((tdo(2) And 7) << 5) Or (tdo(1) >> 3)) << 8)
             reg32_out = reg32_out Or (CUInt(((tdo(3) And 7) << 5) Or (tdo(2) >> 3)) << 16)
             reg32_out = reg32_out Or (CUInt(((tdo(4) And 7) << 5) Or (tdo(3) >> 3)) << 24)
@@ -299,7 +297,7 @@ Namespace JTAG
         'Accesses port registers (AHB-AP)
         Private Function ARM_APACC(reg32 As UInt32, ap_reg As ARM_AP_REG, read_write As ARM_RnW, Optional goto_state As Boolean = True) As UInt32
             If Not ((ap_reg >> 4) = (ARM_REG_ADDR >> 4)) Then
-                ARM_DPACC((ap_reg And &HF0), ARM_DP_REG.ADDR, ARM_RnW.WR)
+                ARM_DPACC((ap_reg And CByte(&HF0)), ARM_DP_REG.ADDR, ARM_RnW.WR)
             End If
             ARM_REG_ADDR = ap_reg
             Dim tdo(3) As Byte
@@ -308,18 +306,18 @@ Namespace JTAG
                 ShiftTDI(Devices(0).BSDL.IR_LEN, {Devices(0).BSDL.ARM_APACC}, Nothing, True)
             End If
             TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
-            Dim b5 As Byte = ((reg32 And &H1F) << 3) Or ((ap_reg And &HF) >> 1) Or read_write : reg32 >>= 5
-            Dim b4 As Byte = (reg32 And &HFF) : reg32 >>= 8
-            Dim b3 As Byte = (reg32 And &HFF) : reg32 >>= 8
-            Dim b2 As Byte = (reg32 And &HFF) : reg32 >>= 8
-            Dim b1 As Byte = (reg32 And &H7)
+            Dim b5 As Byte = CByte((reg32 And CByte(&H1F)) << CByte(3)) Or ((ap_reg And CByte(&HF)) >> CByte(1)) Or read_write : reg32 >>= CByte(5)
+            Dim b4 As Byte = CByte(reg32 And CByte(&HFF)) : reg32 >>= 8
+            Dim b3 As Byte = CByte(reg32 And CByte(&HFF)) : reg32 >>= 8
+            Dim b2 As Byte = CByte(reg32 And CByte(&HFF)) : reg32 >>= 8
+            Dim b1 As Byte = CByte(reg32 And CByte(&H7))
             ShiftTDI(35, {b5, b4, b3, b2, b1}, tdo, True)
             TAP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
-            Dim status As Byte = (tdo(0) And 3)
-            Dim reg32_out As UInt32 = ((tdo(1) And 7) << 5) Or (tdo(0) >> 3)
-            reg32_out = reg32_out Or (CUInt(((tdo(2) And 7) << 5) Or (tdo(1) >> 3)) << 8)
-            reg32_out = reg32_out Or (CUInt(((tdo(3) And 7) << 5) Or (tdo(2) >> 3)) << 16)
-            reg32_out = reg32_out Or (CUInt(((tdo(4) And 7) << 5) Or (tdo(3) >> 3)) << 24)
+            Dim status As Byte = (tdo(0) And CByte(3))
+            Dim reg32_out As UInt32 = ((tdo(1) And CByte(7)) << 5) Or (tdo(0) >> CByte(3))
+            reg32_out = reg32_out Or (CUInt(((tdo(2) And CByte(7)) << 5) Or (tdo(1) >> CByte(3))) << CByte(8))
+            reg32_out = reg32_out Or (CUInt(((tdo(3) And CByte(7)) << 5) Or (tdo(2) >> CByte(3))) << CByte(16))
+            reg32_out = reg32_out Or (CUInt(((tdo(4) And CByte(7)) << 5) Or (tdo(3) >> CByte(3))) << CByte(24))
             Return reg32_out
         End Function
 
@@ -504,8 +502,7 @@ Namespace JTAG
             setup_data(8) = CByte((Devices(Me.Chain_SelectedIndex).BSDL.BS_LEN) And 255)
             setup_data(9) = CByte((Devices(Me.Chain_SelectedIndex).BSDL.BS_LEN >> 8) And 255)
             setup_data(10) = CByte(Devices(Me.Chain_SelectedIndex).BSDL.DISVAL)
-            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, setup_data)
-            SetupReady = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_SETUP)
+            SetupReady = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_SETUP, setup_data)
         End Sub
 
         Public Function BoundaryScan_Init(EnableX8Mode As Boolean) As Boolean
@@ -525,8 +522,7 @@ Namespace JTAG
                 pin_data(5) = CByte(item.CONTROL >> 8)
                 pin_data(6) = CByte(item.INPUT And 255)
                 pin_data(7) = CByte(item.INPUT >> 8)
-                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, pin_data)
-                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_ADDPIN)
+                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_ADDPIN, pin_data)
             Next
             If EnableX8Mode Then
                 Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16
@@ -556,7 +552,7 @@ Namespace JTAG
             If FLASH_RESULT.Successful Then
                 Me.CFI = New NOR_CFI(BSDL_GetCFI())
                 Dim device_matches() As FlashMemory.Device
-                Dim chip_id_str As String = Hex(FLASH_RESULT.MFG).PadLeft(2, "0") & Hex((CUInt(FLASH_RESULT.ID1) << 16) Or FLASH_RESULT.ID2).PadLeft(8, "0")
+                Dim chip_id_str As String = Hex(FLASH_RESULT.MFG).PadLeft(2, "0"c) & Hex((CUInt(FLASH_RESULT.ID1) << 16) Or FLASH_RESULT.ID2).PadLeft(8, "0"c)
                 PrintConsole("Flash detected: DEVICE ID: 0x" & chip_id_str)
                 device_matches = FlashDatabase.FindDevices(FLASH_RESULT.MFG, FLASH_RESULT.ID1, FLASH_RESULT.ID2, MemoryType.PARALLEL_NOR)
                 If (device_matches IsNot Nothing AndAlso device_matches.Count > 0) Then
@@ -616,7 +612,7 @@ Namespace JTAG
 
         Private Function BSDL_ReadIdent(X16_MODE As Boolean) As Byte()
             Dim ident(7) As Byte
-            Dim SHIFT As UInt32 = 0
+            Dim SHIFT As Integer = 0
             If X16_MODE Then SHIFT = 1
             BSDL_ResetDevice()
             Utilities.Sleep(1)
@@ -625,12 +621,12 @@ Namespace JTAG
             BSDL_WriteCmdData(&H5555, &H90)
             Utilities.Sleep(10)
             ident(0) = CByte(BSDL_ReadWord(0) And &HFF)             'MFG
-            Dim ID1 As UInt16 = BSDL_ReadWord(1 << SHIFT)
-            If Not X16_MODE Then ID1 = (ID1 And &HFF)               'X8 ID1
+            Dim ID1 As UInt16 = BSDL_ReadWord(1UI << SHIFT)
+            If Not X16_MODE Then ID1 = (ID1 And &HFFUS)               'X8 ID1
             ident(1) = CByte((ID1 >> 8) And &HFF)                   'ID1(UPPER)
             ident(2) = CByte(ID1 And &HFF)                          'ID1(LOWER)
-            ident(3) = CByte(BSDL_ReadWord(&HE << SHIFT) And &HFF)  'ID2
-            ident(4) = CByte(BSDL_ReadWord(&HF << SHIFT) And &HFF)  'ID3
+            ident(3) = CByte(BSDL_ReadWord(&HEUI << SHIFT) And &HFF)  'ID2
+            ident(4) = CByte(BSDL_ReadWord(&HFUI << SHIFT) And &HFF)  'ID3
             BSDL_ResetDevice()
             Utilities.Sleep(1)
             Return ident
@@ -646,19 +642,19 @@ Namespace JTAG
 
         Private Function BSDL_GetCFI() As Byte()
             Dim cfi_data(31) As Byte
-            Dim SHIFT As UInt32 = 0
+            Dim SHIFT As Integer = 0
             If Me.BSDL_IO = BSDL_DQ_IO.X16 Or Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16 Then SHIFT = 1
             Try
                 BSDL_WriteCmdData(&H55, &H98)
                 For i = 0 To cfi_data.Length - 1
-                    cfi_data(i) = CByte(BSDL_ReadWord((&H10 + i) << SHIFT) And 255)
+                    cfi_data(i) = CByte(BSDL_ReadWord(CUInt((&H10 + i) << SHIFT)) And 255)
                 Next
                 If cfi_data(0) = &H51 And cfi_data(1) = &H52 And cfi_data(2) = &H59 Then Return cfi_data
                 BSDL_WriteCmdData(&H5555, &HAA)
                 BSDL_WriteCmdData(&H2AAA, &H55)
                 BSDL_WriteCmdData(&H5555, &H98)
-                For i = 0 To cfi_data.Length - 1
-                    cfi_data(i) = CByte(BSDL_ReadWord((&H10 + i) << SHIFT) And 255)
+                For i As Integer = 0 To cfi_data.Length - 1
+                    cfi_data(i) = CByte(BSDL_ReadWord(CUInt((&H10 + i) << SHIFT)) And 255)
                 Next
                 If cfi_data(0) = &H51 And cfi_data(1) = &H52 And cfi_data(2) = &H59 Then Return cfi_data
             Catch ex As Exception
@@ -669,7 +665,7 @@ Namespace JTAG
         End Function
 
         'Defines a pin. Output cell can be output/bidir, control_cell can be -1 if it is output_cell+1, and input_cell is used when not bidir
-        Public Sub BoundaryScan_AddPin(signal_name As String, output_cell As Integer, control_cell As Integer, input_cell As Integer)
+        Public Sub BoundaryScan_AddPin(signal_name As String, output_cell As Int16, control_cell As Int16, input_cell As Int16)
             Dim pin_desc As New BoundaryCell
             pin_desc.pin_name = signal_name.ToUpper
             pin_desc.pin_index = 0
@@ -707,9 +703,9 @@ Namespace JTAG
             BoundaryMap.Add(pin_desc)
         End Sub
 
-        Public Sub BoundaryScan_SetBSR(output_cell As Integer, control_cell As Integer, level As Boolean)
-            Dim dw As UInt32 = (control_cell << 16) Or output_cell
-            If level Then dw = (dw Or (1UL << 31))
+        Public Sub BoundaryScan_SetBSR(output_cell As Int16, control_cell As Int16, level As Boolean)
+            Dim dw As UInt32 = CUInt((control_cell << 16) Or output_cell)
+            If level Then dw = (dw Or &H80000000UI)
             FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_SETBSR, Nothing, dw)
         End Sub
 
@@ -736,9 +732,9 @@ Namespace JTAG
         Private Structure BoundaryCell
             Public pin_name As String
             Public pin_index As Byte 'This is the DQx or ADx value
-            Public OUTPUT As UInt16
-            Public INPUT As UInt16 'Some devices use bidir cells (this is for seperate o/i cells)
-            Public CONTROL As UInt16
+            Public OUTPUT As Int16
+            Public INPUT As Int16 'Some devices use bidir cells (this is for seperate o/i cells)
+            Public CONTROL As Int16
             Public TYPE As BoundaryScan_PinType
         End Structure
 
@@ -762,9 +758,9 @@ Namespace JTAG
             If Me.BSDL_IO = BSDL_DQ_IO.X16 Then
                 Return DQ16
             ElseIf Me.BSDL_IO = BSDL_DQ_IO.X8 Then
-                Return (DQ16 And 255)
+                Return CUShort(DQ16 And 255)
             ElseIf Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16 Then
-                Return (DQ16 And 255)
+                Return CUShort(DQ16 And 255)
             End If
             Return 0
         End Function
@@ -777,8 +773,7 @@ Namespace JTAG
             dt_out(3) = CByte((base_addr >> 24) And 255)
             dt_out(4) = CByte(data16 And 255)
             dt_out(5) = CByte((data16 >> 8) And 255)
-            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, dt_out)
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_WRCMD)
+            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_WRCMD, dt_out)
         End Sub
 
         Public Sub BSDL_WriteMemAddress(base_addr As UInt32, data16 As UInt16)
@@ -789,11 +784,10 @@ Namespace JTAG
             dt_out(3) = CByte((base_addr >> 24) And 255)
             dt_out(4) = CByte(data16 And 255)
             dt_out(5) = CByte((data16 >> 8) And 255)
-            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, dt_out)
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_WRMEM)
+            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_WRMEM, dt_out)
         End Sub
 
-        Private Function BoundaryScan_GetSetupPacket(Address As UInt32, Count As UInt32, PageSize As UInt16) As Byte()
+        Private Function BoundaryScan_GetSetupPacket(Address As UInt32, Count As Integer, PageSize As UInt16) As Byte()
             Dim addr_bytes As Byte = 0
             Dim data_in(19) As Byte '18 bytes total
             data_in(0) = CByte(Address And 255)
@@ -823,24 +817,24 @@ Namespace JTAG
             End Get
         End Property
 
-        Public Function BoundaryScan_ReadFlash(base_addr As UInt32, read_count As UInt32) As Byte()
+        Public Function BoundaryScan_ReadFlash(base_addr As UInt32, read_count As Integer) As Byte()
             Dim byte_count As Integer = read_count
             If Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16 Then
                 byte_count = byte_count * 2
                 base_addr = base_addr << 1
             End If
             Dim data_out(byte_count - 1) As Byte 'Bytes we want to read
-            Dim data_left As UInt32 = byte_count
+            Dim data_left As Integer = byte_count
             Dim ptr As Integer = 0
             While data_left > 0
-                Dim packet_size As UInt32 = Math.Min(8192, data_left)
+                Dim packet_size As Integer = Math.Min(8192, data_left)
                 Dim packet_data(packet_size - 1) As Byte
                 Dim setup_data() As Byte = BoundaryScan_GetSetupPacket(base_addr, packet_size, 0)
                 Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.JTAG_BDR_RDFLASH, setup_data, packet_data, 0)
                 If Not result Then Return Nothing
                 Array.Copy(packet_data, 0, data_out, ptr, packet_size)
                 ptr += packet_size
-                base_addr += packet_size
+                base_addr += CUInt(packet_size)
                 data_left -= packet_size
             End While
             If Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16 Then
@@ -858,30 +852,30 @@ Namespace JTAG
             Utilities.Sleep(100)
         End Sub
 
-        Public Function BoundaryScan_SectorFind(sector_index As UInt32) As Long
+        Public Function BoundaryScan_SectorFind(sector_index As Integer) As UInt32
             Dim base_addr As UInt32 = 0
             If sector_index > 0 Then
-                For i As UInt32 = 0 To sector_index - 1
-                    base_addr += BoundaryScan_GetSectorSize(i)
+                For i As Integer = 0 To sector_index - 1
+                    base_addr += CUInt(BoundaryScan_GetSectorSize(i))
                 Next
             End If
             Return base_addr
         End Function
 
-        Public Function BoundaryScan_SectorWrite(sector_index As UInt32, data() As Byte) As Boolean
+        Public Function BoundaryScan_SectorWrite(sector_index As Integer, data() As Byte) As Boolean
             Dim Addr32 As UInteger = BoundaryScan_SectorFind(sector_index)
             Return BoundaryScan_WriteFlash(Addr32, data)
         End Function
 
-        Public Function BoundaryScan_SectorCount() As UInt32
+        Public Function BoundaryScan_SectorCount() As Integer
             Dim NOR_FLASH As P_NOR = DirectCast(BSDL_FLASH_DEVICE, P_NOR)
             Return NOR_FLASH.Sector_Count
         End Function
 
         Public Function BoundaryScan_WriteFlash(base_addr As UInt32, data_to_write() As Byte) As Boolean
             Dim NOR_FLASH As P_NOR = DirectCast(BSDL_FLASH_DEVICE, P_NOR)
-            Dim DataToWrite As UInt32 = data_to_write.Length
-            Dim PacketSize As UInt32 = 8192
+            Dim DataToWrite As Integer = data_to_write.Length
+            Dim PacketSize As Integer = 8192
             If Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16 Then
                 base_addr = (base_addr << 1)
                 Dim data_bloated((DataToWrite * 2) - 1) As Byte
@@ -902,13 +896,13 @@ Namespace JTAG
                 Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.JTAG_BDR_WRFLASH, setup_data, data, BSDL_PROG_CMD)
                 If (Not result) Then Return False
                 Utilities.Sleep(350) 'We need a long pause here after each program <-- critical that this is 350
-                base_addr += data.Length
+                base_addr += CUInt(data.Length)
                 Dim Success As Boolean = FCUSB.USB_WaitForComplete()
             Next
             Return True
         End Function
 
-        Public Function BoundaryScan_SectorErase(sector_index As UInt32) As Boolean
+        Public Function BoundaryScan_SectorErase(sector_index As Integer) As Boolean
             Dim NOR_FLASH As P_NOR = DirectCast(BSDL_FLASH_DEVICE, P_NOR)
             Dim sector_addr As UInt32 = BoundaryScan_SectorFind(sector_index)
             If Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16 Then
@@ -973,21 +967,21 @@ Namespace JTAG
             Return True
         End Function
 
-        Public Function BoundaryScan_GetSectorSize(sector_index As UInt32) As UInt32
+        Public Function BoundaryScan_GetSectorSize(sector_index As Integer) As Integer
             Dim NOR_FLASH As P_NOR = DirectCast(BSDL_FLASH_DEVICE, P_NOR)
             If Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16 Then
-                Return NOR_FLASH.GetSectorSize(sector_index) / 2
+                Return CInt(NOR_FLASH.GetSectorSize(sector_index) \ 2)
             Else
-                Return NOR_FLASH.GetSectorSize(sector_index)
+                Return CInt(NOR_FLASH.GetSectorSize(sector_index))
             End If
         End Function
 
 #End Region
 
 #Region "ARM Support"
-        Const NO_SYSSPEED = 0
-        Const YES_SYSSPEED = 1
-        Const ARM_NOOP = &HE1A00000UI
+        Private Const NO_SYSSPEED As Boolean = False
+        Private Const YES_SYSSPEED As Boolean = True
+        Private Const ARM_NOOP As UInt32 = &HE1A00000UI
 
         Public Function ARM_ReadMemory32(addr As UInt32) As UInt32
             ARM_WriteRegister_r0(addr)
@@ -1058,14 +1052,14 @@ Namespace JTAG
             ARM_IR(Devices(0).BSDL.SCAN_N)
             TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
             ShiftTDI(5, {1}, Nothing, True) 'shift: 0x10 (correct to 0b00001)
-            ARM_IR(Devices(0).BSDL.INTEST)
+            ARM_IR(CByte(Devices(0).BSDL.INTEST))
         End Sub
 
         Public Sub ARM_SelectChain2()
             ARM_IR(Devices(0).BSDL.SCAN_N)
             TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
             ShiftTDI(5, {2}, Nothing, True) 'shift: 0x08 (reversed to 0b00010)
-            ARM_IR(Devices(0).BSDL.INTEST)
+            ARM_IR(CByte(Devices(0).BSDL.INTEST))
         End Sub
 
         Public Sub ARM_PushInstruction(SYSSPEED As Boolean, op_cmd As UInt32, rti_cycles As Byte)
@@ -1073,7 +1067,7 @@ Namespace JTAG
             TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
             Dim tdi64 As UInt64
             If (SYSSPEED) Then
-                tdi64 = (CULng(op_rev) << 1) Or 1
+                tdi64 = (CULng(op_rev) << 1) Or 1UI
             Else
                 tdi64 = (CULng(op_rev) << 1)
             End If
@@ -1092,7 +1086,7 @@ Namespace JTAG
         Public Function REVERSE32(u32 As UInt32) As UInt32
             Dim out32 As UInt32 = 0
             For i = 0 To 31
-                If ((u32 And 1) = 1) Then out32 = out32 Or 1
+                If ((u32 And 1) = 1) Then out32 = out32 Or 1UI
                 out32 = out32 << 1
                 u32 = u32 >> 1
             Next
@@ -1117,10 +1111,8 @@ Namespace JTAG
             TAP_GotoState(dst_state)
         End Sub
 
-        Private Function JSP_ToggleClock(ticks As UInt32, Optional exit_tms As Boolean = False) Handles JSP.ToggleClock
-            Dim hz As UInt32 = Me.JTAG_GetTckInHerz()
-            Dim mult As Integer = (CSng(hz) / CSng(CurrentHz))
-            Return Tap_Toggle(ticks * mult, exit_tms)
+        Private Function JSP_ToggleClock(ticks As UInt32, Optional exit_tms As Boolean = False) As Boolean Handles JSP.ToggleClock
+            Return Tap_Toggle(ticks, exit_tms)
         End Function
 
         Public Sub JSP_ShiftIR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As Int16, exit_tms As Boolean) Handles JSP.ShiftIR
@@ -1183,11 +1175,11 @@ Namespace JTAG
         End Enum
         'Loads specific features this device using EJTAG IMP OPCODE
         Private Sub EJTAG_LoadCapabilities(features As UInt32)
-            Dim e_ver As UInt32 = ((features >> 29) And 7)
-            Dim e_nodma As UInt32 = (features And (1 << 14))
-            Dim e_priv As UInt32 = (features And (1 << 28))
-            Dim e_dint As UInt32 = (features And (1 << 24))
-            Dim e_mips As UInt32 = (features And 1)
+            Dim e_ver As UInt32 = ((features >> 29) And 7UI)
+            Dim e_nodma As UInt32 = (features And (1UI << 14))
+            Dim e_priv As UInt32 = (features And (1UI << 28))
+            Dim e_dint As UInt32 = (features And (1UI << 24))
+            Dim e_mips As UInt32 = (features And 1UI)
             Select Case e_ver
                 Case 0
                     IMPVER = "1 and 2.0"
@@ -1232,7 +1224,7 @@ Namespace JTAG
             Try
                 Dim debug_flag As UInt32 = EJTAG_CTRL.PrAcc Or EJTAG_CTRL.ProbEn Or EJTAG_CTRL.SetDev Or EJTAG_CTRL.JtagBrk
                 Dim ctrl_reg As UInt32 = AccessDataRegister32(Devices(Chain_SelectedIndex).BSDL.MIPS_CONTROL, debug_flag)
-                If (AccessDataRegister32(Devices(Chain_SelectedIndex).BSDL.MIPS_CONTROL, EJTAG_CTRL.PrAcc Or EJTAG_CTRL.ProbEn Or EJTAG_CTRL.SetDev) And EJTAG_CTRL.BrkSt) Then
+                If CBool((AccessDataRegister32(Devices(Chain_SelectedIndex).BSDL.MIPS_CONTROL, EJTAG_CTRL.PrAcc Or EJTAG_CTRL.ProbEn Or EJTAG_CTRL.SetDev) And EJTAG_CTRL.BrkSt)) Then
                     Return True
                 Else
                     Return False
@@ -1264,8 +1256,7 @@ Namespace JTAG
             Dim BytesWritten As UInt32 = 0
             Try
                 Dim BufferIndex As UInt32 = 0
-                Dim BytesLeft As UInt32 = data_to_write.Length
-                Dim Counter As UInt32 = 0
+                Dim BytesLeft As Integer = data_to_write.Length
                 Do Until BytesLeft = 0
                     If BytesLeft > MAX_USB_BUFFER_SIZE Then
                         Dim Packet(MAX_USB_BUFFER_SIZE - 1) As Byte
@@ -1281,7 +1272,6 @@ Namespace JTAG
                         DMA_WriteFlash_Block(dma_addr, Packet, prog_mode)
                         BytesLeft = 0
                     End If
-                    Counter += 1
                 Loop
             Catch
             End Try
@@ -1289,7 +1279,7 @@ Namespace JTAG
 
         Private Function DMA_WriteFlash_Block(dma_addr As UInt32, data() As Byte, sub_cmd As CFI.CFI_FLASH_MODE) As Boolean
             Dim setup_data(7) As Byte
-            Dim data_count As UInt32 = data.Length
+            Dim data_count As Integer = data.Length
             setup_data(0) = CByte(dma_addr And 255)
             setup_data(1) = CByte((dma_addr >> 8) And 255)
             setup_data(2) = CByte((dma_addr >> 16) And 255)
@@ -1298,8 +1288,7 @@ Namespace JTAG
             setup_data(5) = CByte((data_count >> 8) And 255)
             setup_data(6) = CByte((data_count >> 16) And 255)
             setup_data(7) = CByte((data_count >> 24) And 255)
-            If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, setup_data, setup_data.Length) Then Return Nothing
-            If Not FCUSB.USB_CONTROL_MSG_OUT(sub_cmd) Then Return Nothing
+            If Not FCUSB.USB_CONTROL_MSG_OUT(CType(sub_cmd, USB.USBREQ), setup_data) Then Return Nothing
             Dim write_result As Boolean = FCUSB.USB_BULK_OUT(data)
             If write_result Then FCUSB.USB_WaitForComplete()
             Return write_result
@@ -1359,12 +1348,11 @@ Namespace JTAG
             setup_data(6) = CByte((data >> 16) And 255)
             setup_data(7) = CByte((data >> 24) And 255)
             setup_data(8) = Me.Devices(Me.Chain_SelectedIndex).ACCESS
-            If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, setup_data, setup_data.Length) Then Exit Sub
-            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_WRITE, Nothing, bits)
+            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_WRITE, setup_data, bits)
         End Sub
 
         'Reads data from DRAM (optomized for speed)
-        Public Function ReadMemory(Address As UInt32, count As UInt32) As Byte()
+        Public Function ReadMemory(Address As UInt32, count As Integer) As Byte()
             Dim DramStart As UInt32 = Address
             Dim LargeCount As Integer = count 'The total amount of data we need to read in
             Do Until Address Mod 4 = 0 Or Address = 0
@@ -1374,26 +1362,26 @@ Namespace JTAG
             Do Until LargeCount Mod 4 = 0
                 LargeCount = LargeCount + 1
             Loop 'Now StartAdd2 and ByteLen2 are on bounds of 4
-            Dim TotalBuffer(LargeCount - 1) As Byte
+            Dim TotalBuffer(CInt(LargeCount - 1)) As Byte
             Dim BytesLeft As Integer = LargeCount
             While BytesLeft > 0
-                Dim BytesToRead As Integer = BytesLeft
+                Dim BytesToRead As Integer = CInt(BytesLeft)
                 If BytesToRead > MAX_USB_BUFFER_SIZE Then BytesToRead = MAX_USB_BUFFER_SIZE
-                Dim Offset As UInt32 = LargeCount - BytesLeft
+                Dim Offset As Integer = (LargeCount - BytesLeft)
                 Dim TempBuffer() As Byte = Nothing
                 Select Case Me.Devices(Me.Chain_SelectedIndex).ACCESS
                     Case JTAG_MEM_ACCESS.EJTAG_DMA
-                        TempBuffer = JTAG_ReadMemory(Address + Offset, BytesToRead)
+                        TempBuffer = JTAG_ReadMemory(Address + CUInt(Offset), BytesToRead)
                     Case JTAG_MEM_ACCESS.EJTAG_PRACC
                     Case JTAG_MEM_ACCESS.ARM
                 End Select
                 If TempBuffer Is Nothing OrElse Not TempBuffer.Length = BytesToRead Then
-                    ReDim Preserve TempBuffer(BytesToRead - 1) 'Fill buffer with blank data
+                    ReDim Preserve TempBuffer(CInt(BytesToRead - 1)) 'Fill buffer with blank data
                 End If
                 Array.Copy(TempBuffer, 0, TotalBuffer, Offset, TempBuffer.Length)
                 BytesLeft -= BytesToRead
             End While
-            Dim OutByte(count - 1) As Byte
+            Dim OutByte(CInt(count - 1)) As Byte
             Array.Copy(TotalBuffer, LargeCount - count, OutByte, 0, count)
             Return OutByte
         End Function
@@ -1437,7 +1425,7 @@ Namespace JTAG
 
         Private Function JTAG_WriteMemory(dma_addr As UInteger, data_out() As Byte) As Boolean
             Dim setup_data(8) As Byte
-            Dim data_len As UInt32 = data_out.Length
+            Dim data_len As Integer = data_out.Length
             setup_data(0) = CByte(dma_addr And 255)
             setup_data(1) = CByte((dma_addr >> 8) And 255)
             setup_data(2) = CByte((dma_addr >> 16) And 255)
@@ -1447,12 +1435,11 @@ Namespace JTAG
             setup_data(6) = CByte((data_len >> 16) And 255)
             setup_data(7) = CByte((data_len >> 24) And 255)
             setup_data(8) = Me.Devices(Me.Chain_SelectedIndex).ACCESS
-            If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, setup_data, setup_data.Length) Then Return Nothing
-            If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_WRITEMEM) Then Return Nothing 'Sends setup command and data
+            If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_WRITEMEM, setup_data) Then Return Nothing 'Sends setup command and data
             Return FCUSB.USB_BULK_OUT(data_out)
         End Function
 
-        Private Function JTAG_ReadMemory(dma_addr As UInt32, count As UInt32) As Byte()
+        Private Function JTAG_ReadMemory(dma_addr As UInt32, count As Integer) As Byte()
             Dim setup_data(8) As Byte
             setup_data(0) = CByte(dma_addr And 255)
             setup_data(1) = CByte((dma_addr >> 8) And 255)
@@ -1464,8 +1451,7 @@ Namespace JTAG
             setup_data(7) = CByte((count >> 24) And 255)
             setup_data(8) = Me.Devices(Me.Chain_SelectedIndex).ACCESS
             Dim data_back(count - 1) As Byte
-            If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, setup_data, setup_data.Length) Then Return Nothing
-            If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_READMEM) Then Return Nothing 'Sends setup command and data
+            If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_READMEM, setup_data) Then Return Nothing 'Sends setup command and data
             If Not FCUSB.USB_BULK_IN(data_back) Then Return Nothing
             Return data_back
         End Function
@@ -1493,29 +1479,29 @@ Namespace JTAG
             CFI_IF.WaitUntilReady()
         End Sub
 
-        Public Function CFI_SectorCount() As UInt32
-            Return CFI_IF.GetFlashSectors
+        Public Function CFI_SectorCount() As Integer
+            Return CFI_IF.GetFlashSectors()
         End Function
 
-        Public Function CFI_GetSectorSize(sector_ind As UInt32) As UInt32
+        Public Function CFI_GetSectorSize(sector_ind As Integer) As Integer
             Return CFI_IF.GetSectorSize(sector_ind)
         End Function
 
-        Public Function CFI_FindSectorBase(sector_ind As UInt32) As UInt32
+        Public Function CFI_FindSectorBase(sector_ind As Integer) As UInt32
             Return CFI_IF.FindSectorBase(sector_ind)
         End Function
 
-        Public Function CFI_Sector_Erase(sector_ind As UInt32) As Boolean
+        Public Function CFI_Sector_Erase(sector_ind As Integer) As Boolean
             CFI_IF.Sector_Erase(sector_ind)
             Return True
         End Function
 
-        Public Function CFI_ReadFlash(Address As UInt32, count As UInt32) As Byte()
+        Public Function CFI_ReadFlash(Address As UInt32, count As Integer) As Byte()
             Return CFI_IF.ReadData(Address, count)
         End Function
 
-        Public Function CFI_SectorWrite(Address As UInt32, data_out() As Byte) As Boolean
-            CFI_IF.WriteSector(Address, data_out)
+        Public Function CFI_SectorWrite(sector_index As Integer, data_out() As Byte) As Boolean
+            CFI_IF.WriteSector(sector_index, data_out)
             Return True
         End Function
 
@@ -1547,11 +1533,11 @@ Namespace JTAG
         End Sub
 
         Private Sub CFIEVENT_ReadB(addr As UInt32, ByRef data As Byte) Handles CFI_IF.Memory_Read_B
-            data = ReadMemory(addr, DATA_WIDTH.Byte)
+            data = CByte(ReadMemory(addr, DATA_WIDTH.Byte))
         End Sub
 
         Private Sub CFIEVENT_ReadH(addr As UInt32, ByRef data As UInt16) Handles CFI_IF.Memory_Read_H
-            data = ReadMemory(addr, DATA_WIDTH.HalfWord)
+            data = CByte(ReadMemory(addr, DATA_WIDTH.HalfWord))
         End Sub
 
         Private Sub CFIEVENT_ReadW(addr As UInt32, ByRef data As UInt32) Handles CFI_IF.Memory_Read_W
@@ -1594,7 +1580,7 @@ Namespace JTAG
                 Else
                     Dim MFG_BYTE As Byte = CByte((reg And &HFF0000) >> 16)
                     Dim PART_ID As UInt16 = CUShort(reg And &HFFFF)
-                    SPI_Part = FlashDatabase.FindDevice(MFG_BYTE, PART_ID, 0, FlashMemory.MemoryType.SERIAL_NOR)
+                    SPI_Part = CType(FlashDatabase.FindDevice(MFG_BYTE, PART_ID, 0, MemoryType.SERIAL_NOR), SPI_NOR)
                     If SPI_Part IsNot Nothing Then
                         PrintConsole(String.Format("JTAG: SPI flash detected ({0})", SPI_Part.NAME))
                         If SPI_JTAG_PROTOCOL = JTAG_SPI_Type.BCM_MIPS Then
@@ -1708,7 +1694,7 @@ Namespace JTAG
             Return False
         End Function
 
-        Public Function SPI_SectorErase(secotr_ind As UInt32) As Boolean
+        Public Function SPI_SectorErase(secotr_ind As Integer) As Boolean
             Try
                 Dim Addr24 As UInteger = SPI_FindSectorBase(secotr_ind)
                 Dim reg As UInt32 = SPI_GetControlReg()
@@ -1716,13 +1702,13 @@ Namespace JTAG
                     WriteMemory(SPI_MIPS_JTAG_IF.REG_CNTR, 0, DATA_WIDTH.Word)
                     SPI_SendCommand(SPI_MIPS_JTAG_IF.WREN, 1, 0)
                     WriteMemory(SPI_MIPS_JTAG_IF.REG_OPCODE, Addr24 Or SPI_MIPS_JTAG_IF.SECTORERASE, DATA_WIDTH.Word)
-                    reg = (reg And &HFFFFFF00) Or SPI_MIPS_JTAG_IF.SECTORERASE Or SPI_MIPS_JTAG_IF.CTL_Start
+                    reg = (reg And &HFFFFFF00UI) Or SPI_MIPS_JTAG_IF.SECTORERASE Or SPI_MIPS_JTAG_IF.CTL_Start
                     WriteMemory(SPI_MIPS_JTAG_IF.REG_CNTR, reg, DATA_WIDTH.Word)
                     WriteMemory(SPI_MIPS_JTAG_IF.REG_CNTR, 0, DATA_WIDTH.Word)
                 ElseIf SPI_JTAG_PROTOCOL = JTAG_SPI_Type.ATH_MIPS Then
                     SPI_SendCommand(SPI_MIPS_JTAG_IF.WREN, 1, 0)
                     WriteMemory(SPI_MIPS_JTAG_IF.REG_OPCODE, (Addr24 << 8) Or SPI_MIPS_JTAG_IF.SECTORERASE, DATA_WIDTH.Word)
-                    reg = (reg And &HFFFFFF00) Or &H4 Or SPI_MIPS_JTAG_IF.CTL_Start
+                    reg = (reg And &HFFFFFF00UI) Or &H4UI Or SPI_MIPS_JTAG_IF.CTL_Start
                     WriteMemory(SPI_MIPS_JTAG_IF.REG_CNTR, reg, DATA_WIDTH.Word)
                 End If
                 SPI_WaitUntilReady()
@@ -1782,26 +1768,25 @@ Namespace JTAG
                 reg = ReadMemory(SPI_MIPS_JTAG_IF.REG_DATA, DATA_WIDTH.Word)
                 Select Case BytesToRead
                     Case 1
-                        reg = (reg And 255)
+                        reg = (reg And 255UI)
                     Case 2
-                        reg = ((reg And 255) << 8) Or ((reg And &HFF00) >> 8)
+                        reg = ((reg And 255UI) << 8) Or ((reg And &HFF00UI) >> 8)
                     Case 3
-                        reg = ((reg And 255) << 16) Or (reg And &HFF00) Or ((reg And &HFF0000) >> 16)
+                        reg = ((reg And 255UI) << 16) Or (reg And &HFF00UI) Or ((reg And &HFF0000UI) >> 16)
                     Case 4
-                        reg = ((reg And 255) << 24) Or ((reg And &HFF00) << 8) Or ((reg And &HFF0000) >> 8) Or ((reg And &HFF000000) >> 24)
+                        reg = ((reg And 255UI) << 24) Or ((reg And &HFF00UI) << 8) Or ((reg And &HFF0000UI) >> 8) Or ((reg And &HFF000000UI) >> 24)
                 End Select
                 Return reg
             End If
             Return 0
         End Function
         'Returns the total number of sectors
-        Public Function SPI_SectorCount() As UInt32
-            Dim secSize As UInt32 = &H10000 '64KB
-            Dim totalsize As UInt32 = SPI_Part.FLASH_SIZE
-            Return CUInt(totalsize / secSize)
+        Public Function SPI_SectorCount() As Integer
+            Dim secSize As Long = &H10000L '64KB
+            Return CInt(SPI_Part.FLASH_SIZE \ secSize)
         End Function
 
-        Public Function SPI_SectorWrite(sector_index As UInt32, data() As Byte) As Boolean
+        Public Function SPI_SectorWrite(sector_index As Integer, data() As Byte) As Boolean
             Dim Addr As UInteger = SPI_FindSectorBase(sector_index)
             SPI_WriteData(Addr, data)
             Return True
@@ -1811,7 +1796,7 @@ Namespace JTAG
             Return CUInt(SPI_GetSectorSize(0) * sectorInt)
         End Function
 
-        Public Function SPI_GetSectorSize(sector_ind As UInt32) As UInteger
+        Public Function SPI_GetSectorSize(sector_ind As Integer) As Integer
             Return &H10000
         End Function
 
@@ -1834,7 +1819,7 @@ Namespace JTAG
             Loop While ((reg And 1) > 0)
         End Sub
 
-        Public Function SPI_ReadFlash(addr32 As UInt32, count As UInt32) As Byte()
+        Public Function SPI_ReadFlash(addr32 As UInt32, count As Integer) As Byte()
             Return ReadMemory(SPI_MIPS_JTAG_IF.BASE + addr32, count)
         End Function
 
@@ -1847,7 +1832,7 @@ Namespace JTAG
                     OpCode = USB.USBREQ.JTAG_FLASHSPI_ATH
             End Select
             Dim setup_data(7) As Byte
-            Dim data_len As UInt32 = data_out.Length
+            Dim data_len As Integer = data_out.Length
             setup_data(0) = CByte(addr32 And 255)
             setup_data(1) = CByte((addr32 >> 8) And 255)
             setup_data(2) = CByte((addr32 >> 16) And 255)
@@ -1856,8 +1841,7 @@ Namespace JTAG
             setup_data(5) = CByte((data_len >> 8) And 255)
             setup_data(6) = CByte((data_len >> 16) And 255)
             setup_data(7) = CByte((data_len >> 24) And 255)
-            If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, setup_data, setup_data.Length) Then Return Nothing
-            If Not FCUSB.USB_CONTROL_MSG_OUT(OpCode) Then Return Nothing 'Sends setup command and data
+            If Not FCUSB.USB_CONTROL_MSG_OUT(CType(OpCode, USB.USBREQ), setup_data) Then Return Nothing 'Sends setup command and data
             Return FCUSB.USB_BULK_OUT(data_out)
         End Function
 
@@ -1888,11 +1872,11 @@ Namespace JTAG
                 If J.BSDL IsNot Nothing Then
                     For i = 0 To (device_index - 1)
                         Me.IR_TRAILING += Me.Devices(i).BSDL.IR_LEN
-                        Me.DR_TRAILING += 1 'BYPASS REG is always one bit wide
+                        Me.DR_TRAILING += CByte(1) 'BYPASS REG is always one bit wide
                     Next
                     For i = (device_index + 1) To Me.Devices.Count - 1
                         Me.IR_LEADING += J.BSDL.IR_LEN
-                        Me.DR_LEADING += 1 'BYPASS REG is always one bit wide
+                        Me.DR_LEADING += CByte(1) 'BYPASS REG is always one bit wide
                     Next
                     PrintConsole(String.Format("JTAG index {0} selected: {1} (IR length {2})", device_index, J.ToString(), J.BSDL.IR_LEN.ToString()))
                 End If
@@ -1916,15 +1900,14 @@ Namespace JTAG
             select_data(5) = ACCESS_TYPE
             select_data(6) = 0 'RFU1
             select_data(7) = 0 'RFU2
-            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, select_data)
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_SELECT)
+            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_SELECT, select_data)
         End Sub
 
         Public Sub Chain_Print()
             PrintConsole("JTAG chain detected: " & Me.Devices.Count & " devices")
             PrintConsole("JTAG TDI IR chain size: " & Me.Chain_BitLength & " bits")
             For i = 0 To Me.Devices.Count - 1
-                Dim ID As String = "0x" & Hex(Devices(i).IDCODE).PadLeft(8, "0")
+                Dim ID As String = "0x" & Hex(Devices(i).IDCODE).PadLeft(8, "0"c)
                 If Devices(i).BSDL IsNot Nothing Then
                     PrintConsole("Index " & i.ToString() & ": JEDEC ID " & ID & " (" & Devices(i).BSDL.PART_NAME & ")")
                 Else
@@ -1973,7 +1956,7 @@ Namespace JTAG
 
         Public Function Chain_Validate() As Boolean
             Dim ChainIsValid As Boolean = True
-            Dim TotalSize As Integer = 0
+            Dim TotalSize As UInt32 = 0
             For i = 0 To Me.Devices.Count - 1
                 If Devices(i).BSDL Is Nothing Then
                     ChainIsValid = False
@@ -2004,21 +1987,18 @@ Namespace JTAG
 
         Public Function Tap_Toggle(count As UInt32, exit_tms As Boolean) As Boolean
             Try
+                Dim tck_hz As UInt32 = Me.JTAG_GetTckInHerz()
+                Dim mult As UInt32 = (tck_hz \ CurrentHz)
+                count = count * mult
                 Dim ticks_left As UInt32 = count
                 While (ticks_left > 0)
-                    Dim toggle_count As UInt32 = IIf(ticks_left <= 10000000UI, ticks_left, 10000000UI) 'MAX 10 million cycles
+                    Dim toggle_count As UInt32 = CUInt(IIf(ticks_left <= 10000000UI, ticks_left, 10000000UI)) 'MAX 10 million cycles
                     Dim toggle_cmd As UInt32 = toggle_count
                     If exit_tms Then toggle_cmd = toggle_cmd Or (1UI << 31) 'The MSB indicates STAY/LEAVE for toggles
                     Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_TOGGLE, Nothing, toggle_cmd)
                     If Not result Then Return False
-                    Dim current_hz As UInt32 = JTAG_GetTckInHerz()
-                    Dim delay_ms As Integer = (CDbl(toggle_count) / CDbl(current_hz)) * 1000
+                    Dim delay_ms As Integer = CInt((CDbl(toggle_count) / CDbl(tck_hz)) * 1000)
                     Utilities.Sleep(delay_ms + 5)
-                    If FCUSB.HasLogic Then
-                        Utilities.Sleep(100)
-                        result = FCUSB.USB_WaitForComplete()
-                        If Not result Then Return False
-                    End If
                     ticks_left -= toggle_count
                     If (ticks_left > 0) Then
                         Threading.Thread.CurrentThread.Join(10) 'Pump a message
@@ -2033,39 +2013,39 @@ Namespace JTAG
         Public Sub ShiftIR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As Int16, exit_tms As Boolean)
             If bit_count = -1 Then bit_count = Me.IR_LENGTH
             ReDim tdo_bits(tdi_bits.Length - 1)
-            Dim cmd As UInt32 = IIf(exit_tms, CUInt((1UI << 16) Or CUInt(bit_count)), CUInt(bit_count))
+            Dim cmd As UInt32 = CUInt(IIf(exit_tms, CUInt((1UI << 16) Or CUInt(bit_count)), CUInt(bit_count)))
             Array.Reverse(tdi_bits)
-            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, tdi_bits, tdi_bits.Length) 'Preloads the TDI data
+            FCUSB.USB_LOADPAYLOAD(tdi_bits) 'Preloads the TDI data
             FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_SHIFT_IR, tdo_bits, cmd)
             Array.Reverse(tdo_bits)
         End Sub
 
         Public Sub ShiftDR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As UInt16, exit_tms As Boolean)
             ReDim tdo_bits(tdi_bits.Length - 1)
-            Dim cmd As UInt32 = IIf(exit_tms, CUInt((1UI << 16) Or bit_count), CUInt(bit_count))
+            Dim cmd As UInt32 = CUInt(IIf(exit_tms, CUInt((1UI << 16) Or bit_count), CUInt(bit_count)))
             Array.Reverse(tdi_bits)
-            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, tdi_bits, tdi_bits.Length) 'Preloads the TDI data
+            FCUSB.USB_LOADPAYLOAD(tdi_bits) 'Preloads the TDI data
             FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_SHIFT_DR, tdo_bits, cmd)
             Array.Reverse(tdo_bits)
         End Sub
 
         Public Sub ShiftTDI(BitCount As UInt32, tdi_bits() As Byte, ByRef tdo_bits() As Byte, exit_tms As Boolean)
-            Dim byte_count As Integer = Math.Ceiling(BitCount / 8)
+            Dim byte_count As Integer = CInt(Math.Ceiling(BitCount / 8))
             If tdo_bits Is Nothing Then ReDim tdo_bits(byte_count - 1)
             If tdi_bits Is Nothing Then ReDim tdi_bits(byte_count - 1)
             Dim BytesLeft As Integer = byte_count
             Dim BitsLeft As UInt32 = BitCount
             Dim ptr As Integer = 0
             Do Until BytesLeft = 0
-                Dim packet_size As UInt32 = Math.Min(64, BytesLeft)
+                Dim packet_size As Integer = CInt(Math.Min(64, BytesLeft))
                 Dim packet_data(packet_size - 1) As Byte
                 Array.Copy(tdi_bits, ptr, packet_data, 0, packet_data.Length)
                 BytesLeft -= packet_size
-                Dim bits_size As UInt32 = Math.Min(512, BitsLeft)
+                Dim bits_size As UInt32 = Math.Min(512UI, BitsLeft)
                 BitsLeft -= bits_size
-                If BytesLeft = 0 AndAlso exit_tms Then bits_size = bits_size Or (1 << 16)
+                If BytesLeft = 0 AndAlso exit_tms Then bits_size = bits_size Or (1UI << 16)
                 Dim tdo_data(packet_size - 1) As Byte
-                If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, packet_data, packet_data.Length) Then Exit Sub 'Preloads the TDI/TMS data
+                If Not FCUSB.USB_LOADPAYLOAD(packet_data) Then Exit Sub 'Preloads the TDI/TMS data
                 If Not FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_SHIFT_DATA, tdo_data, bits_size) Then Exit Sub  'Shifts data
                 Array.Copy(tdo_data, 0, tdo_bits, ptr, tdo_data.Length)
                 ptr += packet_data.Length
@@ -2079,10 +2059,10 @@ Namespace JTAG
             TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
             If (Me.IR_LEADING > 0) Then Tap_Toggle(Me.IR_LEADING, False)
             If (Me.IR_TRAILING > 0) Then
-                ShiftTDI(Me.Devices(Me.Chain_SelectedIndex).IR_LENGTH, {ir_value}, Nothing, False)
+                ShiftTDI(Me.Devices(Me.Chain_SelectedIndex).IR_LENGTH, {CByte(ir_value)}, Nothing, False)
                 Tap_Toggle(Me.IR_TRAILING, True)
             Else
-                ShiftTDI(Me.Devices(Me.Chain_SelectedIndex).IR_LENGTH, {ir_value}, Nothing, True)
+                ShiftTDI(Me.Devices(Me.Chain_SelectedIndex).IR_LENGTH, {CByte(ir_value)}, Nothing, True)
             End If
             TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
             If (DR_LEADING > 0) Then Tap_Toggle(Me.DR_LEADING, False)
@@ -2097,7 +2077,7 @@ Namespace JTAG
             Return Utilities.Bytes.ToUInt32(tdo)
         End Function
 
-        Public Function GetSelected_IRLength() As Integer
+        Public Function GetSelected_IRLength() As UInt32
             Return Me.Devices(Me.Chain_SelectedIndex).IR_LENGTH
         End Function
 
@@ -2611,7 +2591,7 @@ Namespace JTAG
         Public Property PARTNU As UInt16
         Public Property VERSION As Short = 0
         Public Property ACCESS As JTAG_MEM_ACCESS
-        Public Property IR_LENGTH As Integer 'Loaded from BSDL/single device chain/console command
+        Public Property IR_LENGTH As UInt32 'Loaded from BSDL/single device chain/console command
         Public Property BSDL As BSDL_DEF
         'Returns the name of this device
         Public Overrides Function ToString() As String

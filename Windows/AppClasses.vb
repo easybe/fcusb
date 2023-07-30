@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2020 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2021 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB PRODUCTS
 'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
@@ -68,7 +68,7 @@ Public Class FlashcatSettings
     'GENERAL
     Public Property S93_DEVICE As String 'Name of the part number
     Public Property S93_DEVICE_ORG As Integer '0=8-bit,1=16-bit
-    Public Property SREC_DATAMODE As Integer '0=8-bit,1=16-bit
+    Public Property SREC_DATAMODE As SREC.RECORD_DATAWIDTH '0=8-bit,1=16-bit
     'JTAG
     Public Property JTAG_SPEED As JTAG.JTAG_SPEED
     'License
@@ -91,35 +91,35 @@ Public Class FlashcatSettings
             Me.LICENSE_EXP = DateTime.Parse(date_str)
         End If
         Me.MULTI_CE = SettingsFile.GetValue("MULTI_CE", 5)
-        Me.VOLT_SELECT = SettingsFile.GetValue("VOLTAGE", Voltage.V3_3)
-        Me.OPERATION_MODE = SettingsFile.GetValue("OPERATION", 1) 'Default is normal
+        Me.VOLT_SELECT = CType(SettingsFile.GetValue("VOLTAGE", Voltage.V3_3), Voltage)
+        Me.OPERATION_MODE = CType(SettingsFile.GetValue("OPERATION", 1), DeviceMode) 'Default is normal
         Me.VERIFY_WRITE = SettingsFile.GetValue("VERIFY", True)
         Me.RETRY_WRITE_ATTEMPTS = SettingsFile.GetValue("VERIFY_COUNT", 2)
         Me.BIT_ENDIAN = BitEndianMode.BigEndian32
         Me.BIT_SWAP = BitSwapMode.None
-        Me.SPI_CLOCK_MAX = SettingsFile.GetValue("SPI_CLOCK_MAX", CInt(SPI.SPI_SPEED.MHZ_8))
-        Me.SQI_CLOCK_MAX = SettingsFile.GetValue("SPI_QUAD_SPEED", CInt(SPI.SQI_SPEED.MHZ_10))
+        Me.SPI_CLOCK_MAX = CType(SettingsFile.GetValue("SPI_CLOCK_MAX", CInt(SPI.SPI_SPEED.MHZ_8)), SPI.SPI_SPEED)
+        Me.SQI_CLOCK_MAX = CType(SettingsFile.GetValue("SPI_QUAD_SPEED", CInt(SPI.SQI_SPEED.MHZ_10)), SPI.SQI_SPEED)
         Me.SPI_FASTREAD = SettingsFile.GetValue("SPI_FASTREAD", False)
-        Me.SPI_MODE = SettingsFile.GetValue("SPI_MODE", SPI.SPI_CLOCK_POLARITY.SPI_MODE_0)
+        Me.SPI_MODE = CType(SettingsFile.GetValue("SPI_MODE", SPI.SPI_CLOCK_POLARITY.SPI_MODE_0), SPI.SPI_CLOCK_POLARITY)
         Me.SPI_EEPROM = SettingsFile.GetValue("SPI_EEPROM", "")
         Me.SPI_AUTO = SettingsFile.GetValue("SPI_AUTO", True)
         Me.SPI_NAND_DISABLE_ECC = SettingsFile.GetValue("SPI_NAND_ECC", False)
         Me.I2C_ADDRESS = CByte(SettingsFile.GetValue("I2C_ADDR", CInt(&HA0)))
-        Me.I2C_SPEED = SettingsFile.GetValue("I2C_SPEED", I2C_SPEED_MODE._400kHz)
+        Me.I2C_SPEED = CType(SettingsFile.GetValue("I2C_SPEED", I2C_SPEED_MODE._400kHz), I2C_SPEED_MODE)
         Me.I2C_INDEX = SettingsFile.GetValue("I2C_INDEX", -1)
         Me.SWI_ADDRESS = CByte(SettingsFile.GetValue("SWI_ADDR", CInt(&H0)))
         Me.NAND_Preserve = SettingsFile.GetValue("NAND_Preserve", True)
         Me.NAND_Verify = SettingsFile.GetValue("NAND_Verify", False)
-        Me.NAND_BadBlockManager = SettingsFile.GetValue("NAND_BadBlockMode", BadBlockMode.Disabled)
-        Me.NAND_BadBlockMarkers = SettingsFile.GetValue("NAND_BadBlockMarker", (BadBlockMarker._1stByte_FirstPage Or BadBlockMarker._1stByte_SecondPage Or BadBlockMarker._1stByte_LastPage))
+        Me.NAND_BadBlockManager = CType(SettingsFile.GetValue("NAND_BadBlockMode", BadBlockMode.Disabled), BadBlockMode)
+        Me.NAND_BadBlockMarkers = CType(SettingsFile.GetValue("NAND_BadBlockMarker", (BadBlockMarker._1stByte_FirstPage Or BadBlockMarker._1stByte_SecondPage Or BadBlockMarker._1stByte_LastPage)), BadBlockMarker)
         Me.NAND_SkipBadBlock = SettingsFile.GetValue("NAND_Mismatch", True)
-        Me.NAND_Layout = SettingsFile.GetValue("NAND_Layout", NandMemLayout.Separated)
-        Me.NAND_Speed = SettingsFile.GetValue("NAND_Speed", NandMemSpeed._20MHz)
+        Me.NAND_Layout = CType(SettingsFile.GetValue("NAND_Layout", NandMemLayout.Separated), NandMemLayout)
+        Me.NAND_Speed = CType(SettingsFile.GetValue("NAND_Speed", NandMemSpeed._20MHz), NandMemSpeed)
         Me.ECC_FEATURE_ENABLED = SettingsFile.GetValue("ECC_ENABLED", False)
         Me.S93_DEVICE = SettingsFile.GetValue("S93_DEVICE_NAME", "")
         Me.S93_DEVICE_ORG = SettingsFile.GetValue("S93_ORG", 0)
-        Me.SREC_DATAMODE = SettingsFile.GetValue("SREC_ORG", 0)
-        Me.JTAG_SPEED = SettingsFile.GetValue("JTAG_FREQ", JTAG.JTAG_SPEED._10MHZ)
+        Me.SREC_DATAMODE = CType(SettingsFile.GetValue("SREC_ORG", 0), SREC.RECORD_DATAWIDTH)
+        Me.JTAG_SPEED = CType(SettingsFile.GetValue("JTAG_FREQ", JTAG.JTAG_SPEED._10MHZ), JTAG.JTAG_SPEED)
         Me.NOR_READ_ACCESS = SettingsFile.GetValue("NOR_READ_ACCESS", 200)
         Me.NOR_WE_PULSE = SettingsFile.GetValue("NOR_WE_PULSE", 125)
         ValidateEEPROM()
@@ -269,7 +269,7 @@ Public Class SettingsIO_Registry
                     NAND_ECC_CFG(i) = New ECC_LIB.ECC_Configuration_Entry
                     NAND_ECC_CFG(i).PageSize = CUShort(sub_key.GetValue("PageSize"))
                     NAND_ECC_CFG(i).SpareSize = CUShort(sub_key.GetValue("SpareSize"))
-                    NAND_ECC_CFG(i).Algorithm = CInt(sub_key.GetValue("Algorithm"))
+                    NAND_ECC_CFG(i).Algorithm = CType(CInt(sub_key.GetValue("Algorithm")), ECC_LIB.ecc_algorithum)
                     NAND_ECC_CFG(i).BitError = CByte(sub_key.GetValue("BitError"))
                     NAND_ECC_CFG(i).SymSize = CByte(sub_key.GetValue("SymSize"))
                     NAND_ECC_CFG(i).ReverseData = CBool(sub_key.GetValue("ReverseData"))
@@ -354,7 +354,7 @@ Public Class SettingsIO_Registry
             If key Is Nothing Then Return Nothing
             Dim o As Object = key.GetValue(Name)
             If o Is Nothing Then Return Nothing
-            Return o
+            Return CType(o, Byte())
         Catch ex As Exception
             Return Nothing
         End Try
@@ -471,14 +471,14 @@ Public Class SettingsIO_INI
                                     ecc_entry.SpareSize = CUShort(key_value)
                                 ElseIf key_name.ToUpper.Equals("Algorithm".ToUpper()) Then
                                     If IsNumeric(key_value) Then
-                                        ecc_entry.Algorithm = CInt(key_value)
+                                        ecc_entry.Algorithm = CType(CInt(key_value), ECC_LIB.ecc_algorithum)
                                     Else
                                         If key_value.ToUpper.Equals("HAMMING") Then
-                                            ecc_entry.Algorithm = 0
+                                            ecc_entry.Algorithm = ECC_LIB.ecc_algorithum.hamming
                                         ElseIf key_value.ToUpper.Equals("REEDSOLOMON") Then
-                                            ecc_entry.Algorithm = 1
+                                            ecc_entry.Algorithm = ECC_LIB.ecc_algorithum.reedsolomon
                                         ElseIf key_value.ToUpper.Equals("BHC") Then
-                                            ecc_entry.Algorithm = 2
+                                            ecc_entry.Algorithm = ECC_LIB.ecc_algorithum.bhc
                                         End If
                                     End If
                                 ElseIf key_name.ToUpper.Equals("BitError".ToUpper()) Then

@@ -1,22 +1,24 @@
-﻿Imports FlashcatUSB.FlashMemory
-Imports LibUsbDotNet.Main
+﻿Imports LibUsbDotNet.Main
+Imports FlashcatUSB.FlashMemory
 
 Public Class DFU_Programmer : Implements MemoryDeviceUSB
     Public FCUSB As USB.FCUSB_DEVICE
 
+    Private transaction As Integer = 0
+
     Private Const USB_VID_ATMEL As Integer = &H3EB
-    Private Const USB_PID_AT90USB162 As Integer = &H2FFA 'FCUSB PCB 1.x
-    Private Const USB_PID_AT90USB1287 As Integer = &H2FFB 'FCUSB EX (PROTO)
-    Private Const USB_PID_AT90USB646 As Integer = &H2FF9 'FCUSB EX (PRODUCTION)
-    Private Const USB_PID_ATMEGA32U2 As Integer = &H2FF0 'FCUSB PCB 2.2
-    Private Const USB_PID_ATMEGA32U4 As Integer = &H2FF4 'FCUSB PCB 2.3
+    Private Const USB_PID_AT90USB646 As Integer = &H2FF9 'FCUSB XPORT 2.x
+    Private Const USB_PID_ATMEGA32U2 As Integer = &H2FF0 'FCUSB CLASSIC PCB 2.2
+    Private Const USB_PID_ATMEGA32U4 As Integer = &H2FF4 'FCUSB CLASSIC PCB 2.3
 
     Public Event PrintConsole(message As String) Implements MemoryDeviceUSB.PrintConsole
     Public Event SetProgress(percent As Integer) Implements MemoryDeviceUSB.SetProgress
 
     Sub New(parent_if As USB.FCUSB_DEVICE)
-        Me.FCUSB = parent_if
+        FCUSB = parent_if
     End Sub
+
+#Region "Public Interface"
 
     Public ReadOnly Property GetDevice As Device Implements MemoryDeviceUSB.GetDevice
         Get
@@ -27,10 +29,6 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
     Public ReadOnly Property DeviceName As String Implements MemoryDeviceUSB.DeviceName
         Get
             Select Case FCUSB.USBHANDLE.Info.Descriptor.ProductID
-                Case USB_PID_AT90USB162
-                    Return "Atmega AT90USB162"
-                Case USB_PID_AT90USB1287
-                    Return "Atmega AT90USB1287"
                 Case USB_PID_AT90USB646
                     Return "Atmega AT90USB646"
                 Case USB_PID_ATMEGA32U2
@@ -46,10 +44,6 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
     Public ReadOnly Property DeviceSize As Long Implements MemoryDeviceUSB.DeviceSize
         Get
             Select Case FCUSB.USBHANDLE.Info.Descriptor.ProductID
-                Case USB_PID_AT90USB162
-                    Return 12288 '0 to 0x2FFF (16KB total)
-                Case USB_PID_AT90USB1287 '0x0000 - 0xEFFF
-                    Return 122880'(120KB data, 8KB bootloader)
                 Case USB_PID_AT90USB646 '0x0000 - 0x77FF WORD
                     Return 61440 '(60KB, 4KB bootloader)
                 Case USB_PID_ATMEGA32U2, USB_PID_ATMEGA32U4
@@ -61,23 +55,23 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
     End Property
 
     Public Sub WaitUntilReady() Implements MemoryDeviceUSB.WaitUntilReady
-        Utilities.Sleep(10)
+        Utilities.Sleep(50)
     End Sub
 
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
-        FCUSB.USBFLAG_OUT = CByte(UsbCtrlFlags.RequestType_Class Or UsbCtrlFlags.Recipient_Interface Or UsbCtrlFlags.Direction_Out)
-        FCUSB.USBFLAG_IN = CByte(UsbCtrlFlags.RequestType_Class Or UsbCtrlFlags.Recipient_Interface Or UsbCtrlFlags.Direction_In)
+        FCUSB.USBFLAG_IN = (UsbCtrlFlags.Direction_In Or UsbCtrlFlags.RequestType_Class Or UsbCtrlFlags.Recipient_Interface)
+        FCUSB.USBFLAG_OUT = (UsbCtrlFlags.Direction_Out Or UsbCtrlFlags.RequestType_Class Or UsbCtrlFlags.Recipient_Interface)
         Return True
     End Function
 
-    Public Function ReadData(flash_offset As Long, data_count As Long) As Byte() Implements MemoryDeviceUSB.ReadData
+    Public Function ReadData(flash_offset As Long, data_count As Integer) As Byte() Implements MemoryDeviceUSB.ReadData
         Return Nothing 'NOT SUPPORTED
     End Function
 
-    Public Function WriteData(flash_offset As Long, data_to_write() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
+    Public Function WriteData(flash_offset As Long, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
         RaiseEvent SetProgress(0)
         Dim UsbStatus As DFU_STATUS
-        Dim EndAddress As Integer = data_to_write.Length
+        Dim EndAddress As Integer = data.Length
         Dim pEnd As Integer = 0
         Dim currentAddress As Integer = 0 'Test address of flash
         Dim Packet() As Byte
@@ -89,7 +83,7 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
                 ClearStatus()
                 Return False
             End If
-            Packet = PrepareDnData(data_to_write, currentAddress, pEnd)
+            Packet = PrepareDnData(data, currentAddress, pEnd)
             currentAddress = pEnd + 1
             If (Not SendData(Packet)) Then
                 PrintErrorMsg(GetStatus)
@@ -102,9 +96,9 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
         SendData(Nothing) 'End of firmware transmission
         Return True
     End Function
-
+    'Erases the flash (not bootloader section)
     Public Function EraseDevice() As Boolean Implements MemoryDeviceUSB.EraseDevice
-        If Not SendData(New Byte() {4, 0, 255}) Then Return False  'Chip Erase command
+        SendData(New Byte() {4, 0, 255}) 'Chip Erase command (not all device support this)
         Dim UsbStatus As DFU_STATUS = GetStatus()
         If Not UsbStatus.StatusCode = DFU_STATUS_CODE.OK Then
             PrintErrorMsg(UsbStatus)
@@ -114,25 +108,27 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
         Return True
     End Function
 
-    Public Function SectorFind(SectorIndex As UInteger) As Long Implements MemoryDeviceUSB.SectorFind
+    Public Function SectorFind(SectorIndex As Integer) As Long Implements MemoryDeviceUSB.SectorFind
         Throw New NotImplementedException()
     End Function
 
-    Public Function SectorErase(SectorIndex As UInteger) As Boolean Implements MemoryDeviceUSB.SectorErase
+    Public Function SectorErase(SectorIndex As Integer) As Boolean Implements MemoryDeviceUSB.SectorErase
         Throw New NotImplementedException()
     End Function
 
-    Public Function SectorCount() As UInteger Implements MemoryDeviceUSB.SectorCount
+    Public Function SectorCount() As Integer Implements MemoryDeviceUSB.SectorCount
         Throw New NotImplementedException()
     End Function
 
-    Public Function SectorWrite(SectorIndex As UInteger, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
+    Public Function SectorWrite(SectorIndex As Integer, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
         Throw New NotImplementedException()
     End Function
 
-    Public Function SectorSize(sector As UInteger) As UInteger Implements MemoryDeviceUSB.SectorSize
+    Public Function SectorSize(sector As Integer) As Integer Implements MemoryDeviceUSB.SectorSize
         Throw New NotImplementedException()
     End Function
+
+#End Region
 
 #Region "Enums"
 
@@ -146,7 +142,7 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
         ABORT = 6
     End Enum
 
-    Private Enum DFU_STATUS_CODE
+    Enum DFU_STATUS_CODE
         OK = 0 'No error condition is present
         errTARGET = 1 'File is not targeted for use by this device
         errFILE = 2 'File is for this device but fails some vendor-specific verification test
@@ -165,7 +161,7 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
         errSTALLEDPK = 15 'Device stalled an unexpected request
     End Enum
 
-    Private Enum DFU_STATE_CODE
+    Enum DFU_STATE_CODE
         appIDLE = 0 'Device is running its normal application
         appDETACH = 1 'Device is running its normal application, has received the DFU_DETACH request, and is waiting for a USB reset 
         dfuIDLE = 2 'Device is operating in the DFU mode and is waiting for requests
@@ -181,10 +177,7 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
 
 #End Region
 
-    Private Const USB_DT_DEVICE As Byte = 1
-    Private transaction As Integer = 0
-
-    Private Structure DFU_STATUS
+    Structure DFU_STATUS
         Dim Err As Boolean 'True if device failed to retrieve this object
         Dim StatusCode As DFU_STATUS_CODE 'The status code
         Dim Timeout As Integer 'Minimum time in milliseconds that the host should wait
@@ -192,13 +185,7 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
         Dim iString As Integer 'Index of status description in string table.
     End Structure
 
-    Private USB_VERSION As Integer '0x0200 = 2.0
-    Private MAX_PCK As Integer 'Max packet size for endpoint zero (limited to 32 due to Host side driver)
-    Private VEND_ID As Integer
-    Private PRD_ID As Integer
-    Private IfIndex As Integer 'bInterfaceNumber
-
-    Private Function GetStatus() As DFU_STATUS
+    Public Function GetStatus() As DFU_STATUS
         Dim retStat As DFU_STATUS
         Dim rMem(5) As Byte
         retStat.Err = Not GetStatus(rMem)
@@ -208,11 +195,9 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
         retStat.iString = rMem(5)
         Return retStat
     End Function
-
     'Starts the application
     Public Function RunApp() As Boolean
-        Dim Res As Integer = 0
-        Res = SendData(New Byte() {4, 3, 0}) 'Start App command
+        If Not SendData(New Byte() {4, 3, 0}) Then Return False 'Start App command
         Dim UsbStatus As DFU_STATUS = GetStatus()
         If Not UsbStatus.StatusCode = DFU_STATUS_CODE.OK Then
             PrintErrorMsg(UsbStatus)
@@ -314,26 +299,9 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
         Return RetData
     End Function
 
-    Private Function GetDfuSuffix() As Byte()
-        Dim ret(15) As Byte
-        ret(4) = 16 'Size of this suffix
-        ret(5) = &H44
-        ret(6) = &H46
-        ret(7) = &H55
-        ret(8) = &H1
-        ret(9) = &H0
-        ret(10) = &HFF
-        ret(11) = &HFF
-        ret(12) = &HFF
-        ret(13) = &HFF
-        ret(14) = &HFF
-        ret(15) = &HFF
-        Return ret
-    End Function
-
     Private Function GetStatus(ByRef buff() As Byte) As Boolean
         Try
-            Return FCUSB.USB_CONTROL_MSG_IN(DFU_OPCODE.GETSTATUS, buff)
+            Return Me.FCUSB.USB_CONTROL_MSG_IN(CType(DFU_OPCODE.GETSTATUS, USB.USBREQ), buff)
         Catch ex As Exception
         End Try
         Return False
@@ -342,16 +310,16 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
     Private Function SendData(data() As Byte) As Boolean
         Try
             Dim setup_data As UInt32 = (CUInt(Math.Max(Threading.Interlocked.Increment(transaction), transaction - 1)) << 16)
-            Return FCUSB.USB_CONTROL_MSG_OUT(DFU_OPCODE.DNLOAD, data, setup_data)
+            Return Me.FCUSB.USB_CONTROL_MSG_OUT(CType(DFU_OPCODE.DNLOAD, USB.USBREQ), data, setup_data)
         Catch ex As Exception
             Return False
         End Try
     End Function
 
-    Private Function ReadData(ByRef data() As Byte) As Boolean
+    Private Function GetData(ByRef data() As Byte) As Boolean
         Try
-            Dim setup_data As UInt32 = (CShort(Math.Max(Threading.Interlocked.Increment(transaction), transaction - 1)) << 16)
-            Return FCUSB.USB_CONTROL_MSG_IN(DFU_OPCODE.UPLOAD, data, setup_data)
+            Dim setup_data As UInt32 = (CUInt(Math.Max(Threading.Interlocked.Increment(transaction), transaction - 1)) << 16)
+            Return Me.FCUSB.USB_CONTROL_MSG_IN(CType(DFU_OPCODE.UPLOAD, USB.USBREQ), data, setup_data)
         Catch ex As Exception
             Return False
         End Try
@@ -360,7 +328,7 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
     Private Function ClearStatus() As Boolean
         Try
             transaction = 0
-            Return FCUSB.USB_CONTROL_MSG_OUT(DFU_OPCODE.CLRSTATUS)
+            Return Me.FCUSB.USB_CONTROL_MSG_OUT(CType(DFU_OPCODE.CLRSTATUS, USB.USBREQ))
         Catch ex As Exception
             Return False
         End Try
@@ -369,7 +337,7 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
     Private Function GetState() As Integer
         Try
             Dim s_byte(0) As Byte
-            Return FCUSB.USB_CONTROL_MSG_IN(DFU_OPCODE.GETSTATE, s_byte)
+            Me.FCUSB.USB_CONTROL_MSG_IN(CType(DFU_OPCODE.GETSTATE, USB.USBREQ), s_byte)
             Return s_byte(0)
         Catch ex As Exception
             Return -1 'Error
@@ -378,7 +346,7 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
 
     Private Function Abort() As Boolean
         Try
-            Return FCUSB.USB_CONTROL_MSG_OUT(DFU_OPCODE.ABORT)
+            Return Me.FCUSB.USB_CONTROL_MSG_OUT(CType(DFU_OPCODE.ABORT, USB.USBREQ))
         Catch ex As Exception
             Return False
         End Try

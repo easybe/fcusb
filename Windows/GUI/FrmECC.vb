@@ -83,9 +83,9 @@
 
     Private Sub cmdOkay_Click(sender As Object, e As EventArgs) Handles cmdOkay.Click
         Me.DialogResult = DialogResult.OK
-        MyConfiguration.Algorithm = cbAlgorithm.SelectedIndex
-        MyConfiguration.PageSize = cbPageSize.SelectedItem
-        MyConfiguration.SpareSize = cbSpareSize.SelectedItem
+        MyConfiguration.Algorithm = CType(cbAlgorithm.SelectedIndex, ECC_LIB.ecc_algorithum)
+        MyConfiguration.PageSize = CUShort(cbPageSize.SelectedItem)
+        MyConfiguration.SpareSize = CUShort(cbSpareSize.SelectedItem)
         Select Case cb_ECC_BITERR.SelectedIndex
             Case 0
                 MyConfiguration.BitError = 1
@@ -107,11 +107,11 @@
                 MyConfiguration.SymSize = 10
         End Select
         MyConfiguration.ReverseData = cb_rs_reverse_data.Checked
-        Dim sector_count As Integer = (MyConfiguration.PageSize / 512)
-        Dim ecc_data As Integer = ECC_LIB.GetEccDataSize(MyConfiguration)
+        Dim sector_count As Integer = (MyConfiguration.PageSize \ 512)
+        Dim ecc_data As UInt16 = ECC_LIB.GetEccDataSize(MyConfiguration)
         If MyConfiguration.EccRegion Is Nothing OrElse Not MyConfiguration.EccRegion.Length = sector_count Then
             ReDim MyConfiguration.EccRegion(sector_count - 1)
-            Dim ptr As Integer = 2
+            Dim ptr As UInt16 = 2
             For i = 0 To sector_count - 1
                 MyConfiguration.EccRegion(i) = ptr
                 ptr += ecc_data

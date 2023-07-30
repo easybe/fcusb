@@ -80,7 +80,7 @@
         SBAR.Minimum = 1
         If (PBOX.Height > 0) Then
             Background = CreateBackground()
-            PBOX.Image = Background.Clone
+            PBOX.Image = CType(Background.Clone, Image)
         End If
         IsLoaded = True
     End Sub
@@ -103,7 +103,7 @@
         SBAR.Minimum = 1
         If (PBOX.Height > 0) Then
             Background = CreateBackground()
-            PBOX.Image = Background.Clone
+            PBOX.Image = CType(Background.Clone, Image)
         End If
         IsLoaded = True
         Me.UpdateScreen()
@@ -138,7 +138,7 @@
                         End If
                     Else
                         Dim x As Integer = GetVisisbleDataAreaCount()
-                        SBAR.Value = Math.Floor(TopAddress / x) + 1
+                        SBAR.Value = CInt(Math.Floor(TopAddress / x) + 1)
                     End If
                     UpdateScreen()
                 End If
@@ -154,12 +154,12 @@
     Public Function GetVisisbleDataAreaCount() As Integer
         Try
             If (PBOX.Width < 100) Then Return 0
-            Dim addr_area As Integer = ((Me.HexDataByteSize * 2) * char_width)
+            Dim addr_area As Integer = CInt((Me.HexDataByteSize * 2) * char_width)
             Dim x As Single = PBOX.Width - (SBAR.Width + addr_area)
             Dim y As Single = (x / 3)
             Dim hex_area As Single = (y * 2) - (CSng(PBOX.Width) / 12.0F) - 2
-            Dim hex_pair_size As Single = (char_width * 2) + 1.2
-            Dim hex_count As Integer = Math.Floor(hex_area / hex_pair_size)
+            Dim hex_pair_size As Single = CSng(char_width * 2) + 1.2F
+            Dim hex_count As Integer = CInt(Math.Floor(hex_area / hex_pair_size))
             Do Until hex_count Mod 4 = 0
                 hex_count = hex_count - 1
             Loop
@@ -180,7 +180,7 @@
 
     Private Function CreateBackground() As Image
         Try
-            Dim bg_img As Image = New Bitmap(PBOX.Width, PBOX.Height)
+            Dim bg_img As Bitmap = New Bitmap(PBOX.Width, PBOX.Height)
             SetBitmapColor(bg_img, Brushes.White)
             If char_width = 0 Then
                 Dim gfx As Graphics = Graphics.FromImage(bg_img)
@@ -214,7 +214,7 @@
                 BytesPerLine = GetVisisbleDataAreaCount() 'Each column = 1 byte
                 Dim TotalLines As Int32 = GetNumOfVisibleLines()
                 If TotalLines = 0 Or BytesPerLine = 0 Then Exit Sub
-                Dim newBG As Image = Background.Clone
+                Dim newBG As Image = CType(Background.Clone, Image)
                 Using gfx As Graphics = Graphics.FromImage(newBG)
                     Dim MaxDataShown As Long = (TotalLines * BytesPerLine) 'Total amount of bytes that we can show
                     HexView_AtBottom = False
@@ -231,9 +231,9 @@
                         TopAddress = 0
                     End If
                     SBAR.Refresh() 'Recently added
-                    Dim DataToGet As Long = BaseSize - TopAddress 'The amount of bytes we need to display in the box
+                    Dim DataToGet As Integer = CInt(BaseSize - TopAddress) 'The amount of bytes we need to display in the box
                     If (DataToGet > MaxDataShown) Then
-                        DataToGet = MaxDataShown
+                        DataToGet = CInt(MaxDataShown)
                     End If
                     ReDim ScreenData(DataToGet - 1)
                     If PreCache Is Nothing Then
@@ -243,7 +243,7 @@
                     End If
                     If ScreenData IsNot Nothing Then
                         Dim AddrIndex As Long = 0
-                        Dim LinesToDraw As UInt32 = CInt(Math.Ceiling(DataToGet / BytesPerLine))
+                        Dim LinesToDraw As Integer = CInt(Math.Ceiling(DataToGet / BytesPerLine))
                         For i = 0 To LinesToDraw - 1
                             Dim BytesForLine() As Byte
                             If DataToGet > BytesPerLine Then
@@ -271,23 +271,23 @@
         End If
     End Sub
 
-    Private Sub Drawline(LineIndex As Int32, FullAddr As UInt64, ByteCount As Integer, data() As Byte, gfx As Graphics)
-        Dim YLOC As Integer = (LineIndex * Math.Round(char_height + 1)) + 1
-        Dim AddrStr As String = Hex(FullAddr).PadLeft(Me.HexDataByteSize * 2, "0") & ": "
+    Private Sub Drawline(LineIndex As Int32, mem_addr As Long, ByteCount As Integer, data() As Byte, gfx As Graphics)
+        Dim YLOC As Integer = CInt(LineIndex * Math.Round(char_height + 1)) + 1
+        Dim AddrStr As String = Hex(mem_addr).PadLeft(Me.HexDataByteSize * 2, "0"c) & ": "
         gfx.DrawString(AddrStr, MyFont, Brushes.Gray, 0, YLOC)
         Dim w As SizeF = gfx.MeasureString(AddrStr, MyFont)
-        PTR_CHAR_SIZE = Math.Ceiling(w.Width / CSng(AddrStr.Length))
-        PTR_HEX_POINT = w.Width
-        PTR_ASCII_POINT = w.Width + (BytesPerLine * ((PTR_CHAR_SIZE * 2) + 2)) + 8
+        PTR_CHAR_SIZE = CInt(Math.Ceiling(w.Width / CSng(AddrStr.Length)))
+        PTR_HEX_POINT = CInt(w.Width)
+        PTR_ASCII_POINT = CInt(w.Width + (BytesPerLine * ((PTR_CHAR_SIZE * 2) + 2))) + 8
         Dim hex_location As Integer = PTR_HEX_POINT
         Dim ascii_location As Integer = PTR_ASCII_POINT
         For i = 0 To data.Length - 1
             Dim current_byte As Byte = data(i)
             If Me.EDIT_MODE AndAlso HexEditMode_IsChanged(Me.TopAddress + (LineIndex * ByteCount) + i, current_byte) Then
-                gfx.DrawString(Hex(current_byte).PadLeft(2, "0"), MyFont, Brushes.Red, New Point(hex_location, YLOC))
+                gfx.DrawString(Hex(current_byte).PadLeft(2, "0"c), MyFont, Brushes.Red, New Point(hex_location, YLOC))
                 gfx.DrawString(GetAsciiForByte(current_byte), MyFont, Brushes.Red, New Point(ascii_location, YLOC))
             Else
-                gfx.DrawString(Hex(current_byte).PadLeft(2, "0"), MyFont, Brushes.Black, New Point(hex_location, YLOC))
+                gfx.DrawString(Hex(current_byte).PadLeft(2, "0"c), MyFont, Brushes.Black, New Point(hex_location, YLOC))
                 gfx.DrawString(GetAsciiForByte(current_byte), MyFont, Brushes.Gray, New Point(ascii_location, YLOC))
             End If
             hex_location += (PTR_CHAR_SIZE * 2) + 2
@@ -308,7 +308,7 @@
         Try
             If BytesPerLine = -1 Then Exit Sub
             If (ThisAddr + 1) > BaseSize Then ThisAddr = BaseSize
-            Dim MyValue As Long = Math.Floor(ThisAddr / BytesPerLine) + 1
+            Dim MyValue As Integer = CInt((ThisAddr \ BytesPerLine) + 1)
             If MyValue > SBAR.Maximum Then MyValue = SBAR.Maximum
             SBAR.Value = MyValue
         Catch ex As Exception
@@ -395,9 +395,9 @@
         If (SELECTED_HEX_ITEM.X > -1) Then
             If SELECTED_HEX_ITEM.Y > (TotalLines - 1) Then Exit Sub
             Dim box_x As Integer = (PTR_HEX_POINT + (SELECTED_HEX_ITEM.X * PTR_CHAR_SIZE * 2)) + (SELECTED_HEX_ITEM.X * 2) + 1
-            Dim box_y As Integer = (SELECTED_HEX_ITEM.Y * (char_height + 1))
+            Dim box_y As Integer = CInt(SELECTED_HEX_ITEM.Y * (char_height + 1))
             Dim box_width As Integer = (PTR_CHAR_SIZE * 2) + 1
-            Dim box_height As Integer = Math.Round(char_height - 2) + 1
+            Dim box_height As Integer = CInt(Math.Round(char_height - 2) + 1)
             For x = box_x To box_x + box_width - 1
                 For y = box_y To box_y + box_height - 1
                     If (x < img.Width) AndAlso (y < img.Height) Then
@@ -410,9 +410,9 @@
         ElseIf (SELECTED_ASCII_ITEM.X > -1) Then
             If SELECTED_ASCII_ITEM.Y > (TotalLines - 1) Then Exit Sub
             Dim box_x As Integer = (PTR_ASCII_POINT + (SELECTED_ASCII_ITEM.X * PTR_CHAR_SIZE * 1)) + (SELECTED_ASCII_ITEM.X * 2) + 1
-            Dim box_y As Integer = (SELECTED_ASCII_ITEM.Y * (char_height + 1))
+            Dim box_y As Integer = CInt(SELECTED_ASCII_ITEM.Y * (char_height + 1))
             Dim box_width As Integer = (PTR_CHAR_SIZE) + 1
-            Dim box_height As Integer = Math.Round(char_height - 2) + 1
+            Dim box_height As Integer = CInt(Math.Round(char_height - 2) + 1)
             For x = box_x To box_x + box_width - 1
                 For y = box_y To box_y + box_height - 1
                     If (x < img.Width) AndAlso (y < img.Height) Then
@@ -458,16 +458,16 @@
         Try : MouseIsMoving = True
             If (e.X >= PTR_HEX_POINT AndAlso e.X < PTR_ASCII_POINT - 8) Then
                 SELECTED_ASCII_ITEM = New Point(-1, -1)
-                Dim hex_x_offset As Integer = Math.Floor(((e.X - PTR_HEX_POINT) / (PTR_CHAR_SIZE + 1)) / 2)
-                Dim hex_y_offset As Integer = Math.Floor((e.Y / (char_height + 1)) + 0)
+                Dim hex_x_offset As Integer = CInt(Math.Floor(((e.X - PTR_HEX_POINT) / (PTR_CHAR_SIZE + 1)) / 2))
+                Dim hex_y_offset As Integer = CInt(Math.Floor((e.Y / (char_height + 1))))
                 If Not SELECTED_HEX_ITEM.Equals(New Point(hex_x_offset, hex_y_offset)) Then
                     SELECTED_HEX_ITEM = New Point(hex_x_offset, hex_y_offset)
                     PerformScreenUpdate = True
                 End If
             ElseIf (e.X >= PTR_ASCII_POINT AndAlso e.X < PTR_END) Then
                 SELECTED_HEX_ITEM = New Point(-1, -1)
-                Dim hex_x_offset As Integer = Math.Floor(((e.X - PTR_ASCII_POINT) / (PTR_CHAR_SIZE + 2)) / 1)
-                Dim hex_y_offset As Integer = Math.Floor((e.Y / (char_height + 1)) + 0)
+                Dim hex_x_offset As Integer = CInt(Math.Floor(((e.X - PTR_ASCII_POINT) / (PTR_CHAR_SIZE + 2)) / 1))
+                Dim hex_y_offset As Integer = CInt(Math.Floor((e.Y / (char_height + 1))))
                 If (hex_x_offset < BytesPerLine) Then
                     If Not SELECTED_ASCII_ITEM.Equals(New Point(hex_x_offset, hex_y_offset)) Then
                         SELECTED_ASCII_ITEM = New Point(hex_x_offset, hex_y_offset)
@@ -547,7 +547,7 @@
 
     Private Sub SelectHexItem()
         Dim box_x As Integer = (PTR_HEX_POINT + (SELECTED_HEX_ITEM.X * PTR_CHAR_SIZE * 2)) + (SELECTED_HEX_ITEM.X * 2) + 2
-        Dim box_y As Integer = (SELECTED_HEX_ITEM.Y * (char_height + 1))
+        Dim box_y As Integer = (SELECTED_HEX_ITEM.Y * CInt(char_height + 1))
         Dim sel_data As Integer = (SELECTED_HEX_ITEM.Y * BytesPerLine) + SELECTED_HEX_ITEM.X
         If sel_data >= ScreenData.Length Then
             SELECTED_HEX_ITEM = New Point(-1, -1)
@@ -578,8 +578,8 @@
             If address < Me.TopAddress Then Exit Sub
             If address > (Me.TopAddress + (v_lines * b_per_line)) Then Exit Sub
             Dim offset As Long = address - Me.TopAddress
-            SELECTED_HEX_ITEM.X = (offset Mod b_per_line)
-            SELECTED_HEX_ITEM.Y = Math.Floor(offset / v_lines)
+            SELECTED_HEX_ITEM.X = (CInt(offset) Mod b_per_line)
+            SELECTED_HEX_ITEM.Y = CInt(Math.Floor(offset / v_lines))
             SELECTED_ASCII_ITEM = New Point(-1, -1)
             SelectHexItem()
         Catch ex As Exception
@@ -588,7 +588,7 @@
 
     Private Sub SelectAsciiItem()
         Dim box_x As Integer = (PTR_ASCII_POINT + (SELECTED_ASCII_ITEM.X * PTR_CHAR_SIZE * 1)) + (SELECTED_ASCII_ITEM.X * 2) + 2
-        Dim box_y As Integer = (SELECTED_ASCII_ITEM.Y * (char_height + 1))
+        Dim box_y As Integer = (SELECTED_ASCII_ITEM.Y * CInt(char_height + 1))
         Dim sel_data As Integer = (SELECTED_ASCII_ITEM.Y * BytesPerLine) + SELECTED_ASCII_ITEM.X
         If sel_data >= ScreenData.Length Then
             SELECTED_HEX_ITEM = New Point(-1, -1)
@@ -627,9 +627,9 @@
             Dim b_per_line As Integer = BytesPerLine
             If address < Me.TopAddress Then Exit Sub
             If address > (Me.TopAddress + (v_lines * b_per_line)) Then Exit Sub
-            Dim offset As Long = address - Me.TopAddress
+            Dim offset As Integer = CInt(address - Me.TopAddress)
             SELECTED_ASCII_ITEM.X = (offset Mod b_per_line)
-            SELECTED_ASCII_ITEM.Y = Math.Floor(offset / v_lines)
+            SELECTED_ASCII_ITEM.Y = CInt(Math.Floor(offset / v_lines))
             SELECTED_HEX_ITEM = New Point(-1, -1)
             SelectAsciiItem()
         Catch ex As Exception
@@ -736,7 +736,7 @@
     End Sub
     'Number of pixels between two points
     Private Function PointDiff(p1 As Point, p2 As Point) As Integer
-        Return Math.Sqrt((Math.Abs(p2.X - p1.X) ^ 2) + (Math.Abs(p2.Y - p1.Y) ^ 2))
+        Return CInt(Math.Sqrt((Math.Abs(p2.X - p1.X) ^ 2) + (Math.Abs(p2.Y - p1.Y) ^ 2)))
     End Function
 
     Public Function MouseIsOverControl(c As Control) As Boolean

@@ -72,8 +72,8 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         End Get
     End Property
 
-    Public Function SectorSize(sector As UInteger) As UInteger Implements MemoryDeviceUSB.SectorSize
-        Return Me.DeviceSize
+    Public Function SectorSize(sector As Integer) As Integer Implements MemoryDeviceUSB.SectorSize
+        Return CInt(Me.DeviceSize)
     End Function
 
     Public Function IsConnected() As Boolean
@@ -90,7 +90,7 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         Try
             Dim packet_out(0) As Byte
             If Not FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.I2C_RESULT, packet_out) Then Return I2C_STATUS.USBFAIL
-            Return packet_out(0)
+            Return CType(packet_out(0), I2C_STATUS)
         Catch ex As Exception
             Return I2C_STATUS.ERROR
         End Try
@@ -102,19 +102,19 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         [ERROR] = &H51
     End Enum
 
-    Public Function ReadData(flash_offset As Long, data_count As Long) As Byte() Implements MemoryDeviceUSB.ReadData
+    Public Function ReadData(flash_offset As Long, data_count As Integer) As Byte() Implements MemoryDeviceUSB.ReadData
         Try
             Dim setup_data(6) As Byte
             Dim result As Boolean = False
-            setup_data(0) = ((flash_offset >> 24) And 255)
-            setup_data(1) = ((flash_offset >> 16) And 255)
-            setup_data(2) = ((flash_offset >> 8) And 255)
-            setup_data(3) = (flash_offset And 255)
-            setup_data(4) = ((data_count >> 16) And 255)
-            setup_data(5) = ((data_count >> 8) And 255)
-            setup_data(6) = (data_count And 255)
+            setup_data(0) = CByte((flash_offset >> 24) And 255)
+            setup_data(1) = CByte((flash_offset >> 16) And 255)
+            setup_data(2) = CByte((flash_offset >> 8) And 255)
+            setup_data(3) = CByte(flash_offset And 255)
+            setup_data(4) = CByte((data_count >> 16) And 255)
+            setup_data(5) = CByte((data_count >> 8) And 255)
+            setup_data(6) = CByte(data_count And 255)
             Dim data_out(data_count - 1) As Byte
-            result = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.I2C_READEEPROM, setup_data, data_out, data_count)
+            result = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.I2C_READEEPROM, setup_data, data_out, CUInt(data_count))
             If Not result Then Return Nothing
             If GetResultStatus() = I2C_STATUS.NOERROR Then Return data_out
         Catch ex As Exception
@@ -125,16 +125,16 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
     Public Function WriteData(flash_offset As Long, data_to_write() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
         Try
             Dim setup_data(6) As Byte
-            Dim data_count As UInt32 = data_to_write.Length
+            Dim data_count As Integer = data_to_write.Length
             Dim result As Boolean = False
-            setup_data(0) = ((flash_offset >> 24) And 255)
-            setup_data(1) = ((flash_offset >> 16) And 255)
-            setup_data(2) = ((flash_offset >> 8) And 255)
-            setup_data(3) = (flash_offset And 255)
-            setup_data(4) = ((data_count >> 16) And 255)
-            setup_data(5) = ((data_count >> 8) And 255)
-            setup_data(6) = (data_count And 255)
-            result = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.I2C_WRITEEEPROM, setup_data, data_to_write, data_count)
+            setup_data(0) = CByte((flash_offset >> 24) And 255)
+            setup_data(1) = CByte((flash_offset >> 16) And 255)
+            setup_data(2) = CByte((flash_offset >> 8) And 255)
+            setup_data(3) = CByte(flash_offset And 255)
+            setup_data(4) = CByte((data_count >> 16) And 255)
+            setup_data(5) = CByte((data_count >> 8) And 255)
+            setup_data(6) = CByte(data_count And 255)
+            result = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.I2C_WRITEEEPROM, setup_data, data_to_write, CUInt(data_count))
             If Not result Then Return False
             FCUSB.USB_WaitForComplete() 'It may take a few microseconds to complete
             If GetResultStatus() = I2C_STATUS.NOERROR Then Return True
@@ -151,19 +151,19 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         Utilities.Sleep(100)
     End Sub
 
-    Public Function SectorFind(SectorIndex As UInteger) As Long Implements MemoryDeviceUSB.SectorFind
+    Public Function SectorFind(SectorIndex As Integer) As Long Implements MemoryDeviceUSB.SectorFind
         Return 0
     End Function
 
-    Public Function SectorErase(SectorIndex As UInteger) As Boolean Implements MemoryDeviceUSB.SectorErase
+    Public Function SectorErase(SectorIndex As Integer) As Boolean Implements MemoryDeviceUSB.SectorErase
         Return True
     End Function
 
-    Public Function SectorCount() As UInteger Implements MemoryDeviceUSB.SectorCount
+    Public Function SectorCount() As Integer Implements MemoryDeviceUSB.SectorCount
         Return 1
     End Function
 
-    Public Function SectorWrite(SectorIndex As UInteger, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
+    Public Function SectorWrite(SectorIndex As Integer, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
         Return False 'Not supported
     End Function
 

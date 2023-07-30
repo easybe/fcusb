@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2020 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2021 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB
 'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
@@ -35,24 +35,24 @@ Namespace SPI
             Dim DEVICEID As SPI_IDENT = ReadDeviceID() 'Sends RDID/REMS/RES command and reads back
             If (DEVICEID.MANU = &HFF Or DEVICEID.MANU = 0) Then 'Check REMS
                 If Not ((DEVICEID.REMS = &HFFFF) Or (DEVICEID.REMS = &H0)) Then
-                    MFG = (DEVICEID.REMS >> 8)
-                    ID1 = (DEVICEID.REMS And 255)
+                    MFG = CByte(DEVICEID.REMS >> 8)
+                    ID1 = CByte(DEVICEID.REMS And 255)
                     ReadSuccess = True 'RDID did not return anything, but REMS did
                 End If
             ElseIf (DEVICEID.RDID = &HFFFFFFFFUI) Or (DEVICEID.RDID = 0) Then
             Else
                 MFG = DEVICEID.MANU
-                ID1 = (DEVICEID.RDID >> 16)
-                ID2 = (DEVICEID.RDID And &HFFFF)
+                ID1 = CUShort(DEVICEID.RDID >> 16)
+                ID2 = CUShort(DEVICEID.RDID And &HFFFF)
                 ReadSuccess = True
             End If
             If ReadSuccess Then
                 RaiseEvent PrintConsole(RM.GetString("spi_device_opened"))
-                Dim RDID_Str As String = "0x" & Hex(DEVICEID.MANU).PadLeft(2, "0") & Hex((DEVICEID.RDID And &HFFFF0000UL) >> 16).PadLeft(4, "0")
-                Dim RDID2_Str As String = Hex(DEVICEID.RDID And &HFFFF).PadLeft(4, "0")
-                Dim REMS_Str As String = "0x" & Hex(DEVICEID.REMS).PadLeft(4, "0")
+                Dim RDID_Str As String = "0x" & Hex(DEVICEID.MANU).PadLeft(2, "0"c) & Hex((DEVICEID.RDID And &HFFFF0000UL) >> 16).PadLeft(4, "0"c)
+                Dim RDID2_Str As String = Hex(DEVICEID.RDID And &HFFFF).PadLeft(4, "0"c)
+                Dim REMS_Str As String = "0x" & Hex(DEVICEID.REMS).PadLeft(4, "0"c)
                 RaiseEvent PrintConsole(String.Format(RM.GetString("spi_connected_to_flash_spi"), RDID_Str, REMS_Str))
-                MyFlashDevice = FlashDatabase.FindDevice(MFG, ID1, ID2, MemoryType.SERIAL_NOR, DEVICEID.FMY)
+                MyFlashDevice = CType(FlashDatabase.FindDevice(MFG, ID1, ID2, MemoryType.SERIAL_NOR, DEVICEID.FMY), SPI_NOR)
                 If MyFlashDevice IsNot Nothing Then
                     MyFlashStatus = DeviceStatus.Supported
                     ResetDevice()
@@ -106,90 +106,89 @@ Namespace SPI
             End Get
         End Property
 
-        Friend Function SectorSize(sector As UInt32) As UInt32 Implements MemoryDeviceUSB.SectorSize
+        Friend Function SectorSize(sector As Integer) As Integer Implements MemoryDeviceUSB.SectorSize
             If Not MyFlashStatus = USB.DeviceStatus.Supported Then Return 0
             If MyFlashDevice.ERASE_REQUIRED Then
                 If Me.ExtendedPage Then
-                    Dim page_count As Integer = (MyFlashDevice.ERASE_SIZE / MyFlashDevice.PAGE_SIZE)
+                    Dim page_count As Integer = CInt(MyFlashDevice.ERASE_SIZE \ MyFlashDevice.PAGE_SIZE)
                     Return (MyFlashDevice.PAGE_SIZE_EXTENDED * page_count)
                 Else
-                    Return MyFlashDevice.ERASE_SIZE
+                    Return CInt(MyFlashDevice.ERASE_SIZE)
                 End If
             Else
-                Return MyFlashDevice.FLASH_SIZE
+                Return CInt(MyFlashDevice.FLASH_SIZE)
             End If
         End Function
 
-        Friend Function SectorFind(sector_index As UInt32) As Long Implements MemoryDeviceUSB.SectorFind
+        Friend Function SectorFind(sector_index As Integer) As Long Implements MemoryDeviceUSB.SectorFind
             If sector_index = 0 Then Return 0 'Addresses start at the base address 
             Return Me.SectorSize(0) * sector_index
         End Function
 
-        Friend Function SectorCount() As UInt32 Implements MemoryDeviceUSB.SectorCount
+        Friend Function SectorCount() As Integer Implements MemoryDeviceUSB.SectorCount
             If MyFlashStatus = USB.DeviceStatus.Supported Then
                 Dim EraseSize As UInt32 = MyFlashDevice.ERASE_SIZE
                 If EraseSize = 0 Then Return 1
-                Dim FlashSize As UInt32 = Me.DeviceSize()
+                Dim FlashSize As Long = Me.DeviceSize()
                 If FlashSize < EraseSize Then Return 1
                 Return CInt(FlashSize / EraseSize)
             End If
             Return 0
         End Function
 
-        Friend Function ReadData(flash_offset As Long, data_count As Long) As Byte() Implements MemoryDeviceUSB.ReadData
+        Friend Function ReadData(flash_offset As Long, data_count As Integer) As Byte() Implements MemoryDeviceUSB.ReadData
+            Dim flash_offset32 As UInt32 = CUInt(flash_offset)
             If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             Dim data_to_read(data_count - 1) As Byte
-            Dim bytes_left As UInt32 = data_count
-            Dim buffer_size As UInt32 = 0
-            Dim array_ptr As UInt32 = 0
+            Dim bytes_left As Integer = data_count
+            Dim buffer_size As Integer = 0
+            Dim array_ptr As Integer = 0
             Dim read_cmd As Byte = MyFlashDevice.OP_COMMANDS.READ
             Dim dummy_clocks As Byte = 0
             If MySettings.SPI_FASTREAD AndAlso FCUSB.HasLogic() Then
                 read_cmd = MyFlashDevice.OP_COMMANDS.FAST_READ
             End If
             If (Me.MyFlashDevice.ProgramMode = FlashMemory.SPI_ProgramMode.Atmel45Series) Then
-                Return AT45_ReadData(CUInt(flash_offset), CUInt(data_count))
+                Return AT45_ReadData(flash_offset32, data_count)
             ElseIf Me.MyFlashDevice.ProgramMode = FlashMemory.SPI_ProgramMode.SPI_EEPROM Then
                 If MyFlashDevice.ADDRESSBITS = 8 Then 'Used on ST M95010 - M95040 (8bit) and ATMEL devices (AT25010A - AT25040A)
-                    If (flash_offset > 255) Then read_cmd = CByte(read_cmd Or 8) 'Used on M95040 / AT25040A
-                    Dim setup_class As New ReadSetupPacket(read_cmd, CUInt(flash_offset And 255), data_to_read.Length, MyFlashDevice.AddressBytes)
-                    FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_READFLASH, setup_class.ToBytes, data_to_read, 0)
-                Else
-                    Dim setup_class As New ReadSetupPacket(read_cmd, flash_offset, data_to_read.Length, MyFlashDevice.AddressBytes) With {.DUMMY = dummy_clocks}
-                    FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_READFLASH, setup_class.ToBytes, data_to_read, 0)
+                    read_cmd = read_cmd Or CByte(flash_offset32 >> 5)
+                    flash_offset32 = (flash_offset32 And 255UI)
                 End If
+                Dim setup_class As New ReadSetupPacket(read_cmd, flash_offset32, data_to_read.Length, MyFlashDevice.AddressBytes) With {.DUMMY = dummy_clocks}
+                FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_READFLASH, setup_class.ToBytes, data_to_read, 0)
             Else 'Normal SPI READ
                 If MySettings.SPI_FASTREAD AndAlso (FCUSB.HasLogic()) Then
                     dummy_clocks = MyFlashDevice.SPI_DUMMY
                 End If
                 If (MyFlashDevice.STACKED_DIES > 1) Then
                     Do Until bytes_left = 0
-                        Dim die_address As UInt32 = GetAddressForMultiDie(flash_offset, bytes_left, buffer_size)
+                        Dim die_address As UInt32 = GetAddressForMultiDie(flash_offset32, bytes_left, buffer_size)
                         Dim die_data(buffer_size - 1) As Byte
                         Dim setup_class As New ReadSetupPacket(read_cmd, die_address, die_data.Length, MyFlashDevice.AddressBytes) With {.DUMMY = dummy_clocks}
                         FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_READFLASH, setup_class.ToBytes, die_data, 0)
                         Array.Copy(die_data, 0, data_to_read, array_ptr, die_data.Length) : array_ptr += buffer_size
                     Loop
                 Else
-                    Dim setup_class As New ReadSetupPacket(read_cmd, flash_offset, data_to_read.Length, MyFlashDevice.AddressBytes) With {.DUMMY = dummy_clocks}
+                    Dim setup_class As New ReadSetupPacket(read_cmd, flash_offset32, data_to_read.Length, MyFlashDevice.AddressBytes) With {.DUMMY = dummy_clocks}
                     FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_READFLASH, setup_class.ToBytes, data_to_read, 0)
-                    FCUSB.USB_WaitForComplete()
                 End If
             End If
             Return data_to_read
         End Function
 
         Friend Function WriteData(flash_offset As Long, data_to_write() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
+            Dim flash_offset32 As UInt32 = CUInt(flash_offset)
             If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
-            Dim bytes_left As UInt32 = data_to_write.Length
-            Dim buffer_size As UInt32 = 0
-            Dim array_ptr As UInt32 = 0
+            Dim bytes_left As Integer = data_to_write.Length
+            Dim buffer_size As Integer = 0
+            Dim array_ptr As Integer = 0
             Select Case MyFlashDevice.ProgramMode
                 Case SPI_ProgramMode.PageMode
                     If (MyFlashDevice.STACKED_DIES > 1) Then 'Multi-die support
                         Dim write_result As Boolean
                         Do Until bytes_left = 0
-                            Dim die_address As UInt32 = GetAddressForMultiDie(flash_offset, bytes_left, buffer_size)
+                            Dim die_address As UInt32 = GetAddressForMultiDie(flash_offset32, bytes_left, buffer_size)
                             Dim die_data(buffer_size - 1) As Byte
                             Array.Copy(data_to_write, array_ptr, die_data, 0, die_data.Length) : array_ptr += buffer_size
                             Dim setup_packet As New WriteSetupPacket(MyFlashDevice, die_address, die_data.Length)
@@ -198,18 +197,17 @@ Namespace SPI
                         Loop
                         Return write_result
                     Else
-                        Dim setup_packet As New WriteSetupPacket(MyFlashDevice, flash_offset, data_to_write.Length)
-                        Dim result As Boolean = WriteData_Flash(setup_packet, data_to_write)
-                        Return result
+                        Dim setup_packet As New WriteSetupPacket(MyFlashDevice, flash_offset32, data_to_write.Length)
+                        Return WriteData_Flash(setup_packet, data_to_write)
                     End If
                 Case SPI_ProgramMode.SPI_EEPROM 'Used on most ST M95080 and above
-                    Return WriteData_SPI_EEPROM(flash_offset, data_to_write)
+                    Return WriteData_SPI_EEPROM(flash_offset32, data_to_write)
                 Case SPI_ProgramMode.AAI_Byte
-                    Return WriteData_AAI(flash_offset, data_to_write, False)
+                    Return WriteData_AAI(flash_offset32, data_to_write, False)
                 Case SPI_ProgramMode.AAI_Word
-                    Return WriteData_AAI(flash_offset, data_to_write, True)
+                    Return WriteData_AAI(flash_offset32, data_to_write, True)
                 Case SPI_ProgramMode.Atmel45Series
-                    Return AT45_WriteData(flash_offset, data_to_write)
+                    Return AT45_WriteData(flash_offset32, data_to_write)
                 Case SPI_ProgramMode.Nordic
                     Dim data_left As Integer = data_to_write.Length
                     Dim ptr As Integer = 0
@@ -217,7 +215,7 @@ Namespace SPI
                         SPIBUS_WriteEnable()
                         Dim packet_data(MyFlashDevice.PAGE_SIZE - 1) As Byte
                         Array.Copy(data_to_write, ptr, packet_data, 0, packet_data.Length)
-                        Dim setup_packet As New WriteSetupPacket(MyFlashDevice, flash_offset + ptr, packet_data.Length)
+                        Dim setup_packet As New WriteSetupPacket(MyFlashDevice, CUInt(flash_offset32 + ptr), packet_data.Length)
                         Dim write_result As Boolean = WriteData_Flash(setup_packet, packet_data)
                         If Not write_result Then Return False
                         WaitUntilReady()
@@ -229,15 +227,15 @@ Namespace SPI
             Return False
         End Function
 
-        Friend Function SectorErase(sector_index As UInt32) As Boolean Implements MemoryDeviceUSB.SectorErase
+        Friend Function SectorErase(sector_index As Integer) As Boolean Implements MemoryDeviceUSB.SectorErase
             If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             If (Not MyFlashDevice.ERASE_REQUIRED) Then Return True 'Erase not needed
-            Dim flash_offset As UInt32 = Me.SectorFind(sector_index)
+            Dim flash_offset As UInt32 = CUInt(Me.SectorFind(sector_index))
             If MyFlashDevice.ProgramMode = SPI_ProgramMode.Atmel45Series Then
                 AT45_EraseSector(flash_offset)
             ElseIf MyFlashDevice.ProgramMode = SPI_ProgramMode.Nordic Then
-                SPIBUS_WriteEnable() ': Utilities.Sleep(50)
-                Dim PageNum As Byte = Math.Floor(flash_offset / MyFlashDevice.ERASE_SIZE)
+                SPIBUS_WriteEnable()
+                Dim PageNum As Byte = CByte(flash_offset \ MyFlashDevice.ERASE_SIZE)
                 SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.SE, PageNum}, Nothing)
             Else
                 SPIBUS_WriteEnable()
@@ -256,9 +254,9 @@ Namespace SPI
             Return True
         End Function
 
-        Friend Function SectorWrite(sector_index As UInt32, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
+        Friend Function SectorWrite(sector_index As Integer, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
             If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
-            Dim Addr32 As UInteger = Me.SectorFind(sector_index)
+            Dim Addr32 As Long = Me.SectorFind(sector_index)
             Return WriteData(Addr32, data, Params)
         End Function
 
@@ -271,17 +269,18 @@ Namespace SPI
                 Utilities.Sleep(100)
                 WaitUntilReady()
             ElseIf MyFlashDevice.ProgramMode = SPI_ProgramMode.SPI_EEPROM Then
-                Dim data(MyFlashDevice.FLASH_SIZE - 1) As Byte
+                Dim eeprom_size As Integer = CInt(MyFlashDevice.FLASH_SIZE)
+                Dim data(eeprom_size - 1) As Byte
                 Utilities.FillByteArray(data, 255)
                 WriteData(0, data)
             ElseIf MyFlashDevice.ProgramMode = SPI_ProgramMode.Nordic Then
                 'This device does support chip-erase, but it will also erase the InfoPage content
                 Dim nord_timer As New Stopwatch : nord_timer.Start()
                 RaiseEvent PrintConsole(String.Format(RM.GetString("spi_erasing_flash_device"), Format(Me.DeviceSize, "#,###")))
-                Dim TotalPages As Integer = MyFlashDevice.FLASH_SIZE / MyFlashDevice.PAGE_SIZE
+                Dim TotalPages As Integer = CInt(MyFlashDevice.FLASH_SIZE \ MyFlashDevice.PAGE_SIZE)
                 For i = 0 To TotalPages - 1
                     SPIBUS_WriteEnable() : Utilities.Sleep(50)
-                    SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.SE, i}, Nothing)
+                    SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.SE, CByte(i)}, Nothing)
                     WaitUntilReady()
                 Next
             Else
@@ -292,14 +291,14 @@ Namespace SPI
                         If MyFlashDevice.SEND_RDFS Then ReadFlagStatusRegister()
                         WaitUntilReady()
                     Case EraseMethod.BySector
-                        Dim SectorCount As UInt32 = MyFlashDevice.Sector_Count
+                        Dim SectorCount As Integer = MyFlashDevice.Sector_Count
                         RaiseEvent SetProgress(0)
-                        For i As UInt32 = 0 To SectorCount - 1
+                        For i As Integer = 0 To SectorCount - 1
                             If Not SectorErase(i) Then
                                 RaiseEvent SetProgress(0) : Return False 'Error erasing sector
                             Else
                                 Dim progress As Single = CSng((i / SectorCount) * 100)
-                                RaiseEvent SetProgress(Math.Floor(progress))
+                                RaiseEvent SetProgress(CInt(Math.Floor(progress)))
                             End If
                         Next
                         RaiseEvent SetProgress(0) 'Device successfully erased
@@ -324,21 +323,21 @@ Namespace SPI
         'Reads the SPI status register and waits for the device to complete its current operation
         Friend Sub WaitUntilReady() Implements MemoryDeviceUSB.WaitUntilReady
             Try
-                Dim Status As UInt32
+                Dim status As Byte
                 If MyFlashDevice.ProgramMode = SPI_ProgramMode.Atmel45Series Then
                     Do
                         Dim sr() As Byte = ReadStatusRegister() 'Check Bit 7 (RDY/BUSY#)
-                        Status = sr(0)
-                        If Not ((Status And &H80) > 0) Then Utilities.Sleep(50)
-                    Loop While Not ((Status And &H80) > 0)
+                        status = sr(0)
+                        If Not ((status And &H80) > 0) Then Utilities.Sleep(50)
+                    Loop While Not ((status And &H80) > 0)
                 Else
                     Do
                         Dim sr() As Byte = ReadStatusRegister()
-                        Status = sr(0)
+                        status = sr(0)
                         If AppIsClosing Then Exit Sub
-                        If Status = 255 Then Exit Do
-                        If (Status And 1) Then Utilities.Sleep(5)
-                    Loop While (Status And 1)
+                        If status = 255 Then Exit Do
+                        If ((status And CByte(1)) = CByte(1)) Then Utilities.Sleep(5)
+                    Loop While ((status And CByte(1)) = 1)
                     If MyFlashDevice IsNot Nothing AndAlso MyFlashDevice.ProgramMode = SPI_ProgramMode.Nordic Then
                         Utilities.Sleep(50)
                     End If
@@ -375,11 +374,11 @@ Namespace SPI
         Private Function ReadDeviceID() As SPI_IDENT
             Dim DEVICEID As New SPI_IDENT
             Dim rdid(5) As Byte
-            SPIBUS_WriteRead({SPI_CmdDef.RDID}, rdid) 'This reads SPI CHIP ID
+            SPIBUS_WriteRead({SPI_OPCODES.RDID}, rdid) 'This reads SPI CHIP ID
             Dim rems(1) As Byte
-            SPIBUS_WriteRead({SPI_CmdDef.REMS, 0, 0, 0}, rems) 'Some devices (such as SST25VF512) only support REMS
+            SPIBUS_WriteRead({SPI_OPCODES.REMS, 0, 0, 0}, rems) 'Some devices (such as SST25VF512) only support REMS
             Dim res(0) As Byte
-            SPIBUS_WriteRead({SPI_CmdDef.RES, 0, 0, 0}, res)
+            SPIBUS_WriteRead({SPI_OPCODES.RES, 0, 0, 0}, res)
             DEVICEID.MANU = rdid(0)
             DEVICEID.RDID = (CUInt(rdid(1)) << 24) Or (CUInt(rdid(2)) << 16) Or (CUInt(rdid(3)) << 8) Or CUInt(rdid(4))
             DEVICEID.FMY = rdid(5)
@@ -433,15 +432,15 @@ Namespace SPI
             Dim flag() As Byte = {0}
             Do
                 SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.RDFR}, flag)
-            Loop Until ((flag(0) >> 7) And 1)
+            Loop Until (((flag(0) >> 7) And 1) = 1)
         End Sub
 
         Private Sub EraseDie()
-            Dim die_size As UInt32 = &H2000000
-            Dim die_count As UInt32 = MyFlashDevice.FLASH_SIZE / die_size
-            For x As UInt32 = 1 To die_count
+            Dim die_size As UInt32 = &H2000000UI
+            Dim die_count As Integer = CInt(MyFlashDevice.FLASH_SIZE / die_size)
+            For x As Integer = 0 To die_count - 1
                 RaiseEvent PrintConsole(String.Format(RM.GetString("spi_erasing_die"), x.ToString, Format(die_size, "#,###")))
-                Dim die_addr() As Byte = Utilities.Bytes.FromUInt32((x - 1) * die_size)
+                Dim die_addr() As Byte = Utilities.Bytes.FromUInt32(CUInt(x) * die_size)
                 SPIBUS_WriteEnable()
                 SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.DE, die_addr(0), die_addr(1), die_addr(1), die_addr(1)}, Nothing) '&HC4
                 Utilities.Sleep(1000)
@@ -460,7 +459,7 @@ Namespace SPI
             If (MyFlashDevice.ProgramMode = SPI_ProgramMode.Atmel45Series) Then 'May need to load the current page mode
                 Dim sr() As Byte = ReadStatusRegister() 'Some devices have 2 SR
                 Me.ExtendedPage = ((sr(0) And 1) = 0)
-                Dim page_size As UInt32 = IIf(Me.ExtendedPage, MyFlashDevice.PAGE_SIZE_EXTENDED, MyFlashDevice.PAGE_SIZE)
+                Dim page_size As UInt16 = CUShort(IIf(Me.ExtendedPage, MyFlashDevice.PAGE_SIZE_EXTENDED, MyFlashDevice.PAGE_SIZE))
                 RaiseEvent PrintConsole("Device configured to page size: " & page_size & " bytes")
             End If
             If (MyFlashDevice.MFG_CODE = &HBF) Then 'SST26VF016/SST26VF032 requires block protection to be removed in SQI only
@@ -519,11 +518,11 @@ Namespace SPI
             Return True
         End Function
 
-        Private Function AT45_ReadData(flash_offset As UInt32, data_count As UInt32) As Byte()
-            Dim page_size As UInt32 = IIf(Me.ExtendedPage, MyFlashDevice.PAGE_SIZE_EXTENDED, MyFlashDevice.PAGE_SIZE)
+        Private Function AT45_ReadData(flash_offset As UInt32, data_count As Integer) As Byte()
+            Dim page_size As UInt16 = CUShort(IIf(Me.ExtendedPage, MyFlashDevice.PAGE_SIZE_EXTENDED, MyFlashDevice.PAGE_SIZE))
             Dim data_out(data_count - 1) As Byte
-            Dim AddrOffset As Int32 = Math.Ceiling(Math.Log(page_size, 2)) 'Number of bits the address is offset
-            Dim PageAddr As UInt32 = Math.Floor(flash_offset / page_size)
+            Dim AddrOffset As Integer = CInt(Math.Ceiling(Math.Log(page_size, 2))) 'Number of bits the address is offset
+            Dim PageAddr As UInt16 = CUShort(flash_offset \ page_size)
             Dim PageOffset As UInt32 = flash_offset - (PageAddr * page_size)
             Dim addr_bytes() As Byte = Utilities.Bytes.FromUInt24((PageAddr << AddrOffset) + PageOffset)
             Dim at45_addr As UInt32 = (PageAddr << AddrOffset) + PageOffset
@@ -535,21 +534,20 @@ Namespace SPI
         End Function
 
         Private Function AT45_EraseSector(flash_offset As UInt32) As Boolean
-            Dim page_size As UInt32 = IIf(Me.ExtendedPage, MyFlashDevice.PAGE_SIZE_EXTENDED, MyFlashDevice.PAGE_SIZE)
-            Dim EraseSize As UInt32 = Me.SectorSize(0)
-            Dim AddrOffset As UInt32 = Math.Ceiling(Math.Log(page_size, 2)) 'Number of bits the address is offset
-            Dim blocknum As UInt32 = Math.Floor(flash_offset / EraseSize)
-            Dim addrbytes() As Byte = Utilities.Bytes.FromUInt24(blocknum << (AddrOffset + 3))
+            Dim page_size As UInt16 = CUShort(IIf(Me.ExtendedPage, MyFlashDevice.PAGE_SIZE_EXTENDED, MyFlashDevice.PAGE_SIZE))
+            Dim EraseSize As Integer = Me.SectorSize(0)
+            Dim AddrOffset As Integer = CInt(Math.Ceiling(Math.Log(page_size, 2))) 'Number of bits the address is offset
+            Dim blocknum As Integer = CInt(flash_offset \ EraseSize)
+            Dim addrbytes() As Byte = Utilities.Bytes.FromUInt24(CUInt(blocknum << CInt(AddrOffset + 3)))
             SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.SE, addrbytes(0), addrbytes(1), addrbytes(2)}, Nothing)
             Return True
         End Function
         'Uses an internal sram buffer to transfer data from the board to the flash (used by Atmel AT45DBxxx)
         Private Function AT45_WriteData(offset As UInt32, DataOut() As Byte) As Boolean
             Try
-                Dim data_size As UInt32 = DataOut.Length
-                Dim page_size As UInt32 = IIf(Me.ExtendedPage, MyFlashDevice.PAGE_SIZE_EXTENDED, MyFlashDevice.PAGE_SIZE)
-                Dim AddrOffset As Integer = Math.Ceiling(Math.Log(page_size, 2)) 'Number of bits the address is offset
-                Dim BytesLeft As UInt32 = DataOut.Length
+                Dim page_size As UInt16 = CUShort(IIf(Me.ExtendedPage, MyFlashDevice.PAGE_SIZE_EXTENDED, MyFlashDevice.PAGE_SIZE))
+                Dim AddrOffset As Integer = CInt(Math.Ceiling(Math.Log(page_size, 2))) 'Number of bits the address is offset
+                Dim BytesLeft As Integer = DataOut.Length
                 Do Until BytesLeft = 0
                     Dim BytesToWrite As Integer = BytesLeft
                     If BytesToWrite > page_size Then BytesToWrite = page_size
@@ -561,12 +559,12 @@ Namespace SPI
                     SPIBUS_WriteData(DataToBuffer)
                     SPIBUS_SlaveSelect_Disable()
                     WaitUntilReady()
-                    Dim PageAddr As UInt32 = Math.Floor(offset / page_size)
+                    Dim PageAddr As UInt32 = (offset \ page_size)
                     Dim PageCmd() As Byte = Utilities.Bytes.FromUInt24(PageAddr << AddrOffset)
                     Dim Cmd2() As Byte = {MyFlashDevice.OP_COMMANDS.WRFB, PageCmd(0), PageCmd(1), PageCmd(2)} '0x88
                     SPIBUS_WriteRead(Cmd2)
                     WaitUntilReady()
-                    offset += BytesToWrite
+                    offset += CUInt(BytesToWrite)
                     BytesLeft -= BytesToWrite
                 Loop
                 Return True
@@ -579,79 +577,50 @@ Namespace SPI
 
 #Region "Programming Algorithums"
         'Returns the die address from the flash_offset (and increases by the buffersize) and also selects the correct die
-        Private Function GetAddressForMultiDie(ByRef flash_offset As UInt32, ByRef count As UInt32, ByRef buffer_size As UInt32) As UInt32
-            Dim die_size As UInt32 = (MyFlashDevice.FLASH_SIZE / MyFlashDevice.STACKED_DIES)
+        Private Function GetAddressForMultiDie(ByRef flash_offset As UInt32, ByRef count As Integer, ByRef buffer_size As Integer) As UInt32
+            Dim die_size As UInt32 = CUInt(MyFlashDevice.FLASH_SIZE \ MyFlashDevice.STACKED_DIES)
             Dim die_id As Byte = CByte(Math.Floor(flash_offset / die_size))
             Dim die_addr As UInt32 = (flash_offset Mod die_size)
             If (MyFlashDevice.MFG_CODE = &H20) Then 'Micron uses a different die system
-                buffer_size = Math.Min(count, ((MyFlashDevice.FLASH_SIZE / MyFlashDevice.STACKED_DIES) - die_addr))
+                buffer_size = CInt(Math.Min(count, ((MyFlashDevice.FLASH_SIZE \ MyFlashDevice.STACKED_DIES) - die_addr)))
                 count -= buffer_size
                 die_addr = flash_offset
-                flash_offset += buffer_size
+                flash_offset += CUInt(buffer_size)
             Else
-                buffer_size = Math.Min(count, ((MyFlashDevice.FLASH_SIZE / MyFlashDevice.STACKED_DIES) - die_addr))
+                buffer_size = CInt(Math.Min(count, ((MyFlashDevice.FLASH_SIZE \ MyFlashDevice.STACKED_DIES) - die_addr)))
                 If (die_id <> Me.DIE_SELECTED) Then
                     SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.DIESEL, die_id})
                     WaitUntilReady()
                     Me.DIE_SELECTED = die_id
                 End If
                 count -= buffer_size
-                flash_offset += buffer_size
+                flash_offset += CUInt(buffer_size)
             End If
             Return die_addr
         End Function
 
         Private Function WriteData_Flash(setup_packet As WriteSetupPacket, data_out() As Byte) As Boolean
-            Try
-                Dim result As Boolean
-                If (FCUSB.HasLogic()) Then
-                    Dim DataToWrite As UInt32 = data_out.Length
-                    Dim PacketSize As UInt32 = 8192
-                    Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / PacketSize)) 'Calcuates iterations
-                    For i As Integer = 0 To Loops - 1
-                        Dim BufferSize As Integer = DataToWrite
-                        If (BufferSize > PacketSize) Then BufferSize = PacketSize
-                        Dim data(BufferSize - 1) As Byte
-                        setup_packet.WR_COUNT = BufferSize
-                        Array.Copy(data_out, (i * PacketSize), data, 0, data.Length)
-                        result = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPI_WRITEFLASH, setup_packet.ToBytes(), data, 0, 1000)
-                        If Not result Then Return False
-                        Utilities.Sleep(5)
-                        setup_packet.DATA_OFFSET += data.Length
-                        DataToWrite -= data.Length
-                        result = FCUSB.USB_WaitForComplete()
-                    Next
-                Else
-                    result = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPI_WRITEFLASH, setup_packet.ToBytes(), data_out, 0)
-                End If
-                Utilities.Sleep(6) 'Needed
-                Return result
-            Catch ex As Exception
-                Return False
-            End Try
+            Dim result As Boolean
+            Dim setup_data() As Byte = setup_packet.ToBytes()
+            result = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPI_WRITEFLASH, setup_data, data_out, 0)
+            Utilities.Sleep(6) 'Needed
+            Return result
         End Function
         'Designed for SPI EEPROMS where each page needs to wait until ready
         Private Function WriteData_SPI_EEPROM(offset As UInt32, data_to_write() As Byte) As Boolean
-            Dim PageSize As UInt32 = MyFlashDevice.PAGE_SIZE
+            Dim PageSize As UInt16 = MyFlashDevice.PAGE_SIZE
             Dim DataToWrite As Integer = data_to_write.Length
-            For i As Integer = 0 To Math.Ceiling(DataToWrite / PageSize) - 1
+            For i As Integer = 0 To CInt(Math.Ceiling(DataToWrite / PageSize)) - 1
                 Dim BufferSize As Integer = DataToWrite
                 If (BufferSize > PageSize) Then BufferSize = PageSize
                 Dim data(BufferSize - 1) As Byte
                 Array.Copy(data_to_write, (i * PageSize), data, 0, data.Length)
-                Dim addr_size As Integer = (MyFlashDevice.ADDRESSBITS / 8)
+                Dim addr_size As Integer = (CInt(MyFlashDevice.ADDRESSBITS) \ 8)
                 Dim packet(data.Length + addr_size) As Byte 'OPCMD,ADDR,DATA
                 packet(0) = MyFlashDevice.OP_COMMANDS.PROG 'First byte is the write command
                 If (addr_size = 1) Then
-                    Dim addr8 As Byte
-                    If (offset > 255) Then
-                        packet(0) = CByte(MyFlashDevice.OP_COMMANDS.PROG Or 8) 'Enables 4th bit
-                        addr8 = CByte(offset And 255) 'Lower 8 bits only
-                    Else
-                        packet(0) = CByte(MyFlashDevice.OP_COMMANDS.PROG And &HF7) 'Disables 4th bit
-                        addr8 = CByte(offset)
-                    End If
-                    packet(1) = addr8
+                    packet(0) = packet(0) Or CByte(offset >> 5) 'Sets bits 3/4 with A8/A9
+                    packet(1) = CByte(offset And 255)
                     Array.Copy(data, 0, packet, 2, data.Length)
                 ElseIf (addr_size = 2) Then
                     packet(1) = CByte((offset >> 8) And 255)
@@ -669,7 +638,7 @@ Namespace SPI
                 SPIBUS_SlaveSelect_Disable()
                 Utilities.Sleep(10)
                 WaitUntilReady()
-                offset += data.Length
+                offset += CUInt(data.Length)
                 DataToWrite -= data.Length
             Next
             Return True
@@ -688,7 +657,7 @@ Namespace SPI
             Else
                 setup_packet.CMD_PROG = MyFlashDevice.OP_COMMANDS.AAI_BYTE
             End If
-            Dim ctrl As UInt32 = (Utilities.BoolToInt(word_mode) + 1)
+            Dim ctrl As UInt32 = CUInt(Utilities.BoolToInt(word_mode) + 1)
             Dim Result As Boolean = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPI_WRITEDATA_AAI, setup_packet.ToBytes, data, ctrl)
             If Not Result Then Return False
             Utilities.Sleep(6) 'Needed for some reason
@@ -703,7 +672,7 @@ Namespace SPI
 
         Public Sub SPIBUS_Setup(bus_speed As SPI_SPEED)
             Dim clock_speed As UInt32 = GetMaxSpiClock(FCUSB.HWBOARD, bus_speed)
-            Me.FCUSB.USB_SPI_INIT(MySettings.SPI_MODE, clock_speed)
+            Me.FCUSB.USB_SPI_INIT(CUInt(MySettings.SPI_MODE), clock_speed)
             Utilities.Sleep(50) 'Allow time for device to change IO
         End Sub
 
@@ -736,11 +705,11 @@ Namespace SPI
             SPIBUS_SlaveSelect_Enable()
             If (WriteBuffer IsNot Nothing) Then
                 Dim Result As Boolean = SPIBUS_WriteData(WriteBuffer)
-                If Result Then TotalBytesTransfered += WriteBuffer.Length
+                If Result Then TotalBytesTransfered += CUInt(WriteBuffer.Length)
             End If
             If (ReadBuffer IsNot Nothing) Then
                 Dim Result As Boolean = SPIBUS_ReadData(ReadBuffer)
-                If Result Then TotalBytesTransfered += ReadBuffer.Length
+                If Result Then TotalBytesTransfered += CUInt(ReadBuffer.Length)
             End If
             SPIBUS_SlaveSelect_Disable()
             Return TotalBytesTransfered
@@ -763,8 +732,7 @@ Namespace SPI
         Private Function SPIBUS_WriteData(DataOut() As Byte) As Boolean
             Dim Success As Boolean
             Try
-                Success = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPI_WR_DATA, Nothing, DataOut, DataOut.Length)
-                Utilities.Sleep(2)
+                Success = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPI_WR_DATA, Nothing, DataOut, CUInt(DataOut.Length))
             Catch ex As Exception
                 Return False
             End Try
@@ -775,7 +743,7 @@ Namespace SPI
         Private Function SPIBUS_ReadData(ByRef Data_In() As Byte) As Boolean
             Dim Success As Boolean = False
             Try
-                Success = FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_RD_DATA, Nothing, Data_In, Data_In.Length)
+                Success = FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_RD_DATA, Nothing, Data_In, CUInt(Data_In.Length))
             Catch ex As Exception
             End Try
             If Not Success Then RaiseEvent PrintConsole(RM.GetString("spi_error_reading"))
@@ -833,19 +801,19 @@ Namespace SPI
         Public Property CMD_RDSR As Byte
         Public Property CMD_RDFR As Byte
         Public Property CMD_WR As Byte
-        Public Property PAGE_SIZE As UInt32
+        Public Property PAGE_SIZE As UInt16
         Public Property SEND_RDFS As Boolean = False
         Property DATA_OFFSET As UInt32
-        Property WR_COUNT As UInt32
+        Property WR_COUNT As Integer
         Property ADDR_BYTES As Byte 'Number of bytes used for the read command 
         Property SPI_MODE As SPI_QUAD_SUPPORT = SPI_QUAD_SUPPORT.NO_QUAD
 
-        Sub New(spi_dev As SPI_NOR, offset As UInt32, d_count As UInt32)
+        Sub New(spi_dev As SPI_NOR, offset As UInt32, d_count As Integer)
             Me.CMD_PROG = spi_dev.OP_COMMANDS.PROG
             Me.CMD_WREN = spi_dev.OP_COMMANDS.WREN
             Me.CMD_RDSR = spi_dev.OP_COMMANDS.RDSR
             Me.CMD_RDFR = spi_dev.OP_COMMANDS.RDFR 'Flag Status Register
-            Me.ADDR_BYTES = spi_dev.AddressBytes
+            Me.ADDR_BYTES = CByte(spi_dev.AddressBytes)
             Me.DATA_OFFSET = offset
             Me.WR_COUNT = d_count
             Me.SEND_RDFS = spi_dev.SEND_RDFS
@@ -868,7 +836,7 @@ Namespace SPI
             setup_data(11) = CByte((Me.WR_COUNT And &HFF0000) >> 16)
             setup_data(12) = CByte((Me.WR_COUNT And &HFF00) >> 8)
             setup_data(13) = CByte(Me.WR_COUNT And &HFF)
-            setup_data(14) = Me.SPI_MODE
+            setup_data(14) = CByte(Me.SPI_MODE)
             If (Not Me.SEND_RDFS) Then setup_data(3) = 0 'Only use flag-reg if required
             Return setup_data
         End Function
@@ -878,16 +846,16 @@ Namespace SPI
     Friend Class ReadSetupPacket
         Property READ_CMD As Byte
         Property DATA_OFFSET As UInt32
-        Property COUNT As UInt32
+        Property COUNT As Integer
         Property ADDR_BYTES As Byte 'Number of bytes used for the read command (MyFlashDevice.AddressBytes)
         Property DUMMY As Integer = 0 'Number of clock toggles before reading data
         Property SPI_MODE As SQI_IO_MODE = SQI_IO_MODE.SPI_ONLY
 
-        Sub New(cmd As Byte, offset As UInt32, d_count As UInt32, addr_size As Byte)
+        Sub New(cmd As Byte, offset As UInt32, d_count As Integer, addr_size As Integer)
             Me.READ_CMD = cmd
             Me.DATA_OFFSET = offset
             Me.COUNT = d_count
-            Me.ADDR_BYTES = addr_size
+            Me.ADDR_BYTES = CByte(addr_size And 255)
         End Sub
 
         Public Function ToBytes() As Byte()
@@ -901,7 +869,7 @@ Namespace SPI
             setup_data(6) = CByte((COUNT And &HFF0000) >> 16)
             setup_data(7) = CByte((COUNT And &HFF00) >> 8)
             setup_data(8) = CByte(COUNT And &HFF)
-            setup_data(9) = Me.DUMMY 'Number of dummy bytes
+            setup_data(9) = CByte(Me.DUMMY) 'Number of dummy bytes
             setup_data(10) = Me.SPI_MODE
             Return setup_data
         End Function

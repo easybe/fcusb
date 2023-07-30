@@ -16,7 +16,7 @@
         End Get
         Set(value As Byte)
             my_data = value
-            Me.Text = Hex(value).PadLeft(2, "0").ToUpper
+            Me.Text = Hex(value).PadLeft(2, "0"c).ToUpper
         End Set
     End Property
 
@@ -28,10 +28,10 @@
 
     Public Property HexString As String
         Get
-            Return Hex(Me.ByteData).PadLeft(2, "0").ToUpper
+            Return Hex(Me.ByteData).PadLeft(2, "0"c).ToUpper
         End Get
         Set(value As String)
-            Me.Text = Hex(value).PadLeft(2, "0").ToUpper
+            Me.Text = Hex(value).PadLeft(2, "0"c).ToUpper
         End Set
     End Property
 
@@ -65,7 +65,7 @@
                     e.Handled = True : Exit Sub
             End Select
         End If
-        e.KeyChar = e.KeyChar.ToString.ToUpper
+        e.KeyChar = CChar(e.KeyChar.ToString.ToUpper)
     End Sub
 
     Private Sub HexByteBox_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
@@ -78,9 +78,9 @@
 
     Private Sub txthex_LostFocus(sender As Object, e As EventArgs) Handles Me.LostFocus
         If Utilities.IsDataType.Hex(Me.Text) Then
-            Me.Text = Hex(Utilities.HexToInt(Me.Text)).PadLeft(2, "0")
+            Me.Text = Hex(Utilities.HexToInt(Me.Text)).PadLeft(2, "0"c)
         Else
-            Me.Text = Hex(Me.InitialData).PadLeft(2, "0")
+            Me.Text = Hex(Me.InitialData).PadLeft(2, "0"c)
         End If
     End Sub
 
@@ -107,14 +107,14 @@ Public Class AsciiByteBox
         End Get
         Set(value As Byte)
             my_data = value
-            Me.Text = GetAsciiForByte(value)
+            Me.Text = ChrW(value)
         End Set
     End Property
 
     Public ReadOnly Property ByteData As Byte
         Get
             If Me.Text = "" Then Return 0
-            Return AscW(Me.Text)
+            Return CByte(AscW(Me.Text))
         End Get
     End Property
 
@@ -149,14 +149,6 @@ Public Class AsciiByteBox
             RaiseEvent EnterKeyPressed()
         End If
     End Sub
-
-    Private Function GetAsciiForByte(b As Byte) As Char
-        If b >= 32 And b <= 126 Then '32 to 126
-            Return ChrW(b)
-        Else
-            Return ""
-        End If
-    End Function
 
     Private Sub AsciiByteBox_GotFocus(sender As Object, e As EventArgs) Handles Me.GotFocus
         HideCaret(Me.Handle)

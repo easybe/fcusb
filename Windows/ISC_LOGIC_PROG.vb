@@ -1,6 +1,5 @@
 ﻿'This provides in-circuit programming for MACHXO2 FPGA via SLAVE SPI
 Imports FlashcatUSB.USB
-Imports FlashcatUSB.USB.HostClient
 
 Public Class ISC_LOGIC_PROG
     Private sel_usb_dev As FCUSB_DEVICE
@@ -17,7 +16,7 @@ Public Class ISC_LOGIC_PROG
     Public Event PrintConsole(msg As String)
     Public Event SetProgress(value As Integer)
 
-    Private Const MACHXO2_PAGE_SIZE As UInt32 = 16
+    Private Const MACHXO2_PAGE_SIZE As Integer = 16
 
     Public Sub New(usb_dev As FCUSB_DEVICE)
         Me.sel_usb_dev = usb_dev
@@ -41,7 +40,7 @@ Public Class ISC_LOGIC_PROG
     End Sub
 
     Public Function SSPI_WriteData(data() As Byte) As Boolean
-        Dim result As Boolean = sel_usb_dev.USB_SETUP_BULKOUT(USBREQ.SPI_WR_DATA, Nothing, data, data.Length)
+        Dim result As Boolean = sel_usb_dev.USB_SETUP_BULKOUT(USBREQ.SPI_WR_DATA, Nothing, data, CUInt(data.Length))
         Utilities.Sleep(2)
         Return result
     End Function
@@ -49,7 +48,7 @@ Public Class ISC_LOGIC_PROG
     Public Function SSPI_ReadData(ByRef Data_In() As Byte) As Boolean
         Dim Success As Boolean = False
         Try
-            Success = sel_usb_dev.USB_SETUP_BULKIN(USBREQ.SPI_RD_DATA, Nothing, Data_In, Data_In.Length)
+            Success = sel_usb_dev.USB_SETUP_BULKIN(USBREQ.SPI_RD_DATA, Nothing, Data_In, CUInt(Data_In.Length))
         Catch ex As Exception
         End Try
         Return Success
@@ -62,12 +61,12 @@ Public Class ISC_LOGIC_PROG
         If (WriteBuffer IsNot Nothing) Then
             Dim BytesWritten As Integer = 0
             Dim Result As Boolean = SSPI_WriteData(WriteBuffer)
-            If Result Then TotalBytesTransfered += WriteBuffer.Length
+            If Result Then TotalBytesTransfered += CUInt(WriteBuffer.Length)
         End If
         If (ReadBuffer IsNot Nothing) Then
             Dim BytesRead As Integer = 0
             Dim Result As Boolean = SSPI_ReadData(ReadBuffer)
-            If Result Then TotalBytesTransfered += ReadBuffer.Length
+            If Result Then TotalBytesTransfered += CUInt(ReadBuffer.Length)
         End If
         SSPI_SS(False)
         Return TotalBytesTransfered
@@ -83,11 +82,11 @@ Public Class ISC_LOGIC_PROG
 
         Sub New(cfg_register() As Byte)
             STATUS32 = Utilities.Bytes.ToUInt32(cfg_register)
-            Me.DONE_FLAG = ((STATUS32 >> 8) And 1)
-            Me.CFG_IF_ENABLED = ((STATUS32 >> 9) And 1)
-            Me.BUSY_FLAG = ((STATUS32 >> 12) And 1)
-            Me.FAIL_FLAG = ((STATUS32 >> 13) And 1)
-            Me.CHECK_STATUS = ((STATUS32 >> 23) And 7)
+            Me.DONE_FLAG = CBool((STATUS32 >> 8) And 1)
+            Me.CFG_IF_ENABLED = CBool((STATUS32 >> 9) And 1)
+            Me.BUSY_FLAG = CBool((STATUS32 >> 12) And 1)
+            Me.FAIL_FLAG = CBool((STATUS32 >> 13) And 1)
+            Me.CHECK_STATUS = CType(((STATUS32 >> 23) And 7), CFG_CHECK_STATUS)
         End Sub
 
         Public Enum CFG_CHECK_STATUS As Byte
@@ -127,7 +126,7 @@ Public Class ISC_LOGIC_PROG
         Return 0
     End Function
 
-    Public Function SSPI_ReadStatus() As SSPI_Status
+    Private Function SSPI_ReadStatus() As SSPI_Status
         Try
             Dim STATUS(3) As Byte
             SSPI_WriteRead(LSC_READ_STATUS, STATUS)
@@ -139,7 +138,7 @@ Public Class ISC_LOGIC_PROG
     'Fast! This will load an entire bitstream into the FPGA in 3 seconds.
     Public Function SSPI_ProgramMACHXO(logic() As Byte) As Boolean
         Dim bytes_left As Integer = logic.Length
-        MainApp.PrintConsole("Programming FPGA with bitstream (" & String.Format(bytes_left, "#,###") & " bytes)")
+        MainApp.PrintConsole("Programming FPGA with bitstream (" & bytes_left.ToString("#,###") & " bytes)")
         RaiseEvent SetProgress(0)
         Dim status As SSPI_Status = SSPI_ReadStatus()
         If status.BUSY_FLAG Then
@@ -167,7 +166,7 @@ Public Class ISC_LOGIC_PROG
             End If
         Loop While erase_failed
         SSPI_WriteRead(LSC_INITADDRESS)
-        Dim spi_size As Integer = (Math.Ceiling(logic.Length / MACHXO2_PAGE_SIZE) * 4) + logic.Length
+        Dim spi_size As Integer = CInt(Math.Ceiling(logic.Length / MACHXO2_PAGE_SIZE) * 4) + logic.Length
         Dim spi_buffer(spi_size - 1) As Byte
         Dim buffer_ptr As Integer = 0
         Dim logic_ptr As Integer = 0
@@ -186,13 +185,13 @@ Public Class ISC_LOGIC_PROG
             Dim data_count As Integer = Math.Min(bytes_left, (MACHXO2_PAGE_SIZE + LSC_PROGINCRNV.Length) * 128) '128 pages
             Dim buffer_out(data_count - 1) As Byte
             Array.Copy(spi_buffer, buffer_ptr, buffer_out, 0, buffer_out.Length)
-            Dim setup As UInt32 = ((MACHXO2_PAGE_SIZE + LSC_PROGINCRNV.Length) << 16) Or data_count
+            Dim setup As UInt32 = CUInt(((MACHXO2_PAGE_SIZE + LSC_PROGINCRNV.Length) << 16) Or data_count)
             Dim result As Boolean = sel_usb_dev.USB_SETUP_BULKOUT(USBREQ.SPI_REPEAT, Nothing, buffer_out, setup)
             If Not result Then Return False
             sel_usb_dev.USB_WaitForComplete()
             bytes_left -= data_count
             buffer_ptr += data_count
-            Dim percent_done As Integer = ((spi_buffer.Length - bytes_left) / spi_buffer.Length) * 100
+            Dim percent_done As Integer = CInt(((spi_buffer.Length - bytes_left) / spi_buffer.Length) * 100)
             If (percent_done > 100) Then percent_done = 100
             RaiseEvent SetProgress(percent_done)
         End While
@@ -224,7 +223,6 @@ Public Class ISC_LOGIC_PROG
             Dim Success As Boolean = SSPI_ICE_GetCDONE()
             If Success Then
                 sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.LOGIC_START) 'SMC_Init(); PIN_FPGA_RESET=LOW
-                FPGA_TEST_MODE()
             End If
             Return Success
         Catch ex As Exception
@@ -232,40 +230,11 @@ Public Class ISC_LOGIC_PROG
         Return False
     End Function
 
-    Public Function SSPI_ICE_GetCDONE() As Boolean
+    Private Function SSPI_ICE_GetCDONE() As Boolean
         Dim s(3) As Byte
         sel_usb_dev.USB_CONTROL_MSG_IN(USBREQ.LOGIC_STATUS, s)
         If (s(0) = 0) Then Return False
         Return True
     End Function
-
-    Private Sub FPGA_TEST_MODE()
-        'sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.JTAG_INIT, Nothing, 2)
-        'sel_usb_dev.SQI_NOR_IF.SQIBUS_Setup(SPI.SQI_SPEED.MHZ_10)
-
-        'Dim d_size As Integer = 512
-        'Dim data_out(d_size - 1) As Byte
-        'Dim data_in(d_size - 1) As Byte
-        'For i = 0 To data_out.Length - 1
-        '    data_out(i) = CByte(i And 255)
-        'Next
-        'sel_usb_dev.USB_SETUP_BULKIN(USBREQ.TEST_READ, Nothing, data_in, data_in.Length)
-        'sel_usb_dev.USB_SETUP_BULKOUT(USBREQ.TEST_WRITE, Nothing, data_out, data_out.Length)
-        'sel_usb_dev.USB_SETUP_BULKIN(USBREQ.TEST_READ, Nothing, data_in, data_in.Length)
-        'Beep() 'data_in is correct!! 0x01 0x02 0x03 etc.
-
-
-        'sel_usb_dev.SQI_NOR_IF.SQIBUS_Setup(SPI.SQI_SPEED.MHZ_10)
-        'Dim io_mode As Byte = SPI.MULTI_IO_MODE.Single
-        'sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.SQI_SS_ENABLE)
-        'Dim value_index As UInt32 = (CUInt(io_mode) << 24) Or (1 And &HFFFFFF)
-        'sel_usb_dev.USB_SETUP_BULKOUT(USBREQ.SQI_WR_DATA, Nothing, {&H9F}, value_index)
-        'value_index = (CUInt(io_mode) << 24) Or (4 And &HFFFFFF)
-        'Dim s_data_in(3) As Byte
-        'sel_usb_dev.USB_SETUP_BULKIN(USBREQ.SQI_RD_DATA, Nothing, s_data_in, value_index)
-        'sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.SQI_SS_DISABLE)
-        'Beep()
-    End Sub
-
 
 End Class
