@@ -668,8 +668,6 @@ Public Class MainForm
         If MAIN_FCUSB IsNot Nothing Then
             If MAIN_FCUSB.IS_CONNECTED AndAlso MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
                 mi_usb_performance.Enabled = True
-            ElseIf MAIN_FCUSB.IS_CONNECTED AndAlso MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
-                mi_usb_performance.Enabled = True
             ElseIf MAIN_FCUSB.IS_CONNECTED AndAlso MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
                 mi_usb_performance.Enabled = True
             Else
@@ -758,10 +756,7 @@ Public Class MainForm
             mi_mode_mmc.Enabled = True
         Else
             Dim SupportedModes() As FlashcatSettings.DeviceMode = GetSupportedModes(MAIN_FCUSB)
-            If (MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB4) Then
-                mi_1V8.Enabled = True
-                mi_3V3.Enabled = True
-            ElseIf (MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5) Then
+            If (MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5) Then
                 mi_1V8.Enabled = True
                 mi_3V3.Enabled = True
             ElseIf (MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Mach1) Then

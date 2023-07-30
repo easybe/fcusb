@@ -425,14 +425,7 @@ Namespace SPI
 
         Public Sub SQIBUS_Setup(bus_speed As SQI_SPEED)
             Dim clock_div As Integer = 0 'Divides the clock speed
-            If FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
-                If bus_speed = SQI_SPEED.MHZ_20 Then
-                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "20 MHz"))
-                Else
-                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
-                    clock_div = 1
-                End If
-            ElseIf FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5 Or FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+            If FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5 Or FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
                 If bus_speed = SQI_SPEED.MHZ_40 Then
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "40 MHz"))
                 ElseIf bus_speed = SQI_SPEED.MHZ_20 Then
@@ -448,6 +441,8 @@ Namespace SPI
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "1 MHz"))
                     clock_div = 4
                 End If
+            Else
+                GUI.PrintConsole(String.Format("SQI clock set to: {0}", "1 MHz"))
             End If
             Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, clock_div)
             Utilities.Sleep(50) 'Allow time for device to change IO

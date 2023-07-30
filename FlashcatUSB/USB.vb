@@ -148,12 +148,14 @@ Namespace USB
                     Dim new_device As New FCUSB_DEVICE(usb_device)
                     If (usb_device.UsbRegistryInfo.Vid = USB_VID_ATMEL) Then 'DFU Mode
                         new_device.IS_CONNECTED = True
+                        new_device.HWBOARD = FCUSB_BOARD.ATMEL_DFU
                         fcusb_dev = new_device
                         Return True
                     Else
                         If new_device.USB_Echo() Then
                             new_device.IS_CONNECTED = True
-                            new_device.LoadFirmwareVersion()
+                            Dim Success As Boolean = new_device.LoadFirmwareVersion()
+                            If Not Success Then Return False
                             new_device.USB_LEDOn() 'Call after firmware version is loaded
                             fcusb_dev = new_device
                             Return True
@@ -277,9 +279,7 @@ Namespace USB
 
         Public ReadOnly Property HasLogic() As Boolean
             Get
-                If Me.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
-                    Return True
-                ElseIf Me.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
+                If Me.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
                     Return True
                 ElseIf Me.HWBOARD = FCUSB_BOARD.Mach1 Then
                     Return True
@@ -365,9 +365,7 @@ Namespace USB
             Try
                 Dim clock_speed As UInt32 = GetMaxSpiClock(Me.HWBOARD, speed)
                 Dim result As Boolean
-                If (Me.HWBOARD = FCUSB_BOARD.Professional_PCB4) Then
-                    result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, (clock_speed / 1000000))
-                ElseIf (Me.HWBOARD = FCUSB_BOARD.Professional_PCB5) Then
+                If (Me.HWBOARD = FCUSB_BOARD.Professional_PCB5) Then
                     result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, (clock_speed / 1000000))
                 ElseIf (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
                     result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, (clock_speed / 1000000))
@@ -723,14 +721,11 @@ Namespace USB
                         Me.BOOTLOADER = True
                         If (b(1) = Asc("5")) Then 'PCB 5.0
                             Me.HWBOARD = FCUSB_BOARD.Professional_PCB5
-                        Else 'PCB 4.0
-                            Me.HWBOARD = FCUSB_BOARD.Professional_PCB4
+                        Else 'Professional PCB 4.0
+                            Me.HWBOARD = FCUSB_BOARD.NotSupported
                         End If
-                    ElseIf (b(0) = Asc("F")) Then
-                        Me.HWBOARD = FCUSB_BOARD.Professional_PCB4
-                        Me.BOOTLOADER = True
-                    ElseIf (b(0) = Asc("P")) Then
-                        Me.HWBOARD = FCUSB_BOARD.Professional_PCB4
+                    ElseIf (b(0) = Asc("P")) Then ' Professional_PCB4
+                        Me.HWBOARD = FCUSB_BOARD.NotSupported
                     ElseIf (b(0) = Asc("T")) Then
                         Me.HWBOARD = FCUSB_BOARD.Professional_PCB5
                     End If
@@ -750,8 +745,8 @@ Namespace USB
                     Dim hw_byte As Byte = buff(0)
                     If hw_byte = CByte(Asc("C")) Then
                         Me.HWBOARD = FCUSB_BOARD.Classic
-                    ElseIf hw_byte = CByte(Asc("E")) Then
-                        Me.HWBOARD = FCUSB_BOARD.XPORT_PCB1
+                    ElseIf hw_byte = CByte(Asc("E")) Then 'XPORT_PCB1
+                        Me.HWBOARD = FCUSB_BOARD.NotSupported
                     ElseIf hw_byte = CByte(Asc("X")) Then
                         Me.HWBOARD = FCUSB_BOARD.XPORT_PCB2
                     ElseIf hw_byte = CByte(Asc("0")) Then
@@ -766,7 +761,6 @@ Namespace USB
                     Me.FW_VERSION = fwstr
                     Return True
                 End If
-                Return False
             Catch ex As Exception
                 Return False
             End Try
@@ -920,7 +914,7 @@ Namespace USB
         EXPIO_CHIPERASE = &H69
         EXPIO_SECTORERASE = &H6A
         EXPIO_WRITEPAGE = &H6B
-        EXPIO_MODE_ADDRESS = &H6F
+        EXPIO_ADDRESS_CE = &H6F
         EXPIO_MODE_READ = &H73
         EXPIO_MODE_WRITE = &H74
         EXPIO_MODE_DELAY = &H75
@@ -1001,12 +995,11 @@ Namespace USB
     End Enum
 
     Public Enum FCUSB_BOARD
+        NotSupported 'PCB4.0/XPORT 1.x
         ATMEL_DFU 'Bootloader (either ATMEL_DFU or FC_BL)
         Classic 'Classic (PCB 2.x)
-        XPORT_PCB1 'XPORT firmware (PCB 1.x)
         XPORT_PCB2 'XPORT firmware (PCB 2.x)
-        Professional_PCB4 'Professional (PCB 4.x)
-        Professional_PCB5 'FPGA version
+        Professional_PCB5
         Mach1 '(PCB 2.x)
     End Enum
 

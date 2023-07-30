@@ -23,7 +23,8 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
     Public Event PrintConsole(msg As String) Implements MemoryDeviceUSB.PrintConsole
     Public Event SetProgress(percent As Integer) Implements MemoryDeviceUSB.SetProgress
 
-    Public Property MULTI_DIE As Boolean = False
+    Public Property DUALDIE_EN As Boolean = False 'Indicates two DIE are connected and using a CE
+    Public Property DUALDIE_CE2 As Integer 'The Address pin that goes to the second chip-enable
     Public Property DIE_SELECTED As Integer = 0
     Public Property ECC_LAST_RESULT As ECC_DECODE_RESULT = ECC_DECODE_RESULT.NoErrors
 
@@ -32,6 +33,8 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
     End Sub
 
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
+        Me.DIE_SELECTED = 0
+        Me.DUALDIE_EN = False
         MyFlashDevice = Nothing
         Me.ONFI = Nothing
         Me.CFI = Nothing
@@ -45,8 +48,8 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
         If DetectFlashDevice() Then
             Dim chip_id_str As String = Hex(FLASH_IDENT.MFG).PadLeft(2, "0") & Hex(FLASH_IDENT.PART).PadLeft(8, "0")
             RaiseEvent PrintConsole(String.Format(RM.GetString("ext_connected_chipid"), chip_id_str))
-            If (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB1) Or (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB2) Then
-                If (FLASH_IDENT.ID1 >> 8 = 255) Then FLASH_IDENT.ID1 = (FLASH_IDENT.ID1 And 255) 'XPORT IO is a little different than the EXTIO for X8 devices
+            If (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB2) Then
+                If (FLASH_IDENT.ID1 >> 8 = 255) Then FLASH_IDENT.ID1 = (FLASH_IDENT.ID1 And 255)
             End If
             Dim device_matches() As Device
             If (MyAdapter = MEM_PROTOCOL.NAND_X8_ASYNC) Then
@@ -73,14 +76,13 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
                 PrintDeviceInterface()
                 If (MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR) Then
                     Dim NOR_FLASH As P_NOR = DirectCast(MyFlashDevice, P_NOR)
-                    If MySettings.MUTLI_NOR Then
+                    If (MySettings.MULTI_CE > 0) Then
                         RaiseEvent PrintConsole("Multi-chip select feature is enabled")
-                        NOR_FLASH.AVAILABLE_SIZE = (NOR_FLASH.FLASH_SIZE * 2)
-                        Me.MULTI_DIE = True
-                        Me.DIE_SELECTED = 0
-                    Else
-                        NOR_FLASH.AVAILABLE_SIZE = NOR_FLASH.FLASH_SIZE
-                        Me.MULTI_DIE = False
+                        Me.DUALDIE_EN = True
+                        Me.DUALDIE_CE2 = MySettings.MULTI_CE
+                    ElseIf NOR_FLASH.DUAL_DIE Then 'This IC package has two-die with CE access
+                        Me.DUALDIE_EN = True
+                        Me.DUALDIE_CE2 = NOR_FLASH.CE2
                     End If
                     If NOR_FLASH.RESET_ENABLED Then Me.ResetDevice() 'This is needed for some devices
                     EXPIO_SETUP_WRITEDELAY(NOR_FLASH.HARDWARE_DELAY)
@@ -103,9 +105,6 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
                         Case MFP_PRG.Buffer2
                             EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Buffer_2)
                     End Select
-                    If (NOR_FLASH.AVAILABLE_SIZE >= Mb512) AndAlso Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X16 Then
-                        EXPIO_SETUP_WRITEADDRESS(E_EXPIO_WRADDR.Parallel_X16_26BIT) 'Ignored by PCB 2.x
-                    End If
                     WaitForReady()
                 ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NAND Then
                     Dim page_info As String = String.Format(RM.GetString("ext_page_size"), Strings.Format(MyFlashDevice.PAGE_SIZE, "#,###"), DirectCast(MyFlashDevice, P_NAND).PAGE_EXT)
@@ -121,7 +120,7 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
                     ElseIf nand_mem.IFACE = VCC_IF.X16_1V8 Then
                         RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NAND (X16 1.8V)")
                     End If
-                    If ((FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB1) Or (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB2)) Then
+                    If (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB2) Then
                         If (Not nand_mem.IFACE = VCC_IF.X8_3V) Then
                             RaiseEvent PrintConsole("This NAND device is not compatible with this programmer")
                             Me.MyFlashStatus = DeviceStatus.NotCompatible
@@ -134,7 +133,7 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
                         Me.MyAdapter = MEM_PROTOCOL.NAND_X16_ASYNC
                     End If
                     If (nand_mem.FLASH_SIZE > Gb004) Then 'Remove this check if you wish
-                        If (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB1) Or (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB2) Then
+                        If (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB2) Then
                             RaiseEvent PrintConsole("XPORT is not compatible with NAND Flash larger than 4Gbit")
                             RaiseEvent PrintConsole("Please upgrade to Mach1")
                             Me.MyFlashStatus = DeviceStatus.NotCompatible
@@ -235,7 +234,9 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
                 End If
             ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
                 Dim NOR_FLASH As P_NOR = DirectCast(MyFlashDevice, P_NOR)
-                Return NOR_FLASH.AVAILABLE_SIZE
+                Dim FLASH_SIZE As Long = NOR_FLASH.FLASH_SIZE
+                If Me.DUALDIE_EN Then Return (FLASH_SIZE * 2)
+                Return FLASH_SIZE
             Else
                 Return Me.MyFlashDevice.FLASH_SIZE
             End If
@@ -281,13 +282,14 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
             Loop
             Return data_out
         Else 'NOR memory
-            If Me.MULTI_DIE Then
+            If Me.DUALDIE_EN Then
                 Dim data_to_read(data_count - 1) As Byte
                 Dim buffer_size As UInt32 = 0
                 Dim array_ptr As UInt32 = 0
                 Do Until data_count = 0
                     Dim die_address As UInt32 = GetAddressForMultiDie(logical_address, data_count, buffer_size)
                     Dim die_data() As Byte = ReadBulk_NOR(die_address, buffer_size)
+                    If die_data Is Nothing Then Return Nothing
                     Array.Copy(die_data, 0, data_to_read, array_ptr, die_data.Length) : array_ptr += buffer_size
                 Loop
                 Return data_to_read
@@ -304,10 +306,12 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
         Dim die_addr As UInt32 = (flash_offset Mod die_size)
         buffer_size = Math.Min(count, (die_size - die_addr))
         If (die_id <> Me.DIE_SELECTED) Then
-            Dim w_data As UInt32 = 2
-            If (die_id > 0) Then w_data = ((MySettings.MULTI_CE + 17) << 16) + 2
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_ADDRESS, Nothing, w_data)
-            Utilities.Sleep(10)
+            If (die_id = 0) Then
+                FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_ADDRESS_CE, Nothing, 0)
+            Else
+                FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_ADDRESS_CE, Nothing, Me.DUALDIE_CE2)
+            End If
+            Utilities.Sleep(5)
             Me.DIE_SELECTED = die_id
         End If
         count -= buffer_size
@@ -336,7 +340,7 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
                     End If
                     EXPIO_VPP_ENABLE() 'Enables +12V for supported devices
                     Dim sector_start_addr As UInt32 = Logical_Address
-                    If Me.MULTI_DIE Then sector_start_addr = GetAddressForMultiDie(Logical_Address, 0, 0)
+                    If Me.DUALDIE_EN Then sector_start_addr = GetAddressForMultiDie(Logical_Address, 0, 0)
                     EXPIO_EraseSector(sector_start_addr)
                     EXPIO_VPP_DISABLE()
                     If nor_device.DELAY_MODE = MFP_DELAY.SR1 Or nor_device.DELAY_MODE = MFP_DELAY.SR2 Then
@@ -382,7 +386,7 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
                     If (BufferSize > PacketSize) Then BufferSize = PacketSize
                     Dim data(BufferSize - 1) As Byte
                     Array.Copy(data_to_write, (i * PacketSize), data, 0, data.Length)
-                    If Me.MULTI_DIE Then
+                    If Me.DUALDIE_EN Then
                         Dim die_address As UInt32 = GetAddressForMultiDie(logical_address, 0, 0)
                         ReturnValue = WriteBulk_NOR(die_address, data)
                     Else
@@ -436,7 +440,7 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
     End Function
 
     Public Function SectorCount() As UInt32 Implements MemoryDeviceUSB.SectorCount
-        If MySettings.MUTLI_NOR Then
+        If (Me.DUALDIE_EN) Then
             Return (MyFlashDevice.Sector_Count * 2)
         Else
             Return MyFlashDevice.Sector_Count
@@ -498,7 +502,7 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
         Get
             If Not MyFlashStatus = USB.DeviceStatus.Supported Then Return 0
             If FCUSB.PARALLEL_IF.MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
-                If MySettings.MUTLI_NOR Then sector = ((MyFlashDevice.Sector_Count - 1) And sector)
+                If (Me.DUALDIE_EN) Then sector = ((MyFlashDevice.Sector_Count - 1) And sector)
                 Return DirectCast(MyFlashDevice, P_NOR).GetSectorSize(sector)
             Else
                 Dim nand_dev As P_NAND = DirectCast(MyFlashDevice, P_NAND)
@@ -579,12 +583,6 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
 
 #Region "EXPIO SETUP"
 
-    Private Enum E_EXPIO_WRADDR As UInt16
-        Parallel = 0 'Normal addressing
-        Parallel_X16_26BIT = 1 '26-bit mode for XPORT PCB 1.x (Legacy)
-        Parallel_CE = 2 'Set CHIP-SELECT for address
-    End Enum
-
     Private Enum E_BUS_WIDTH 'Number of bits transfered per operation
         X0 = 0 'Default
         X8 = 8
@@ -649,17 +647,6 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
             Else
                 Return False
             End If
-        Catch ex As Exception
-            Return False
-        End Try
-    End Function
-
-    Private Function EXPIO_SETUP_WRITEADDRESS(mode As E_EXPIO_WRADDR) As Boolean
-        Try
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_ADDRESS, Nothing, mode)
-            Utilities.Sleep(10)
-            Me.CURRENT_ADDR_MODE = mode
-            Return result
         Catch ex As Exception
             Return False
         End Try
@@ -758,7 +745,6 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
     Private Property CURRENT_WRITE_MODE As E_EXPIO_WRITEDATA
     Private Property CURRENT_SECTOR_ERASE As E_EXPIO_SECTOR
     Private Property CURRENT_CHIP_ERASE As E_EXPIO_CHIPERASE
-    Private Property CURRENT_ADDR_MODE As E_EXPIO_WRADDR
 
     Private Delegate Sub cfi_cmd_sub()
     Private cfi_data() As Byte
@@ -973,17 +959,15 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
                 LAST_DETECT = Me.FLASH_IDENT
             End If
         End If
-        If Not FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB1 Then
-            Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NOR_X16_X8)
-            If Me.FLASH_IDENT.Successful Then
-                Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, 0, MemoryType.PARALLEL_NOR)
-                If (d.Count > 0) AndAlso IsIFACE16X(DirectCast(d(0), P_NOR).IFACE) Then
-                    RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X16 (Byte addressing)"))
-                    MyAdapter = MEM_PROTOCOL.NOR_X16
-                    Return True
-                Else
-                    LAST_DETECT = Me.FLASH_IDENT
-                End If
+        Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NOR_X16_X8)
+        If Me.FLASH_IDENT.Successful Then
+            Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, 0, MemoryType.PARALLEL_NOR)
+            If (d.Count > 0) AndAlso IsIFACE16X(DirectCast(d(0), P_NOR).IFACE) Then
+                RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X16 (Byte addressing)"))
+                MyAdapter = MEM_PROTOCOL.NOR_X16
+                Return True
+            Else
+                LAST_DETECT = Me.FLASH_IDENT
             End If
         End If
         Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NOR_X8)

@@ -17,12 +17,13 @@ Public Class FrmSettings
         Language_setup()
         Microwire_Init()
         Me.MyTabs.DrawMode = TabDrawMode.OwnerDrawFixed
-        If MySettings.MUTLI_NOR Then
-            cb_multi_ce.SelectedIndex = 1
+        If (MySettings.MULTI_CE = 0) Then
+            cb_ce_select.SelectedIndex = 0
+        ElseIf (MySettings.MULTI_CE < 18) Then
+            cb_ce_select.SelectedIndex = 0
         Else
-            cb_multi_ce.SelectedIndex = 0
+            cb_ce_select.SelectedIndex = (MySettings.MULTI_CE - 17)
         End If
-        cb_ce_select.SelectedIndex = (MySettings.MULTI_CE)
         cb_sym_width.Enabled = False
         SPI_SetMaximumClockSettings()
         If MySettings.SPI_FASTREAD Then
@@ -88,7 +89,6 @@ Public Class FrmSettings
             rb_read_op.Checked = True
         Else
             If Not MAIN_FCUSB.IS_CONNECTED Then
-            ElseIf MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
             ElseIf MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
             ElseIf MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
             Else
@@ -272,12 +272,11 @@ Public Class FrmSettings
     End Sub
 
     Private Sub FrmSettings_Closing(sender As Object, e As CancelEventArgs) Handles Me.Closing
-        If cb_multi_ce.SelectedIndex = 0 Then
-            MySettings.MUTLI_NOR = False
+        If cb_ce_select.SelectedIndex = 0 Then
+            MySettings.MULTI_CE = 0 'Disable
         Else
-            MySettings.MUTLI_NOR = True
+            MySettings.MULTI_CE = 17 + cb_ce_select.SelectedIndex
         End If
-        MySettings.MULTI_CE = (cb_ce_select.SelectedIndex)
         SPI_SaveMaximumClockSettings()
         MySettings.SPI_FASTREAD = rb_fastread_op.Checked
         CustomDevice_SaveSettings()

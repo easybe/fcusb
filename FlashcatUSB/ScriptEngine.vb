@@ -31,109 +31,109 @@ Public Class FcScriptEngine : Implements IDisposable
 
     Sub New()
         Dim STR_CMD As New ScriptCmd("STRING")
-        STR_CMD.Add("upper", {CmdParam.String}, New ScriptFunction(AddressOf c_str_upper))
-        STR_CMD.Add("lower", {CmdParam.String}, New ScriptFunction(AddressOf c_str_lower))
-        STR_CMD.Add("hex", {CmdParam.Integer}, New ScriptFunction(AddressOf c_str_hex))
-        STR_CMD.Add("length", {CmdParam.String}, New ScriptFunction(AddressOf c_str_length))
-        STR_CMD.Add("toint", {CmdParam.String}, New ScriptFunction(AddressOf c_str_toint))
-        STR_CMD.Add("fromint", {CmdParam.Integer}, New ScriptFunction(AddressOf c_str_fromint))
+        STR_CMD.Add("upper", {CmdPrm.String}, New ScriptFunction(AddressOf c_str_upper))
+        STR_CMD.Add("lower", {CmdPrm.String}, New ScriptFunction(AddressOf c_str_lower))
+        STR_CMD.Add("hex", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_str_hex))
+        STR_CMD.Add("length", {CmdPrm.String}, New ScriptFunction(AddressOf c_str_length))
+        STR_CMD.Add("toint", {CmdPrm.String}, New ScriptFunction(AddressOf c_str_toint))
+        STR_CMD.Add("fromint", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_str_fromint))
         CmdFunctions.AddNest(STR_CMD)
         Dim DATA_CMD As New ScriptCmd("DATA")
-        DATA_CMD.Add("new", {CmdParam.Integer, CmdParam.Any}, New ScriptFunction(AddressOf c_data_new))
-        DATA_CMD.Add("fromhex", {CmdParam.String}, New ScriptFunction(AddressOf c_data_fromhex))
-        DATA_CMD.Add("compare", {CmdParam.Data}, New ScriptFunction(AddressOf c_data_compare))
-        DATA_CMD.Add("length", {CmdParam.Data}, New ScriptFunction(AddressOf c_data_length))
-        DATA_CMD.Add("resize", {CmdParam.Data, CmdParam.Integer, CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_data_resize))
-        DATA_CMD.Add("hword", {CmdParam.Data, CmdParam.Integer}, New ScriptFunction(AddressOf c_data_hword))
-        DATA_CMD.Add("word", {CmdParam.Data, CmdParam.Integer}, New ScriptFunction(AddressOf c_data_word))
-        DATA_CMD.Add("tostr", {CmdParam.Data}, New ScriptFunction(AddressOf c_data_tostr))
-        DATA_CMD.Add("copy", {CmdParam.Data}, New ScriptFunction(AddressOf c_data_copy))
-        DATA_CMD.Add("combine", {CmdParam.Data}, New ScriptFunction(AddressOf c_data_combine))
+        DATA_CMD.Add("new", {CmdPrm.Integer, CmdPrm.Any}, New ScriptFunction(AddressOf c_data_new))
+        DATA_CMD.Add("fromhex", {CmdPrm.String}, New ScriptFunction(AddressOf c_data_fromhex))
+        DATA_CMD.Add("compare", {CmdPrm.Data}, New ScriptFunction(AddressOf c_data_compare))
+        DATA_CMD.Add("length", {CmdPrm.Data}, New ScriptFunction(AddressOf c_data_length))
+        DATA_CMD.Add("resize", {CmdPrm.Data, CmdPrm.Integer, CmdPrm.Integer_Optional}, New ScriptFunction(AddressOf c_data_resize))
+        DATA_CMD.Add("hword", {CmdPrm.Data, CmdPrm.Integer}, New ScriptFunction(AddressOf c_data_hword))
+        DATA_CMD.Add("word", {CmdPrm.Data, CmdPrm.Integer}, New ScriptFunction(AddressOf c_data_word))
+        DATA_CMD.Add("tostr", {CmdPrm.Data}, New ScriptFunction(AddressOf c_data_tostr))
+        DATA_CMD.Add("copy", {CmdPrm.Data}, New ScriptFunction(AddressOf c_data_copy))
+        DATA_CMD.Add("combine", {CmdPrm.Data}, New ScriptFunction(AddressOf c_data_combine))
         CmdFunctions.AddNest(DATA_CMD)
         Dim IO_CMD As New ScriptCmd("IO")
-        IO_CMD.Add("open", {CmdParam.String_Optional, CmdParam.String_Optional}, New ScriptFunction(AddressOf c_io_open))
-        IO_CMD.Add("save", {CmdParam.Data, CmdParam.String_Optional, CmdParam.String_Optional}, New ScriptFunction(AddressOf c_io_save))
-        IO_CMD.Add("read", {CmdParam.String}, New ScriptFunction(AddressOf c_io_read))
-        IO_CMD.Add("write", {CmdParam.Data, CmdParam.String}, New ScriptFunction(AddressOf c_io_write))
+        IO_CMD.Add("open", {CmdPrm.String_Optional, CmdPrm.String_Optional}, New ScriptFunction(AddressOf c_io_open))
+        IO_CMD.Add("save", {CmdPrm.Data, CmdPrm.String_Optional, CmdPrm.String_Optional}, New ScriptFunction(AddressOf c_io_save))
+        IO_CMD.Add("read", {CmdPrm.String}, New ScriptFunction(AddressOf c_io_read))
+        IO_CMD.Add("write", {CmdPrm.Data, CmdPrm.String}, New ScriptFunction(AddressOf c_io_write))
         CmdFunctions.AddNest(IO_CMD)
         Dim MEM_CMD As New ScriptCmd("MEMORY")
         MEM_CMD.Add("name", Nothing, New ScriptFunction(AddressOf c_mem_name))
         MEM_CMD.Add("size", Nothing, New ScriptFunction(AddressOf c_mem_size))
-        MEM_CMD.Add("write", {CmdParam.Data, CmdParam.Integer, CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_mem_write))
-        MEM_CMD.Add("read", {CmdParam.Integer, CmdParam.Integer, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_mem_read))
-        MEM_CMD.Add("readstring", {CmdParam.Integer}, New ScriptFunction(AddressOf c_mem_readstring))
-        MEM_CMD.Add("readverify", {CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_mem_readverify))
+        MEM_CMD.Add("write", {CmdPrm.Data, CmdPrm.Integer, CmdPrm.Integer_Optional}, New ScriptFunction(AddressOf c_mem_write))
+        MEM_CMD.Add("read", {CmdPrm.Integer, CmdPrm.Integer, CmdPrm.Bool_Optional}, New ScriptFunction(AddressOf c_mem_read))
+        MEM_CMD.Add("readstring", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_mem_readstring))
+        MEM_CMD.Add("readverify", {CmdPrm.Integer, CmdPrm.Integer}, New ScriptFunction(AddressOf c_mem_readverify))
         MEM_CMD.Add("sectorcount", Nothing, New ScriptFunction(AddressOf c_mem_sectorcount))
-        MEM_CMD.Add("sectorsize", {CmdParam.Integer}, New ScriptFunction(AddressOf c_mem_sectorsize))
-        MEM_CMD.Add("erasesector", {CmdParam.Integer}, New ScriptFunction(AddressOf c_mem_erasesector))
+        MEM_CMD.Add("sectorsize", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_mem_sectorsize))
+        MEM_CMD.Add("erasesector", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_mem_erasesector))
         MEM_CMD.Add("erasebulk", Nothing, New ScriptFunction(AddressOf c_mem_erasebulk))
         MEM_CMD.Add("exist", Nothing, New ScriptFunction(AddressOf c_mem_exist))
         CmdFunctions.AddNest(MEM_CMD)
         Dim TAB_CMD As New ScriptCmd("TAB")
-        TAB_CMD.Add("create", {CmdParam.String}, New ScriptFunction(AddressOf c_tab_create))
-        TAB_CMD.Add("addgroup", {CmdParam.String, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_tab_addgroup))
-        TAB_CMD.Add("addbox", {CmdParam.String, CmdParam.String, CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_tab_addbox))
-        TAB_CMD.Add("addtext", {CmdParam.String, CmdParam.String, CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_tab_addtext))
-        TAB_CMD.Add("addimage", {CmdParam.String, CmdParam.String, CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_tab_addimage))
-        TAB_CMD.Add("addbutton", {CmdParam.String, CmdParam.String, CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_tab_addbutton))
-        TAB_CMD.Add("addprogress", {CmdParam.Integer, CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_tab_addprogress))
-        TAB_CMD.Add("remove", {CmdParam.String}, New ScriptFunction(AddressOf c_tab_remove))
-        TAB_CMD.Add("settext", {CmdParam.String, CmdParam.String}, New ScriptFunction(AddressOf c_tab_settext))
-        TAB_CMD.Add("gettext", {CmdParam.String}, New ScriptFunction(AddressOf c_tab_gettext))
-        TAB_CMD.Add("buttondisable", {CmdParam.String_Optional}, New ScriptFunction(AddressOf c_tab_buttondisable))
-        TAB_CMD.Add("buttonenable", {CmdParam.String_Optional}, New ScriptFunction(AddressOf c_tab_buttonenable))
+        TAB_CMD.Add("create", {CmdPrm.String}, New ScriptFunction(AddressOf c_tab_create))
+        TAB_CMD.Add("addgroup", {CmdPrm.String, CmdPrm.Integer, CmdPrm.Integer, CmdPrm.Integer, CmdPrm.Integer}, New ScriptFunction(AddressOf c_tab_addgroup))
+        TAB_CMD.Add("addbox", {CmdPrm.String, CmdPrm.String, CmdPrm.Integer, CmdPrm.Integer}, New ScriptFunction(AddressOf c_tab_addbox))
+        TAB_CMD.Add("addtext", {CmdPrm.String, CmdPrm.String, CmdPrm.Integer, CmdPrm.Integer}, New ScriptFunction(AddressOf c_tab_addtext))
+        TAB_CMD.Add("addimage", {CmdPrm.String, CmdPrm.String, CmdPrm.Integer, CmdPrm.Integer}, New ScriptFunction(AddressOf c_tab_addimage))
+        TAB_CMD.Add("addbutton", {CmdPrm.String, CmdPrm.String, CmdPrm.Integer, CmdPrm.Integer}, New ScriptFunction(AddressOf c_tab_addbutton))
+        TAB_CMD.Add("addprogress", {CmdPrm.Integer, CmdPrm.Integer, CmdPrm.Integer}, New ScriptFunction(AddressOf c_tab_addprogress))
+        TAB_CMD.Add("remove", {CmdPrm.String}, New ScriptFunction(AddressOf c_tab_remove))
+        TAB_CMD.Add("settext", {CmdPrm.String, CmdPrm.String}, New ScriptFunction(AddressOf c_tab_settext))
+        TAB_CMD.Add("gettext", {CmdPrm.String}, New ScriptFunction(AddressOf c_tab_gettext))
+        TAB_CMD.Add("buttondisable", {CmdPrm.String_Optional}, New ScriptFunction(AddressOf c_tab_buttondisable))
+        TAB_CMD.Add("buttonenable", {CmdPrm.String_Optional}, New ScriptFunction(AddressOf c_tab_buttonenable))
         CmdFunctions.AddNest(TAB_CMD)
         Dim SPI_CMD As New ScriptCmd("SPI")
-        SPI_CMD.Add("clock", {CmdParam.Integer}, New ScriptFunction(AddressOf c_spi_clock))
-        SPI_CMD.Add("order", {CmdParam.String}, New ScriptFunction(AddressOf c_spi_order))
-        SPI_CMD.Add("mode", {CmdParam.Integer}, New ScriptFunction(AddressOf c_spi_mode))
-        SPI_CMD.Add("database", {CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_spi_database))
-        SPI_CMD.Add("getsr", {CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_spi_getsr))
-        SPI_CMD.Add("setsr", {CmdParam.Data}, New ScriptFunction(AddressOf c_spi_setsr))
-        SPI_CMD.Add("writeread", {CmdParam.Data, CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_spi_writeread))
-        SPI_CMD.Add("prog", {CmdParam.Integer}, New ScriptFunction(AddressOf c_spi_prog))
+        SPI_CMD.Add("clock", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_spi_clock))
+        SPI_CMD.Add("order", {CmdPrm.String}, New ScriptFunction(AddressOf c_spi_order))
+        SPI_CMD.Add("mode", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_spi_mode))
+        SPI_CMD.Add("database", {CmdPrm.Bool_Optional}, New ScriptFunction(AddressOf c_spi_database))
+        SPI_CMD.Add("getsr", {CmdPrm.Integer_Optional}, New ScriptFunction(AddressOf c_spi_getsr))
+        SPI_CMD.Add("setsr", {CmdPrm.Data}, New ScriptFunction(AddressOf c_spi_setsr))
+        SPI_CMD.Add("writeread", {CmdPrm.Data, CmdPrm.Integer_Optional}, New ScriptFunction(AddressOf c_spi_writeread))
+        SPI_CMD.Add("prog", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_spi_prog))
         CmdFunctions.AddNest(SPI_CMD)
         Dim JTAG_CMD As New ScriptCmd("JTAG")
         JTAG_CMD.Add("idcode", Nothing, New ScriptFunction(AddressOf c_jtag_idcode))
-        JTAG_CMD.Add("config", {CmdParam.String_Optional}, New ScriptFunction(AddressOf c_jtag_config))
-        JTAG_CMD.Add("select", {CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_select))
-        JTAG_CMD.Add("writeword", {CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_write32))
-        JTAG_CMD.Add("readword", {CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_read32))
-        JTAG_CMD.Add("control", {CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_control))
-        JTAG_CMD.Add("memoryinit", {CmdParam.String, CmdParam.Integer_Optional, CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_jtag_memoryinit))
-        JTAG_CMD.Add("debug", {CmdParam.Bool}, New ScriptFunction(AddressOf c_jtag_debug))
+        JTAG_CMD.Add("config", {CmdPrm.String_Optional}, New ScriptFunction(AddressOf c_jtag_config))
+        JTAG_CMD.Add("select", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_jtag_select))
+        JTAG_CMD.Add("writeword", {CmdPrm.Integer, CmdPrm.Integer}, New ScriptFunction(AddressOf c_jtag_write32))
+        JTAG_CMD.Add("readword", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_jtag_read32))
+        JTAG_CMD.Add("control", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_jtag_control))
+        JTAG_CMD.Add("memoryinit", {CmdPrm.String, CmdPrm.Integer_Optional, CmdPrm.Integer_Optional}, New ScriptFunction(AddressOf c_jtag_memoryinit))
+        JTAG_CMD.Add("debug", {CmdPrm.Bool}, New ScriptFunction(AddressOf c_jtag_debug))
         JTAG_CMD.Add("cpureset", Nothing, New ScriptFunction(AddressOf c_jtag_cpureset))
-        JTAG_CMD.Add("runsvf", {CmdParam.Data}, New ScriptFunction(AddressOf c_jtag_runsvf))
-        JTAG_CMD.Add("runxsvf", {CmdParam.Data}, New ScriptFunction(AddressOf c_jtag_runxsvf))
-        JTAG_CMD.Add("shiftdr", {CmdParam.Data, CmdParam.Integer, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_jtag_shiftdr))
-        JTAG_CMD.Add("shiftir", {CmdParam.Data, CmdParam.Integer, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_jtag_shiftir))
-        JTAG_CMD.Add("shiftout", {CmdParam.Data, CmdParam.Integer, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_jtag_shiftout))
+        JTAG_CMD.Add("runsvf", {CmdPrm.Data}, New ScriptFunction(AddressOf c_jtag_runsvf))
+        JTAG_CMD.Add("runxsvf", {CmdPrm.Data}, New ScriptFunction(AddressOf c_jtag_runxsvf))
+        JTAG_CMD.Add("shiftdr", {CmdPrm.Data, CmdPrm.Integer, CmdPrm.Bool_Optional}, New ScriptFunction(AddressOf c_jtag_shiftdr))
+        JTAG_CMD.Add("shiftir", {CmdPrm.Data, CmdPrm.Integer, CmdPrm.Bool_Optional}, New ScriptFunction(AddressOf c_jtag_shiftir))
+        JTAG_CMD.Add("shiftout", {CmdPrm.Data, CmdPrm.Integer, CmdPrm.Bool_Optional}, New ScriptFunction(AddressOf c_jtag_shiftout))
         JTAG_CMD.Add("tapreset", Nothing, New ScriptFunction(AddressOf c_jtag_tapreset))
-        JTAG_CMD.Add("state", {CmdParam.String}, New ScriptFunction(AddressOf c_jtag_state))
-        JTAG_CMD.Add("graycode", {CmdParam.Integer, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_jtag_graycode))
-        JTAG_CMD.Add("setdelay", {CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_setdelay)) 'Legacy support
-        JTAG_CMD.Add("exitstate", {CmdParam.Bool}, New ScriptFunction(AddressOf c_jtag_exitstate)) 'SVF player option
+        JTAG_CMD.Add("state", {CmdPrm.String}, New ScriptFunction(AddressOf c_jtag_state))
+        JTAG_CMD.Add("graycode", {CmdPrm.Integer, CmdPrm.Bool_Optional}, New ScriptFunction(AddressOf c_jtag_graycode))
+        JTAG_CMD.Add("setdelay", {CmdPrm.Integer, CmdPrm.Integer}, New ScriptFunction(AddressOf c_jtag_setdelay)) 'Legacy support
+        JTAG_CMD.Add("exitstate", {CmdPrm.Bool}, New ScriptFunction(AddressOf c_jtag_exitstate)) 'SVF player option
         JTAG_CMD.Add("epc2_read", Nothing, New ScriptFunction(AddressOf c_jtag_epc2_read))
-        JTAG_CMD.Add("epc2_write", {CmdParam.Data, CmdParam.Data}, New ScriptFunction(AddressOf c_jtag_epc2_write))
+        JTAG_CMD.Add("epc2_write", {CmdPrm.Data, CmdPrm.Data}, New ScriptFunction(AddressOf c_jtag_epc2_write))
         JTAG_CMD.Add("epc2_erase", Nothing, New ScriptFunction(AddressOf c_jtag_epc2_erase))
         CmdFunctions.AddNest(JTAG_CMD)
         Dim BCM_CMD As New ScriptCmd("BCM")
-        BCM_CMD.Add("init", {CmdParam.Integer}, New ScriptFunction(AddressOf c_bcm_init))
+        BCM_CMD.Add("init", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_bcm_init))
         BCM_CMD.Add("getfwlocation", Nothing, New ScriptFunction(AddressOf c_bcm_getfwlocation))
         BCM_CMD.Add("getfwname", Nothing, New ScriptFunction(AddressOf c_bcm_getfwname))
         BCM_CMD.Add("getfwlen", Nothing, New ScriptFunction(AddressOf c_bcm_getfwlen))
         BCM_CMD.Add("readhfcmac", Nothing, New ScriptFunction(AddressOf c_bcm_readhfcmac))
-        BCM_CMD.Add("sethfcmac", {CmdParam.String}, New ScriptFunction(AddressOf c_bcm_sethfcmac))
+        BCM_CMD.Add("sethfcmac", {CmdPrm.String}, New ScriptFunction(AddressOf c_bcm_sethfcmac))
         BCM_CMD.Add("readserial", Nothing, New ScriptFunction(AddressOf c_bcm_readserial))
         BCM_CMD.Add("readconfig", Nothing, New ScriptFunction(AddressOf c_bcm_readconfig))
         BCM_CMD.Add("writeconfig", Nothing, New ScriptFunction(AddressOf c_bcm_writeconfig))
-        BCM_CMD.Add("setserial", {CmdParam.String}, New ScriptFunction(AddressOf c_bcm_setserial))
+        BCM_CMD.Add("setserial", {CmdPrm.String}, New ScriptFunction(AddressOf c_bcm_setserial))
         CmdFunctions.AddNest(BCM_CMD)
         Dim BSDL As New ScriptCmd("BoundaryScan")
         BSDL.Add("setup", Nothing, New ScriptFunction(AddressOf c_bsdl_setup))
-        BSDL.Add("init", {CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_bsdl_init))
-        BSDL.Add("addpin", {CmdParam.String, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_bsdl_addpin))
-        BSDL.Add("setbsr", {CmdParam.Integer, CmdParam.Integer, CmdParam.Bool}, New ScriptFunction(AddressOf c_bsdl_setbsr))
+        BSDL.Add("init", {CmdPrm.Integer_Optional}, New ScriptFunction(AddressOf c_bsdl_init))
+        BSDL.Add("addpin", {CmdPrm.String, CmdPrm.Integer, CmdPrm.Integer, CmdPrm.Integer_Optional}, New ScriptFunction(AddressOf c_bsdl_addpin))
+        BSDL.Add("setbsr", {CmdPrm.Integer, CmdPrm.Integer, CmdPrm.Bool}, New ScriptFunction(AddressOf c_bsdl_setbsr))
         BSDL.Add("writebsr", Nothing, New ScriptFunction(AddressOf c_bsdl_writebsr))
         BSDL.Add("detect", Nothing, New ScriptFunction(AddressOf c_bsdl_detect))
         CmdFunctions.AddNest(BSDL)
@@ -141,29 +141,29 @@ Public Class FcScriptEngine : Implements IDisposable
         LOADOPT.Add("firmware", Nothing, New ScriptFunction(AddressOf c_load_firmware))
         LOADOPT.Add("logic", Nothing, New ScriptFunction(AddressOf c_load_logic))
         LOADOPT.Add("erase", Nothing, New ScriptFunction(AddressOf c_load_erase))
-        LOADOPT.Add("bootloader", {CmdParam.Data}, New ScriptFunction(AddressOf c_load_bootloader))
+        LOADOPT.Add("bootloader", {CmdPrm.Data}, New ScriptFunction(AddressOf c_load_bootloader))
         CmdFunctions.AddNest(LOADOPT)
         Dim FLSHOPT As New ScriptCmd("flash")
         Dim del_add As New ScriptFunction(AddressOf c_flash_add)
-        FLSHOPT.Add("add", {CmdParam.String, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer}, del_add)
+        FLSHOPT.Add("add", {CmdPrm.String, CmdPrm.Integer, CmdPrm.Integer, CmdPrm.Integer, CmdPrm.Integer, CmdPrm.Integer, CmdPrm.Integer, CmdPrm.Integer}, del_add)
         CmdFunctions.AddNest(FLSHOPT)
         'Generic functions
-        CmdFunctions.Add("writeline", {CmdParam.Any, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_writeline))
-        CmdFunctions.Add("print", {CmdParam.Any, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_writeline))
-        CmdFunctions.Add("msgbox", {CmdParam.Any}, New ScriptFunction(AddressOf c_msgbox))
-        CmdFunctions.Add("status", {CmdParam.String}, New ScriptFunction(AddressOf c_setstatus))
+        CmdFunctions.Add("writeline", {CmdPrm.Any, CmdPrm.Bool_Optional}, New ScriptFunction(AddressOf c_writeline))
+        CmdFunctions.Add("print", {CmdPrm.Any, CmdPrm.Bool_Optional}, New ScriptFunction(AddressOf c_writeline))
+        CmdFunctions.Add("msgbox", {CmdPrm.Any}, New ScriptFunction(AddressOf c_msgbox))
+        CmdFunctions.Add("status", {CmdPrm.String}, New ScriptFunction(AddressOf c_setstatus))
         CmdFunctions.Add("refresh", Nothing, New ScriptFunction(AddressOf c_refresh))
-        CmdFunctions.Add("sleep", {CmdParam.Integer}, New ScriptFunction(AddressOf c_sleep))
-        CmdFunctions.Add("verify", {CmdParam.Bool}, New ScriptFunction(AddressOf c_verify))
+        CmdFunctions.Add("sleep", {CmdPrm.Integer}, New ScriptFunction(AddressOf c_sleep))
+        CmdFunctions.Add("verify", {CmdPrm.Bool}, New ScriptFunction(AddressOf c_verify))
         CmdFunctions.Add("mode", Nothing, New ScriptFunction(AddressOf c_mode))
-        CmdFunctions.Add("ask", {CmdParam.String}, New ScriptFunction(AddressOf c_ask))
-        CmdFunctions.Add("endian", {CmdParam.String}, New ScriptFunction(AddressOf c_endian))
+        CmdFunctions.Add("ask", {CmdPrm.String}, New ScriptFunction(AddressOf c_ask))
+        CmdFunctions.Add("endian", {CmdPrm.String}, New ScriptFunction(AddressOf c_endian))
         CmdFunctions.Add("abort", Nothing, New ScriptFunction(AddressOf c_abort))
         CmdFunctions.Add("parallel", Nothing, New ScriptFunction(AddressOf c_parallel))
         CmdFunctions.Add("catalog", Nothing, New ScriptFunction(AddressOf c_catalog))
-        CmdFunctions.Add("cpen", {CmdParam.Bool}, New ScriptFunction(AddressOf c_cpen))
-        CmdFunctions.Add("crc16", {CmdParam.Data}, New ScriptFunction(AddressOf c_crc16))
-        CmdFunctions.Add("crc32", {CmdParam.Data}, New ScriptFunction(AddressOf c_crc32))
+        CmdFunctions.Add("cpen", {CmdPrm.Bool}, New ScriptFunction(AddressOf c_cpen))
+        CmdFunctions.Add("crc16", {CmdPrm.Data}, New ScriptFunction(AddressOf c_crc16))
+        CmdFunctions.Add("crc32", {CmdPrm.Data}, New ScriptFunction(AddressOf c_crc32))
         'CmdFunctions.Add("debug", Nothing, New ScriptFunction(AddressOf c_debug))
     End Sub
 
@@ -512,7 +512,7 @@ Public Class FcScriptEngine : Implements IDisposable
             Me.Name = group_name
         End Sub
 
-        Friend Sub Add(cmd As String, params() As CmdParam, e As [Delegate])
+        Friend Sub Add(cmd As String, params() As CmdPrm, e As [Delegate])
             Dim n_cmd As New CmdEntry
             n_cmd.cmd = cmd
             n_cmd.parameters = params
@@ -548,7 +548,7 @@ Public Class FcScriptEngine : Implements IDisposable
             Return False
         End Function
 
-        Public Function GetScriptFunction(fnc_name As String, sub_fnc As String, ByRef params() As CmdParam, ByRef e As [Delegate]) As Boolean
+        Public Function GetScriptFunction(fnc_name As String, sub_fnc As String, ByRef params() As CmdPrm, ByRef e As [Delegate]) As Boolean
             If (sub_fnc = "") Then
                 For Each s In Me.Cmds
                     If s.cmd.ToUpper = fnc_name.ToUpper Then
@@ -579,7 +579,7 @@ Public Class FcScriptEngine : Implements IDisposable
 
     Private Structure CmdEntry
         Public cmd As String
-        Public parameters() As CmdParam
+        Public parameters() As CmdPrm
         Public fnc As [Delegate]
     End Structure
 
@@ -957,7 +957,7 @@ Public Class FcScriptEngine : Implements IDisposable
                 Case ScriptElementDataType.Data
                     Select Case DataType
                         Case OperandType.Function
-                            Dim fnc_params() As CmdParam = Nothing
+                            Dim fnc_params() As CmdPrm = Nothing
                             Dim fnc As [Delegate] = Nothing
                             If MyParent.CmdFunctions.GetScriptFunction(FUNC_NAME, FUNC_SUB, fnc_params, fnc) Then
                                 Dim input_vars As New List(Of ScriptVariable)
@@ -1043,7 +1043,7 @@ Public Class FcScriptEngine : Implements IDisposable
             Return Nothing
         End Function
 
-        Private Function CheckFunctionArguments(fnc_params() As CmdParam, ByRef my_vars() As ScriptVariable) As Boolean
+        Private Function CheckFunctionArguments(fnc_params() As CmdPrm, ByRef my_vars() As ScriptVariable) As Boolean
             Dim var_count As UInt32 = 0
             If my_vars Is Nothing OrElse my_vars.Count = 0 Then
                 var_count = 0
@@ -1056,7 +1056,7 @@ Public Class FcScriptEngine : Implements IDisposable
             ElseIf fnc_params IsNot Nothing Then
                 For i = 0 To fnc_params.Length - 1
                     Select Case fnc_params(i)
-                        Case CmdParam.Integer
+                        Case CmdPrm.Integer
                             If (i >= var_count) Then
                                 Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires an Integer type parameter" : Return Nothing
                             Else
@@ -1064,7 +1064,7 @@ Public Class FcScriptEngine : Implements IDisposable
                                     Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an Integer but was supplied a " & OperandTypeToString(my_vars(i).VarType) : Return Nothing
                                 End If
                             End If
-                        Case CmdParam.String
+                        Case CmdPrm.String
                             If (i >= var_count) Then
                                 Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires a String type parameter" : Return Nothing
                             Else
@@ -1072,7 +1072,7 @@ Public Class FcScriptEngine : Implements IDisposable
                                     Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs a String but was supplied a " & OperandTypeToString(my_vars(i).VarType) : Return Nothing
                                 End If
                             End If
-                        Case CmdParam.Data
+                        Case CmdPrm.Data
                             If (i >= var_count) Then
                                 Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires a Data type parameter" : Return Nothing
                             Else
@@ -1085,7 +1085,7 @@ Public Class FcScriptEngine : Implements IDisposable
                                     Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an Data but was supplied a " & OperandTypeToString(my_vars(i).VarType) : Return Nothing
                                 End If
                             End If
-                        Case CmdParam.Bool
+                        Case CmdPrm.Bool
                             If (i >= var_count) Then
                                 Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires a Bool type parameter" : Return Nothing
                             Else
@@ -1093,7 +1093,7 @@ Public Class FcScriptEngine : Implements IDisposable
                                     Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an Bool but was supplied a " & OperandTypeToString(my_vars(i).VarType) : Return Nothing
                                 End If
                             End If
-                        Case CmdParam.Variable
+                        Case CmdPrm.Variable
                             If (i >= var_count) Then
                                 Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires a Variable type parameter" : Return Nothing
                             Else
@@ -1101,35 +1101,35 @@ Public Class FcScriptEngine : Implements IDisposable
                                     Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an Variable but was supplied a " & OperandTypeToString(my_vars(i).VarType) : Return Nothing
                                 End If
                             End If
-                        Case CmdParam.Any
+                        Case CmdPrm.Any
                             If (i >= var_count) Then
                                 Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires a parameter" : Return Nothing
                             End If
-                        Case CmdParam.Integer_Optional
+                        Case CmdPrm.Integer_Optional
                             If Not (i >= var_count) Then 'Only check if we have supplied this argument
                                 If Not my_vars(i).VarType = OperandType.Integer Then
                                     Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an Integer but was supplied a " & OperandTypeToString(my_vars(i).VarType) : Return Nothing
                                 End If
                             End If
-                        Case CmdParam.String_Optional
+                        Case CmdPrm.String_Optional
                             If Not (i >= var_count) Then 'Only check if we have supplied this argument
                                 If Not my_vars(i).VarType = OperandType.String Then
                                     Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an String but was supplied a " & OperandTypeToString(my_vars(i).VarType) : Return Nothing
                                 End If
                             End If
-                        Case CmdParam.Data_Optional
+                        Case CmdPrm.Data_Optional
                             If Not (i >= var_count) Then 'Only check if we have supplied this argument
                                 If Not my_vars(i).VarType = OperandType.Data Then
                                     Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs Data but was supplied a " & OperandTypeToString(my_vars(i).VarType) : Return Nothing
                                 End If
                             End If
-                        Case CmdParam.Bool_Optional
+                        Case CmdPrm.Bool_Optional
                             If Not (i >= var_count) Then 'Only check if we have supplied this argument
                                 If Not my_vars(i).VarType = OperandType.Bool Then
                                     Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs Bool but was supplied a " & OperandTypeToString(my_vars(i).VarType) : Return Nothing
                                 End If
                             End If
-                        Case CmdParam.Any_Optional
+                        Case CmdPrm.Any_Optional
                     End Select
                 Next
             End If
@@ -1516,7 +1516,7 @@ Public Class FcScriptEngine : Implements IDisposable
         [NULL]
     End Enum
 
-    Private Enum CmdParam
+    Private Enum CmdPrm
         [Integer]
         [Integer_Optional]
         [String]
@@ -4100,7 +4100,6 @@ Public Class FcScriptEngine : Implements IDisposable
     Private Function c_load_firmware(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Select Case MAIN_FCUSB.HWBOARD
-                Case USB.FCUSB_BOARD.Professional_PCB4
                 Case USB.FCUSB_BOARD.Professional_PCB5
                 Case USB.FCUSB_BOARD.Mach1
                 Case Else
@@ -4116,9 +4115,6 @@ Public Class FcScriptEngine : Implements IDisposable
     Private Function c_load_logic(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Select Case MAIN_FCUSB.HWBOARD
-                Case USB.FCUSB_BOARD.Professional_PCB4
-                    MAIN_FCUSB.LOGIC_SetVersion(&HFFFFFFFFUI)
-                    FCUSBPRO_PCB4_Init(MAIN_FCUSB, MySettings.OPERATION_MODE)
                 Case USB.FCUSB_BOARD.Professional_PCB5
                     MAIN_FCUSB.LOGIC_SetVersion(&HFFFFFFFFUI)
                     FCUSBPRO_PCB5_Init(MAIN_FCUSB, MySettings.OPERATION_MODE)
@@ -4149,7 +4145,6 @@ Public Class FcScriptEngine : Implements IDisposable
     Private Function c_load_bootloader(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Select Case MAIN_FCUSB.HWBOARD
-                Case USB.FCUSB_BOARD.Professional_PCB4
                 Case USB.FCUSB_BOARD.Professional_PCB5
                 Case USB.FCUSB_BOARD.Mach1
                 Case Else
@@ -4159,10 +4154,7 @@ Public Class FcScriptEngine : Implements IDisposable
             If bl_data IsNot Nothing AndAlso bl_data.Length > 0 Then
                 If MAIN_FCUSB.BootloaderUpdate(bl_data) Then
                     RaiseEvent WriteConsole("Bootloader successfully updated")
-                    'MAIN_FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.FW_REBOOT, Nothing, 0)
-
                     MAIN_FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.FW_REBOOT, Nothing, &HFFFFFFFFUI)
-
                 Else
                     RaiseEvent WriteConsole("Bootloader update was not successful")
                 End If

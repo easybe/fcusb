@@ -107,6 +107,7 @@ Partial Class FrmSettings
         Me.cb_mismatch = New System.Windows.Forms.CheckBox()
         Me.cb_preserve = New System.Windows.Forms.CheckBox()
         Me.TP_NAND2 = New System.Windows.Forms.TabPage()
+        Me.Label25 = New System.Windows.Forms.Label()
         Me.gb_nandecc_title = New System.Windows.Forms.GroupBox()
         Me.txt_ecc_location = New System.Windows.Forms.TextBox()
         Me.cb_ecc_seperate = New System.Windows.Forms.CheckBox()
@@ -147,8 +148,6 @@ Partial Class FrmSettings
         Me.cb_retry_write = New System.Windows.Forms.ComboBox()
         Me.Label17 = New System.Windows.Forms.Label()
         Me.Label20 = New System.Windows.Forms.Label()
-        Me.cb_multi_ce = New System.Windows.Forms.ComboBox()
-        Me.Label25 = New System.Windows.Forms.Label()
         Me.MyTabs.SuspendLayout()
         Me.TP_SPI.SuspendLayout()
         Me.group_custom.SuspendLayout()
@@ -1082,6 +1081,16 @@ Partial Class FrmSettings
         Me.TP_NAND2.TabIndex = 4
         Me.TP_NAND2.Text = "  ECC  "
         '
+        'Label25
+        '
+        Me.Label25.AutoSize = True
+        Me.Label25.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Label25.Location = New System.Drawing.Point(95, 246)
+        Me.Label25.Name = "Label25"
+        Me.Label25.Size = New System.Drawing.Size(341, 13)
+        Me.Label25.TabIndex = 12
+        Me.Label25.Text = "This feature is only available to commercial license holders"
+        '
         'gb_nandecc_title
         '
         Me.gb_nandecc_title.Controls.Add(Me.txt_ecc_location)
@@ -1440,7 +1449,6 @@ Partial Class FrmSettings
         Me.GroupBox3.Controls.Add(Me.cb_retry_write)
         Me.GroupBox3.Controls.Add(Me.Label17)
         Me.GroupBox3.Controls.Add(Me.Label20)
-        Me.GroupBox3.Controls.Add(Me.cb_multi_ce)
         Me.GroupBox3.Location = New System.Drawing.Point(6, 6)
         Me.GroupBox3.Name = "GroupBox3"
         Me.GroupBox3.Size = New System.Drawing.Size(244, 178)
@@ -1471,10 +1479,10 @@ Partial Class FrmSettings
         '
         Me.cb_ce_select.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_ce_select.FormattingEnabled = True
-        Me.cb_ce_select.Items.AddRange(New Object() {"A18", "A19", "A20", "A21", "A22", "A23", "A24"})
-        Me.cb_ce_select.Location = New System.Drawing.Point(98, 90)
+        Me.cb_ce_select.Items.AddRange(New Object() {"Disabled", "A18", "A19", "A20", "A21", "A22", "A23", "A24", "A25", "A26", "A27"})
+        Me.cb_ce_select.Location = New System.Drawing.Point(9, 88)
         Me.cb_ce_select.Name = "cb_ce_select"
-        Me.cb_ce_select.Size = New System.Drawing.Size(63, 21)
+        Me.cb_ce_select.Size = New System.Drawing.Size(104, 21)
         Me.cb_ce_select.TabIndex = 47
         '
         'cb_retry_write
@@ -1504,26 +1512,6 @@ Partial Class FrmSettings
         Me.Label20.Size = New System.Drawing.Size(153, 13)
         Me.Label20.TabIndex = 46
         Me.Label20.Text = "Multi-chip select (Parallel NOR)"
-        '
-        'cb_multi_ce
-        '
-        Me.cb_multi_ce.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cb_multi_ce.FormattingEnabled = True
-        Me.cb_multi_ce.Items.AddRange(New Object() {"Disabled", "Enabled"})
-        Me.cb_multi_ce.Location = New System.Drawing.Point(9, 90)
-        Me.cb_multi_ce.Name = "cb_multi_ce"
-        Me.cb_multi_ce.Size = New System.Drawing.Size(83, 21)
-        Me.cb_multi_ce.TabIndex = 45
-        '
-        'Label25
-        '
-        Me.Label25.AutoSize = True
-        Me.Label25.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.Label25.Location = New System.Drawing.Point(95, 246)
-        Me.Label25.Name = "Label25"
-        Me.Label25.Size = New System.Drawing.Size(341, 13)
-        Me.Label25.TabIndex = 12
-        Me.Label25.Text = "This feature is only available to commercial license holders"
         '
         'FrmSettings
         '
@@ -1683,7 +1671,6 @@ Partial Class FrmSettings
     Friend WithEvents Label19 As Label
     Friend WithEvents cb_s93_org As ComboBox
     Friend WithEvents Label20 As Label
-    Friend WithEvents cb_multi_ce As ComboBox
     Friend WithEvents cb_ce_select As ComboBox
     Friend WithEvents Label16 As Label
     Friend WithEvents cbSrec As ComboBox

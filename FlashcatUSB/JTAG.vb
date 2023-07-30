@@ -33,10 +33,6 @@ Namespace JTAG
                 Me.SELECTED_INDEX = 0
                 Devices.Clear()
                 If (FCUSB.HasLogic()) And (Not internal_logic) Then
-                    If FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional_PCB4 Then
-                        If Me.TCK_SPEED = JTAG_SPEED._40MHZ Then Me.TCK_SPEED = JTAG_SPEED._20MHZ
-                        If Me.TCK_SPEED = JTAG_SPEED._1MHZ Then Me.TCK_SPEED = JTAG_SPEED._10MHZ
-                    End If
                     FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_INIT, Nothing, Me.TCK_SPEED)
                 Else
                     If FCUSB.HasLogic() Then
@@ -996,8 +992,8 @@ Namespace JTAG
 
         Public ReadOnly Property BoundaryScan_DeviceSize As Long
             Get
-                Dim NOR_FLASH As FlashMemory.P_NOR = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.P_NOR)
-                Return NOR_FLASH.AVAILABLE_SIZE
+                Dim NOR_FLASH As P_NOR = DirectCast(BSDL_FLASH_DEVICE, P_NOR)
+                Return NOR_FLASH.FLASH_SIZE
             End Get
         End Property
 
@@ -1810,7 +1806,7 @@ Namespace JTAG
                     End If
                 End If
             ElseIf spi_if = JTAG_SPI_Type.BCM_ARM Then
-                If Not FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional_PCB4 Then
+                If Not FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional_PCB5 Then
                     WriteConsole("JTAG: Error, ARM extension is only supported on FlashcatUSB Professional")
                     Return False
                 End If
