@@ -4,6 +4,7 @@
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'ACKNOWLEDGEMENT: USB driver functionality provided by LibUsbDotNet (sourceforge.net/projects/libusbdotnet)
 
+Imports FlashcatUSB.FlashMemory
 Imports FlashcatUSB.USB.HostClient
 
 Namespace JTAG
@@ -57,7 +58,6 @@ Namespace JTAG
                 Next
                 Select_Device(0) 'By defailt, select the first chain item
 
-                'DEBUG ######################
                 If Devices(0).IDCODE = &HBA02477 Then
                     Dim tdo(3) As Byte
                     Dim tdi(3) As Byte
@@ -80,14 +80,6 @@ Namespace JTAG
                     WriteConsole("AHB-AP (IDR: 0x" & Conversion.Hex(AHB_AP).PadLeft(8, "0") & ")")
                     ARM_APACC(&H0, ARM_AP_REG.BASE, ARM_RnW.RD)
                     Dim BASE_REG As UInt32 = ARM_APACC(&H0, ARM_AP_REG.BASE, ARM_RnW.RD, False) '0xE00FB003
-                    Beep()
-
-
-
-
-
-                    'This SHOULD be 0xE00FB003
-                    'Sometimes it is: BASE_REG = &H0174048E
 
                     'Dim d1, d2, d3, d4 As UInt32
                     'Dim r1, r2, r3, r4 As ARM_DP_REG
@@ -105,12 +97,9 @@ Namespace JTAG
                     '0xE00FB000 <-- from our debugger
 
                     'Find ROM base (0xE00FB000)
-
-
+                ElseIf Devices(0).IDCODE = &H1BA141CF Then
+                    ' AAI_DEBUG()
                 End If
-                'DEBUG ######################
-
-
                 Return True
             Catch ex As Exception
             End Try
@@ -284,129 +273,314 @@ Namespace JTAG
         End Sub
 
 #Region "Boundary Scan Programmer"
-        Private BoundaryMap As New List(Of BoundaryScan_PinMap)
+        Public Property CFI As NOR_CFI 'Contains CFI table information (NOR)
+
+        Private Const IO_INPUT As Boolean = False '0
+        Private Const IO_OUTPUT As Boolean = True '1
+        Private Const LOGIC_LOW As Boolean = False '0
+        Private Const LOGIC_HIGH As Boolean = True '1
+
+        Private BoundaryMap As New List(Of BoundaryCell)
         Private BSDL_FLASH_DEVICE As FlashMemory.Device
         Private BSDL_IF As MemoryInterface.MemoryDeviceInstance = Nothing
-        Private BSDL_PROG_CMD As BSDL_PROG_ENUM = 0
-        Private BSDL_ERASE_CMD As BSDL_ERASE_ENUM = 0
-        Private BSDL_IO As BSDL_DQ_IO
-        Private Enum BSDL_ERASE_ENUM As UInt32
-            STANDARD = 1
-        End Enum
+        Private SetupReady As Boolean = False
+        Private Property BSDL_IO As BSDL_DQ_IO
+        Private Property BDR_DQ_SIZE As Integer = 0
+        Private Property BDR_ADDR_SIZE As Integer = 0
+        Private Property BSR_SIZE As Integer = 0
+        Private Property BDR_CTRL_EN As Boolean = False
 
-        Private Enum BSDL_PROG_ENUM As UInt32
-            NORMAL = 0
-            BYPASS = 1 '(Bypass) 0x555=0xAA;0x2AA=55;0x555=20;(0x00=0xA0;SA=DATA;...)0x00=0x90;0x00=0x00
-        End Enum
+        Private BSR_REG(127) As Byte
 
         Private Enum BSDL_DQ_IO As UInt32
             X16 = 1
             X8 = 2
+            X8_OVER_X16 = 3
         End Enum
 
-        Public Sub BoundaryScan_Init()
+        Public Sub BoundaryScan_Setup()
+            SetupReady = False
+            If MySettings.LICENSED_TO.Equals("") Then
+                WriteConsole("Boundary Scan Library only available with commercial license")
+                SetStatus("Error: commercial license required")
+                Exit Sub
+            End If
             If Devices(0).BSDL.BS_LEN = 0 Then
                 WriteConsole("Boundary Scan error: BSDL scan length not not specified")
                 Exit Sub
             End If
             BoundaryMap.Clear()
+            Me.BDR_DQ_SIZE = 0
+            Me.BDR_ADDR_SIZE = 0
+            Me.BSR_SIZE = Devices(0).BSDL.BS_LEN
+            Me.BDR_CTRL_EN = Devices(0).BSDL.CONTROL_DISABLE  'SOMETHING
+            ReDim BSR_REG(127)
             BSDL_FLASH_DEVICE = Nothing
-            Dim w32 As UInt32 = ((Devices(0).BSDL.EXTEST And &HFFFF) << 16) Or (Devices(0).BSDL.BS_LEN)
-            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_SETUP, Nothing, w32)
+            Dim setup_data(6) As Byte
+            setup_data(0) = CByte((Devices(0).BSDL.EXTEST) And 255)
+            setup_data(1) = CByte((Devices(0).BSDL.EXTEST >> 8) And 255)
+            setup_data(2) = CByte((Devices(0).BSDL.SAMPLE) And 255)
+            setup_data(3) = CByte((Devices(0).BSDL.SAMPLE >> 8) And 255)
+            setup_data(4) = CByte((Devices(0).BSDL.BS_LEN) And 255)
+            setup_data(5) = CByte((Devices(0).BSDL.BS_LEN >> 8) And 255)
+            setup_data(6) = CByte(Devices(0).BSDL.CONTROL_DISABLE)
+            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, setup_data)
+            SetupReady = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_SETUP)
         End Sub
 
-        Public Function BoundaryScan_Detect() As Boolean
+        Public Function BoundaryScan_Init(EnableX8Mode As Boolean) As Boolean
+            If Not SetupReady Then Return False
             WriteConsole("JTAG Boundary Scan Programmer")
-            If (Not (FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional_PCB4 Or FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional_PCB5)) Then
-                WriteConsole("Error: this feature is only available using FlashcatUSB Professional") : Return False
+            If (Not FCUSB.IsProfessional) Then
+                WriteConsole("This feature is only available using FlashcatUSB Professional") : Return False
             End If
             If Not BSDL_Is_Configured() Then Return False
             For Each item In BoundaryMap
                 Dim pin_data(7) As Byte
-                pin_data(0) = item.pin_type 'AD,DQ,WE,OE,CE,WP,RST,BYTE
+                pin_data(0) = item.TYPE 'AD,DQ,WE,OE,CE,WP,RST,BYTE
                 pin_data(1) = item.pin_index 'ADx, DQx
-                pin_data(2) = CByte(item.pin_output And 255)
-                pin_data(3) = CByte(item.pin_output >> 8)
-                pin_data(4) = CByte(item.pin_control And 255)
-                pin_data(5) = CByte(item.pin_control >> 8)
-                pin_data(6) = CByte(item.pin_input And 255)
-                pin_data(7) = CByte(item.pin_input >> 8)
-                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_ADDPIN, pin_data)
+                pin_data(2) = CByte(item.OUTPUT And 255)
+                pin_data(3) = CByte(item.OUTPUT >> 8)
+                pin_data(4) = CByte(item.CONTROL And 255)
+                pin_data(5) = CByte(item.CONTROL >> 8)
+                pin_data(6) = CByte(item.INPUT And 255)
+                pin_data(7) = CByte(item.INPUT >> 8)
+                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, pin_data)
+                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_ADDPIN)
                 Utilities.Sleep(5)
             Next
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_INIT)
-            If Not result Then
+            If EnableX8Mode Then
+                Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16
+            Else
+                If Me.BDR_DQ_SIZE = 8 Then
+                    Me.BSDL_IO = BSDL_DQ_IO.X8
+                ElseIf Me.BDR_DQ_SIZE = 16 Then
+                    Me.BSDL_IO = BSDL_DQ_IO.X16
+                End If
+            End If
+            Dim dw As UInt32 = 0 'X8
+            If Me.BSDL_IO = BSDL_DQ_IO.X16 Or Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16 Then dw = 1
+            If (Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_INIT, Nothing, dw)) Then
                 WriteConsole("Error: Boundary Scan init failed") : Return False
             End If
-            Dim id_data() As Byte = Nothing
-            If BSDL_CFI_ReadIdent(id_data) Then
+            Return True
+        End Function
+
+#Region "Software mode"
+
+        Public Sub BoundaryScan_SW_Init()
+            Reset_StateMachine() 'Now at Select_DR
+            JTAG_BDR_Sample(BSR_REG) 'Load our REG with good values
+            JTAG_BDR_CreateOutput(GetBoundaryCell("WE#"), LOGIC_HIGH)
+            JTAG_BDR_CreateOutput(GetBoundaryCell("OE#"), LOGIC_LOW)
+            JTAG_BDR_CreateOutput(GetBoundaryCell("CE#"), LOGIC_LOW)
+            JTAG_BDR_CreateOutput(GetBoundaryCell("RESET#"), LOGIC_HIGH)
+            For i = 0 To Me.BDR_DQ_SIZE - 1
+                JTAG_BDR_CreateInput(GetBoundaryCell("DQ" & i.ToString))
+            Next
+            For i = 0 To Me.BDR_ADDR_SIZE - 1
+                JTAG_BDR_CreateOutput(GetBoundaryCell("AD" & i.ToString), LOGIC_LOW)
+            Next
+            JTAG_BDR_WriteBSR()
+        End Sub
+
+        Private Sub BoundaryScan_SW_WriteAddress(addr32 As UInt32)
+            For i = 0 To Me.BDR_ADDR_SIZE - 1
+                Dim state As Boolean
+                If ((addr32 >> i) And 1) Then
+                    state = LOGIC_HIGH
+                Else
+                    state = LOGIC_LOW
+                End If
+                JTAG_BDR_CreateOutput(GetBoundaryCell("AD" & i.ToString), state)
+            Next
+        End Sub
+
+        Public Function BoundaryScan_SW_ReadWord(base_addr As UInt32) As UInt16
+            BoundaryScan_SW_WriteAddress(base_addr)
+            JTAG_BDR_ReadMode()
+            Dim DQ16 As UInt16 = 0
+            Dim CLONE() As Byte = Nothing
+            JTAG_BDR_ReadBSR(CLONE)
+            For i As Integer = 0 To BDR_DQ_SIZE - 1
+                Dim c As BoundaryCell = GetBoundaryCell("DQ" & i.ToString)
+                Dim value As Boolean = BSR_GetBit(CLONE, c.INPUT)
+                If value Then DQ16 = DQ16 Or (1 << i)
+            Next
+            Return DQ16
+        End Function
+
+        Private Sub JTAG_BDR_ReadMode()
+            For i As Integer = 0 To BDR_DQ_SIZE - 1
+                BSR_SetControlState(GetBoundaryCell("DQ" & i.ToString).CONTROL, IO_INPUT)
+            Next
+            BSR_SetBit(BSR_REG, GetBoundaryCell("OE#").OUTPUT, LOGIC_LOW)
+            JTAG_BDR_WriteBSR()
+        End Sub
+
+        Private Sub JTAG_BDR_WriteMode()
+            For i As Integer = 0 To BDR_DQ_SIZE - 1
+                BSR_SetControlState(GetBoundaryCell("DQ" & i.ToString).CONTROL, IO_OUTPUT)
+            Next
+            BSR_SetBit(BSR_REG, GetBoundaryCell("OE#").OUTPUT, LOGIC_HIGH)
+            JTAG_BDR_WriteBSR()
+        End Sub
+
+        Private Sub JTAG_BDR_CreateOutput(cell As BoundaryCell, logic_level As Boolean)
+            BSR_SetBit(BSR_REG, cell.OUTPUT, logic_level)
+            BSR_SetBit(BSR_REG, cell.INPUT, LOGIC_LOW)
+            BSR_SetControlState(cell.CONTROL, IO_OUTPUT)
+        End Sub
+
+        Private Sub JTAG_BDR_CreateInput(cell As BoundaryCell)
+            BSR_SetControlState(cell.CONTROL, IO_INPUT)
+        End Sub
+
+        Private Sub BSR_SetControlState(control_pin As Integer, is_output As Boolean)
+            If BDR_CTRL_EN Then
+                BSR_SetBit(BSR_REG, control_pin, Not is_output)
+            Else
+                BSR_SetBit(BSR_REG, control_pin, is_output)
+            End If
+        End Sub
+
+        Private Sub BSR_SetBit(data_reg() As Byte, bit_index As UInt16, value As Boolean)
+            Dim arr_ind As UInt16 = Math.Floor(bit_index / 8)
+            Dim offset As Byte = (bit_index Mod 8)
+            If value Then
+                data_reg(arr_ind) = (BSR_REG(arr_ind) Or (1 << offset)) 'bit_value = HIGH
+            Else
+                data_reg(arr_ind) = BSR_REG(arr_ind) And (Not CByte(1 << offset)) 'bit_value=LOW
+            End If
+        End Sub
+
+        Private Function BSR_GetBit(data_reg() As Byte, bit_index As UInt16) As Boolean
+            Dim arr_ind As UInt16 = Math.Floor(bit_index / 8)
+            Dim offset As Byte = (bit_index Mod 8)
+            If (data_reg(arr_ind) And (CByte(1) << offset)) > 0 Then
+                Return True
+            Else
+                Return False
+            End If
+        End Function
+
+        Private Sub JTAG_BDR_WriteBSR()
+            Dim BDR_REG_CLONE(BSR_REG.Length - 1) As Byte
+            Array.Copy(BSR_REG, BDR_REG_CLONE, BDR_REG_CLONE.Length)
+            JTAG_BDR_Extest(BDR_REG_CLONE)
+        End Sub
+
+        Private Sub JTAG_BDR_ReadBSR(ByRef BDR() As Byte)
+            Dim BDR_REG_CLONE(BSR_REG.Length - 1) As Byte
+            Array.Copy(BSR_REG, BDR_REG_CLONE, BDR_REG_CLONE.Length)
+            JTAG_BDR_Extest(BDR_REG_CLONE)
+            BDR = BDR_REG_CLONE
+        End Sub
+
+        Private Sub JTAG_BDR_Extest(ByRef REG() As Byte)
+            Dim TDO(REG.Length - 1) As Byte
+            TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
+            ShiftTDI(8, {Devices(0).BSDL.EXTEST}, Nothing, True)
+            TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
+            ShiftTDI(Me.BSR_SIZE, REG, REG, True)
+            TAP_GotoState(JTAG_MACHINE_STATE.Update_DR)
+        End Sub
+
+        Private Sub JTAG_BDR_Sample(ByRef REG() As Byte)
+            Dim TDO(REG.Length - 1) As Byte
+            TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
+            ShiftTDI(8, {Devices(0).BSDL.SAMPLE}, Nothing, True)
+            TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
+            ShiftTDI(Me.BSR_SIZE, REG, REG, True)
+            TAP_GotoState(JTAG_MACHINE_STATE.Update_DR)
+        End Sub
+
+        Private Sub PrintCellData(bsr_size As Integer, data_reg() As Byte, filename As String)
+            Dim str As New Text.StringBuilder(bsr_size)
+            Dim ptr As Integer
+            For i = 0 To Math.Ceiling(bsr_size / 8) - 1
+                For x = 0 To 7
+                    Dim b As Boolean = CBool((BSR_REG(i) >> x) And 1)
+                    If b Then
+                        str.Insert(ptr, "1"c)
+                    Else
+                        str.Insert(ptr, "0"c)
+                    End If
+                    ptr += 1
+                    If ptr = 708 Then Exit For
+                Next
+            Next
+            ptr = 0
+            Dim cell((bsr_size / 3) - 1) As String
+            Dim str2 As New List(Of String)
+            For i = 0 To cell.Length - 1
+                Dim s As String = "Scan cell " & i.ToString.PadLeft(3, "0") & " ("
+                s &= str.Chars(ptr) & "[O] "
+                s &= str.Chars(ptr + 1) & "[C] "
+                s &= str.Chars(ptr + 2) & "[I])"
+                ptr += 3
+                str2.Add(s)
+            Next
+            Utilities.FileIO.WriteFile(str2.ToArray, filename)
+        End Sub
+
+#End Region
+
+        Public Function BoundaryScan_Detect() As Boolean
+            Me.CFI = Nothing
+            Dim FLASH_RESULT As PARALLEL_NOR_NAND.FlashDetectResult
+            If Me.BSDL_IO = BSDL_DQ_IO.X8 Then
+                FLASH_RESULT = PARALLEL_NOR_NAND.GetFlashResult(BSDL_ReadIdent(False)) 'X8 Device
+            Else
+                FLASH_RESULT = PARALLEL_NOR_NAND.GetFlashResult(BSDL_ReadIdent(True)) 'X16 Device
+            End If
+            If FLASH_RESULT.Successful Then
+                Me.CFI = New NOR_CFI(BSDL_GetCFI())
                 Dim device_matches() As FlashMemory.Device
-                Dim MFG As Byte = id_data(0)
-                Dim ID1 As UInt16 = ((CUShort(id_data(1)) << 8) Or id_data(2))
-                Dim ID2 As UInt16 = ((CUShort(id_data(3)) << 8) Or id_data(4))
-                Dim CHIPID_DETECT As Byte = id_data(5)
-                Dim chip_id_str As String = Hex(MFG).PadLeft(2, "0") & Hex((CUInt(ID1) << 16) Or ID2).PadLeft(8, "0")
-                WriteConsole("Flash detected: JEDEC ID: 0x" & chip_id_str)
-                device_matches = FlashDatabase.FindDevices(MFG, ID1, ID2, FlashMemory.MemoryType.PARALLEL_NOR)
+                Dim chip_id_str As String = Hex(FLASH_RESULT.MFG).PadLeft(2, "0") & Hex((CUInt(FLASH_RESULT.ID1) << 16) Or FLASH_RESULT.ID2).PadLeft(8, "0")
+                WriteConsole("Flash detected: DEVICE ID: 0x" & chip_id_str)
+                device_matches = FlashDatabase.FindDevices(FLASH_RESULT.MFG, FLASH_RESULT.ID1, FLASH_RESULT.ID2, MemoryType.PARALLEL_NOR)
                 If (device_matches IsNot Nothing AndAlso device_matches.Count > 0) Then
-                    If (device_matches.Count > 1) Then
-                        Dim cfi_page_size As UInt32 = (2 ^ CHIPID_DETECT)
+                    If (device_matches.Count > 1) AndAlso Me.CFI.IS_VALID Then
                         For i = 0 To device_matches.Count - 1
-                            If device_matches(i).PAGE_SIZE = cfi_page_size Then
+                            If device_matches(i).PAGE_SIZE = Me.CFI.WRITE_BUFFER_SIZE Then
                                 BSDL_FLASH_DEVICE = device_matches(i) : Exit For
                             End If
                         Next
                     End If
                     If BSDL_FLASH_DEVICE Is Nothing Then BSDL_FLASH_DEVICE = device_matches(0)
                     WriteConsole(String.Format(RM.GetString("flash_detected"), BSDL_FLASH_DEVICE.NAME, Format(BSDL_FLASH_DEVICE.FLASH_SIZE, "#,###")))
-                    BSDL_IF = JTAG_Connect_BSDL(FCUSB)
-                    BSDL_PROG_CMD = BSDL_PROG_ENUM.NORMAL
-                    BSDL_ERASE_CMD = BSDL_ERASE_ENUM.STANDARD
-                    Dim NOR_FLASH As FlashMemory.P_NOR = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.P_NOR)
-                    Select Case NOR_FLASH.WriteMode
-                        Case FlashMemory.MFP_PRG.IntelSharp
-                            'EXPIO_SETUP_ERASESECTOR(E_EXPIO_SECTOR.Type4) 'SA=0x50;SA=0x60;SA=0xD0(SR.7)SA=0x20;SA=0xD0(SR.7)
-                            'EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type4) 'SA=0x40;SA=DATA;SR.7
-                        Case FlashMemory.MFP_PRG.BypassMode 'Writes 64 bytes using ByPass sequence
-                            BSDL_PROG_CMD = BSDL_PROG_ENUM.BYPASS
-                        Case FlashMemory.MFP_PRG.PageMode 'Writes an entire page of data (128 bytes etc.)
-                            'EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type6)
-                        Case FlashMemory.MFP_PRG.Buffer1 'Writes to a buffer that is than auto-programmed
-                            'EXPIO_SETUP_ERASESECTOR(E_EXPIO_SECTOR.Type4) 'SA=0x50;SA=0x60;SA=0xD0,SR.7,SA=0x20;SA=0xD0,SR.7
-                            'EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type7)
-                        Case FlashMemory.MFP_PRG.Buffer2
-                            'EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type8)
-                    End Select
+                    Me.BSDL_IF = JTAG_Connect_BSDL(FCUSB)
                 Else
                     WriteConsole("CFI Flash device not found in library")
                 End If
             Else
-                WriteConsole("No CFI Flash device detected")
+                WriteConsole("No CFI Flash (X8/X16) device detected")
             End If
             Return False
         End Function
 
         Private Function BSDL_Is_Configured() As Boolean
-            Dim bndrscn_addr_size As Integer = 0 'The number of address pins we need to read/write
-            Dim bndrscn_data_size As Integer = 0
+            Me.BDR_DQ_SIZE = 0
+            Me.BDR_ADDR_SIZE = 0
             For Each item In BoundaryMap
-                If item.pin_name.ToUpper.StartsWith("AD") Then bndrscn_addr_size += 1
+                If item.pin_name.ToUpper.StartsWith("AD") Then Me.BDR_ADDR_SIZE += 1
             Next
             For Each item In BoundaryMap
-                If item.pin_name.ToUpper.StartsWith("DQ") Then bndrscn_data_size += 1
+                If item.pin_name.ToUpper.StartsWith("DQ") Then Me.BDR_DQ_SIZE += 1
             Next
-            If Not (bndrscn_data_size = 8 Or bndrscn_data_size = 16) Then
-                WriteConsole("Error, DQ pins need to be assigned either 8 or 16 bits") : Return False
-            End If
-            If (bndrscn_addr_size < 16) Then
+            If (Me.BDR_ADDR_SIZE < 16) Then
                 WriteConsole("Error, AQ pins need to be have at least 16 bits") : Return False
             End If
-            For i = 0 To bndrscn_addr_size - 1
+            If Not (Me.BDR_DQ_SIZE = 8 Or Me.BDR_DQ_SIZE = 16) Then
+                WriteConsole("Error, DQ pins need to be assigned either 8 or 16 bits") : Return False
+            End If
+            For i = 0 To Me.BDR_ADDR_SIZE - 1
                 If BoundaryScan_GetPinIndex("AD" & i.ToString) = -1 Then
                     WriteConsole("Error, missing address pin: AD" & i.ToString) : Return False
                 End If
             Next
-            For i = 0 To bndrscn_data_size - 1
+            For i = 0 To Me.BDR_DQ_SIZE - 1
                 If BoundaryScan_GetPinIndex("DQ" & i.ToString) = -1 Then
                     WriteConsole("Error, missing address pin: DQ" & i.ToString) : Return False
                 End If
@@ -417,97 +591,136 @@ Namespace JTAG
             If BoundaryScan_GetPinIndex("OE#") = -1 Then
                 WriteConsole("Error, missing address pin: OE#") : Return False
             End If
-            WriteConsole("Interface configured: X" & bndrscn_data_size.ToString & " (" & bndrscn_addr_size & "-bit address)")
-            If bndrscn_data_size = 16 Then
-                BSDL_IO = BSDL_DQ_IO.X16
-            ElseIf bndrscn_data_size = 8 Then
-                BSDL_IO = BSDL_DQ_IO.X8
-            End If
+            WriteConsole("Interface configured: X" & Me.BDR_DQ_SIZE.ToString & " (" & Me.BDR_ADDR_SIZE & "-bit address)")
             Return True
         End Function
 
-        Private Function BSDL_CFI_ReadIdent(ByRef ident_data() As Byte) As Boolean
-            ReDim ident_data(5)
-            BoundaryScan_WriteWord(&H555, &HAA)
-            BoundaryScan_WriteWord(&H2AA, &H55)
-            BoundaryScan_WriteWord(&H555, &H90)
-            ident_data(0) = (BoundaryScan_ReadWord(0) And 255)
-            Dim ID16 As UInt16 = BoundaryScan_ReadWord(1)
-            ident_data(1) = (ID16 >> 8) And 255
-            ident_data(2) = (ID16 And 255)
-            ident_data(3) = BoundaryScan_ReadWord(&HE) And 255
-            ident_data(4) = BoundaryScan_ReadWord(&HF) And 255
-            BoundaryScan_WriteWord(&H555, &HF0) 'RESET 
-            If ident_data(0) = 0 AndAlso ident_data(2) = 0 Then Return False  '0x0000
-            If ident_data(0) = &H90 AndAlso ident_data(2) = &H90 Then Return False '0x9090 
-            If ident_data(0) = &H90 AndAlso ident_data(2) = 0 Then Return False '0x9000 
-            If ident_data(0) = &HFF AndAlso ident_data(2) = &HFF Then Return False '0xFFFF 
-            If ident_data(0) = &HFF AndAlso ident_data(2) = 0 Then Return False '0xFF00
-            If ident_data(0) = &H1 AndAlso ident_data(1) = 0 AndAlso ident_data(2) = &H1 AndAlso ident_data(3) = 0 Then Return False '0x01000100
-            'FLASH DETECTED, NOW ENTER CFI
-            BoundaryScan_WriteWord(&H55, &H98)
-            Dim Q As UInt16 = BoundaryScan_ReadWord(&H10)
-            Dim R As UInt16 = BoundaryScan_ReadWord(&H11)
-            Dim Y As UInt16 = BoundaryScan_ReadWord(&H12)
-            If Q = &H51 And R = &H52 And Y = &H59 Then 'QRY successful!
-                ident_data(5) = BoundaryScan_ReadWord(&H2A) 'READ PAGE SIZE
-                BoundaryScan_WriteWord(&H555, &HF0) 'RESET 
-            End If
-            Return True 'Success!
+        Private Function BSDL_ReadIdent(X16_MODE As Boolean) As Byte()
+            Dim ident(7) As Byte
+            Dim SHIFT As UInt32 = 0
+            If X16_MODE Then SHIFT = 1
+            BSDL_ResetDevice()
+            Utilities.Sleep(1)
+            BSDL_WriteCmdData(&H5555, &HAA)
+            BSDL_WriteCmdData(&H2AAA, &H55)
+            BSDL_WriteCmdData(&H5555, &H90)
+            Utilities.Sleep(10)
+            ident(0) = CByte(BSDL_ReadWord(0) And &HFF)             'MFG
+            Dim ID1 As UInt16 = BSDL_ReadWord(1 << SHIFT)
+            If Not X16_MODE Then ID1 = (ID1 And &HFF)               'X8 ID1
+            ident(1) = CByte((ID1 >> 8) And &HFF)                   'ID1(UPPER)
+            ident(2) = CByte(ID1 And &HFF)                          'ID1(LOWER)
+            ident(3) = CByte(BSDL_ReadWord(&HE << SHIFT) And &HFF)  'ID2
+            ident(4) = CByte(BSDL_ReadWord(&HF << SHIFT) And &HFF)  'ID3
+            BSDL_ResetDevice()
+            Utilities.Sleep(1)
+            Return ident
         End Function
+
+        Private Sub BSDL_ResetDevice()
+            BSDL_WriteCmdData(&H5555, &HAA) 'Standard
+            BSDL_WriteCmdData(&H2AAA, &H55)
+            BSDL_WriteCmdData(&H5555, &HF0)
+            BSDL_WriteCmdData(0, &HFF)
+            BSDL_WriteCmdData(0, &HF0) 'Intel
+        End Sub
+
+        Private Function BSDL_GetCFI() As Byte()
+            Dim cfi_data(31) As Byte
+            Dim SHIFT As UInt32 = 0
+            If Me.BSDL_IO = BSDL_DQ_IO.X16 Or Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16 Then SHIFT = 1
+            Try
+                BSDL_WriteCmdData(&H55, &H98)
+                For i = 0 To cfi_data.Length - 1
+                    cfi_data(i) = CByte(BSDL_ReadWord((&H10 + i) << SHIFT) And 255)
+                Next
+                If cfi_data(0) = &H51 And cfi_data(1) = &H52 And cfi_data(2) = &H59 Then Return cfi_data
+                BSDL_WriteCmdData(&H5555, &HAA)
+                BSDL_WriteCmdData(&H2AAA, &H55)
+                BSDL_WriteCmdData(&H5555, &H98)
+                For i = 0 To cfi_data.Length - 1
+                    cfi_data(i) = CByte(BSDL_ReadWord((&H10 + i) << SHIFT) And 255)
+                Next
+                If cfi_data(0) = &H51 And cfi_data(1) = &H52 And cfi_data(2) = &H59 Then Return cfi_data
+            Catch ex As Exception
+            Finally
+                BSDL_ResetDevice()
+            End Try
+            Return Nothing
+        End Function
+
         'Defines a pin. Output cell can be output/bidir, control_cell can be -1 if it is output_cell+1, and input_cell is used when not bidir
         Public Sub BoundaryScan_AddPin(signal_name As String, output_cell As Integer, control_cell As Integer, input_cell As Integer)
-            Dim pin_desc As New BoundaryScan_PinMap
+            Dim pin_desc As New BoundaryCell
             pin_desc.pin_name = signal_name.ToUpper
             pin_desc.pin_index = 0
             If pin_desc.pin_name.StartsWith("AD") Then
-                pin_desc.pin_type = BoundaryScan_PinType.AD
+                pin_desc.TYPE = BoundaryScan_PinType.AD
                 pin_desc.pin_index = CByte(pin_desc.pin_name.Substring(2))
+                BDR_ADDR_SIZE += 1
             ElseIf pin_desc.pin_name.StartsWith("DQ") Then
-                pin_desc.pin_type = BoundaryScan_PinType.DQ
+                pin_desc.TYPE = BoundaryScan_PinType.DQ
                 pin_desc.pin_index = CByte(pin_desc.pin_name.Substring(2))
-            ElseIf pin_desc.pin_name = "WE#" Then
-                pin_desc.pin_type = BoundaryScan_PinType.WE
-            ElseIf pin_desc.pin_name = "OE#" Then
-                pin_desc.pin_type = BoundaryScan_PinType.OE
-            ElseIf pin_desc.pin_name = "CE#" Then
-                pin_desc.pin_type = BoundaryScan_PinType.CE
-            ElseIf pin_desc.pin_name = "WP#" Then '(optional)
-                pin_desc.pin_type = BoundaryScan_PinType.WP
-            ElseIf pin_desc.pin_name = "RESET#" Then '(optional)
-                pin_desc.pin_type = BoundaryScan_PinType.RESET
-            ElseIf pin_desc.pin_name = "BYTE#" Then '(optional)
-                pin_desc.pin_type = BoundaryScan_PinType.BYTE_MODE
+                BDR_DQ_SIZE += 1
+            ElseIf pin_desc.pin_name.Equals("WE#") Then
+                pin_desc.TYPE = BoundaryScan_PinType.WE
+            ElseIf pin_desc.pin_name.Equals("OE#") Then
+                pin_desc.TYPE = BoundaryScan_PinType.OE
+            ElseIf pin_desc.pin_name.Equals("CE#") Then
+                pin_desc.TYPE = BoundaryScan_PinType.CE
+            ElseIf pin_desc.pin_name.Equals("WP#") Then '(optional)
+                pin_desc.TYPE = BoundaryScan_PinType.WP
+            ElseIf pin_desc.pin_name.Equals("RESET#") Then '(optional)
+                pin_desc.TYPE = BoundaryScan_PinType.RESET
+            ElseIf pin_desc.pin_name.Equals("BYTE#") Then '(optional)
+                pin_desc.TYPE = BoundaryScan_PinType.BYTE_MODE
             Else
                 WriteConsole("Boundary Scan Programmer: Pin name not reconized: " & pin_desc.pin_name)
                 Exit Sub 'ERROR
             End If
-            pin_desc.pin_output = output_cell
-            pin_desc.pin_control = control_cell
-            If input_cell = -1 Then
-                pin_desc.pin_input = output_cell
+            pin_desc.OUTPUT = output_cell
+            pin_desc.CONTROL = control_cell
+            If (input_cell = -1) Then
+                pin_desc.INPUT = output_cell
             Else
-                pin_desc.pin_input = output_cell
+                pin_desc.INPUT = input_cell
             End If
             BoundaryMap.Add(pin_desc)
+        End Sub
+
+        Public Sub BoundaryScan_SetBSR(output_cell As Integer, control_cell As Integer, level As Boolean)
+            Dim dw As UInt32 = (control_cell << 16) Or output_cell
+            If level Then dw = (dw Or (1UL << 31))
+            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_SETBSR, Nothing, dw)
+        End Sub
+
+        Public Sub BoundaryScan_WriteBSR()
+            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_WRITEBSR)
         End Sub
 
         Public Function BoundaryScan_GetPinIndex(signal_name As String) As Integer
             Dim index As Integer = 0
             For Each item In BoundaryMap
-                If item.pin_name.ToUpper = signal_name.ToUpper Then Return index
+                If item.pin_name.ToUpper.Equals(signal_name.ToUpper) Then Return index
                 index += 1
             Next
             Return -1
         End Function
 
-        Private Structure BoundaryScan_PinMap
+        Private Function GetBoundaryCell(signal_name As String) As BoundaryCell
+            For Each item In BoundaryMap
+                If item.pin_name.ToUpper.Equals(signal_name.ToUpper) Then Return item
+            Next
+            Return Nothing
+        End Function
+
+        Private Structure BoundaryCell
             Public pin_name As String
             Public pin_index As Byte 'This is the DQx or ADx value
-            Public pin_output As UInt16
-            Public pin_input As UInt16
-            Public pin_control As UInt16
-            Public pin_type As BoundaryScan_PinType
+            Public OUTPUT As UInt16
+            Public INPUT As UInt16 'Some devices use bidir cells (this is for seperate o/i cells)
+            Public CONTROL As UInt16
+            Public TYPE As BoundaryScan_PinType
         End Structure
 
         Private Enum BoundaryScan_PinType As Byte
@@ -519,26 +732,46 @@ Namespace JTAG
             WP = 6
             RESET = 7
             BYTE_MODE = 8
+            CNT_LOW = 9 'Contant HIGH output
+            CNT_HIGH = 10 'Constant LOW output
         End Enum
 
-        Public Function BoundaryScan_ReadWord(base_addr As UInt32) As UInt16
+        Public Function BSDL_ReadWord(base_addr As UInt32) As UInt16
             Dim dt(3) As Byte
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_BDR_RD, dt, base_addr)
-            Return (CUShort(dt(2)) << 8) Or CUShort(dt(3))
+            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_BDR_RDMEM, dt, base_addr)
+            Dim DQ16 As UInt16 = (CUShort(dt(2)) << 8) Or CUShort(dt(3))
+            If Me.BSDL_IO = BSDL_DQ_IO.X16 Then
+                Return DQ16
+            ElseIf Me.BSDL_IO = BSDL_DQ_IO.X8 Then
+                Return (DQ16 And 255)
+            ElseIf Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16 Then
+                Return (DQ16 And 255)
+            End If
+            Return 0
         End Function
 
-        Public Sub BoundaryScan_WriteWord(base_addr As UInt32, data16 As UInt16)
-            Dim dt_out(8) As Byte
+        Public Sub BSDL_WriteCmdData(base_addr As UInt32, data16 As UInt16)
+            Dim dt_out(5) As Byte
             dt_out(0) = CByte(base_addr And 255)
             dt_out(1) = CByte((base_addr >> 8) And 255)
             dt_out(2) = CByte((base_addr >> 16) And 255)
             dt_out(3) = CByte((base_addr >> 24) And 255)
             dt_out(4) = CByte(data16 And 255)
             dt_out(5) = CByte((data16 >> 8) And 255)
-            dt_out(6) = 0
-            dt_out(7) = 0
             FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, dt_out)
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_WR)
+            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_WRCMD)
+        End Sub
+
+        Public Sub BSDL_WriteMemAddress(base_addr As UInt32, data16 As UInt16)
+            Dim dt_out(5) As Byte
+            dt_out(0) = CByte(base_addr And 255)
+            dt_out(1) = CByte((base_addr >> 8) And 255)
+            dt_out(2) = CByte((base_addr >> 16) And 255)
+            dt_out(3) = CByte((base_addr >> 24) And 255)
+            dt_out(4) = CByte(data16 And 255)
+            dt_out(5) = CByte((data16 >> 8) And 255)
+            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, dt_out)
+            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_WRMEM)
         End Sub
 
         Private Function BoundaryScan_GetSetupPacket(Address As UInt32, Count As UInt32, PageSize As UInt16) As Byte()
@@ -559,7 +792,7 @@ Namespace JTAG
 
         Public ReadOnly Property BoundaryScan_DeviceName() As String
             Get
-                Dim NOR_FLASH As FlashMemory.P_NOR = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.P_NOR)
+                Dim NOR_FLASH As P_NOR = DirectCast(BSDL_FLASH_DEVICE, P_NOR)
                 Return NOR_FLASH.NAME
             End Get
         End Property
@@ -572,52 +805,74 @@ Namespace JTAG
         End Property
 
         Public Function BoundaryScan_ReadFlash(base_addr As UInt32, read_count As UInt32) As Byte()
-            Dim data_out(read_count - 1) As Byte 'Bytes we want to read
-            Dim data_left As UInt32 = read_count
+            Dim byte_count As Integer = read_count
+            If Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16 Then
+                byte_count = byte_count * 2
+                base_addr = base_addr << 1
+            End If
+            Dim data_out(byte_count - 1) As Byte 'Bytes we want to read
+            Dim data_left As UInt32 = byte_count
             Dim ptr As Integer = 0
             Dim PacketSize As UInt32 = 8192
             While data_left > 0
                 Dim packet_size As UInt32 = Math.Min(8192, data_left)
                 Dim packet_data(packet_size - 1) As Byte
                 Dim setup_data() As Byte = BoundaryScan_GetSetupPacket(base_addr, packet_size, 0)
-                Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.JTAG_BDR_RDFLASH, setup_data, packet_data, BSDL_IO)
+                Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.JTAG_BDR_RDFLASH, setup_data, packet_data, 0)
                 If Not result Then Return Nothing
                 Array.Copy(packet_data, 0, data_out, ptr, packet_size)
                 ptr += packet_size
                 base_addr += packet_size
                 data_left -= packet_size
             End While
-            Return data_out
+            If Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16 Then
+                Dim new_data_out(read_count - 1) As Byte
+                For i = 0 To byte_count - 1 Step 2
+                    new_data_out(i >> 1) = data_out(i)
+                Next
+                Return new_data_out
+            Else
+                Return data_out
+            End If
         End Function
 
         Public Sub BoundaryScan_WaitForReady()
             Utilities.Sleep(100)
         End Sub
 
-        Public Function BoundaryScan_SectorFind(ByVal sector_index As UInt32) As Long
+        Public Function BoundaryScan_SectorFind(sector_index As UInt32) As Long
             Dim base_addr As UInt32 = 0
             If sector_index > 0 Then
                 For i As UInt32 = 0 To sector_index - 1
-                    base_addr += BoundaryScan_SectorSize(i)
+                    base_addr += BoundaryScan_GetSectorSize(i)
                 Next
             End If
             Return base_addr
         End Function
 
-        Public Function BoundaryScan_SectorWrite(ByVal sector_index As UInt32, ByVal data() As Byte) As Boolean
+        Public Function BoundaryScan_SectorWrite(sector_index As UInt32, data() As Byte) As Boolean
             Dim Addr32 As UInteger = BoundaryScan_SectorFind(sector_index)
             Return BoundaryScan_WriteFlash(Addr32, data)
         End Function
 
         Public Function BoundaryScan_SectorCount() As UInt32
-            Dim NOR_FLASH As FlashMemory.P_NOR = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.P_NOR)
+            Dim NOR_FLASH As P_NOR = DirectCast(BSDL_FLASH_DEVICE, P_NOR)
             Return NOR_FLASH.Sector_Count
         End Function
 
         Public Function BoundaryScan_WriteFlash(base_addr As UInt32, data_to_write() As Byte) As Boolean
-            Dim NOR_FLASH As FlashMemory.P_NOR = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.P_NOR)
+            Dim NOR_FLASH As P_NOR = DirectCast(BSDL_FLASH_DEVICE, P_NOR)
             Dim DataToWrite As UInt32 = data_to_write.Length
             Dim PacketSize As UInt32 = 8192
+            If Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16 Then
+                base_addr = (base_addr << 1)
+                Dim data_bloated((DataToWrite * 2) - 1) As Byte
+                For i = 0 To DataToWrite - 1
+                    data_bloated(i * 2) = data_to_write(i)
+                Next
+                data_to_write = data_bloated
+                DataToWrite = data_to_write.Length
+            End If
             Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / PacketSize)) 'Calcuates iterations
             For i As Integer = 0 To Loops - 1
                 Dim BufferSize As Integer = DataToWrite
@@ -625,43 +880,50 @@ Namespace JTAG
                 Dim data(BufferSize - 1) As Byte
                 Array.Copy(data_to_write, (i * PacketSize), data, 0, data.Length)
                 Dim setup_data() As Byte = BoundaryScan_GetSetupPacket(base_addr, data.Length, NOR_FLASH.PAGE_SIZE)
-                Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.JTAG_BDR_WRFLASH, setup_data, data, (BSDL_PROG_CMD << 16) Or BSDL_IO)
+                Dim BSDL_PROG_CMD As UInt32 = NOR_FLASH.WriteMode
+                Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.JTAG_BDR_WRFLASH, setup_data, data, BSDL_PROG_CMD)
                 If (Not result) Then Return False
                 Utilities.Sleep(350) 'We need a long pause here after each program <-- critical that this is 350
                 base_addr += data.Length
-                DataToWrite -= data.Length
-                FCUSB.USB_WaitForComplete()
+                Dim Success As Boolean = FCUSB.USB_WaitForComplete()
             Next
             Return True
         End Function
 
         Public Function BoundaryScan_SectorErase(sector_index As UInt32) As Boolean
-            Dim sa As UInt32 = BoundaryScan_SectorFind(sector_index)
-            If BSDL_IO = BSDL_DQ_IO.X16 Then sa = (sa >> 1)
-            Select Case BSDL_ERASE_CMD
-                Case BSDL_ERASE_ENUM.STANDARD
-                    If BSDL_IO = BSDL_DQ_IO.X16 Then
-                        BoundaryScan_WriteWord(&H555, &HAA)
-                        BoundaryScan_WriteWord(&H2AA, &H55)
-                        BoundaryScan_WriteWord(&H555, &H80)
-                        BoundaryScan_WriteWord(&H555, &HAA)
-                        BoundaryScan_WriteWord(&H2AA, &H55)
-                        BoundaryScan_WriteWord(sa, &H30)
-                    Else
-                        BoundaryScan_WriteWord(&HAAA, &HAA)
-                        BoundaryScan_WriteWord(&H555, &H55)
-                        BoundaryScan_WriteWord(&HAAA, &H80)
-                        BoundaryScan_WriteWord(&HAAA, &HAA)
-                        BoundaryScan_WriteWord(&H555, &H55)
-                        BoundaryScan_WriteWord(sa, &H30)
-                    End If
-            End Select
+            Dim NOR_FLASH As P_NOR = DirectCast(BSDL_FLASH_DEVICE, P_NOR)
+            Dim sector_addr As UInt32 = BoundaryScan_SectorFind(sector_index)
+            If Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16 Then
+                sector_addr <<= 1
+            End If
+            If NOR_FLASH.WriteMode = MFP_PRG.IntelSharp Or NOR_FLASH.WriteMode = MFP_PRG.Buffer1 Then
+                BSDL_WriteMemAddress(sector_addr, &H50) 'clear register
+                BSDL_WriteMemAddress(sector_addr, &H60) 'Unlock block (just in case)
+                BSDL_WriteMemAddress(sector_addr, &HD0) 'Confirm Command
+                'EXPIO_WAIT()
+                BSDL_WriteMemAddress(sector_addr, &H20)
+                BSDL_WriteMemAddress(sector_addr, &HD0)
+                'EXPIO_WAIT()
+                BSDL_WriteMemAddress(0, &HFF) 'Puts the device back into READ mode
+                BSDL_WriteMemAddress(0, &HF0)
+            Else
+                'Write Unlock Cycles
+                BSDL_WriteCmdData(&H5555, &HAA)
+                BSDL_WriteCmdData(&H2AAA, &H55)
+                'Write Sector Erase Cycles
+                BSDL_WriteCmdData(&H5555, &H80)
+                BSDL_WriteCmdData(&H5555, &HAA)
+                BSDL_WriteCmdData(&H2AAA, &H55)
+                BSDL_WriteMemAddress(sector_addr, &H30)
+            End If
             Utilities.Sleep(100)
             Dim counter As Integer = 0
-            Dim dw As UInt16
-            Do Until dw = &HFFFF
+            Dim dw As UInt16 = 0
+            Dim erased_value As UInt16 = &HFF
+            If BSDL_IO = BSDL_DQ_IO.X16 Then erased_value = &HFFFF
+            Do Until dw = erased_value
                 Utilities.Sleep(20)
-                dw = BoundaryScan_ReadWord(sa)
+                dw = BSDL_ReadWord(sector_addr)
                 counter += 1
                 If counter = 100 Then Return False
             Loop
@@ -669,30 +931,24 @@ Namespace JTAG
         End Function
 
         Public Function BoundaryScan_EraseDevice() As Boolean
-            Select Case BSDL_ERASE_CMD
-                Case BSDL_ERASE_ENUM.STANDARD 'X16
-                    If BSDL_IO = BSDL_DQ_IO.X16 Then
-                        BoundaryScan_WriteWord(&H555, &HAA)
-                        BoundaryScan_WriteWord(&H2AA, &H55)
-                        BoundaryScan_WriteWord(&H555, &H80)
-                        BoundaryScan_WriteWord(&H555, &HAA)
-                        BoundaryScan_WriteWord(&H2AA, &H55)
-                        BoundaryScan_WriteWord(&H555, &H10)
-                    Else
-                        BoundaryScan_WriteWord(&HAAA, &HAA)
-                        BoundaryScan_WriteWord(&H555, &H55)
-                        BoundaryScan_WriteWord(&HAAA, &H80)
-                        BoundaryScan_WriteWord(&HAAA, &HAA)
-                        BoundaryScan_WriteWord(&H555, &H55)
-                        BoundaryScan_WriteWord(&HAAA, &H10)
-                    End If
-            End Select
+            Dim NOR_FLASH As P_NOR = DirectCast(BSDL_FLASH_DEVICE, P_NOR)
+            If NOR_FLASH.WriteMode = MFP_PRG.IntelSharp Or NOR_FLASH.WriteMode = MFP_PRG.Buffer1 Then
+                BSDL_WriteMemAddress(&H0, &H30)
+                BSDL_WriteMemAddress(&H0, &HD0)
+            Else
+                BSDL_WriteCmdData(&H5555, &HAA)
+                BSDL_WriteCmdData(&H2AAA, &H55)
+                BSDL_WriteCmdData(&H5555, &H80)
+                BSDL_WriteCmdData(&H5555, &HAA)
+                BSDL_WriteCmdData(&H2AAA, &H55)
+                BSDL_WriteCmdData(&H5555, &H10)
+            End If
             Utilities.Sleep(500)
             Dim counter As Integer = 0
             Dim dw As UInt16
             Do Until dw = &HFFFF
                 Utilities.Sleep(100)
-                dw = BoundaryScan_ReadWord(0)
+                dw = BSDL_ReadWord(0)
                 counter += 1
                 If counter = 100 Then Return False
             Loop
@@ -700,16 +956,13 @@ Namespace JTAG
         End Function
 
         Public Function BoundaryScan_GetSectorSize(sector_index As UInt32) As UInt32
-            Dim NOR_FLASH As FlashMemory.P_NOR = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.P_NOR)
-            Return NOR_FLASH.GetSectorSize(sector_index)
+            Dim NOR_FLASH As P_NOR = DirectCast(BSDL_FLASH_DEVICE, P_NOR)
+            If Me.BSDL_IO = BSDL_DQ_IO.X8_OVER_X16 Then
+                Return NOR_FLASH.GetSectorSize(sector_index) / 2
+            Else
+                Return NOR_FLASH.GetSectorSize(sector_index)
+            End If
         End Function
-
-        Public ReadOnly Property BoundaryScan_SectorSize(ByVal sector As UInt32) As UInt32
-            Get
-                Dim NOR_FLASH As FlashMemory.P_NOR = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.P_NOR)
-                Return NOR_FLASH.GetSectorSize(sector)
-            End Get
-        End Property
 
 #End Region
 
@@ -1717,11 +1970,11 @@ Namespace JTAG
             Loop
         End Sub
 
-        Public Sub ShiftTDI(ByVal BitCount As UInt32, ByVal tdi_bits() As Byte, ByRef tdo_bits() As Byte, exit_tms As Boolean)
+        Public Sub ShiftTDI(BitCount As UInt32, tdi_bits() As Byte, ByRef tdo_bits() As Byte, exit_tms As Boolean)
             Dim byte_count As Integer = Math.Ceiling(BitCount / 8)
-            ReDim tdo_bits(byte_count - 1)
-            If tdi_bits Is Nothing Then ReDim tdi_bits(byte_count - 1) 'Shift in blank data
-            Dim BytesLeft As Integer = tdi_bits.Length
+            If tdo_bits Is Nothing Then ReDim tdo_bits(byte_count - 1)
+            If tdi_bits Is Nothing Then ReDim tdi_bits(byte_count - 1)
+            Dim BytesLeft As Integer = byte_count
             Dim BitsLeft As UInt32 = BitCount
             Dim ptr As Integer = 0
             Do Until BytesLeft = 0
@@ -1783,6 +2036,7 @@ Namespace JTAG
             J_DEVICE.CLAMP = &H5
             J_DEVICE.INTEST = &H6
             J_DEVICE.USERCODE = &HE
+            J_DEVICE.CONTROL_DISABLE = False
             BSDL_DATABASE.Add(J_DEVICE)
         End Sub
 
@@ -1800,6 +2054,7 @@ Namespace JTAG
             J_DEVICE.CLAMP = &HFA
             J_DEVICE.HIGHZ = &HFC
             J_DEVICE.USERCODE = &HFD
+            J_DEVICE.CONTROL_DISABLE = False
             '"ISPEX ( 11110000)," &
             '"FBULK ( 11101101),"&
             '"FBLANK ( 11100101),"&
@@ -1826,6 +2081,7 @@ Namespace JTAG
             J_DEVICE.SAMPLE = 3
             J_DEVICE.HIGHZ = &HFC
             J_DEVICE.USERCODE = &HFD
+            J_DEVICE.CONTROL_DISABLE = False
             '"ISC_ENABLE_CLAMP (11101001)," &
             '"ISC_ENABLEOTF  (11100100)," &
             '"ISC_ENABLE     (11101000)," &
@@ -1879,6 +2135,7 @@ Namespace JTAG
             J_DEVICE.CLAMP = &HA
             J_DEVICE.HIGHZ = &HB
             J_DEVICE.USERCODE = &H7
+            J_DEVICE.CONTROL_DISABLE = True
             BSDL_DATABASE.Add(J_DEVICE)
         End Sub
         '64-pin EQFP
@@ -1895,6 +2152,7 @@ Namespace JTAG
             J_DEVICE.CLAMP = &HA
             J_DEVICE.HIGHZ = &HB
             J_DEVICE.USERCODE = 7
+            J_DEVICE.CONTROL_DISABLE = True
             BSDL_DATABASE.Add(J_DEVICE)
         End Sub
 
@@ -1928,6 +2186,7 @@ Namespace JTAG
             J_DEVICE.HIGHZ = &H18 '00011000
             J_DEVICE.EXTEST = &H15 '00010101
             J_DEVICE.USERCODE = 0 '(11000000)
+            J_DEVICE.CONTROL_DISABLE = True
             '"          ISC_ENABLE		(11000110)," &
             '"    ISC_PROGRAM_DONE		(01011110)," &
             '" LSC_PROGRAM_SECPLUS		(11001111)," &
@@ -1960,6 +2219,7 @@ Namespace JTAG
             J_DEVICE.HIGHZ = &H18 '00011000
             J_DEVICE.EXTEST = &H15 '00010101
             J_DEVICE.USERCODE = 0 '(11000000)
+            J_DEVICE.CONTROL_DISABLE = True
             '"          ISC_ENABLE		(11000110)," &
             '"    ISC_PROGRAM_DONE		(01011110)," &
             '" LSC_PROGRAM_SECPLUS		(11001111)," &
@@ -1992,6 +2252,8 @@ Namespace JTAG
             J_DEVICE.HIGHZ = &H18 '00011000
             J_DEVICE.EXTEST = 0 '00000000
             J_DEVICE.USERCODE = &H17 '00010111
+            J_DEVICE.CONTROL_DISABLE = False
+
             '-- ISC instructions
             '      "ISC_ENABLE                        (00010101),"&
             '      "ISC_DISABLE                       (00011110),"&
@@ -2024,6 +2286,7 @@ Namespace JTAG
             J_DEVICE.HIGHZ = &H18 '00011000
             J_DEVICE.EXTEST = 0 '00000000
             J_DEVICE.USERCODE = &H17 '00010111
+            J_DEVICE.CONTROL_DISABLE = False
             '-- ISC instructions
             '      "ISC_ENABLE                        (00010101),"&
             '      "ISC_DISABLE                       (00011110),"&
@@ -2163,6 +2426,7 @@ Namespace JTAG
         Property HIGHZ As UInt32
         Property PRELOAD As UInt32
         Property USERCODE As UInt32
+        Property CONTROL_DISABLE As Boolean 'The value that disables the control cell
         'ARM SPECIFIC REGISTERS
         Property ARM_ABORT As UInt32
         Property ARM_DPACC As UInt32

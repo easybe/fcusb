@@ -205,7 +205,7 @@ Namespace USB
                 End Try
             End Function
 
-            Public Function USB_SETUP_BULKIN(RQ As USBREQ, SETUP() As Byte, ByRef DATA_IN() As Byte, ByVal control_dt As UInt32, Optional timeout As Integer = -1) As Boolean
+            Public Function USB_SETUP_BULKIN(RQ As USBREQ, SETUP() As Byte, ByRef DATA_IN() As Byte, control_dt As UInt32, Optional timeout As Integer = -1) As Boolean
                 Try
                     Dim result As Boolean
                     If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
@@ -455,10 +455,13 @@ Namespace USB
                     Dim packet_out(0) As Byte
                     Utilities.Sleep(5) 'Prevents slamming the USB port
                     Dim result As Boolean = USB_CONTROL_MSG_IN(USBREQ.GET_TASK, packet_out)
-                    If Not result Then Return False
-                    task_id = packet_out(0)
+                    If Not result Then
+                        task_id = 1 'WAITING
+                    Else
+                        task_id = packet_out(0)
+                    End If
                     timeout_counter += 1
-                    If (timeout_counter = 500) Then Return False
+                    If (timeout_counter = 1000) Then Return False 'Changed from 500
                 Loop While (task_id > 0)
                 Return True
             End Function
@@ -821,13 +824,16 @@ Namespace USB
         JTAG_REGISTERS = &H25
         JTAG_SHIFT_TMS = &H26
         JTAG_SHIFT_DATA = &H27
-        JTAG_BDR_RD = &H28
-        JTAG_BDR_WR = &H29
-        JTAG_BDR_SETUP = &H30
-        JTAG_BDR_INIT = &H31
-        JTAG_BDR_ADDPIN = &H32
-        JTAG_BDR_RDFLASH = &H33
-        JTAG_BDR_WRFLASH = &H34
+        JTAG_BDR_SETUP = &H28
+        JTAG_BDR_INIT = &H29
+        JTAG_BDR_ADDPIN = &H2A
+        JTAG_BDR_WRCMD = &H2B
+        JTAG_BDR_WRMEM = &H2C
+        JTAG_BDR_RDMEM = &H2D
+        JTAG_BDR_RDFLASH = &H2E
+        JTAG_BDR_WRFLASH = &H2F
+        JTAG_BDR_SETBSR = &H30
+        JTAG_BDR_WRITEBSR = &H31
         SPI_INIT = &H40
         SPI_SS_ENABLE = &H41
         SPI_SS_DISABLE = &H42
@@ -862,12 +868,10 @@ Namespace USB
         EXPIO_CHIPERASE = &H69
         EXPIO_SECTORERASE = &H6A
         EXPIO_WRITEPAGE = &H6B
+        EXPIO_NAND_ONFI = &H6C
         EXPIO_NAND_SR = &H6D
         EXPIO_NAND_PAGEOFFSET = &H6E
         EXPIO_MODE_ADDRESS = &H6F
-        'EXPIO_MODE_IDENT = &H70
-        'EXPIO_MODE_ERSCR = &H71
-        'EXPIO_MODE_ERCHP = &H72
         EXPIO_MODE_READ = &H73
         EXPIO_MODE_WRITE = &H74
         EXPIO_MODE_DELAY = &H75

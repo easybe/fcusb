@@ -101,7 +101,7 @@ Namespace SPI
                     Return True
                 Else
                     RaiseEvent PrintConsole(RM.GetString("unknown_device_email"))
-                    MyFlashDevice = New SPI_NOR("Unknown", VCC_IF.SPI_3V, 0, FLASH_IDENT.MANU, FLASH_IDENT.RDID)
+                    MyFlashDevice = New SPI_NOR("Unknown", VCC_IF.SERIAL_3V, 0, FLASH_IDENT.MANU, FLASH_IDENT.RDID)
                     MyFlashStatus = DeviceStatus.NotSupported
                     Return False
                 End If

@@ -889,7 +889,7 @@ Public Class MemControl_v2
         End If
     End Function
 
-    Public Sub ReadMemoryThread(ByVal read_params As XFER_Operation)
+    Public Sub ReadMemoryThread(read_params As XFER_Operation)
         Try
             GUI.OperationStarted(Me) 'This adds the status bar at the bottom
             Me.IN_OPERATION = True

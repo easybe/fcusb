@@ -1,76 +1,64 @@
-﻿
-Imports FlashcatUSB.FlashMemory
+﻿Imports FlashcatUSB.FlashMemory
 Imports FlashcatUSB.USB.HostClient
 
 Public Class Microwire_Programmer : Implements MemoryDeviceUSB
     Private FCUSB As FCUSB_DEVICE
 
+    Private MICROWIRE_DEVIE As MICROWIRE
+
     Public Event PrintConsole(message As String) Implements MemoryDeviceUSB.PrintConsole
     Public Event SetProgress(percent As Integer) Implements MemoryDeviceUSB.SetProgress
-
-    Private EEPROM_SIZE As UInt32 = 0
 
     Sub New(ByVal parent_if As FCUSB_DEVICE)
         FCUSB = parent_if
     End Sub
 
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
+        Dim s93_devices() As Device = FlashDatabase.GetFlashDevices(MemoryType.SERIAL_MICROWIRE)
         FCUSB.USB_VCC_3V() 'Ignored by PCB 2.x
-        Dim org_mode As UInt32 = MySettings.S93_DEVICE_ORG
-        Dim org_str As String
-        If org_mode = 0 Then org_str = "X8" Else org_str = "X16"
-        Dim addr_bits As UInt32
-        Select Case MySettings.S93_DEVICE_INDEX
-            Case 0
-                EEPROM_SIZE = 0
-                RaiseEvent PrintConsole("Error: no Microwire device selected")
-                Return False
-            Case 1 '93xx46  128 bytes (1Kbit)
+        Me.MICROWIRE_DEVIE = Nothing
+        Dim org_mode As UInt32 = MySettings.S93_DEVICE_ORG '0=8-bit,1=16-bit
+        If Not MySettings.S93_DEVICE.Equals("") Then
+            For Each device In s93_devices
+                If device.NAME.ToUpper.Equals(MySettings.S93_DEVICE) Then
+                    Me.MICROWIRE_DEVIE = device
+                    Exit For
+                End If
+            Next
+        End If
+        If Me.MICROWIRE_DEVIE Is Nothing Then
+            RaiseEvent PrintConsole("No Microwire device selected")
+            SetStatus("No Microwire device selected")
+            Return False
+        End If
+        Dim addr_bits As UInt32 = 0
+        Select Case Me.MICROWIRE_DEVIE.FLASH_SIZE
+            Case 128
                 addr_bits = (7 - org_mode)
-                EEPROM_SIZE = 128
-            Case 2 '93xx56  256 bytes (2Kbit)
-                addr_bits = (9 - org_mode) 'Yes, uses the same address size as 93xx66
-                EEPROM_SIZE = 256
-            Case 3 '93xx66  512 bytes (4Kbit)
+            Case 256, 512
                 addr_bits = (9 - org_mode)
-                EEPROM_SIZE = 512
-            Case 4 '93xx76  1024 bytes (8Kbit)
+            Case 1024
                 addr_bits = (10 - org_mode)
-                EEPROM_SIZE = 1024
-            Case 5 '93xx86  2048 bytes (16Kbit)
+            Case 2048
                 addr_bits = (11 - org_mode)
-                EEPROM_SIZE = 2048
         End Select
-        RaiseEvent PrintConsole("Microwire device: " & Me.DeviceName & " (" & EEPROM_SIZE & " bytes) " & org_str & " mode")
+        Dim org_str As String = "X8"
+        If org_mode = 1 Then org_str = "X16"
+        RaiseEvent PrintConsole("Microwire device: " & Me.DeviceName & " (" & Me.MICROWIRE_DEVIE.FLASH_SIZE & " bytes) " & org_str & " mode")
         Dim setup_data As UInt32 = (addr_bits << 8) Or (org_mode)
-        Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.S93_INIT, Nothing, setup_data)
+        Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.S93_INIT, Nothing, setup_data) '0x0700
         Return result
     End Function
 
     Public ReadOnly Property DeviceName As String Implements MemoryDeviceUSB.DeviceName
         Get
-            Select Case MySettings.S93_DEVICE_INDEX
-                Case 0
-                    Return "Non-selected"
-                Case 1 '93xx46  128 bytes (1Kbit)
-                    Return "93xx46"
-                Case 2 '93xx56  256 bytes (2Kbit)
-                    Return "93xx56"
-                Case 3 '93xx66  512 bytes (4Kbit)
-                    Return "93xx66"
-                Case 4 '93xx76  1024 bytes (8Kbit)
-                    Return "93xx76"
-                Case 5 '93xx86  2048 bytes (16Kbit)
-                    Return "93xx86"
-                Case Else
-                    Return ""
-            End Select
+            Return Me.MICROWIRE_DEVIE.NAME
         End Get
     End Property
 
     Public ReadOnly Property DeviceSize As Long Implements MemoryDeviceUSB.DeviceSize
         Get
-            Return EEPROM_SIZE
+            Return Me.MICROWIRE_DEVIE.FLASH_SIZE
         End Get
     End Property
 
@@ -123,8 +111,8 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
     End Function
 
     Public Function EraseDevice() As Boolean Implements MemoryDeviceUSB.EraseDevice
-        FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.S93_ERASE)
-        Return True
+        Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.S93_ERASE)
+        Return result
     End Function
 
     Public Sub WaitUntilReady() Implements MemoryDeviceUSB.WaitUntilReady

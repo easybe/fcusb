@@ -18,14 +18,14 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 576
+    Public Const Build As Integer = 580
 
-    Private Const PRO_PCB4_FW As Single = 1.14F 'This is the embedded firmware version for pro
+    Private Const PRO_PCB4_FW As Single = 1.16F 'This is the embedded firmware version for pro
     Private Const PRO_PCB5_FW As Single = 1.02F 'This is the embedded firmware version for pro
-    Private Const MACH1_PCB2_FW As Single = 2.08F 'Firmware version for Mach1
-    Private Const XPORT_PCB1_FW As Single = 4.48F 'XPORT PCB 1.x
-    Private Const XPORT_PCB2_FW As Single = 5.04F 'XPORT PCB 2.x
-    Private Const CLASSIC_FW As Single = 4.47F 'Min revision allowed for classic (PCB 2.x)
+    Private Const MACH1_PCB2_FW As Single = 2.09F 'Firmware version for Mach1
+    Private Const XPORT_PCB1_FW As Single = 4.52F 'XPORT PCB 1.x
+    Private Const XPORT_PCB2_FW As Single = 5.07F 'XPORT PCB 2.x
+    Private Const CLASSIC_FW As Single = 4.48F 'Min revision allowed for classic (PCB 2.x)
 
     Private Const CPLD_SPI_3V3 As UInt32 = &HCD330002UI 'ID CODE FOR SPI (3.3v)
     Private Const CPLD_SPI_1V8 As UInt32 = &HCD180002UI 'ID CODE FOR JTAG (1.8v)
@@ -73,7 +73,7 @@ Public Module MainApp
         Thread.CurrentThread.CurrentCulture = Globalization.CultureInfo.CreateSpecificCulture("en-US")
         My.Application.ChangeUICulture("en-US")
         My.Application.ChangeCulture("en-US")
-        If CUSTOM_SPI_DEV Is Nothing Then CUSTOM_SPI_DEV = New SPI_NOR("User-defined", VCC_IF.SPI_3V, Mb001, 0, 0)
+        If CUSTOM_SPI_DEV Is Nothing Then CUSTOM_SPI_DEV = New SPI_NOR("User-defined", VCC_IF.SERIAL_3V, Mb001, 0, 0)
         CreateGrayCodeTable()
         Create_SPI_EEPROM_List() 'Adds the SPI EEPROM devices
         ECC_LoadSettings()
@@ -250,145 +250,145 @@ Public Module MainApp
     End Enum
 
     Public Sub Create_SPI_EEPROM_List()
-        Dim nRF24LE1 As New SPI_NOR("Nordic nRF24LE1", VCC_IF.SPI_3V, 16384, 0, 0) With {.EEPROM = SPI_EEPROM.nRF24LE1, .PAGE_SIZE = 512}
+        Dim nRF24LE1 As New SPI_NOR("Nordic nRF24LE1", VCC_IF.SERIAL_3V, 16384, 0, 0) With {.EEPROM = SPI_EEPROM.nRF24LE1, .PAGE_SIZE = 512}
         nRF24LE1.OP_COMMANDS.SE = &H52
         nRF24LE1.ERASE_SIZE = 512
         nRF24LE1.ADDRESSBITS = 16
         nRF24LE1.ProgramMode = SPI_ProgramMode.Nordic
         SPI_EEPROM_LIST.Add(nRF24LE1)
-        Dim nRF24LU1_16KB As New SPI_NOR("Nordic nRF24LU1+ (16KB)", VCC_IF.SPI_3V, 16384, 0, 0) With {.EEPROM = SPI_EEPROM.nRF24LU1P_16KB, .PAGE_SIZE = 256}
+        Dim nRF24LU1_16KB As New SPI_NOR("Nordic nRF24LU1+ (16KB)", VCC_IF.SERIAL_3V, 16384, 0, 0) With {.EEPROM = SPI_EEPROM.nRF24LU1P_16KB, .PAGE_SIZE = 256}
         nRF24LU1_16KB.OP_COMMANDS.SE = &H52
         nRF24LU1_16KB.ERASE_SIZE = 512
         nRF24LU1_16KB.ADDRESSBITS = 16
         nRF24LU1_16KB.ProgramMode = SPI_ProgramMode.Nordic
         SPI_EEPROM_LIST.Add(nRF24LU1_16KB)
-        Dim nRF24LU1_32KB As New SPI_NOR("Nordic nRF24LU1+ (32KB)", VCC_IF.SPI_3V, 32768, 0, 0) With {.EEPROM = SPI_EEPROM.nRF24LU1P_32KB, .PAGE_SIZE = 256}
+        Dim nRF24LU1_32KB As New SPI_NOR("Nordic nRF24LU1+ (32KB)", VCC_IF.SERIAL_3V, 32768, 0, 0) With {.EEPROM = SPI_EEPROM.nRF24LU1P_32KB, .PAGE_SIZE = 256}
         nRF24LU1_32KB.OP_COMMANDS.SE = &H52
         nRF24LU1_32KB.ERASE_SIZE = 512
         nRF24LU1_32KB.ADDRESSBITS = 16
         nRF24LU1_32KB.ProgramMode = SPI_ProgramMode.Nordic
         SPI_EEPROM_LIST.Add(nRF24LU1_32KB)
-        Dim AT25010A As New SPI_NOR("Atmel AT25010A", VCC_IF.SPI_3V, 128, 0, 0) With {.EEPROM = SPI_EEPROM.AT25010A, .PAGE_SIZE = 8}
+        Dim AT25010A As New SPI_NOR("Atmel AT25010A", VCC_IF.SERIAL_3V, 128, 0, 0) With {.EEPROM = SPI_EEPROM.AT25010A, .PAGE_SIZE = 8}
         AT25010A.ADDRESSBITS = 8 'check
         AT25010A.ERASE_REQUIRED = False 'We will not send erase commands
         AT25010A.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(AT25010A)
-        Dim AT25020A As New SPI_NOR("Atmel AT25020A", VCC_IF.SPI_3V, 256, 0, 0) With {.EEPROM = SPI_EEPROM.AT25020A, .PAGE_SIZE = 8}
+        Dim AT25020A As New SPI_NOR("Atmel AT25020A", VCC_IF.SERIAL_3V, 256, 0, 0) With {.EEPROM = SPI_EEPROM.AT25020A, .PAGE_SIZE = 8}
         AT25020A.ADDRESSBITS = 8
         AT25020A.ERASE_REQUIRED = False 'We will not send erase commands
         AT25020A.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(AT25020A)
-        Dim AT25040A As New SPI_NOR("Atmel AT25040A", VCC_IF.SPI_3V, 512, 0, 0) With {.EEPROM = SPI_EEPROM.AT25040A, .PAGE_SIZE = 8}
+        Dim AT25040A As New SPI_NOR("Atmel AT25040A", VCC_IF.SERIAL_3V, 512, 0, 0) With {.EEPROM = SPI_EEPROM.AT25040A, .PAGE_SIZE = 8}
         AT25040A.ADDRESSBITS = 8
         AT25040A.ERASE_REQUIRED = False 'We will not send erase commands
         AT25040A.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(AT25040A)
-        Dim AT25080 As New SPI_NOR("Atmel AT25080", VCC_IF.SPI_3V, 1024, 0, 0) With {.EEPROM = SPI_EEPROM.AT25080, .PAGE_SIZE = 8}
+        Dim AT25080 As New SPI_NOR("Atmel AT25080", VCC_IF.SERIAL_3V, 1024, 0, 0) With {.EEPROM = SPI_EEPROM.AT25080, .PAGE_SIZE = 8}
         AT25080.ADDRESSBITS = 16
         AT25080.ERASE_REQUIRED = False 'We will not send erase commands
         AT25080.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(AT25080)
-        Dim AT25160 As New SPI_NOR("Atmel AT25160", VCC_IF.SPI_3V, 2048, 0, 0) With {.EEPROM = SPI_EEPROM.AT25160, .PAGE_SIZE = 32}
+        Dim AT25160 As New SPI_NOR("Atmel AT25160", VCC_IF.SERIAL_3V, 2048, 0, 0) With {.EEPROM = SPI_EEPROM.AT25160, .PAGE_SIZE = 32}
         AT25160.ADDRESSBITS = 16
         AT25160.ERASE_REQUIRED = False 'We will not send erase commands
         AT25160.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(AT25160)
-        Dim AT25320 As New SPI_NOR("Atmel AT25320", VCC_IF.SPI_3V, 4096, 0, 0) With {.EEPROM = SPI_EEPROM.AT25320, .PAGE_SIZE = 32}
+        Dim AT25320 As New SPI_NOR("Atmel AT25320", VCC_IF.SERIAL_3V, 4096, 0, 0) With {.EEPROM = SPI_EEPROM.AT25320, .PAGE_SIZE = 32}
         AT25320.ADDRESSBITS = 16
         AT25320.ERASE_REQUIRED = False 'We will not send erase commands
         AT25320.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(AT25320)
-        Dim AT25640 As New SPI_NOR("Atmel AT25640", VCC_IF.SPI_3V, 8192, 0, 0) With {.EEPROM = SPI_EEPROM.AT25640, .PAGE_SIZE = 32}
+        Dim AT25640 As New SPI_NOR("Atmel AT25640", VCC_IF.SERIAL_3V, 8192, 0, 0) With {.EEPROM = SPI_EEPROM.AT25640, .PAGE_SIZE = 32}
         AT25640.ADDRESSBITS = 16
         AT25640.ERASE_REQUIRED = False 'We will not send erase commands
         AT25640.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(AT25640)
-        Dim AT25128B As New SPI_NOR("Atmel AT25128B", VCC_IF.SPI_3V, 16384, 0, 0) With {.EEPROM = SPI_EEPROM.AT25128B, .PAGE_SIZE = 64}
+        Dim AT25128B As New SPI_NOR("Atmel AT25128B", VCC_IF.SERIAL_3V, 16384, 0, 0) With {.EEPROM = SPI_EEPROM.AT25128B, .PAGE_SIZE = 64}
         AT25128B.ADDRESSBITS = 16
         AT25128B.ERASE_REQUIRED = False 'We will not send erase commands
         AT25128B.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(AT25128B)
-        Dim AT25256B As New SPI_NOR("Atmel AT25256B", VCC_IF.SPI_3V, 32768, 0, 0) With {.EEPROM = SPI_EEPROM.AT25256B, .PAGE_SIZE = 64}
+        Dim AT25256B As New SPI_NOR("Atmel AT25256B", VCC_IF.SERIAL_3V, 32768, 0, 0) With {.EEPROM = SPI_EEPROM.AT25256B, .PAGE_SIZE = 64}
         AT25256B.ADDRESSBITS = 16
         AT25256B.ERASE_REQUIRED = False 'We will not send erase commands
         AT25256B.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(AT25256B)
-        Dim AT25512 As New SPI_NOR("Atmel AT25512", VCC_IF.SPI_3V, 65536, 0, 0) With {.EEPROM = SPI_EEPROM.AT25512, .PAGE_SIZE = 128}
+        Dim AT25512 As New SPI_NOR("Atmel AT25512", VCC_IF.SERIAL_3V, 65536, 0, 0) With {.EEPROM = SPI_EEPROM.AT25512, .PAGE_SIZE = 128}
         AT25512.ADDRESSBITS = 16
         AT25512.ERASE_REQUIRED = False 'We will not send erase commands
         AT25512.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(AT25512)
-        Dim M95010 As New SPI_NOR("ST M95010", VCC_IF.SPI_3V, 128, 0, 0) With {.EEPROM = SPI_EEPROM.M95010, .PAGE_SIZE = 16}
+        Dim M95010 As New SPI_NOR("ST M95010", VCC_IF.SERIAL_3V, 128, 0, 0) With {.EEPROM = SPI_EEPROM.M95010, .PAGE_SIZE = 16}
         M95010.ADDRESSBITS = 8
         M95010.ERASE_REQUIRED = False 'We will not send erase commands
         M95010.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(M95010)
-        Dim M95020 As New SPI_NOR("ST M95020", VCC_IF.SPI_3V, 256, 0, 0) With {.EEPROM = SPI_EEPROM.M95020, .PAGE_SIZE = 16}
+        Dim M95020 As New SPI_NOR("ST M95020", VCC_IF.SERIAL_3V, 256, 0, 0) With {.EEPROM = SPI_EEPROM.M95020, .PAGE_SIZE = 16}
         M95020.ADDRESSBITS = 8
         M95020.ERASE_REQUIRED = False 'We will not send erase commands
         M95020.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(M95020)
-        Dim M95040 As New SPI_NOR("ST M95040", VCC_IF.SPI_3V, 512, 0, 0) With {.EEPROM = SPI_EEPROM.M95040, .PAGE_SIZE = 16}
+        Dim M95040 As New SPI_NOR("ST M95040", VCC_IF.SERIAL_3V, 512, 0, 0) With {.EEPROM = SPI_EEPROM.M95040, .PAGE_SIZE = 16}
         M95040.ADDRESSBITS = 8
         M95040.ERASE_REQUIRED = False 'We will not send erase commands
         M95040.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(M95040)
-        Dim M95080 As New SPI_NOR("ST M95080", VCC_IF.SPI_3V, 1024, 0, 0) With {.EEPROM = SPI_EEPROM.M95080, .PAGE_SIZE = 32}
+        Dim M95080 As New SPI_NOR("ST M95080", VCC_IF.SERIAL_3V, 1024, 0, 0) With {.EEPROM = SPI_EEPROM.M95080, .PAGE_SIZE = 32}
         M95080.ADDRESSBITS = 16
         M95080.ERASE_REQUIRED = False 'We will not send erase commands
         M95080.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(M95080)
-        Dim M95160 As New SPI_NOR("ST M95160", VCC_IF.SPI_3V, 2048, 0, 0) With {.EEPROM = SPI_EEPROM.M95160, .PAGE_SIZE = 32}
+        Dim M95160 As New SPI_NOR("ST M95160", VCC_IF.SERIAL_3V, 2048, 0, 0) With {.EEPROM = SPI_EEPROM.M95160, .PAGE_SIZE = 32}
         M95160.ADDRESSBITS = 16
         M95160.ERASE_REQUIRED = False 'We will not send erase commands
         M95160.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(M95160)
-        Dim M95320 As New SPI_NOR("ST M95320", VCC_IF.SPI_3V, 4096, 0, 0) With {.EEPROM = SPI_EEPROM.M95320, .PAGE_SIZE = 32}
+        Dim M95320 As New SPI_NOR("ST M95320", VCC_IF.SERIAL_3V, 4096, 0, 0) With {.EEPROM = SPI_EEPROM.M95320, .PAGE_SIZE = 32}
         M95320.ADDRESSBITS = 16
         M95320.ERASE_REQUIRED = False 'We will not send erase commands
         M95320.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(M95320)
-        Dim M95640 As New SPI_NOR("ST M95640", VCC_IF.SPI_3V, 8192, 0, 0) With {.EEPROM = SPI_EEPROM.M95640, .PAGE_SIZE = 32}
+        Dim M95640 As New SPI_NOR("ST M95640", VCC_IF.SERIAL_3V, 8192, 0, 0) With {.EEPROM = SPI_EEPROM.M95640, .PAGE_SIZE = 32}
         M95640.ADDRESSBITS = 16
         M95640.ERASE_REQUIRED = False 'We will not send erase commands
         M95640.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(M95640)
-        Dim M95128 As New SPI_NOR("ST M95128", VCC_IF.SPI_3V, 16384, 0, 0) With {.EEPROM = SPI_EEPROM.M95128, .PAGE_SIZE = 64}
+        Dim M95128 As New SPI_NOR("ST M95128", VCC_IF.SERIAL_3V, 16384, 0, 0) With {.EEPROM = SPI_EEPROM.M95128, .PAGE_SIZE = 64}
         M95128.ADDRESSBITS = 16
         M95128.ERASE_REQUIRED = False 'We will not send erase commands
         M95128.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(M95128)
-        Dim M95256 As New SPI_NOR("ST M95256", VCC_IF.SPI_3V, 32768, 0, 0) With {.EEPROM = SPI_EEPROM.M95256, .PAGE_SIZE = 64}
+        Dim M95256 As New SPI_NOR("ST M95256", VCC_IF.SERIAL_3V, 32768, 0, 0) With {.EEPROM = SPI_EEPROM.M95256, .PAGE_SIZE = 64}
         M95256.ADDRESSBITS = 16
         M95256.ERASE_REQUIRED = False 'We will not send erase commands
         M95256.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(M95256)
-        Dim M95512 As New SPI_NOR("ST M95512", VCC_IF.SPI_3V, 65536, 0, 0) With {.EEPROM = SPI_EEPROM.M95512, .PAGE_SIZE = 128}
+        Dim M95512 As New SPI_NOR("ST M95512", VCC_IF.SERIAL_3V, 65536, 0, 0) With {.EEPROM = SPI_EEPROM.M95512, .PAGE_SIZE = 128}
         M95512.ADDRESSBITS = 16
         M95512.ERASE_REQUIRED = False 'We will not send erase commands
         M95512.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(M95512)
-        Dim M95M01 As New SPI_NOR("ST M95M01", VCC_IF.SPI_3V, 131072, 0, 0) With {.EEPROM = SPI_EEPROM.M95M01, .PAGE_SIZE = 256}
+        Dim M95M01 As New SPI_NOR("ST M95M01", VCC_IF.SERIAL_3V, 131072, 0, 0) With {.EEPROM = SPI_EEPROM.M95M01, .PAGE_SIZE = 256}
         M95M01.ADDRESSBITS = 24
         M95M01.ERASE_REQUIRED = False 'We will not send erase commands
         M95M01.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(M95M01)
-        Dim M95M02 As New SPI_NOR("ST M95M02", VCC_IF.SPI_3V, 262144, 0, 0) With {.EEPROM = SPI_EEPROM.M95M02, .PAGE_SIZE = 256}
+        Dim M95M02 As New SPI_NOR("ST M95M02", VCC_IF.SERIAL_3V, 262144, 0, 0) With {.EEPROM = SPI_EEPROM.M95M02, .PAGE_SIZE = 256}
         M95M02.ADDRESSBITS = 24
         M95M02.ERASE_REQUIRED = False 'We will not send erase commands
         M95M02.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(M95M02)
-        Dim MC25AA512 As New SPI_NOR("Microchip 25AA512", VCC_IF.SPI_3V, 65536, 0, 0) With {.EEPROM = SPI_EEPROM.M25AA512, .PAGE_SIZE = 128}
+        Dim MC25AA512 As New SPI_NOR("Microchip 25AA512", VCC_IF.SERIAL_3V, 65536, 0, 0) With {.EEPROM = SPI_EEPROM.M25AA512, .PAGE_SIZE = 128}
         MC25AA512.ADDRESSBITS = 16
         MC25AA512.ERASE_REQUIRED = False 'We will not send erase commands
         MC25AA512.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(MC25AA512)
-        Dim M25AA160A As New SPI_NOR("Microchip 25AA160A", VCC_IF.SPI_3V, 2048, 0, 0) With {.EEPROM = SPI_EEPROM.M25AA160A, .PAGE_SIZE = 16}
+        Dim M25AA160A As New SPI_NOR("Microchip 25AA160A", VCC_IF.SERIAL_3V, 2048, 0, 0) With {.EEPROM = SPI_EEPROM.M25AA160A, .PAGE_SIZE = 16}
         M25AA160A.ADDRESSBITS = 16
         M25AA160A.ERASE_REQUIRED = False 'We will not send erase commands
         M25AA160A.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(M25AA160A)
-        Dim M25AA160B As New SPI_NOR("Microchip 25AA160B", VCC_IF.SPI_3V, 2048, 0, 0) With {.EEPROM = SPI_EEPROM.M25AA160B, .PAGE_SIZE = 32}
+        Dim M25AA160B As New SPI_NOR("Microchip 25AA160B", VCC_IF.SERIAL_3V, 2048, 0, 0) With {.EEPROM = SPI_EEPROM.M25AA160B, .PAGE_SIZE = 32}
         M25AA160B.ADDRESSBITS = 16
         M25AA160B.ERASE_REQUIRED = False 'We will not send erase commands
         M25AA160B.ProgramMode = SPI_ProgramMode.SPI_EEPROM
@@ -478,6 +478,7 @@ Public Module MainApp
     End Class
 
     Public Sub RunConsoleMode(args() As String)
+        Dim write_error As Boolean = False 'Indicates write error
         Dim mem_dev As MemoryDeviceInstance = Nothing
         If Not Convert.ToBoolean(AllocConsole()) Then Exit Sub
         ConsoleWriteLine(String.Format(RM.GetString("welcome_to_flashcatusb") & ", Build: {0}", Build))
@@ -753,7 +754,7 @@ Public Module MainApp
                     If usb_dev.I2C_IF.WriteData(MyConsoleOperation.FLASH_OFFSET, data_out) Then
                         ConsoleWriteLine(RM.GetString("console_i2c_write_success"))
                     Else
-                        ConsoleWriteLine(RM.GetString("console_i2c_write_error"))
+                        ConsoleWriteLine(RM.GetString("console_i2c_write_error")) : write_error = True
                     End If
                 ElseIf (MyConsoleOperation.Mode = DeviceMode.SINGLE_WIRE) Then
                     If data_out Is Nothing OrElse data_out.Length = 0 Then
@@ -765,7 +766,7 @@ Public Module MainApp
                     If usb_dev.SWI_IF.WriteData(MyConsoleOperation.FLASH_OFFSET, data_out) Then
                         ConsoleWriteLine("SWI EEPROM write was successful")
                     Else
-                        ConsoleWriteLine("Error: unable to write to SWI EEPROM device")
+                        ConsoleWriteLine("Error: unable to write to SWI EEPROM device") : write_error = True
                     End If
                 Else
                     If MyConsoleOperation.CHIP_ERASE Then
@@ -790,7 +791,7 @@ Public Module MainApp
                     If write_result Then
                         ConsoleWriteLine(RM.GetString("mem_write_successful"))
                     Else
-                        ConsoleWriteLine(RM.GetString("mem_write_not_successful"))
+                        ConsoleWriteLine(RM.GetString("mem_write_not_successful")) : write_error = True
                     End If
                 End If
             Case ConsoleTask.EraseMemory
@@ -824,6 +825,9 @@ Public Module MainApp
             Else
                 Utilities.FileIO.WriteFile(ConsoleLog.ToArray, MyConsoleOperation.LogFilename)
             End If
+        End If
+        If write_error Then
+            MyConsoleOperation.ExitConsole = False
         End If
         Console_Exit()
         usb_dev.USB_LEDOff()
@@ -1164,13 +1168,6 @@ Public Module MainApp
         Public Property I2C_ADDRESS As Byte
         Public Property I2C_SPEED As I2C_SPEED_MODE
         Public Property I2C_INDEX As Int32 'The device selected index
-
-
-        'Public Property I2C_SIZE As Int32
-
-
-
-
         'SWI Settings
         Public Property SWI_ADDRESS As Byte 'Slave Address
         'NAND Settings
@@ -1190,7 +1187,7 @@ Public Module MainApp
         Public Property ECC_Separate As Boolean
         Public Property ECC_Reverse As Boolean
         'GENERAL
-        Public Property S93_DEVICE_INDEX As Integer 'The index of which Series 93 EEPROM to use
+        Public Property S93_DEVICE As String 'Name of the part number
         Public Property S93_DEVICE_ORG As Integer '0=8-bit,1=16-bit
         Public Property SREC_BITMODE As Integer '0=8-bit,1=16-bit
         'JTAG
@@ -1245,7 +1242,7 @@ Public Module MainApp
             Me.ECC_SymWidth = GetRegistryValue("ECC_SYMWIDTH", 9)
             Me.ECC_Separate = GetRegistryValue("ECC_SEPERATE", True)
             Me.ECC_Reverse = GetRegistryValue("ECC_REVERSE", False)
-            Me.S93_DEVICE_INDEX = GetRegistryValue("S93_DEVICE", 0)
+            Me.S93_DEVICE = GetRegistryValue("S93_DEVICE_NAME", "")
             Me.S93_DEVICE_ORG = GetRegistryValue("S93_ORG", 0)
             Me.SREC_BITMODE = GetRegistryValue("SREC_ORG", 0)
             Me.JTAG_SPEED = GetRegistryValue("JTAG_FREQ", JTAG_TCK_FREQ._10MHZ)
@@ -1291,7 +1288,7 @@ Public Module MainApp
             SetRegistryValue("ECC_SYMWIDTH", Me.ECC_SymWidth)
             SetRegistryValue("ECC_SEPERATE", Me.ECC_Separate)
             SetRegistryValue("ECC_REVERSE", Me.ECC_Reverse)
-            SetRegistryValue("S93_DEVICE", Me.S93_DEVICE_INDEX)
+            SetRegistryValue("S93_DEVICE_NAME", Me.S93_DEVICE)
             SetRegistryValue("S93_ORG", Me.S93_DEVICE_ORG)
             SetRegistryValue("SREC_ORG", Me.SREC_BITMODE)
             SetRegistryValue("JTAG_FREQ", Me.JTAG_SPEED)
@@ -1498,7 +1495,7 @@ Public Module MainApp
 
     End Class
 
-    Public Function GetCompatibleScripts(ByVal CPUID As UInteger) As String(,)
+    Public Function GetCompatibleScripts(CPUID As UInteger) As String(,)
         Dim Autorun As New IO.FileInfo(ScriptPath & "autorun.ini")
         If Autorun.Exists Then
             Dim autoscripts(,) As String = Nothing
@@ -1509,7 +1506,7 @@ Public Module MainApp
         Return Nothing
     End Function
 
-    Public Function ProcessAutorun(ByVal Autorun As IO.FileInfo, ByVal ID As UInteger, ByRef scripts(,) As String) As Boolean
+    Public Function ProcessAutorun(Autorun As IO.FileInfo, ID As UInteger, ByRef scripts(,) As String) As Boolean
         Try
             Dim f() As String = Utilities.FileIO.ReadFile(Autorun.FullName)
             Dim autoline() As String
@@ -1547,7 +1544,7 @@ Public Module MainApp
     End Function
 
     'Returns the name of the flash device
-    Public Function GetDeviceManufacture(ByVal ManuID As Byte) As String
+    Public Function GetDeviceManufacture(ManuID As Byte) As String
         Select Case ManuID
             Case &H89
                 Return "Intel"
@@ -1716,6 +1713,7 @@ Public Module MainApp
                 modes.Add(DeviceMode.JTAG)
                 modes.Add(DeviceMode.I2C_EEPROM)
                 modes.Add(DeviceMode.SPI_EEPROM)
+                modes.Add(DeviceMode.Microwire)
                 modes.Add(DeviceMode.SPI_NAND)
                 modes.Add(DeviceMode.SQI)
             Case FCUSB_BOARD.Professional_PCB5

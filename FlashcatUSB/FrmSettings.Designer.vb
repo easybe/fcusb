@@ -140,6 +140,7 @@ Partial Class FrmSettings
         Me.Label17 = New System.Windows.Forms.Label()
         Me.Label20 = New System.Windows.Forms.Label()
         Me.cb_multi_ce = New System.Windows.Forms.ComboBox()
+        Me.lbl_s93_size = New System.Windows.Forms.Label()
         Me.MyTabs.SuspendLayout()
         Me.TP_SPI.SuspendLayout()
         Me.group_custom.SuspendLayout()
@@ -1260,13 +1261,14 @@ Partial Class FrmSettings
         '
         'GroupBox7
         '
+        Me.GroupBox7.Controls.Add(Me.lbl_s93_size)
         Me.GroupBox7.Controls.Add(Me.cb_s93_devices)
         Me.GroupBox7.Controls.Add(Me.Label18)
         Me.GroupBox7.Controls.Add(Me.cb_s93_org)
         Me.GroupBox7.Controls.Add(Me.Label19)
         Me.GroupBox7.Location = New System.Drawing.Point(256, 6)
         Me.GroupBox7.Name = "GroupBox7"
-        Me.GroupBox7.Size = New System.Drawing.Size(262, 85)
+        Me.GroupBox7.Size = New System.Drawing.Size(262, 111)
         Me.GroupBox7.TabIndex = 53
         Me.GroupBox7.TabStop = False
         Me.GroupBox7.Text = "Microwire"
@@ -1275,7 +1277,6 @@ Partial Class FrmSettings
         '
         Me.cb_s93_devices.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_s93_devices.FormattingEnabled = True
-        Me.cb_s93_devices.Items.AddRange(New Object() {"(Not Selected)", "93xx46  128 bytes (1Kbit)", "93xx56  256 bytes (2Kbit)", "93xx66  512 bytes (4Kbit)", "93xx76  1024 bytes (8Kbit)", "93xx86  2048 bytes (16Kbit)"})
         Me.cb_s93_devices.Location = New System.Drawing.Point(11, 40)
         Me.cb_s93_devices.Name = "cb_s93_devices"
         Me.cb_s93_devices.Size = New System.Drawing.Size(171, 21)
@@ -1421,6 +1422,15 @@ Partial Class FrmSettings
         Me.cb_multi_ce.Name = "cb_multi_ce"
         Me.cb_multi_ce.Size = New System.Drawing.Size(83, 21)
         Me.cb_multi_ce.TabIndex = 45
+        '
+        'lbl_s93_size
+        '
+        Me.lbl_s93_size.AutoSize = True
+        Me.lbl_s93_size.Location = New System.Drawing.Point(12, 76)
+        Me.lbl_s93_size.Name = "lbl_s93_size"
+        Me.lbl_s93_size.Size = New System.Drawing.Size(84, 13)
+        Me.lbl_s93_size.TabIndex = 54
+        Me.lbl_s93_size.Text = "Device Size: XX"
         '
         'FrmSettings
         '
@@ -1591,4 +1601,5 @@ Partial Class FrmSettings
     Friend WithEvents cb_swi_a0 As CheckBox
     Friend WithEvents cb_swi_a1 As CheckBox
     Friend WithEvents cb_swi_a2 As CheckBox
+    Friend WithEvents lbl_s93_size As Label
 End Class

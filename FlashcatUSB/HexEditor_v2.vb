@@ -128,7 +128,9 @@
                     If HexView_AtBottom Then
                         SBAR.Value = SBAR.Maximum - visible_lines + 1
                     ElseIf (SBAR.Value + visible_lines) > SBAR.Maximum Then
-                        SBAR.Value = SBAR.Maximum - visible_lines + 1
+                        If Not SBAR.Maximum - visible_lines < 0 Then
+                            SBAR.Value = SBAR.Maximum - visible_lines + 1
+                        End If
                     Else
                         Dim x As Integer = GetVisisbleDataAreaCount()
                         SBAR.Value = Math.Floor(TopAddress / x) + 1
@@ -327,6 +329,7 @@
             If (new_value + num_vis_rows) > SBAR.Maximum Then
                 new_value = SBAR.Maximum - num_vis_rows + 1
             End If
+            If new_value < SBAR.Minimum Then new_value = SBAR.Minimum
             SBAR.Value = new_value
         End If
         UpdateScreen()

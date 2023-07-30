@@ -122,6 +122,7 @@ Partial Class MainForm
         Me.lbl_gang1 = New System.Windows.Forms.Label()
         Me.cmd_gang_erase = New System.Windows.Forms.Button()
         Me.cmd_gang_write = New System.Windows.Forms.Button()
+        Me.mi_blank_check = New System.Windows.Forms.ToolStripMenuItem()
         Me.MenuStrip1.SuspendLayout()
         Me.FlashStatus.SuspendLayout()
         Me.MyTabs.SuspendLayout()
@@ -326,9 +327,9 @@ Partial Class MainForm
         Me.mi_mode_spi.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_spi.Text = "SPI NOR FLASH"
         '
-        'mi_mode_quad
+        'mi_mode_sqi
         '
-        Me.mi_mode_sqi.Name = "mi_mode_quad"
+        Me.mi_mode_sqi.Name = "mi_mode_sqi"
         Me.mi_mode_sqi.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_sqi.Text = "SPI QUAD FLASH"
         '
@@ -362,9 +363,9 @@ Partial Class MainForm
         Me.mi_mode_3wire.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_3wire.Text = "Microwire EEPROM"
         '
-        'mi_mode_extio
+        'mi_mode_nornand
         '
-        Me.mi_mode_nornand.Name = "mi_mode_extio"
+        Me.mi_mode_nornand.Name = "mi_mode_nornand"
         Me.mi_mode_nornand.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_nornand.Text = "Parallel FLASH (NOR/NAND)"
         '
@@ -416,7 +417,7 @@ Partial Class MainForm
         '
         'mi_tools_menu
         '
-        Me.mi_tools_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_erase_tool, Me.ToolStripSeparator4, Me.mi_create_img, Me.mi_write_img, Me.ToolStripSeparator10, Me.mi_nand_map, Me.ToolStripSeparator5, Me.mi_device_features, Me.mi_cfi_info})
+        Me.mi_tools_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_erase_tool, Me.ToolStripSeparator4, Me.mi_create_img, Me.mi_write_img, Me.ToolStripSeparator10, Me.mi_nand_map, Me.ToolStripSeparator5, Me.mi_device_features, Me.mi_cfi_info, Me.mi_blank_check})
         Me.mi_tools_menu.Name = "mi_tools_menu"
         Me.mi_tools_menu.Size = New System.Drawing.Size(47, 20)
         Me.mi_tools_menu.Text = "Tools"
@@ -425,58 +426,58 @@ Partial Class MainForm
         '
         Me.mi_erase_tool.Image = Global.FlashcatUSB.My.Resources.Resources.erase_ico
         Me.mi_erase_tool.Name = "mi_erase_tool"
-        Me.mi_erase_tool.Size = New System.Drawing.Size(183, 22)
+        Me.mi_erase_tool.Size = New System.Drawing.Size(195, 22)
         Me.mi_erase_tool.Text = "Erase chip"
         '
         'ToolStripSeparator4
         '
         Me.ToolStripSeparator4.Name = "ToolStripSeparator4"
-        Me.ToolStripSeparator4.Size = New System.Drawing.Size(180, 6)
+        Me.ToolStripSeparator4.Size = New System.Drawing.Size(192, 6)
         '
         'mi_create_img
         '
         Me.mi_create_img.Image = Global.FlashcatUSB.My.Resources.Resources.download
         Me.mi_create_img.Name = "mi_create_img"
-        Me.mi_create_img.Size = New System.Drawing.Size(183, 22)
+        Me.mi_create_img.Size = New System.Drawing.Size(195, 22)
         Me.mi_create_img.Text = "Create image"
         '
         'mi_write_img
         '
         Me.mi_write_img.Image = Global.FlashcatUSB.My.Resources.Resources.upload
         Me.mi_write_img.Name = "mi_write_img"
-        Me.mi_write_img.Size = New System.Drawing.Size(183, 22)
+        Me.mi_write_img.Size = New System.Drawing.Size(195, 22)
         Me.mi_write_img.Text = "Write image"
         '
         'ToolStripSeparator10
         '
         Me.ToolStripSeparator10.Name = "ToolStripSeparator10"
-        Me.ToolStripSeparator10.Size = New System.Drawing.Size(180, 6)
+        Me.ToolStripSeparator10.Size = New System.Drawing.Size(192, 6)
         '
         'mi_nand_map
         '
         Me.mi_nand_map.Image = Global.FlashcatUSB.My.Resources.Resources.globe
         Me.mi_nand_map.Name = "mi_nand_map"
-        Me.mi_nand_map.Size = New System.Drawing.Size(183, 22)
+        Me.mi_nand_map.Size = New System.Drawing.Size(195, 22)
         Me.mi_nand_map.Text = "NAND memory map"
         '
         'ToolStripSeparator5
         '
         Me.ToolStripSeparator5.Name = "ToolStripSeparator5"
-        Me.ToolStripSeparator5.Size = New System.Drawing.Size(180, 6)
+        Me.ToolStripSeparator5.Size = New System.Drawing.Size(192, 6)
         '
         'mi_device_features
         '
         Me.mi_device_features.Image = Global.FlashcatUSB.My.Resources.Resources.config
         Me.mi_device_features.Name = "mi_device_features"
-        Me.mi_device_features.Size = New System.Drawing.Size(183, 22)
+        Me.mi_device_features.Size = New System.Drawing.Size(195, 22)
         Me.mi_device_features.Text = "Vendor Features"
         '
         'mi_cfi_info
         '
         Me.mi_cfi_info.Image = Global.FlashcatUSB.My.Resources.Resources.tsop48
         Me.mi_cfi_info.Name = "mi_cfi_info"
-        Me.mi_cfi_info.Size = New System.Drawing.Size(183, 22)
-        Me.mi_cfi_info.Text = "CFI Information"
+        Me.mi_cfi_info.Size = New System.Drawing.Size(195, 22)
+        Me.mi_cfi_info.Text = "CFI / ONFI Information"
         '
         'mi_Language
         '
@@ -906,6 +907,13 @@ Partial Class MainForm
         Me.cmd_gang_write.Text = "Write"
         Me.cmd_gang_write.UseVisualStyleBackColor = True
         '
+        'mi_blank_check
+        '
+        Me.mi_blank_check.Image = Global.FlashcatUSB.My.Resources.Resources.BLOCK_BLACK
+        Me.mi_blank_check.Name = "mi_blank_check"
+        Me.mi_blank_check.Size = New System.Drawing.Size(195, 22)
+        Me.mi_blank_check.Text = "Blank Check"
+        '
         'MainForm
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -1037,4 +1045,5 @@ Partial Class MainForm
     Friend WithEvents mi_langauge_german As ToolStripMenuItem
     Friend WithEvents mi_cfi_info As ToolStripMenuItem
     Friend WithEvents mi_license_menu As ToolStripMenuItem
+    Friend WithEvents mi_blank_check As ToolStripMenuItem
 End Class

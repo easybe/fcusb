@@ -15,6 +15,7 @@ Public Class FrmSettings
 
     Private Sub FrmSettings_Load(sender As Object, e As EventArgs) Handles Me.Load
         Language_setup()
+        Microwire_Init()
         Me.MyTabs.DrawMode = TabDrawMode.OwnerDrawFixed
         If MySettings.MUTLI_NOR Then
             cb_multi_ce.SelectedIndex = 1
@@ -134,8 +135,7 @@ Public Class FrmSettings
                 cb_sym_width.SelectedIndex = 1
         End Select
         ECC_CheckIfEnabled()
-        cb_s93_devices.SelectedIndex = MySettings.S93_DEVICE_INDEX
-        cb_s93_org.SelectedIndex = MySettings.S93_DEVICE_ORG
+
         cb_retry_write.SelectedIndex = (MySettings.VERIFY_COUNT - 1)
         cbSrec.SelectedIndex = MySettings.SREC_BITMODE
         Select Case MySettings.JTAG_SPEED
@@ -301,9 +301,8 @@ Public Class FrmSettings
                 MySettings.ECC_SymWidth = 10
         End Select
         MySettings.VERIFY_COUNT = cb_retry_write.SelectedIndex + 1
-        MySettings.S93_DEVICE_INDEX = cb_s93_devices.SelectedIndex
-        MySettings.S93_DEVICE_ORG = cb_s93_org.SelectedIndex
         MySettings.SREC_BITMODE = cbSrec.SelectedIndex
+        Microwire_Save()
         Select Case cb_jtag_tck_speed.SelectedIndex
             Case 0
                 MySettings.JTAG_SPEED = FlashcatSettings.JTAG_TCK_FREQ._10MHZ
@@ -890,8 +889,61 @@ Public Class FrmSettings
     End Sub
 
 
-
 #End Region
+
+
+    Private Sub Microwire_Init()
+        cb_s93_org.SelectedIndex = MySettings.S93_DEVICE_ORG
+        Dim s93_devices() As FlashMemory.Device = FlashDatabase.GetFlashDevices(FlashMemory.MemoryType.SERIAL_MICROWIRE)
+        Me.cb_s93_devices.Items.Add("(Not Selected)")
+        Me.cb_s93_devices.Items.AddRange(s93_devices)
+        If Not MySettings.S93_DEVICE.Equals("") Then
+            cb_s93_org.Enabled = True
+            Dim i As Integer = 0
+            For Each item In Me.cb_s93_devices.Items
+                If item.ToString.Equals(MySettings.S93_DEVICE) Then
+                    cb_s93_devices.SelectedIndex = i
+                    Exit Sub
+                End If
+                i += 1
+            Next
+        Else
+            cb_s93_org.Enabled = False
+            cb_s93_devices.SelectedIndex = 0
+        End If
+    End Sub
+
+    Private Sub Microwire_Save()
+        If (cb_s93_devices.SelectedIndex > 0) Then
+            Dim s93 As FlashMemory.MICROWIRE = cb_s93_devices.SelectedItem
+            MySettings.S93_DEVICE = s93.NAME
+        Else
+            MySettings.S93_DEVICE = ""
+        End If
+        MySettings.S93_DEVICE_ORG = cb_s93_org.SelectedIndex
+    End Sub
+
+    Private Sub Cb_s93_devices_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cb_s93_devices.SelectedIndexChanged
+        If (cb_s93_devices.SelectedIndex > 0) Then
+            Dim s93 As FlashMemory.MICROWIRE = cb_s93_devices.SelectedItem
+            lbl_s93_size.Text = "Device Size: " & s93.FLASH_SIZE.ToString & " bytes"
+            lbl_s93_size.Visible = True
+            If s93.ORGANIZATION = FlashMemory.MICROWIRE_ORG._8BIT_16BIT Then
+                cb_s93_org.Enabled = True
+            ElseIf s93.ORGANIZATION = FlashMemory.MICROWIRE_ORG._8BIT Then
+                cb_s93_org.Enabled = False
+                cb_s93_org.SelectedIndex = 0
+            ElseIf s93.ORGANIZATION = FlashMemory.MICROWIRE_ORG._16BIT Then
+                cb_s93_org.Enabled = False
+                cb_s93_org.SelectedIndex = 1
+            End If
+        Else
+            cb_s93_org.Enabled = False
+            lbl_s93_size.Visible = False
+        End If
+    End Sub
+
+
 
 
 End Class

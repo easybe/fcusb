@@ -661,7 +661,7 @@ Namespace Utilities
 
     Namespace FileIO
         Friend Module ReadWriteFunctions
-            Public Function ReadFile(ByVal fileName As String) As String()
+            Public Function ReadFile(fileName As String) As String()
                 Try
                     Dim local_file As New IO.FileInfo(fileName)
                     If Not local_file.Exists Then Return Nothing
@@ -679,7 +679,7 @@ Namespace Utilities
                 End Try
             End Function
 
-            Public Function WriteFile(ByRef FileOut() As String, ByVal FileName As String) As Boolean
+            Public Function WriteFile(FileOut() As String, FileName As String) As Boolean
                 Try
                     Dim local_file As New IO.FileInfo(FileName)
                     If local_file.Exists Then local_file.Delete()
@@ -701,7 +701,7 @@ Namespace Utilities
                 End Try
             End Function
 
-            Public Function AppendFile(ByRef FileOut() As String, ByVal FileName As String) As Boolean
+            Public Function AppendFile(FileOut() As String, FileName As String) As Boolean
                 Try
                     Dim local_file As New IO.FileInfo(FileName)
                     Dim local_dir As New IO.DirectoryInfo(local_file.DirectoryName)
@@ -719,7 +719,7 @@ Namespace Utilities
                 End Try
             End Function
 
-            Public Function AppendBytes(ByRef DataOut() As Byte, ByVal FileName As String) As Boolean
+            Public Function AppendBytes(DataOut() As Byte, FileName As String) As Boolean
                 Try
                     Dim local_file As New IO.FileInfo(FileName)
                     Dim local_dir As New IO.DirectoryInfo(local_file.DirectoryName)

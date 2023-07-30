@@ -37,7 +37,7 @@ Public Class MemoryInterface
         End If
     End Sub
 
-    Public Function GetDevices(ByVal usb_dev As USB.HostClient.FCUSB_DEVICE) As MemoryDeviceInstance()
+    Public Function GetDevices(usb_dev As USB.HostClient.FCUSB_DEVICE) As MemoryDeviceInstance()
         Try
             Dim devices_on_this_usbport As New List(Of MemoryDeviceInstance)
             For Each i In MyDevices
@@ -50,7 +50,7 @@ Public Class MemoryInterface
         End Try
     End Function
 
-    Public Function Add(ByVal usb_if As USB.HostClient.FCUSB_DEVICE, ByVal mem_type As MemoryType, ByVal mem_name As String, ByVal mem_size As Long) As MemoryDeviceInstance
+    Public Function Add(usb_if As USB.HostClient.FCUSB_DEVICE, mem_type As MemoryType, mem_name As String, mem_size As Long) As MemoryDeviceInstance
         Dim memDev As New MemoryDeviceInstance(usb_if)
         memDev.Name = mem_name
         memDev.Size = mem_size
@@ -59,7 +59,7 @@ Public Class MemoryInterface
         Return memDev
     End Function
 
-    Public Function Add(ByVal usb_if As USB.HostClient.FCUSB_DEVICE, device As Device) As MemoryDeviceInstance
+    Public Function Add(usb_if As USB.HostClient.FCUSB_DEVICE, device As Device) As MemoryDeviceInstance
         Dim memDev As New MemoryDeviceInstance(usb_if)
         memDev.Name = device.NAME
         memDev.Size = device.FLASH_SIZE
@@ -276,7 +276,7 @@ Public Class MemoryInterface
             Return True
         End Function
 
-        Public Function ReadBytes(ByVal base_addr As Long, ByVal count As Long, memory_area As FlashArea, Optional callback As StatusCallback = Nothing) As Byte()
+        Public Function ReadBytes(base_addr As Long, count As Long, memory_area As FlashArea, Optional callback As StatusCallback = Nothing) As Byte()
             Me.NoErrors = True
             Dim data_out() As Byte = Nothing
             Using n As New IO.MemoryStream
@@ -314,7 +314,7 @@ Public Class MemoryInterface
             End Try
         End Function
 
-        Private Function ReadStream(ByVal data_stream As IO.Stream, ByRef Params As ReadParameters) As Boolean
+        Private Function ReadStream(data_stream As IO.Stream, Params As ReadParameters) As Boolean
             Me.NoErrors = True
             If (Threading.Thread.CurrentThread.Name = "") Then
                 Dim td_int As Integer = Threading.Thread.CurrentThread.ManagedThreadId
@@ -411,7 +411,7 @@ Public Class MemoryInterface
             Return False
         End Function
 
-        Private Function WriteBytes_Volatile(ByVal data_stream As IO.Stream, ByVal Params As WriteParameters) As Boolean
+        Private Function WriteBytes_Volatile(data_stream As IO.Stream, Params As WriteParameters) As Boolean
             Params.Timer.Start()
             Dim BlockSize As Integer = 4096
             Dim BytesLeft As Integer = data_stream.Length
@@ -439,7 +439,7 @@ Public Class MemoryInterface
             Return True
         End Function
 
-        Private Function WriteBytes_EPROM(ByVal data_stream As IO.Stream, ByRef Params As WriteParameters) As Boolean
+        Private Function WriteBytes_EPROM(data_stream As IO.Stream, Params As WriteParameters) As Boolean
             Me.WaitUntilReady() 'Some flash devices requires us to wait before sending data
             Dim BlockSize As UInt32 = 8192
             While (Params.BytesLeft > 0)
@@ -769,7 +769,7 @@ Public Class MemoryInterface
             Return True
         End Function
 
-        Private Function WriteBytes_VerifyWrite(ByVal BaseAddress As UInt32, ByVal Data() As Byte, ByVal memory_area As Byte) As Boolean
+        Private Function WriteBytes_VerifyWrite(BaseAddress As Long, Data() As Byte, memory_area As Byte) As Boolean
             Dim Verify() As Byte 'The data to check against
             Dim MiscountCounter As Integer = 0
             Dim FirstWrongByteIs As Byte = Nothing
@@ -796,7 +796,7 @@ Public Class MemoryInterface
             End If
         End Function
 
-        Public Function WriteErrorOnVerifyWrite(ByVal address As UInt32) As Boolean
+        Public Function WriteErrorOnVerifyWrite(address As UInt32) As Boolean
             If (GUI IsNot Nothing) Then
                 Dim TitleTxt As String = String.Format(RM.GetString("mem_verify_failed_at"), Hex(address).PadLeft(8, "0"))
                 TitleTxt &= vbCrLf & vbCrLf & RM.GetString("mem_ask_continue")
@@ -811,7 +811,7 @@ Public Class MemoryInterface
             End If
         End Function
 
-        Public Function GetMessageBoxForSectorErase(ByVal address As UInt32, ByVal sector_index As Integer) As Boolean
+        Public Function GetMessageBoxForSectorErase(address As UInt32, sector_index As Integer) As Boolean
             Dim TitleTxt As String = String.Format(RM.GetString("mem_erase_failed_at"), Hex(address).PadLeft(8, "0"), sector_index)
             TitleTxt &= vbCrLf & vbCrLf & RM.GetString("mem_ask_continue")
             If MsgBox(TitleTxt, MsgBoxStyle.YesNo, RM.GetString("mem_erase_failed_title")) = MsgBoxResult.No Then
@@ -1194,7 +1194,7 @@ Public Class MemoryInterface
         End Try
     End Sub
 
-    Private Shared Function UpdateSpeed_GetText(ByVal bytes_per_second As Integer) As String
+    Private Shared Function UpdateSpeed_GetText(bytes_per_second As Integer) As String
         Dim speed_str As String
         If (bytes_per_second > (Mb008 - 1)) Then '1MB or higher
             speed_str = Format(CSng(bytes_per_second / Mb008), "#,###.000") & " MB/s"

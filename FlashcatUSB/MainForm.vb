@@ -808,7 +808,7 @@ Public Class MainForm
             Next
             If mi_mode_i2c.Enabled AndAlso MySettings.I2C_INDEX = 0 Then mi_mode_i2c.Enabled = False
             If mi_mode_spieeprom.Enabled AndAlso MySettings.SPI_EEPROM = SPI_EEPROM.None Then mi_mode_spieeprom.Enabled = False
-            If mi_mode_3wire.Enabled AndAlso MySettings.S93_DEVICE_INDEX = 0 Then mi_mode_3wire.Enabled = False
+            If mi_mode_3wire.Enabled AndAlso MySettings.S93_DEVICE.Equals("") Then mi_mode_3wire.Enabled = False
         End If
     End Sub
 
@@ -951,6 +951,7 @@ Public Class MainForm
                     mi_write_img.Enabled = True
                     mi_nand_map.Enabled = False
                     mi_cfi_info.Enabled = False
+                    mi_blank_check.Enabled = False
                     If mem_instance.VendorMenu Is Nothing Then
                         mi_device_features.Enabled = False
                     Else
@@ -958,6 +959,9 @@ Public Class MainForm
                     End If
                     If mem_instance.FlashType = MemoryType.NAND Then
                         mi_nand_map.Enabled = True
+                        If mem_instance.FCUSB.EXT_IF.ONFI.IS_VALID Then
+                            mi_cfi_info.Enabled = True
+                        End If
                         Exit Sub 'Accept the above
                     ElseIf mem_instance.FlashType = MemoryType.SERIAL_NAND Then
                         mi_nand_map.Enabled = True
@@ -967,7 +971,7 @@ Public Class MainForm
                     ElseIf mem_instance.FlashType = MemoryType.SERIAL_QUAD Then
                         Exit Sub 'Accept the above
                     ElseIf mem_instance.FlashType = MemoryType.PARALLEL_NOR Then
-                        If mem_instance.FCUSB.EXT_IF.CFI_table IsNot Nothing Then
+                        If mem_instance.FCUSB.EXT_IF.CFI.IS_VALID Then
                             mi_cfi_info.Enabled = True
                         End If
                         Exit Sub 'Accept the above
@@ -984,6 +988,12 @@ Public Class MainForm
                         mi_nand_map.Enabled = False
                         mi_cfi_info.Enabled = False
                         Exit Sub 'Accept the above
+                    ElseIf mem_instance.FlashType = MemoryType.OTP_EPROM Then
+                        mi_erase_tool.Enabled = False
+                        mi_create_img.Enabled = False
+                        mi_write_img.Enabled = False
+                        mi_blank_check.Enabled = True
+                        Exit Sub
                     End If
                 End If
             End If
@@ -994,6 +1004,7 @@ Public Class MainForm
         mi_nand_map.Enabled = False
         mi_device_features.Enabled = False
         mi_cfi_info.Enabled = False
+        mi_blank_check.Enabled = False
     End Sub
 
 #End Region
@@ -2414,35 +2425,43 @@ Public Class MainForm
 
     Private Sub mi_cfi_info_Click(sender As Object, e As EventArgs) Handles mi_cfi_info.Click
         Dim memDev As MemoryDeviceInstance = GetSelectedMemoryInterface()
-        Dim cfi_table() As Byte = memDev.FCUSB.EXT_IF.CFI_table
-        Dim if_str() As String = {"X8 ONLY", "X16 ONLY", "X8/X16", "X32", "SPI"}
         Dim frmCFI As New Form With {.Width = 330, .Height = 10}
         frmCFI.FormBorderStyle = FormBorderStyle.FixedSingle
         frmCFI.ShowIcon = False
         frmCFI.ShowInTaskbar = False
         frmCFI.MaximizeBox = False
-        frmCFI.Text = "Common Flash Interface (CFI)"
         frmCFI.StartPosition = FormStartPosition.CenterParent
         Dim lbl_cfg_list As New List(Of Label)
-        lbl_cfg_list.Add(New Label With {.Text = "Minimum VCC for program/erase: " & (cfi_table(11) >> 4) & "." & (cfi_table(11) And 15) & " V"})
-        lbl_cfg_list.Add(New Label With {.Text = "Maxiumum VCC for program/erase: " & (cfi_table(12) >> 4) & "." & (cfi_table(12) And 15) & " V"})
-        lbl_cfg_list.Add(New Label With {.Text = "Minimum VPP for program/erase: " & (cfi_table(13) >> 4) & "." & (cfi_table(13) And 15) & " V"})
-        lbl_cfg_list.Add(New Label With {.Text = "Maxiumum VPP for program/erase: " & (cfi_table(14) >> 4) & "." & (cfi_table(14) And 15) & " V"})
-        lbl_cfg_list.Add(New Label With {.Text = "Typical word programing time: " & (2 ^ cfi_table(15)) & " µs"})
-        lbl_cfg_list.Add(New Label With {.Text = "Typical max. buffer write time-out: " & (2 ^ cfi_table(16)) & " µs"})
-        lbl_cfg_list.Add(New Label With {.Text = "Typical block erase time-out: " & (2 ^ cfi_table(17)) & " ms"})
-        If Not cfi_table(18) = 0 Then
-            lbl_cfg_list.Add(New Label With {.Text = "Typical block erase time-out: " & (2 ^ cfi_table(17)) & " ms"})
+        If memDev.FlashType = MemoryType.NAND Then
+            Dim flash_onfi As NAND_ONFI = memDev.FCUSB.EXT_IF.ONFI
+            frmCFI.Text = "Open NAND Flash Interface"
+            lbl_cfg_list.Add(New Label With {.Text = "Device Manufacturer: " & flash_onfi.DEVICE_MFG})
+            lbl_cfg_list.Add(New Label With {.Text = "Device Model: " & flash_onfi.DEVICE_MODEL})
+            lbl_cfg_list.Add(New Label With {.Text = "Page size: " & flash_onfi.PAGE_SIZE})
+            lbl_cfg_list.Add(New Label With {.Text = "Spare size: " & flash_onfi.SPARE_SIZE})
+            lbl_cfg_list.Add(New Label With {.Text = "Pages per block: " & flash_onfi.PAGES_PER_BLOCK})
+            lbl_cfg_list.Add(New Label With {.Text = "Blocks per LUN: " & flash_onfi.BLOCKS_PER_LUN})
+            lbl_cfg_list.Add(New Label With {.Text = "LUN count: " & flash_onfi.LUN_COUNT})
+            lbl_cfg_list.Add(New Label With {.Text = "Bits per cell: " & flash_onfi.BITS_PER_CELL})
+        Else
+            Dim flash_cfi As NOR_CFI = memDev.FCUSB.EXT_IF.CFI
+            frmCFI.Text = "Common Flash Interface (CFI)"
+            lbl_cfg_list.Add(New Label With {.Text = "Minimum VCC for program/erase: " & flash_cfi.VCC_MIN_PROGERASE & " V"})
+            lbl_cfg_list.Add(New Label With {.Text = "Maxiumum VCC for program/erase: " & flash_cfi.VCC_MAX_PROGERASE & " V"})
+            lbl_cfg_list.Add(New Label With {.Text = "Minimum VPP for program/erase: " & flash_cfi.VPP_MIN_PROGERASE & " V"})
+            lbl_cfg_list.Add(New Label With {.Text = "Maxiumum VPP for program/erase: " & flash_cfi.VPP_MAX_PROGERASE & " V"})
+            lbl_cfg_list.Add(New Label With {.Text = "Typical word programing time: " & flash_cfi.WORD_WRITE_TIMEOUT & " µs"})
+            lbl_cfg_list.Add(New Label With {.Text = "Typical max. buffer write time-out: " & flash_cfi.BUFFER_WRITE_TIMEOUT & " µs"})
+            lbl_cfg_list.Add(New Label With {.Text = "Typical block erase time-out: " & flash_cfi.BLOCK_ERASE_TIMEOUT & " ms"})
+            lbl_cfg_list.Add(New Label With {.Text = "Typical full chip erase time-out: " & flash_cfi.ERASE_TIMEOUT & " ms"})
+            lbl_cfg_list.Add(New Label With {.Text = "Maximum word program time-out: " & flash_cfi.WORD_WRITE_MAX_TIMEOUT & " µs"})
+            lbl_cfg_list.Add(New Label With {.Text = "Maximum buffer write time-out: " & flash_cfi.BUFFER_WRITE_MAX_TIMEOUT & " µs"})
+            lbl_cfg_list.Add(New Label With {.Text = "Maximum block erase time-out: " & flash_cfi.BLOCK_ERASE_MAX_TIMEOUT & " seconds"})
+            lbl_cfg_list.Add(New Label With {.Text = "Maximum chip erase time-out: " & flash_cfi.ERASE_MAX_TIMEOUT & " seconds"})
+            lbl_cfg_list.Add(New Label With {.Text = "Device size: " & Format(flash_cfi.DEVICE_SIZE, "#,###") & " bytes"})
+            lbl_cfg_list.Add(New Label With {.Text = "Data bus interface: " & flash_cfi.DESCRIPTION})
+            lbl_cfg_list.Add(New Label With {.Text = "Write buffer size: " & flash_cfi.WRITE_BUFFER_SIZE & " bytes"})
         End If
-        lbl_cfg_list.Add(New Label With {.Text = "Typical full chip erase time-out: " & (2 ^ cfi_table(18)) & " ms"})
-        lbl_cfg_list.Add(New Label With {.Text = "Maximum word program time-out: " & ((2 ^ cfi_table(16)) * cfi_table(19)) & " µs"})
-        lbl_cfg_list.Add(New Label With {.Text = "Maximum word program time-out: " & ((2 ^ cfi_table(16)) * (2 ^ cfi_table(19))) & " µs"})
-        lbl_cfg_list.Add(New Label With {.Text = "Maximum buffer write time-out: " & ((2 ^ cfi_table(16)) * (2 ^ cfi_table(20))) & " µs"})
-        lbl_cfg_list.Add(New Label With {.Text = "Maximum block erase time-out: " & (2 ^ cfi_table(21)) & " seconds"})
-        lbl_cfg_list.Add(New Label With {.Text = "Maximum chip erase time-out: " & (2 ^ cfi_table(22)) & " seconds"})
-        lbl_cfg_list.Add(New Label With {.Text = "Device size: " & Format(2 ^ cfi_table(23), "#,###") & " bytes"})
-        lbl_cfg_list.Add(New Label With {.Text = "Data bus interface: " & if_str(cfi_table(24))})
-        lbl_cfg_list.Add(New Label With {.Text = "Write buffer size: " & (2 ^ cfi_table(26)) & " bytes"})
         Dim y As Integer = 8
         For Each cfi_label In lbl_cfg_list
             cfi_label.AutoSize = True
@@ -2482,7 +2501,7 @@ Public Class MainForm
         Try
             Dim left_part As String = "FlashcatUSB (Build " & Build & ")"
             If MySettings.LICENSED_TO.Equals("") Then
-                Me.Text = left_part & " - PERSONAL USE ONLY"
+                Me.Text = left_part & " - NOT LICENSED"
             Else
                 If MySettings.LICENSE_EXP.Date.Year = 1 Then
                     Me.Text = left_part & " - Licensed to " & MySettings.LICENSED_TO
@@ -2497,5 +2516,53 @@ Public Class MainForm
     End Sub
 
 #End Region
+
+    Private Sub Mi_blank_check_Click(sender As Object, e As EventArgs) Handles mi_blank_check.Click
+        Try
+            Dim td As New Threading.Thread(AddressOf eprom_blank_check)
+            td.Name = "eBlankCheck"
+            td.Start()
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub eprom_blank_check()
+        Dim memDev As MemoryDeviceInstance = GetSelectedMemoryInterface()
+        If memDev Is Nothing Then Exit Sub
+        Try
+            SetStatus("Performing EPROM blank check")
+            memDev.FCUSB.USB_LEDBlink()
+            memDev.DisableGuiControls()
+            Dim is_blank As Boolean = True
+            Dim block_size As Integer = 32768
+            Dim block_count As Integer = memDev.Size / block_size
+            Dim data_addr As Long
+            memDev.GuiControl.SetProgress(0)
+            For i = 0 To block_count - 1
+                data_addr = i * block_size
+                memDev.GuiControl.SetProgress((i / block_count) * 100)
+                Dim d() As Byte = memDev.ReadFlash(data_addr, block_size, FlashArea.Main)
+                For x = 0 To d.Length - 1
+                    If (Not d(x) = 255) Then
+                        is_blank = False
+                        data_addr += x
+                        Exit For
+                    End If
+                Next
+                If Not is_blank Then Exit For
+            Next
+            If is_blank Then
+                SetStatus("EPROM device is blank")
+            Else
+                SetStatus("EPROM device is not blank (0x" & Hex(data_addr).PadLeft(8, "0") & " contains data)")
+            End If
+        Catch ex As Exception
+        Finally
+            memDev.GuiControl.SetProgress(0)
+            memDev.EnableGuiControls()
+            memDev.FCUSB.USB_LEDOn()
+        End Try
+    End Sub
+
 
 End Class

@@ -124,14 +124,21 @@ Public Class FcScriptEngine
         BCM_CMD.Add("setserial", {CmdParam.String}, New ScriptFunction(AddressOf c_bcm_setserial))
         CmdFunctions.AddNest(BCM_CMD)
         Dim BSDL As New ScriptCmd("BoundaryScan")
-        BSDL.Add("init", Nothing, New ScriptFunction(AddressOf c_bsdl_init))
+        BSDL.Add("setup", Nothing, New ScriptFunction(AddressOf c_bsdl_setup))
+        BSDL.Add("init", {CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_bsdl_init))
         BSDL.Add("addpin", {CmdParam.String, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_bsdl_addpin))
+        BSDL.Add("setbsr", {CmdParam.Integer, CmdParam.Integer, CmdParam.Bool}, New ScriptFunction(AddressOf c_bsdl_setbsr))
+        BSDL.Add("writebsr", Nothing, New ScriptFunction(AddressOf c_bsdl_writebsr))
         BSDL.Add("detect", Nothing, New ScriptFunction(AddressOf c_bsdl_detect))
         CmdFunctions.AddNest(BSDL)
         Dim LOADOPT As New ScriptCmd("load")
         LOADOPT.Add("firmware", Nothing, New ScriptFunction(AddressOf c_load_firmware))
         LOADOPT.Add("logic", Nothing, New ScriptFunction(AddressOf c_load_logic))
         CmdFunctions.AddNest(LOADOPT)
+        Dim FLSHOPT As New ScriptCmd("flash")
+        Dim del_add As New ScriptFunction(AddressOf c_flash_add)
+        FLSHOPT.Add("add", {CmdParam.String, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer}, del_add)
+        CmdFunctions.AddNest(FLSHOPT)
         'Generic functions
         CmdFunctions.Add("writeline", {CmdParam.Any, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_writeline))
         CmdFunctions.Add("print", {CmdParam.Any, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_writeline))
@@ -3907,16 +3914,29 @@ Public Class FcScriptEngine
 
 #Region "Boundary Scan Programmer"
 
-    Private Function c_bsdl_init(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_bsdl_setup(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
-            USBCLIENT.FCUSB(Index).JTAG_IF.BoundaryScan_Init()
+            USBCLIENT.FCUSB(Index).JTAG_IF.BoundaryScan_Setup()
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "BoundaryScan.Setup function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_bsdl_init(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
+        Try
+            Dim flash_mode As Integer = 0 '0=Automatic, 1=X8_OVER_X16
+            If arguments.Length = 1 Then flash_mode = CInt(arguments(0).Value)
+            Dim result As Boolean = USBCLIENT.FCUSB(Index).JTAG_IF.BoundaryScan_Init(flash_mode)
+            Dim sv As New ScriptVariable(CurrentVars.GetNewName(), OperandType.Bool)
+            sv.Value = result
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "BoundaryScan.Init function exception"}
         End Try
         Return Nothing
     End Function
 
-    Private Function c_bsdl_addpin(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_bsdl_addpin(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim pin_name As String = arguments(0).Value
             Dim pin_output As Integer = arguments(1).Value 'cell associated with the bidir or output cell
@@ -3932,9 +3952,30 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_bsdl_detect(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_bsdl_setbsr(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
-            Dim result As Boolean = USBCLIENT.FCUSB(Index).JTAG_IF.BoundaryScan_Detect
+            Dim pin_output As Integer = CInt(arguments(0).Value)
+            Dim pin_control As Integer = CInt(arguments(1).Value)
+            Dim pin_level As Boolean = CBool(arguments(2).Value)
+            USBCLIENT.FCUSB(Index).JTAG_IF.BoundaryScan_SetBSR(pin_output, pin_control, pin_level)
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "BoundaryScan.SetBSR function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_bsdl_writebsr(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
+        Try
+            USBCLIENT.FCUSB(Index).JTAG_IF.BoundaryScan_WriteBSR()
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "BoundaryScan.WriteBSR function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_bsdl_detect(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
+        Try
+            Dim result As Boolean = USBCLIENT.FCUSB(Index).JTAG_IF.BoundaryScan_Detect()
             Dim sv As New ScriptVariable(CurrentVars.GetNewName(), OperandType.Bool)
             sv.Value = result
             Return sv
@@ -3980,6 +4021,28 @@ Public Class FcScriptEngine
             End Select
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Load.Logic function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+#End Region
+
+#Region "FLASH commands"
+
+    Private Function c_flash_add(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
+        Try
+            Dim flash_name As String = CStr(arguments(0).Value)
+            Dim ID_MFG As Integer = CInt(arguments(1).Value)
+            Dim ID_PART As Integer = CInt(arguments(2).Value)
+            Dim flash_size As Integer = CInt(arguments(3).Value) 'Upgrade this to LONG in the future
+            Dim flash_if As Integer = CInt(arguments(4).Value)
+            Dim block_layout As Integer = CInt(arguments(5).Value)
+            Dim prog_mode As Integer = CInt(arguments(6).Value)
+            Dim delay_mode As Integer = CInt(arguments(7).Value)
+            Dim new_mem_part As New FlashMemory.P_NOR(flash_name, ID_MFG, ID_PART, flash_size, flash_if, block_layout, prog_mode, delay_mode)
+            FlashDatabase.FlashDB.Add(new_mem_part)
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Flash.Add function exception"}
         End Try
         Return Nothing
     End Function
