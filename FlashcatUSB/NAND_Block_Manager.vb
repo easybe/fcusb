@@ -211,7 +211,7 @@ Public Class NAND_BLOCK_IF
             Dim Result As Boolean = ERASEBLOCK(PageAddr, FlashArea.Main, MySettings.NAND_Preserve)
             If Not Result Then Return False
             If (MySettings.NAND_Preserve) AndAlso Me.MEMORY_AREA_ERASED IsNot Nothing Then 'We need to write back the OOB
-                WRITEPAGE(PageAddr, MEMORY_AREA_ERASED, FlashArea.OOB)
+                RaiseEvent WritePages(PageAddr, Nothing, MEMORY_AREA_ERASED, FlashArea.OOB, Result)
                 MEMORY_AREA_ERASED = Nothing
             End If
             PageAddr += PagesPerBlock

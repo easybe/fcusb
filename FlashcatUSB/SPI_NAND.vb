@@ -259,7 +259,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             page_offset = logical_address - (page_addr * MyFlashDevice.PAGE_SIZE)
         ElseIf (Params.Memory_Area = FlashArea.OOB) Then
             page_addr = Math.Floor(logical_address / MyFlashDevice.EXT_PAGE_SIZE)
-            page_offset = logical_address - (page_addr * (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE))
+            page_offset = logical_address - (page_addr * (MyFlashDevice.EXT_PAGE_SIZE))
         ElseIf (Params.Memory_Area = FlashArea.All) Then   'we need to adjust large address to logical address
             page_addr = (logical_address / MyFlashDevice.EXT_PAGE_SIZE)
             page_offset = logical_address - (page_addr * (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE))
@@ -325,7 +325,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                     Dim die_page_addr As UInt32 = GetPageForMultiDie(page_addr, 0, bytes_left, main_buffer_size, memory_area)
                     Dim die_data(main_buffer_size - 1) As Byte
                     Array.Copy(main, main_ptr, die_data, 0, die_data.Length) : main_ptr += main_buffer_size
-                    write_result = WritePages(die_page_addr, die_data, Nothing, True)
+                    write_result = WritePages(die_page_addr, die_data, Nothing, FlashArea.All)
                     If Not write_result Then Exit Sub
                 Loop
             Else
@@ -343,7 +343,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                             ReDim die_oob(oob_buffer_size - 1)
                             Array.Copy(oob, oob_ptr, die_oob, 0, die_oob.Length) : oob_ptr += oob_buffer_size
                         End If
-                        write_result = WritePages(die_page_addr, die_data, die_oob)
+                        write_result = WritePages(die_page_addr, die_data, die_oob, FlashArea.Main)
                         If Not write_result Then Exit Sub
                     Loop
                 ElseIf oob IsNot Nothing Then
@@ -353,7 +353,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                         Dim die_page_addr As UInt32 = GetPageForMultiDie(page_addr, 0, bytes_left, oob_buffer_size, memory_area)
                         Dim die_oob(oob_buffer_size - 1) As Byte
                         Array.Copy(oob, oob_ptr, die_oob, 0, die_oob.Length) : oob_ptr += oob_buffer_size
-                        write_result = WritePages(die_page_addr, Nothing, die_oob)
+                        write_result = WritePages(die_page_addr, Nothing, die_oob, FlashArea.OOB)
                         If Not write_result Then Exit Sub
                     Loop
                 Else
@@ -361,11 +361,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                 End If
             End If
         Else
-            If memory_area = FlashArea.All Then
-                write_result = WritePages(page_addr, main, Nothing, True)
-            Else
-                write_result = WritePages(page_addr, main, oob)
-            End If
+            write_result = WritePages(page_addr, main, oob, memory_area)
         End If
     End Sub
 
@@ -562,54 +558,111 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Return Nothing
     End Function
 
-    Public Function WritePages(page_addr As UInt32, main_data() As Byte, oob_data() As Byte, Optional write_all As Boolean = False) As Boolean
+    Public Function WritePages(page_addr As UInt32, main_data() As Byte, oob_data() As Byte, ByVal area As FlashArea) As Boolean
         Try
             If main_data Is Nothing And oob_data Is Nothing Then Return False
-            Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE)
-            Dim page_aligned() As Byte = Nothing
-            If write_all Then 'Ignore OOB/SPARE
-                Dim total_pages As UInt32 = Math.Ceiling(main_data.Length / page_size_tot)
-                ReDim page_aligned((total_pages * page_size_tot) - 1)
-                For i = 0 To page_aligned.Length - 1 : page_aligned(i) = 255 : Next
-                Array.Copy(main_data, 0, page_aligned, 0, main_data.Length)
-            Else
-                page_aligned = CreatePageAligned(MyFlashDevice, main_data, oob_data)
+            Dim page_size As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE) 'Entire size
+            Dim sep_layout As Boolean = CBool(MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Seperated)
+            If (Not area = FlashArea.All) AndAlso (sep_layout AndAlso (main_data Is Nothing Or oob_data Is Nothing)) Then 'We only need to write one area
+                If main_data IsNot Nothing Then
+                    USB_WritePageAreaData(page_addr, main_data, FlashArea.Main)
+                Else
+                    USB_WritePageAreaData(page_addr, oob_data, FlashArea.OOB)
+                End If
+            Else 'We need to seperate and align data
+                Dim page_aligned() As Byte = Nothing
+                If area = FlashArea.All Then 'Ignore OOB/SPARE
+                    Dim total_pages As UInt32 = Math.Ceiling(main_data.Length / page_size)
+                    ReDim page_aligned((total_pages * page_size) - 1)
+                    For i = 0 To page_aligned.Length - 1 : page_aligned(i) = 255 : Next
+                    Array.Copy(main_data, 0, page_aligned, 0, main_data.Length)
+                Else
+                    page_aligned = CreatePageAligned(MyFlashDevice, main_data, oob_data)
+                End If
+                Return USB_WritePageAlignedData(page_addr, page_aligned)
             End If
-            CreatePageAligned(MyFlashDevice, main_data, oob_data)
-            Dim pages_to_write As UInt32 = page_aligned.Length / page_size_tot
-            If (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB3) OrElse (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB4) Then
-                Dim array_ptr As UInt32 = 0
-                Do Until pages_to_write = 0
-                    Dim max_page_count As Integer = 8192 / MyFlashDevice.PAGE_SIZE
-                    Dim count As UInt32 = Math.Min(max_page_count, pages_to_write) 'Write up to 4 pages (fcusb pro buffer has 12KB total)
-                    Dim packet((count * page_size_tot) - 1) As Byte
-                    Array.Copy(page_aligned, array_ptr, packet, 0, packet.Length)
-                    array_ptr += packet.Length
-                    Dim setup() As Byte = SetupPacket_NAND(page_addr, 0, packet.Length, FlashArea.All) 'We will write the entire page
-                    Dim param As UInt32 = Utilities.BoolToInt(MyFlashDevice.PLANE_SELECT)
-                    Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.SPINAND_WRITEFLASH, setup, packet, param)
-                    If Not result Then Return Nothing
-                    FCUSB.USB_WaitForComplete()
-                    page_addr += count
-                    pages_to_write -= count
-                Loop
-            Else
-                For i = 0 To pages_to_write - 1
-                    Dim cache_data(page_size_tot - 1) As Byte
-                    Array.Copy(page_aligned, (i * page_size_tot), cache_data, 0, cache_data.Length)
-                    SPIBUS_WriteEnable()
-                    Dim cache_offset As UInt16 = 0
-                    If MyFlashDevice.PLANE_SELECT Then If (Math.Floor(page_addr / 64) And 1 = 1) Then cache_offset = cache_offset Or &H1000 'Sets plane select to HIGH
-                    LoadPageCache(0, cache_data)
-                    ProgramPageCache(page_addr)
-                    page_addr += 1
-                    WaitUntilReady()
-                Next
-            End If
-            Return True
         Catch ex As Exception
         End Try
         Return False
+    End Function
+
+    Private Function USB_WritePageAlignedData(ByRef page_addr As UInt32, ByVal page_aligned() As Byte) As Boolean
+        Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE)
+        Dim pages_to_write As UInt32 = (page_aligned.Length / page_size_tot)
+        If (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB3) OrElse (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB4) Then
+            Dim array_ptr As UInt32 = 0
+            Do Until pages_to_write = 0
+                Dim max_page_count As Integer = 8192 / MyFlashDevice.PAGE_SIZE
+                Dim count As UInt32 = Math.Min(max_page_count, pages_to_write) 'Write up to 4 pages (fcusb pro buffer has 12KB total)
+                Dim packet((count * page_size_tot) - 1) As Byte
+                Array.Copy(page_aligned, array_ptr, packet, 0, packet.Length)
+                array_ptr += packet.Length
+                Dim setup() As Byte = SetupPacket_NAND(page_addr, 0, packet.Length, FlashArea.All) 'We will write the entire page
+                Dim param As UInt32 = Utilities.BoolToInt(MyFlashDevice.PLANE_SELECT)
+                Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.SPINAND_WRITEFLASH, setup, packet, param)
+                If Not result Then Return False
+                FCUSB.USB_WaitForComplete()
+                page_addr += count
+                pages_to_write -= count
+            Loop
+        Else
+            For i = 0 To pages_to_write - 1
+                Dim cache_data(page_size_tot - 1) As Byte
+                Array.Copy(page_aligned, (i * page_size_tot), cache_data, 0, cache_data.Length)
+                SPIBUS_WriteEnable()
+                Dim cache_offset As UInt16 = 0
+                If MyFlashDevice.PLANE_SELECT Then If (Math.Floor(page_addr / 64) And 1 = 1) Then cache_offset = cache_offset Or &H1000 'Sets plane select to HIGH
+                LoadPageCache(0, cache_data)
+                ProgramPageCache(page_addr)
+                page_addr += 1
+                WaitUntilReady()
+            Next
+        End If
+        Return True
+    End Function
+
+    Private Function USB_WritePageAreaData(ByRef page_addr As UInt32, ByVal area_data() As Byte, ByVal area As FlashArea) As Boolean
+        Dim page_size As UInt16
+        Dim page_offset As UInt32 = 0
+        If area = FlashArea.Main Then
+            page_size = MyFlashDevice.PAGE_SIZE
+            page_offset = 0
+        ElseIf area = FlashArea.OOB Then
+            page_size = MyFlashDevice.EXT_PAGE_SIZE
+            page_offset = MyFlashDevice.PAGE_SIZE
+        Else
+            Return False
+        End If
+        Dim pages_to_write As UInt32 = (area_data.Length / page_size)
+        If (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB3) OrElse (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB4) Then
+            Dim array_ptr As UInt32 = 0
+            Do Until pages_to_write = 0
+                Dim max_page_count As Integer = (8192 / page_size)
+                Dim count As UInt32 = Math.Min(max_page_count, pages_to_write) 'Write up to 4 pages (fcusb pro buffer has 12KB total)
+                Dim packet((count * page_size) - 1) As Byte
+                Array.Copy(area_data, array_ptr, packet, 0, packet.Length)
+                array_ptr += packet.Length
+                Dim setup() As Byte = SetupPacket_NAND(page_addr, 0, packet.Length, area) 'We will write the entire page
+                Dim param As UInt32 = Utilities.BoolToInt(MyFlashDevice.PLANE_SELECT)
+                Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.SPINAND_WRITEFLASH, setup, packet, param)
+                If Not result Then Return False
+                FCUSB.USB_WaitForComplete()
+                page_addr += count
+                pages_to_write -= count
+            Loop
+        Else
+            For i = 0 To pages_to_write - 1
+                Dim cache_data(page_size - 1) As Byte
+                Array.Copy(area_data, (i * page_size), cache_data, 0, cache_data.Length)
+                SPIBUS_WriteEnable()
+                If MyFlashDevice.PLANE_SELECT Then If (Math.Floor(page_addr / 64) And 1 = 1) Then page_addr = page_addr Or &H1000 'Sets plane select to HIGH
+                LoadPageCache(page_offset, cache_data)
+                ProgramPageCache(page_addr)
+                page_addr += 1
+                WaitUntilReady()
+            Next
+        End If
+        Return True
     End Function
 
     Private Sub LoadPageCache(ByVal page_offset As UInt16, ByVal data_to_load() As Byte)

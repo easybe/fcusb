@@ -1779,56 +1779,61 @@ Public Class MainForm
     End Sub
     'This uses the current settings to indicate if this block is valid
     Private Function NANDBACKUP_IsValid(ByVal block_data() As Byte, ByVal page_size As UInt32, ByVal oob_size As UInt32) As Boolean
-        If MySettings.NAND_BadBlockManager = FlashcatSettings.BadBlockMode.Disabled Then Return True
-        Dim layout_main As UInt32
-        Dim layout_oob As UInt32
-        If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Seperated Then
-            layout_main = page_size
-            layout_oob = oob_size
-        ElseIf MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then
-            layout_main = page_size
-            layout_oob = oob_size
-        ElseIf MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Segmented Then
-            Select Case page_size
-                Case 2048
-                    layout_main = (page_size / 4)
-                    layout_oob = (oob_size / 4)
-                Case Else
-                    layout_main = page_size
-                    layout_oob = oob_size
-            End Select
-        End If
-        Dim oob As New List(Of Byte()) 'contains oob
-        Dim bytes_left As Byte = block_data.Length
-        Dim ptr As UInt32 = 0
-        Do Until bytes_left = 0
-            Dim p(layout_oob - 1) As Byte
-            Array.Copy(block_data, ptr + layout_oob, p, 0, p.Length)
-            oob.Add(p)
-            ptr += layout_main + layout_oob
-            bytes_left = bytes_left - layout_main + layout_oob
-        Loop
-        Dim page_one() As Byte = oob(0)
-        Dim page_two() As Byte = oob(1)
-        Dim page_last() As Byte = oob(oob.Count - 1)
-        Dim valid_block As Boolean = True
-        Dim markers As Integer = MySettings.NAND_BadBlockMarkers
-        If (markers And FlashcatSettings.BadBlockMarker._1stByte_FirstPage) > 0 Then
-            If Not ((page_one(0)) = 255) Then valid_block = False
-        End If
-        If (markers And FlashcatSettings.BadBlockMarker._1stByte_SecondPage) > 0 Then
-            If Not ((page_two(0)) = 255) Then valid_block = False
-        End If
-        If (markers And FlashcatSettings.BadBlockMarker._1stByte_LastPage) > 0 Then
-            If Not ((page_last(0)) = 255) Then valid_block = False
-        End If
-        If (markers And FlashcatSettings.BadBlockMarker._6thByte_FirstPage) > 0 Then
-            If Not ((page_one(5)) = 255) Then valid_block = False
-        End If
-        If (markers And FlashcatSettings.BadBlockMarker._6thByte_SecondPage) > 0 Then
-            If Not ((page_two(5)) = 255) Then valid_block = False
-        End If
-        Return valid_block
+        Try
+            If MySettings.NAND_BadBlockManager = FlashcatSettings.BadBlockMode.Disabled Then Return True
+            Dim layout_main As UInt32
+            Dim layout_oob As UInt32
+            If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Seperated Then
+                layout_main = page_size
+                layout_oob = oob_size
+            ElseIf MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then
+                layout_main = page_size
+                layout_oob = oob_size
+            ElseIf MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Segmented Then
+                Select Case page_size
+                    Case 4096
+                        layout_main = (page_size / 4)
+                        layout_oob = (oob_size / 4)
+                    Case 2048
+                        layout_main = (page_size / 4)
+                        layout_oob = (oob_size / 4)
+                    Case Else
+                        layout_main = page_size
+                        layout_oob = oob_size
+                End Select
+            End If
+            Dim oob As New List(Of Byte()) 'contains oob
+            Dim page_size_total As UInt16 = (layout_main + layout_oob)
+            Dim page_count As UInt32 = block_data.Length / page_size_total
+            For i = 0 To page_count - 1
+                Dim oob_data(layout_oob - 1) As Byte
+                Array.Copy(block_data, i * page_size_total, oob_data, 0, oob_data.Length)
+                oob.Add(oob_data)
+            Next
+            Dim page_one() As Byte = oob(0)
+            Dim page_two() As Byte = oob(1)
+            Dim page_last() As Byte = oob(oob.Count - 1)
+            Dim valid_block As Boolean = True
+            Dim markers As Integer = MySettings.NAND_BadBlockMarkers
+            If (markers And FlashcatSettings.BadBlockMarker._1stByte_FirstPage) > 0 Then
+                If Not ((page_one(0)) = 255) Then valid_block = False
+            End If
+            If (markers And FlashcatSettings.BadBlockMarker._1stByte_SecondPage) > 0 Then
+                If Not ((page_two(0)) = 255) Then valid_block = False
+            End If
+            If (markers And FlashcatSettings.BadBlockMarker._1stByte_LastPage) > 0 Then
+                If Not ((page_last(0)) = 255) Then valid_block = False
+            End If
+            If (markers And FlashcatSettings.BadBlockMarker._6thByte_FirstPage) > 0 Then
+                If Not ((page_one(5)) = 255) Then valid_block = False
+            End If
+            If (markers And FlashcatSettings.BadBlockMarker._6thByte_SecondPage) > 0 Then
+                If Not ((page_two(5)) = 255) Then valid_block = False
+            End If
+            Return valid_block
+        Catch ex As Exception
+            Return False
+        End Try
     End Function
 
     Private Function IsValidAddress(ByVal base As Long, ByRef list() As Long) As Boolean
