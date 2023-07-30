@@ -146,18 +146,40 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     Friend Function ReadData(logical_address As UInteger, data_count As UInteger, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
         Dim page_addr As UInt32 'This is the page address
         Dim page_offset As UInt16 'this is the start offset within the page
+        Dim page_size As UInt16
         If (memory_area = FlashArea.Main) Then
+            page_size = MyFlashDevice.PAGE_SIZE
             page_addr = Math.Floor(logical_address / MyFlashDevice.PAGE_SIZE)
             page_offset = logical_address - (page_addr * MyFlashDevice.PAGE_SIZE)
         ElseIf (memory_area = FlashArea.OOB) Then
+            page_size = MyFlashDevice.EXT_PAGE_SIZE
             page_addr = Math.Floor(logical_address / MyFlashDevice.EXT_PAGE_SIZE)
             page_offset = logical_address - (page_addr * MyFlashDevice.EXT_PAGE_SIZE)
         ElseIf (memory_area = FlashArea.All) Then   'we need to adjust large address to logical address
+            page_size = MyFlashDevice.EXT_PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE
             Dim full_page_size As UInt32 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE)
             page_addr = Math.Floor(logical_address / full_page_size)
             page_offset = logical_address - (page_addr * full_page_size)
         End If
-        page_addr = FCUSB.NAND_IF.GetPageMapping(page_addr) 'Adjusts the page to point to a valid page
+        Dim pages_per_block As UInt32 = (MyFlashDevice.BLOCK_SIZE / MyFlashDevice.PAGE_SIZE)
+        Dim data_out(data_count - 1) As Byte
+        Dim data_ptr As Integer = 0
+        Do While (data_count > 0)
+            Dim pages_left As UInt32 = (pages_per_block - (page_addr Mod pages_per_block))
+            Dim bytes_left_in_block As UInt32 = (pages_left * page_size) - page_offset
+            Dim packet_size As UInt32 = Math.Min(bytes_left_in_block, data_count)
+            page_addr = FCUSB.NAND_IF.GetPageMapping(page_addr)
+            Dim data() As Byte = ReadBulk_NAND(page_addr, page_offset, packet_size, memory_area)
+            Array.Copy(data, 0, data_out, data_ptr, data.Length)
+            data_ptr += packet_size
+            data_count -= packet_size
+            page_addr += Math.Ceiling(bytes_left_in_block / page_size)
+            page_offset = 0
+        Loop
+        Return data_out
+    End Function
+
+    Private Function ReadBulk_NAND(ByVal page_addr As UInt32, ByVal page_offset As UInt16, ByVal data_count As UInt32, ByVal memory_area As FlashArea) As Byte()
         If (MyFlashDevice.STACKED_DIES > 1) Then
             Dim data_to_read(data_count - 1) As Byte
             Dim array_ptr As UInt32 = 0

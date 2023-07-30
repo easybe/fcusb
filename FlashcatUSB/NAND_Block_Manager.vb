@@ -210,6 +210,10 @@ Public Class NAND_BLOCK_IF
         For i = 0 To BlockCount - 1
             Dim Result As Boolean = ERASEBLOCK(PageAddr, FlashArea.Main, MySettings.NAND_Preserve)
             If Not Result Then Return False
+            If (MySettings.NAND_Preserve) AndAlso Me.MEMORY_AREA_ERASED IsNot Nothing Then 'We need to write back the OOB
+                WRITEPAGE(PageAddr, MEMORY_AREA_ERASED, FlashArea.OOB)
+                MEMORY_AREA_ERASED = Nothing
+            End If
             PageAddr += PagesPerBlock
             If i Mod 10 = 0 Then
                 Dim Percent As Integer = Math.Round((i / BlockCount) * 100)

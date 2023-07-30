@@ -103,27 +103,6 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                     End Select
                     WaitForReady()
 
-
-                    'Dim p(1023) As Byte
-                    'For i = 0 To p.Length - 1
-                    '    p(i) = i And 255
-                    'Next
-                    'Sector_Erase(0)
-
-                    'WriteBulk_NOR(0, p)
-                    'Beep()
-
-                    'Dim d() As Byte = ReadBulk_NOR(0, 32)
-                    'Beep()
-
-                    'Dim b() As Byte = ReadBulk_NOR(&HB, &H1FFF5)
-                    'Beep()
-                    'b = ReadBulk_NOR(&HB, &H1FFF5)
-                    'Beep()
-
-
-
-
                 ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND Then
                     RaiseEvent PrintConsole(String.Format(RM.GetString("ext_page_size"), MyFlashDevice.PAGE_SIZE, DirectCast(MyFlashDevice, NAND_Flash).EXT_PAGE_SIZE))
                     Dim nand_mem As NAND_Flash = DirectCast(MyFlashDevice, NAND_Flash)
@@ -132,6 +111,20 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                     FCUSB.NAND_IF.CreateMap(nand_mem.FLASH_SIZE, nand_mem.PAGE_SIZE, nand_mem.EXT_PAGE_SIZE, nand_mem.BLOCK_SIZE)
                     FCUSB.NAND_IF.EnableBlockManager() 'If enabled
                     FCUSB.NAND_IF.ProcessMap()
+
+
+
+                    ReadData(&H4DBFFF0, 32, FlashArea.Main)
+
+                    'Beep()
+
+                    'FCUSB.NAND_IF.READPAGE()
+
+                    'ReadData
+
+
+
+
                 End If
                 EXPIO_PrintCurrentWriteMode()
                 Utilities.Sleep(10) 'We need to wait here (device is being configured)
@@ -189,19 +182,38 @@ Public Class ExtPort : Implements MemoryDeviceUSB
             Dim nand_dev As NAND_Flash = DirectCast(MyFlashDevice, NAND_Flash)
             Dim page_addr As UInt32 'This is the page address
             Dim page_offset As UInt16 'this is the start offset within the page
+            Dim page_size As UInt32
             If (memory_area = FlashArea.Main) Then
                 page_addr = Math.Floor(logical_address / MyFlashDevice.PAGE_SIZE)
+                page_size = nand_dev.PAGE_SIZE
                 page_offset = logical_address - (page_addr * MyFlashDevice.PAGE_SIZE)
             ElseIf (memory_area = FlashArea.OOB) Then
                 page_addr = Math.Floor(logical_address / nand_dev.EXT_PAGE_SIZE)
                 page_offset = logical_address - (page_addr * nand_dev.EXT_PAGE_SIZE)
+                page_size = nand_dev.EXT_PAGE_SIZE
             ElseIf (memory_area = FlashArea.All) Then   'we need to adjust large address to logical address
                 Dim full_page_size As UInt32 = (MyFlashDevice.PAGE_SIZE + nand_dev.EXT_PAGE_SIZE)
                 page_addr = Math.Floor(logical_address / full_page_size)
                 page_offset = logical_address - (page_addr * full_page_size)
+                page_size = nand_dev.PAGE_SIZE + nand_dev.EXT_PAGE_SIZE
             End If
-            page_addr = FCUSB.NAND_IF.GetPageMapping(page_addr) 'Adjusts the page to point to a valid page
-            Return ReadBulk_NAND(page_addr, page_offset, data_count, memory_area)
+            'The following code is so we can read past invalid blocks
+            Dim pages_per_block As UInt32 = (nand_dev.BLOCK_SIZE / nand_dev.PAGE_SIZE)
+            Dim data_out(data_count - 1) As Byte
+            Dim data_ptr As Integer = 0
+            Do While (data_count > 0)
+                Dim pages_left As UInt32 = (pages_per_block - (page_addr Mod pages_per_block))
+                Dim bytes_left_in_block As UInt32 = (pages_left * page_size) - page_offset
+                Dim packet_size As UInt32 = Math.Min(bytes_left_in_block, data_count)
+                page_addr = FCUSB.NAND_IF.GetPageMapping(page_addr)
+                Dim data() As Byte = ReadBulk_NAND(page_addr, page_offset, packet_size, memory_area)
+                Array.Copy(data, 0, data_out, data_ptr, data.Length)
+                data_ptr += packet_size
+                data_count -= packet_size
+                page_addr += Math.Ceiling(bytes_left_in_block / page_size)
+                page_offset = 0
+            Loop
+            Return data_out
         Else 'NOR memory
             Return ReadBulk_NOR(logical_address, data_count)
         End If

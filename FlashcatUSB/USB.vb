@@ -10,7 +10,7 @@ Namespace USB
         Public Event DeviceConnected(ByVal usb_dev As FCUSB_DEVICE)
         Public Event DeviceDisconnected(ByVal usb_dev As FCUSB_DEVICE)
 
-        Private Const BULK_TIMEOUT As Integer = 5000000
+        Private Const BULK_TIMEOUT As Integer = 5000
         Private Const USB_VID_ATMEL As Integer = &H3EB
         Private Const USB_VID_EC As Integer = &H16C0
         Private Const USB_PID_FCUSB_PRO As Integer = &H5E0 'FCUSB 3.x
@@ -476,9 +476,13 @@ Namespace USB
                     ElseIf USBHANDLE.UsbRegistryInfo.Pid = USB_PID_FCUSB_PRO Then
                         Dim b(3) As Byte
                         If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, b) Then Return False
-                        Dim fwstr As String = Utilities.Bytes.ToChrString({b(0), b(1), Asc("."), b(2), b(3)})
-                        If fwstr.StartsWith("0") Then fwstr = Mid(fwstr, 2)
-                        Me.FW_VERSION = fwstr
+                        If (b(0) = &H99) Then 'Fresh install
+                            Me.FW_VERSION = "1.00"
+                        Else
+                            Dim fwstr As String = Utilities.Bytes.ToChrString({b(0), b(1), Asc("."), b(2), b(3)})
+                            If fwstr.StartsWith("0") Then fwstr = Mid(fwstr, 2)
+                            Me.FW_VERSION = fwstr
+                        End If
                         Me.HWBOARD = FCUSB_BOARD.Professional
                         Me.SPI_NOR_IF.SPI_PORTS = 2 'Pro has two SPI ports
                         Return True

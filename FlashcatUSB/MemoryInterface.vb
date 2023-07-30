@@ -733,7 +733,7 @@ Public Class MemoryInterface
                 Dim data_read_count As UInt32 = Count
                 Dim data_offset As UInt32 = Address
                 Dim align As UInt32 = 0
-                If offset > 0 Then align = Address Mod offset
+                If (offset > 0) Then align = Address Mod offset
                 If (align > 0) Then
                     data_offset -= align
                     data_read_count += align

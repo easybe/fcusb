@@ -651,7 +651,8 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("Cypress FL127S/FL128S", Mb128, &H1, &H2018) With {.ERASE_SIZE = Kb512, .ID2 = &H4D01, .FAMILY = &H80})
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL128S", Mb128, &H1, &H2018) With {.ERASE_SIZE = Mb002, .ID2 = &H4D00, .FAMILY = &H80})
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL127S", Mb128, 0)) 'Placeholder for database files
-            FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL064L", Mb064, &H1, &H6017)) 'Added build 427
+            FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL128L", Mb128, &H1, &H6018))
+            FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL064L", Mb064, &H1, &H6017))
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL064", Mb064, &H1, &H216))
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL032", Mb032, &H1, &H215))
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL016A", Mb016, &H1, &H214))
