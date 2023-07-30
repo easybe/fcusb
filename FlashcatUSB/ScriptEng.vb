@@ -8,6 +8,8 @@ Imports FlashcatUSB.JTAG
 Imports FlashcatUSB.MemoryInterface
 
 Public Class FcScriptEngine
+    Implements IDisposable
+
     Private Const Build As Integer = 300
     Private script_is_running As Boolean = False
     Private CmdFunctions As New ScriptCmd
@@ -122,8 +124,8 @@ Public Class FcScriptEngine
         BCM_CMD.Add("setserial", {CmdParam.String}, New ScriptFunction(AddressOf c_bcm_setserial))
         CmdFunctions.AddNest(BCM_CMD)
         Dim BSDL As New ScriptCmd("BoundaryScan")
-        BSDL.Add("setup", {CmdParam.Integer}, New ScriptFunction(AddressOf c_bsdl_setup))
-        BSDL.Add("addpin", {CmdParam.Integer, CmdParam.String}, New ScriptFunction(AddressOf c_bsdl_addpin))
+        BSDL.Add("init", Nothing, New ScriptFunction(AddressOf c_bsdl_init))
+        BSDL.Add("addpin", {CmdParam.String, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_bsdl_addpin))
         BSDL.Add("detect", Nothing, New ScriptFunction(AddressOf c_bsdl_detect))
         CmdFunctions.AddNest(BSDL)
         CmdFunctions.Add("writeline", {CmdParam.Any, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_writeline))
@@ -3870,21 +3872,25 @@ Public Class FcScriptEngine
 
 #Region "Boundary Scan Programmer"
 
-    Private Function c_bsdl_setup(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_bsdl_init(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
-            Dim bsr_size As Integer = arguments(0).Value
-            USBCLIENT.FCUSB(Index).JTAG_IF.BoundaryScan_Setup(bsr_size)
+            USBCLIENT.FCUSB(Index).JTAG_IF.BoundaryScan_Init()
         Catch ex As Exception
-            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "BoundaryScan.Setup function exception"}
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "BoundaryScan.Init function exception"}
         End Try
         Return Nothing
     End Function
 
     Private Function c_bsdl_addpin(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
-            Dim pin_index As Integer = arguments(0).Value
-            Dim pin_name As String = arguments(1).Value
-            USBCLIENT.FCUSB(Index).JTAG_IF.BoundaryScan_AddPin(pin_index, pin_name)
+            Dim pin_name As String = arguments(0).Value
+            Dim pin_output As Integer = arguments(1).Value 'cell associated with the bidir or output cell
+            Dim pin_control As Integer = arguments(2).Value  'cell associated with the control register bit
+            Dim pin_input As Integer = -1 'cell associated with the input cell when output cell is not bidir
+            If arguments.Length = 4 Then
+                pin_input = arguments(3).Value
+            End If
+            USBCLIENT.FCUSB(Index).JTAG_IF.BoundaryScan_AddPin(pin_name, pin_output, pin_control, pin_input)
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "BoundaryScan.AddPin function exception"}
         End Try
@@ -4074,7 +4080,6 @@ Public Class FcScriptEngine
 #End Region
 
 #Region "User control handlers"
-
     Private UserTabCount As UInt32
     Private OurFlashDevices As New List(Of MemoryDeviceInstance)
 
@@ -4157,6 +4162,38 @@ Public Class FcScriptEngine
 
 #End Region
 
+#Region "IDisposable Support"
+    Private disposedValue As Boolean ' To detect redundant calls
 
+    Protected Overridable Sub Dispose(disposing As Boolean)
+        If Not disposedValue Then
+            ScriptBar.Dispose()
+            CurrentScript = Nothing
+            CurrentVars = Nothing
+        End If
+        disposedValue = True
+    End Sub
+
+    Public Sub Dispose() Implements IDisposable.Dispose
+        Dispose(True)
+        GC.SuppressFinalize(Me)
+    End Sub
+
+    Public Overrides Function ToString() As String
+        Return MyBase.ToString()
+    End Function
+
+    Public Overrides Function Equals(obj As Object) As Boolean
+        Return MyBase.Equals(obj)
+    End Function
+
+    Public Overrides Function GetHashCode() As Integer
+        Return MyBase.GetHashCode()
+    End Function
+
+    Protected Overrides Sub Finalize()
+        MyBase.Finalize()
+    End Sub
+#End Region
 
 End Class

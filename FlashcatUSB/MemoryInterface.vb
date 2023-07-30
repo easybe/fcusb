@@ -721,14 +721,14 @@ Public Class MemoryInterface
                             FailedAttempts = FailedAttempts + 1
                             If FailedAttempts = (MySettings.VERIFY_COUNT + 1) Then
                                 If (FlashType = FlashMemory.MemoryType.NAND) Then
-                                    Dim n_dev As SLC_NAND_Flash = DirectCast(FCUSB.EXT_IF.MyFlashDevice, SLC_NAND_Flash)
+                                    Dim n_dev As P_NAND = DirectCast(FCUSB.EXT_IF.MyFlashDevice, P_NAND)
                                     Dim pages_per_block As UInt32 = (n_dev.BLOCK_SIZE / n_dev.PAGE_SIZE)
                                     Dim page_addr As UInt32 = GetNandPageAddress(n_dev, Params.Address, Params.Memory_Area)
                                     Dim block_addr As UInt32 = Math.Floor(page_addr / pages_per_block)
                                     RaiseEvent PrintConsole(String.Format(RM.GetString("mem_bad_nand_block"), Hex(page_addr).PadLeft(6, "0"), block_addr))
                                     Return False
                                 ElseIf (FlashType = FlashMemory.MemoryType.SERIAL_NAND) Then
-                                    Dim n_dev As SPI_NAND_Flash = DirectCast(FCUSB.EXT_IF.MyFlashDevice, SPI_NAND_Flash)
+                                    Dim n_dev As SPI_NAND = DirectCast(FCUSB.EXT_IF.MyFlashDevice, SPI_NAND)
                                     Dim pages_per_block As UInt32 = (n_dev.BLOCK_SIZE / n_dev.PAGE_SIZE)
                                     Dim page_addr As UInt32 = GetNandPageAddress(n_dev, Params.Address, Params.Memory_Area)
                                     Dim block_addr As UInt32 = Math.Floor(page_addr / pages_per_block)

@@ -62,6 +62,7 @@ Namespace JTAG
                     Dim tdo(3) As Byte
                     Dim tdi(3) As Byte
                     Dim tdo32 As UInt32 = 0
+                    Dim REG_VALUE As UInt32
                     Reset_StateMachine() 'Now at Select_DR
                     TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
                     ShiftTDI(4, {Devices(0).BSDL.IDCODE}, Nothing, True)
@@ -69,59 +70,39 @@ Namespace JTAG
                     ShiftTDI(32, {0, 0, 0, 0}, tdo, True)
                     TAP_GotoState(JTAG_MACHINE_STATE.Update_DR)
                     Array.Reverse(tdo)
-                    tdo32 = Utilities.Bytes.ToUInt32(tdo)
-                    WriteConsole("ARM ID code: 0x" & Conversion.Hex(tdo32).PadLeft(8, "0"))
+                    Dim ARM_ID As UInt32 = Utilities.Bytes.ToUInt32(tdo) '0x0BA02477
+                    WriteConsole("ARM ID code: 0x" & Conversion.Hex(ARM_ID).PadLeft(8, "0"))
+                    ARM_MDAP_INIT()
+                    REG_VALUE = CTRLSTAT.CSYSPWRUPREQ Or CTRLSTAT.CDBGPWRUPREQ Or CTRLSTAT.STICKYERR
+                    ARM_DPACC(REG_VALUE, ARM_DP_REG.CTRL_STAT, ARM_RnW.WR)
+                    ARM_APACC(&H0, ARM_AP_REG.IDR, ARM_RnW.RD)
+                    Dim AHB_AP As UInt32 = ARM_APACC(&H0, ARM_AP_REG.IDR, ARM_RnW.RD, False) '0x04770041
+                    WriteConsole("AHB-AP (IDR: 0x" & Conversion.Hex(AHB_AP).PadLeft(8, "0") & ")")
+                    ARM_APACC(&H0, ARM_AP_REG.BASE, ARM_RnW.RD)
+                    Dim BASE_REG As UInt32 = ARM_APACC(&H0, ARM_AP_REG.BASE, ARM_RnW.RD, False) '0xE00FB003
+                    Beep()
 
-                    tdo32 = ARM_DPACC(&H50000020, ARM_DP_REG.CTRL_STAT, ARM_RnW.WR) '0x050000020 (CSYSPWRUPREQ|CDBGPWRUPREQ|STICKYERR)
-                    tdo32 = ARM_DPACC(&HF0, ARM_DP_REG.ADDR, ARM_RnW.WR) '0x000000F0 (Select top AHB-AP registers) 
-                    tdo32 = ARM_APACC(&H0, ARM_AP_REG.IDR, ARM_RnW.RD) 'Perform read operation of IDR register
-                    tdo32 = ARM_APACC(&H0, ARM_AP_REG.CTRL_STAT, ARM_RnW.RD) 'Shift out IDR
-                    WriteConsole("IDR register: 0x" & Conversion.Hex(tdo32).PadLeft(8, "0")) '0x04770041
-                    tdo32 = ARM_APACC(&H0, ARM_AP_REG.BASE, ARM_RnW.RD) 'Perform read operation of IDR register
-                    tdo32 = ARM_APACC(&H0, ARM_AP_REG.CTRL_STAT, ARM_RnW.RD) 'Shift out IDR
-                    WriteConsole("Base register: 0x" & Conversion.Hex(tdo32).PadLeft(8, "0")) '0x000FB003 not (0xE00FB000) ?
-                    tdo32 = ARM_APACC(&H0, ARM_AP_REG.IDR, ARM_RnW.RD)
-                    tdo32 = ARM_DPACC(&H400000A, ARM_DP_REG.CTRL_STAT, ARM_RnW.WR)
-                    tdo32 = ARM_DPACC(&HF0, ARM_DP_REG.ADDR, ARM_RnW.WR)
-                    tdo32 = ARM_APACC(&H0, ARM_AP_REG.BASE, ARM_RnW.RD)
-                    tdo32 = ARM_APACC(&H7, ARM_AP_REG.IDR, ARM_RnW.RD) '(0xC00DF007)
-                    tdo32 = ARM_DPACC(&H400000A, ARM_DP_REG.CTRL_STAT, ARM_RnW.WR)
-                    tdo32 = ARM_DPACC(&H0, ARM_DP_REG.ADDR, ARM_RnW.WR) '(0x00000000)
-                    tdo32 = ARM_APACC(&H400000C4, 0, ARM_RnW.WR)
-                    tdo32 = ARM_APACC(&HB70007, ARM_AP_REG.DRW, ARM_RnW.RD)
-                    tdo32 = ARM_APACC(&H7, ARM_AP_REG.DRW, ARM_RnW.RD)
-                    tdo32 = ARM_APACC(&H7, ARM_AP_REG.DRW, ARM_RnW.RD) 'OUT: (0x8E43F882) 
-                    tdo32 = ARM_DPACC(&H0, ARM_DP_REG.ADDR, ARM_RnW.WR) '(0x00000000)
-                    tdo32 = ARM_APACC(&H400000C4, 0, ARM_RnW.WR)
-                    tdo32 = ARM_APACC(&HB70007, ARM_AP_REG.TAR, ARM_RnW.WR)
-                    tdo32 = ARM_APACC(&H0, ARM_AP_REG.DRW, ARM_RnW.RD)
-                    tdo32 = ARM_APACC(&H0, ARM_AP_REG.TAR, ARM_RnW.RD)
-                    tdo32 = ARM_DPACC(&H400000A, ARM_DP_REG.CTRL_STAT, ARM_RnW.WR)
-                    tdo32 = ARM_DPACC(&H400000A, ARM_DP_REG.CTRL_STAT, ARM_RnW.WR)
-                    tdo32 = ARM_DPACC(&HF, ARM_DP_REG.CTRL_STAT, ARM_RnW.WR)
-                    tdo32 = ARM_DPACC(&H400000A, ARM_DP_REG.CTRL_STAT, ARM_RnW.WR)
-                    tdo32 = ARM_DPACC(&HF, ARM_DP_REG.CTRL_STAT, ARM_RnW.WR)
-                    tdo32 = ARM_DPACC(&H0, ARM_DP_REG.ADDR, ARM_RnW.WR)
-                    tdo32 = ARM_APACC(&H480000C0, 0, ARM_RnW.WR)
-                    tdo32 = ARM_APACC(&HFB70007, ARM_AP_REG.TAR, ARM_RnW.WR)
-                    tdo32 = ARM_APACC(&H0, ARM_AP_REG.DRW, ARM_RnW.RD)
-                    tdo32 = ARM_DPACC(&H0, ARM_DP_REG.RDBUFF, ARM_RnW.RD) 'OUT: 0x00008040
-                    tdo32 = ARM_DPACC(&H0, ARM_DP_REG.CTRL_STAT, ARM_RnW.RD)
-                    tdo32 = ARM_DPACC(&H0, ARM_DP_REG.CTRL_STAT, ARM_RnW.RD) 'OUT: 0x0000000F
 
-                    'DPACC
-                    'CTRL_STAT = &H4   '0b01 (x10)
-                    'ADDR = &H8        '0b10 (x01)
-                    'RDBUFF = &HC      '0b11 (x11)
 
-                    'ARM_APACC: LOWER:
-                    'TAR = &H4   '0b01 (x10)
-                    'DRW = &HC   '0b11 (x11)
-                    'ARM_APACC: UPPER:
-                    'CFG = &HF4  '(x10)
-                    'BASE = &HF8 '(x01)
-                    'IDR = &HFC  '(x11)
 
+
+                    'This SHOULD be 0xE00FB003
+                    'Sometimes it is: BASE_REG = &H0174048E
+
+                    'Dim d1, d2, d3, d4 As UInt32
+                    'Dim r1, r2, r3, r4 As ARM_DP_REG
+                    'Dim w1, w2, w3, w4 As ARM_RnW
+
+                    'ARM_DP_Decode(&H280000102, d1, r1, w1)
+                    'ARM_DP_Decode(&H784, d2, r2, w2)
+                    'ARM_AP_Decode(&H5, d3, r3, w3)
+                    'ARM_DP_Decode(&H7, d4, r4, w4)
+                    'Beep()
+
+                    'AHB-AP
+                    '"PPB ROM Table" at 0xe00ff000
+                    '0xE00FE000	Cortex-M7 PPB ROM Table
+                    '0xE00FB000 <-- from our debugger
 
                     'Find ROM base (0xE00FB000)
 
@@ -135,11 +116,29 @@ Namespace JTAG
             End Try
             Return False
         End Function
-
-        Private Function ARM_DPACC(reg32 As UInt32, dp_reg As ARM_DP_REG, read_write As ARM_RnW) As UInt32
+        'IR=0xA
+        Private Sub ARM_DP_Decode(data_in As UInt64, ByRef data_out As UInt32, ByRef dp_reg As ARM_DP_REG, ByRef r_w As ARM_RnW)
+            r_w = (data_in And 1)
+            Dim b As Byte = ((data_in >> 1) And 3)
+            dp_reg = (b << 2)
+            data_out = (data_in >> 3)
+            'data_out = REVERSE32(data_out)
+        End Sub
+        'IR=0xB
+        Private Sub ARM_AP_Decode(data_in As UInt64, ByRef data_out As UInt32, ByRef ap_reg As ARM_AP_REG, ByRef r_w As ARM_RnW)
+            r_w = (data_in And 1)
+            Dim b As Byte = ((data_in >> 1) And 3)
+            ap_reg = (b << 2)
+            data_out = (data_in >> 3)
+            'data_out = REVERSE32(data_out)
+        End Sub
+        'Accesses CTRL/STAT, SELECT and RDBUFF
+        Private Function ARM_DPACC(reg32 As UInt32, dp_reg As ARM_DP_REG, read_write As ARM_RnW, Optional goto_state As Boolean = True) As UInt32
             Dim tdo(3) As Byte
-            TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
-            ShiftTDI(Devices(0).BSDL.IR_LEN, {Devices(0).BSDL.ARM_DPACC}, Nothing, True)
+            If goto_state Then
+                TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
+                ShiftTDI(Devices(0).BSDL.IR_LEN, {Devices(0).BSDL.ARM_DPACC}, Nothing, True)
+            End If
             TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
             Dim b5 As Byte = ((reg32 And &H1F) << 3) Or ((dp_reg And &HF) >> 1) Or read_write : reg32 >>= 5
             Dim b4 As Byte = (reg32 And &HFF) : reg32 >>= 8
@@ -147,7 +146,7 @@ Namespace JTAG
             Dim b2 As Byte = (reg32 And &HFF) : reg32 >>= 8
             Dim b1 As Byte = (reg32 And &H7)
             ShiftTDI(35, {b5, b4, b3, b2, b1}, tdo, True)
-            TAP_GotoState(JTAG_MACHINE_STATE.Update_DR)
+            TAP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             Dim status As Byte = (tdo(0) And 3)
             Dim reg32_out As UInt32 = ((tdo(1) And 7) << 5) Or (tdo(0) >> 3)
             reg32_out = reg32_out Or (CUInt(((tdo(2) And 7) << 5) Or (tdo(1) >> 3)) << 8)
@@ -155,11 +154,17 @@ Namespace JTAG
             reg32_out = reg32_out Or (CUInt(((tdo(4) And 7) << 5) Or (tdo(3) >> 3)) << 24)
             Return reg32_out
         End Function
-
-        Private Function ARM_APACC(reg32 As UInt32, ap_reg As ARM_AP_REG, read_write As ARM_RnW) As UInt32
+        'Accesses port registers (AHB-AP)
+        Private Function ARM_APACC(reg32 As UInt32, ap_reg As ARM_AP_REG, read_write As ARM_RnW, Optional goto_state As Boolean = True) As UInt32
+            If Not ((ap_reg >> 4) = (ARM_REG_ADDR >> 4)) Then
+                ARM_DPACC((ap_reg And &HF0), ARM_DP_REG.ADDR, ARM_RnW.WR)
+            End If
+            ARM_REG_ADDR = ap_reg
             Dim tdo(3) As Byte
-            TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
-            ShiftTDI(Devices(0).BSDL.IR_LEN, {Devices(0).BSDL.ARM_APACC}, Nothing, True)
+            If goto_state Then
+                TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
+                ShiftTDI(Devices(0).BSDL.IR_LEN, {Devices(0).BSDL.ARM_APACC}, Nothing, True)
+            End If
             TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
             Dim b5 As Byte = ((reg32 And &H1F) << 3) Or ((ap_reg And &HF) >> 1) Or read_write : reg32 >>= 5
             Dim b4 As Byte = (reg32 And &HFF) : reg32 >>= 8
@@ -167,7 +172,7 @@ Namespace JTAG
             Dim b2 As Byte = (reg32 And &HFF) : reg32 >>= 8
             Dim b1 As Byte = (reg32 And &H7)
             ShiftTDI(35, {b5, b4, b3, b2, b1}, tdo, True)
-            TAP_GotoState(JTAG_MACHINE_STATE.Update_DR)
+            TAP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             Dim status As Byte = (tdo(0) And 3)
             Dim reg32_out As UInt32 = ((tdo(1) And 7) << 5) Or (tdo(0) >> 3)
             reg32_out = reg32_out Or (CUInt(((tdo(2) And 7) << 5) Or (tdo(1) >> 3)) << 8)
@@ -176,25 +181,47 @@ Namespace JTAG
             Return reg32_out
         End Function
 
+        Private ARM_REG_ADDR As Byte
+
+        Private Sub ARM_MDAP_INIT()
+            ARM_DPACC(&H0, ARM_DP_REG.ADDR, ARM_RnW.WR)
+            ARM_REG_ADDR = 0 'A[7:2] A1 and A0 are ignored
+        End Sub
+
         Enum ARM_RnW As Byte
             WR = 0 'Write operation
             RD = 1 'Read operation
         End Enum
 
-        Enum ARM_DP_REG As Byte
-            None = 0
-            CTRL_STAT = &H4
-            ADDR = &H8
-            RDBUFF = &HC
+        Private Enum ARM_DP_REG As Byte
+            None = 0 '0b00xx
+            CTRL_STAT = &H4 '0b01xx
+            ADDR = &H8 '0b10xx
+            RDBUFF = &HC '0b11xx
         End Enum
 
-        Enum ARM_AP_REG As Byte
-            CTRL_STAT = &H0
-            TAR = &H4   '0b0100 Transfer address register
-            DRW = &HC   '0b1100
-            CFG = &HF4  '0b0100
-            BASE = &HF8 '0b1000 ROM table start address
-            IDR = &HFC  '0b1100
+        Private Enum ARM_AP_REG As Byte
+            CSW = &H0   '0b00xx Transfer direction
+            TAR = &H4   '0b01xx Transfer address
+            DRW = &HC   '0b11xx Data read/Write
+            CFG = &HF4  '0b01xx
+            BASE = &HF8 '0b10xx DEBUG AHB ROM
+            IDR = &HFC  '0b11xx
+        End Enum
+
+        Private Enum CTRLSTAT As UInt32
+            CSYSPWRUPACK = 1UI << 31
+            CSYSPWRUPREQ = 1UI << 30
+            CDBGPWRUPACK = 1UI << 29
+            CDBGPWRUPREQ = 1UI << 28
+            CDBGRSTACK = 1UI << 27
+            CDBRSTREQ = 1UI << 26
+            WDATAERR = 1UI << 7
+            READOK = 1UI << 6
+            STICKYERR = 1UI << 5
+            STICKYCMP = 1UI << 4
+            STICKYORUN = 1UI << 1
+            ORUNDETECT = 1UI << 0
         End Enum
 
         'Attempts to auto-detect a JTAG device on the TAP, returns the IR Length of the device
@@ -277,10 +304,14 @@ Namespace JTAG
             X8 = 2
         End Enum
 
-        Public Sub BoundaryScan_Setup(reg_size As UInt16)
+        Public Sub BoundaryScan_Init()
+            If Devices(0).BSDL.BS_LEN = 0 Then
+                WriteConsole("Boundary Scan error: BSDL scan length not not specified")
+                Exit Sub
+            End If
             BoundaryMap.Clear()
             BSDL_FLASH_DEVICE = Nothing
-            Dim w32 As UInt32 = ((Devices(0).BSDL.EXTEST And &HFFFF) << 16) Or (reg_size)
+            Dim w32 As UInt32 = ((Devices(0).BSDL.EXTEST And &HFFFF) << 16) Or (Devices(0).BSDL.BS_LEN)
             FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_SETUP, Nothing, w32)
         End Sub
 
@@ -291,8 +322,16 @@ Namespace JTAG
             End If
             If Not BSDL_Is_Configured() Then Return False
             For Each item In BoundaryMap
-                Dim w32 As UInt32 = (CUInt(item.pin_offset) << 24) Or (CUInt(item.pin_type) << 16) Or CUInt(item.pin_index)
-                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_ADDPIN, Nothing, w32)
+                Dim pin_data(7) As Byte
+                pin_data(0) = item.pin_type 'AD,DQ,WE,OE,CE,WP,RST,BYTE
+                pin_data(1) = item.pin_index 'ADx, DQx
+                pin_data(2) = CByte(item.pin_output And 255)
+                pin_data(3) = CByte(item.pin_output >> 8)
+                pin_data(4) = CByte(item.pin_control And 255)
+                pin_data(5) = CByte(item.pin_control >> 8)
+                pin_data(6) = CByte(item.pin_input And 255)
+                pin_data(7) = CByte(item.pin_input >> 8)
+                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_ADDPIN, pin_data)
                 Utilities.Sleep(5)
             Next
             Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_BDR_INIT)
@@ -323,7 +362,7 @@ Namespace JTAG
                     BSDL_IF = JTAG_Connect_BSDL(FCUSB)
                     BSDL_PROG_CMD = BSDL_PROG_ENUM.NORMAL
                     BSDL_ERASE_CMD = BSDL_ERASE_ENUM.STANDARD
-                    Dim NOR_FLASH As FlashMemory.MFP_Flash = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.MFP_Flash)
+                    Dim NOR_FLASH As FlashMemory.P_NOR = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.P_NOR)
                     Select Case NOR_FLASH.WriteMode
                         Case FlashMemory.MFP_PRG.IntelSharp
                             'EXPIO_SETUP_ERASESECTOR(E_EXPIO_SECTOR.Type4) 'SA=0x50;SA=0x60;SA=0xD0(SR.7)SA=0x20;SA=0xD0(SR.7)
@@ -416,39 +455,41 @@ Namespace JTAG
             End If
             Return True 'Success!
         End Function
-
-        Public Sub BoundaryScan_AddPin(reg_index As Integer, signal_name As String)
-            signal_name = signal_name.ToUpper
-            Dim pin_offset As Byte = 0
-            Dim pin_type As Byte = 0
-            If signal_name.StartsWith("AD") Then
-                pin_type = 1
-                pin_offset = CByte(signal_name.Substring(2))
-            ElseIf signal_name.StartsWith("DQ") Then
-                pin_type = 2
-                pin_offset = CByte(signal_name.Substring(2))
-            ElseIf signal_name = "WE#" Then
-                pin_type = 3
-            ElseIf signal_name = "OE#" Then
-                pin_type = 4
-            ElseIf signal_name = "CE#" Then
-                pin_type = 5
-            ElseIf signal_name = "WP#" Then '(optional)
-                pin_type = 6
-            ElseIf signal_name = "RESET#" Then '(optional)
-                pin_type = 7
-            ElseIf signal_name = "BYTE#" Then '(optional)
-                pin_type = 8
+        'Defines a pin. Output cell can be output/bidir, control_cell can be -1 if it is output_cell+1, and input_cell is used when not bidir
+        Public Sub BoundaryScan_AddPin(signal_name As String, output_cell As Integer, control_cell As Integer, input_cell As Integer)
+            Dim pin_desc As New BoundaryScan_PinMap
+            pin_desc.pin_name = signal_name.ToUpper
+            pin_desc.pin_index = 0
+            If pin_desc.pin_name.StartsWith("AD") Then
+                pin_desc.pin_type = BoundaryScan_PinType.AD
+                pin_desc.pin_index = CByte(pin_desc.pin_name.Substring(2))
+            ElseIf pin_desc.pin_name.StartsWith("DQ") Then
+                pin_desc.pin_type = BoundaryScan_PinType.DQ
+                pin_desc.pin_index = CByte(pin_desc.pin_name.Substring(2))
+            ElseIf pin_desc.pin_name = "WE#" Then
+                pin_desc.pin_type = BoundaryScan_PinType.WE
+            ElseIf pin_desc.pin_name = "OE#" Then
+                pin_desc.pin_type = BoundaryScan_PinType.OE
+            ElseIf pin_desc.pin_name = "CE#" Then
+                pin_desc.pin_type = BoundaryScan_PinType.CE
+            ElseIf pin_desc.pin_name = "WP#" Then '(optional)
+                pin_desc.pin_type = BoundaryScan_PinType.WP
+            ElseIf pin_desc.pin_name = "RESET#" Then '(optional)
+                pin_desc.pin_type = BoundaryScan_PinType.RESET
+            ElseIf pin_desc.pin_name = "BYTE#" Then '(optional)
+                pin_desc.pin_type = BoundaryScan_PinType.BYTE_MODE
             Else
-                WriteConsole("Boundary Scan Programmer: Pin name not reconized: " & signal_name)
+                WriteConsole("Boundary Scan Programmer: Pin name not reconized: " & pin_desc.pin_name)
                 Exit Sub 'ERROR
             End If
-            Dim n As New BoundaryScan_PinMap
-            n.pin_index = reg_index
-            n.pin_type = pin_type
-            n.pin_offset = pin_offset
-            n.pin_name = signal_name.ToUpper
-            BoundaryMap.Add(n)
+            pin_desc.pin_output = output_cell
+            pin_desc.pin_control = control_cell
+            If input_cell = -1 Then
+                pin_desc.pin_input = output_cell
+            Else
+                pin_desc.pin_input = output_cell
+            End If
+            BoundaryMap.Add(pin_desc)
         End Sub
 
         Public Function BoundaryScan_GetPinIndex(signal_name As String) As Integer
@@ -461,11 +502,24 @@ Namespace JTAG
         End Function
 
         Private Structure BoundaryScan_PinMap
-            Dim pin_index As UInt16
-            Dim pin_offset As Byte
-            Dim pin_type As Byte
-            Dim pin_name As String
+            Public pin_name As String
+            Public pin_index As Byte 'This is the DQx or ADx value
+            Public pin_output As UInt16
+            Public pin_input As UInt16
+            Public pin_control As UInt16
+            Public pin_type As BoundaryScan_PinType
         End Structure
+
+        Private Enum BoundaryScan_PinType As Byte
+            AD = 1
+            DQ = 2
+            WE = 3
+            OE = 4
+            CE = 5
+            WP = 6
+            RESET = 7
+            BYTE_MODE = 8
+        End Enum
 
         Public Function BoundaryScan_ReadWord(base_addr As UInt32) As UInt16
             Dim dt(3) As Byte
@@ -505,14 +559,14 @@ Namespace JTAG
 
         Public ReadOnly Property BoundaryScan_DeviceName() As String
             Get
-                Dim NOR_FLASH As FlashMemory.MFP_Flash = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.MFP_Flash)
+                Dim NOR_FLASH As FlashMemory.P_NOR = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.P_NOR)
                 Return NOR_FLASH.NAME
             End Get
         End Property
 
         Public ReadOnly Property BoundaryScan_DeviceSize As Long
             Get
-                Dim NOR_FLASH As FlashMemory.MFP_Flash = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.MFP_Flash)
+                Dim NOR_FLASH As FlashMemory.P_NOR = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.P_NOR)
                 Return NOR_FLASH.AVAILABLE_SIZE
             End Get
         End Property
@@ -556,12 +610,12 @@ Namespace JTAG
         End Function
 
         Public Function BoundaryScan_SectorCount() As UInt32
-            Dim NOR_FLASH As FlashMemory.MFP_Flash = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.MFP_Flash)
+            Dim NOR_FLASH As FlashMemory.P_NOR = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.P_NOR)
             Return NOR_FLASH.Sector_Count
         End Function
 
         Public Function BoundaryScan_WriteFlash(base_addr As UInt32, data_to_write() As Byte) As Boolean
-            Dim NOR_FLASH As FlashMemory.MFP_Flash = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.MFP_Flash)
+            Dim NOR_FLASH As FlashMemory.P_NOR = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.P_NOR)
             Dim DataToWrite As UInt32 = data_to_write.Length
             Dim PacketSize As UInt32 = 8192
             Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / PacketSize)) 'Calcuates iterations
@@ -646,13 +700,13 @@ Namespace JTAG
         End Function
 
         Public Function BoundaryScan_GetSectorSize(sector_index As UInt32) As UInt32
-            Dim NOR_FLASH As FlashMemory.MFP_Flash = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.MFP_Flash)
+            Dim NOR_FLASH As FlashMemory.P_NOR = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.P_NOR)
             Return NOR_FLASH.GetSectorSize(sector_index)
         End Function
 
         Public ReadOnly Property BoundaryScan_SectorSize(ByVal sector As UInt32) As UInt32
             Get
-                Dim NOR_FLASH As FlashMemory.MFP_Flash = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.MFP_Flash)
+                Dim NOR_FLASH As FlashMemory.P_NOR = DirectCast(BSDL_FLASH_DEVICE, FlashMemory.P_NOR)
                 Return NOR_FLASH.GetSectorSize(sector)
             End Get
         End Property
@@ -1270,7 +1324,7 @@ Namespace JTAG
 #End Region
 
 #Region "SPI over JTAG"
-        Public SPI_Part As FlashMemory.SPI_NOR_FLASH 'Contains the SPI Flash definition
+        Public SPI_Part As FlashMemory.SPI_NOR 'Contains the SPI Flash definition
         Private SPI_JTAG_PROTOCOL As JTAG_SPI_Type
         Private SPI_MIPS_JTAG_IF As MIPS_SPI_API
         'Returns TRUE if the JTAG can detect a connected flash to the SPI port
@@ -1691,16 +1745,17 @@ Namespace JTAG
 #End Region
 
 #Region "BSDL"
-        Private BSDL_DATABASE As New List(Of BSDL_DEF)
+        Private ReadOnly BSDL_DATABASE As New List(Of BSDL_DEF)
 
         Private Sub BSDL_Init()
             BSDL_DATABASE.Clear()
             ARM_CORTEXM7()
+            Microsemi_A3P250_FG144()
             Xilinx_XC2C64A()
             Xilinx_XC9572XL()
             Altera_5M160ZE64()
             Altera_5M570ZT144()
-            LCMXO2_4000HC_XXTG256()
+            LCMXO2_4000HC_XFTG256()
             LCMXO2_7000HC_XXTG144()
             LC4032V_TQFP44()
             LC4064V_TQFP44()
@@ -1714,11 +1769,29 @@ Namespace JTAG
             Return Nothing
         End Function
 
+        Private Sub Microsemi_A3P250_FG144()
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "A3P250"
+            J_DEVICE.JEDEC_ID = &H1BA141CFUI
+            J_DEVICE.IR_LEN = 8
+            J_DEVICE.BS_LEN = 708
+            J_DEVICE.BYPASS = &HFF
+            J_DEVICE.IDCODE = &HF
+            J_DEVICE.EXTEST = 0
+            J_DEVICE.SAMPLE = 1
+            J_DEVICE.HIGHZ = &H7
+            J_DEVICE.CLAMP = &H5
+            J_DEVICE.INTEST = &H6
+            J_DEVICE.USERCODE = &HE
+            BSDL_DATABASE.Add(J_DEVICE)
+        End Sub
+
         Private Sub Xilinx_XC9572XL()
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "XC9572XL"
             J_DEVICE.JEDEC_ID = &H59604093UI
             J_DEVICE.IR_LEN = 8
+            J_DEVICE.BS_LEN = 216
             J_DEVICE.IDCODE = &HFE
             J_DEVICE.BYPASS = &HFF
             J_DEVICE.INTEST = 2
@@ -1745,6 +1818,7 @@ Namespace JTAG
             J_DEVICE.PART_NAME = "XC2C64A"
             J_DEVICE.JEDEC_ID = &H6E58093UI
             J_DEVICE.IR_LEN = 8
+            J_DEVICE.BS_LEN = 192
             J_DEVICE.IDCODE = 1
             J_DEVICE.BYPASS = &HFF
             J_DEVICE.INTEST = 2
@@ -1776,6 +1850,7 @@ Namespace JTAG
             J_DEVICE.PART_NAME = "BCM3348"
             J_DEVICE.JEDEC_ID = &H334817FUI
             J_DEVICE.IR_LEN = 5
+            J_DEVICE.BS_LEN = 0
             J_DEVICE.IDCODE = &H1 'Selects Device Identiﬁcation (ID) register
             J_DEVICE.BYPASS = &H1F 'Select Bypass register
             J_DEVICE.SAMPLE = 2
@@ -1790,12 +1865,13 @@ Namespace JTAG
             'EJWATCH = &H1C
             BSDL_DATABASE.Add(J_DEVICE)
         End Sub
-
+        '44-pin TQFP
         Private Sub Altera_5M570ZT144()
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "5M570ZT144"
             J_DEVICE.JEDEC_ID = &H20A60DDUI
             J_DEVICE.IR_LEN = 10
+            J_DEVICE.BS_LEN = 480
             J_DEVICE.IDCODE = 6
             J_DEVICE.EXTEST = &HF
             J_DEVICE.SAMPLE = 5
@@ -1805,12 +1881,13 @@ Namespace JTAG
             J_DEVICE.USERCODE = &H7
             BSDL_DATABASE.Add(J_DEVICE)
         End Sub
-
+        '64-pin EQFP
         Private Sub Altera_5M160ZE64()
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "5M160ZE64"
             J_DEVICE.JEDEC_ID = &H20A50DDUI
             J_DEVICE.IR_LEN = 10
+            J_DEVICE.BS_LEN = 240
             J_DEVICE.IDCODE = 6
             J_DEVICE.EXTEST = &HF
             J_DEVICE.SAMPLE = 5
@@ -1826,6 +1903,7 @@ Namespace JTAG
             J_DEVICE.PART_NAME = "ARM-CORTEX-M7"
             J_DEVICE.JEDEC_ID = &HBA02477UI
             J_DEVICE.IR_LEN = 4
+            J_DEVICE.BS_LEN = 0
             J_DEVICE.IDCODE = &HE '0b1110 - JTAG Device ID Code Register (DR width: 32)
             J_DEVICE.BYPASS = &HF '0b1111 - JTAG Bypass Register (DR width: 1)
             J_DEVICE.RESTART = &H4 '0b0100
@@ -1836,11 +1914,12 @@ Namespace JTAG
             BSDL_DATABASE.Add(J_DEVICE)
         End Sub
 
-        Private Sub LCMXO2_4000HC_XXTG256()
+        Private Sub LCMXO2_4000HC_XFTG256()
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "LCMXO2_4000HC"
             J_DEVICE.JEDEC_ID = &H12BC043UI
             J_DEVICE.IR_LEN = 8
+            J_DEVICE.BS_LEN = 552
             J_DEVICE.IDCODE = &HE0 '0b11100000
             J_DEVICE.BYPASS = &HFF '0b11111111
             J_DEVICE.CLAMP = &H78 '01111000
@@ -1866,12 +1945,13 @@ Namespace JTAG
             '"            ISC_NOOP		(00110000)," &
             BSDL_DATABASE.Add(J_DEVICE)
         End Sub
-
+        'TQFP-144
         Private Sub LCMXO2_7000HC_XXTG144()
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "LCMXO2-7000HC"
             J_DEVICE.JEDEC_ID = &H12BD043UI
             J_DEVICE.IR_LEN = 8
+            J_DEVICE.BS_LEN = 664
             J_DEVICE.IDCODE = &HE0 '0b11100000
             J_DEVICE.BYPASS = &HFF '0b11111111
             J_DEVICE.CLAMP = &H78 '01111000
@@ -1903,6 +1983,7 @@ Namespace JTAG
             J_DEVICE.PART_NAME = "LC4032V"
             J_DEVICE.JEDEC_ID = &H1805043UI
             J_DEVICE.IR_LEN = 8
+            J_DEVICE.BS_LEN = 68
             J_DEVICE.IDCODE = &H16 '00010110
             J_DEVICE.BYPASS = &HFF '11111111
             J_DEVICE.CLAMP = &H20 '00100000
@@ -1934,6 +2015,7 @@ Namespace JTAG
             J_DEVICE.PART_NAME = "LC4064V"
             J_DEVICE.JEDEC_ID = &H1809043UI
             J_DEVICE.IR_LEN = 8
+            J_DEVICE.BS_LEN = 68
             J_DEVICE.IDCODE = &H16 '00010110
             J_DEVICE.BYPASS = &HFF '11111111
             J_DEVICE.CLAMP = &H20 '00100000
@@ -1996,6 +2078,8 @@ Namespace JTAG
                     mfg_name = "Broadcom"
                 Case 194
                     mfg_name = "MXIC"
+                Case 231
+                    mfg_name = "Microsemi"
                 Case 239
                     mfg_name = "Winbond"
                 Case 336
@@ -2069,6 +2153,7 @@ Namespace JTAG
         Property JEDEC_ID As UInt32
         Property PART_NAME As String
         Property IR_LEN As Integer 'Number of bits the IR uses
+        Property BS_LEN As Integer 'Number of bits for PRELOAD/EXTEST
         Property IDCODE As UInt32
         Property BYPASS As UInt32
         Property INTEST As UInt32

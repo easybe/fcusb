@@ -86,8 +86,6 @@ Namespace CustomComboPlus
         End Sub
 
 
-
-
 #Region "Events"
 
         Public Shadows Event DropDown As EventHandler

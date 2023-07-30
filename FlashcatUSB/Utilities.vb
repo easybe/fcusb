@@ -685,17 +685,16 @@ Namespace Utilities
                     If local_file.Exists Then local_file.Delete()
                     Dim local_dir As New IO.DirectoryInfo(local_file.DirectoryName)
                     If (Not local_dir.Exists) Then local_dir.Create()
-                    Dim file_writer As New IO.StreamWriter(local_file.FullName, True, Text.Encoding.ASCII, 2048)
-                    For Each Line As String In FileOut
-                        If Line.Length = 0 OrElse Line = "" Then
-                            file_writer.WriteLine()
-                        Else
-                            file_writer.WriteLine(Line)
-                        End If
-                    Next
-                    file_writer.Flush()
-                    file_writer.Close()
-                    file_writer.Dispose()
+                    Using file_writer As New IO.StreamWriter(local_file.FullName, True, Text.Encoding.ASCII, 2048)
+                        For Each Line As String In FileOut
+                            If Line.Length = 0 OrElse Line = "" Then
+                                file_writer.WriteLine()
+                            Else
+                                file_writer.WriteLine(Line)
+                            End If
+                        Next
+                        file_writer.Flush()
+                    End Using
                     Return True
                 Catch ex As Exception
                     Return False
@@ -730,7 +729,6 @@ Namespace Utilities
                         file_writer.Position = local_file.Length
                         file_writer.Write(DataOut, 0, DataOut.Length)
                         file_writer.Flush()
-                        file_writer.Close()
                     End Using
                     Return True
                 Catch ex As Exception
@@ -764,7 +762,6 @@ Namespace Utilities
                     Using file_writer As IO.FileStream = local_file.OpenWrite()
                         file_writer.Write(DataOut, 0, DataOut.Length)
                         file_writer.Flush()
-                        file_writer.Close()
                     End Using
                     Return True
                 Catch ex As Exception
@@ -1890,59 +1887,58 @@ Namespace Utilities
         'Returns true or false if this data is a file in intel hex format
         Public Function IsIntelHex(ByVal Input() As Byte) As Boolean
             If Input Is Nothing Then Return False
-            Dim byte_stream As New IO.MemoryStream(Input)
-            Dim HexFile As New IO.StreamReader(byte_stream)
             Dim ReadAtLeastOneLine As Boolean = False
-            Do
-                Dim line As String = HexFile.ReadLine()
-                If Not line.StartsWith(":") Then Return False
-                ReadAtLeastOneLine = True
-            Loop Until HexFile.Peek = -1
-            HexFile.Close()
-            HexFile.Dispose()
+            Using byte_stream As New IO.MemoryStream(Input)
+                Using HexFile As New IO.StreamReader(byte_stream)
+                    Do
+                        Dim line As String = HexFile.ReadLine()
+                        If Not line.StartsWith(":") Then Return False
+                        ReadAtLeastOneLine = True
+                    Loop Until HexFile.Peek = -1
+                End Using
+            End Using
             Return ReadAtLeastOneLine
         End Function
 
-        Public Function IsIntelHex(ByVal byte_stream As IO.Stream) As Boolean
-            Dim HexFile As New IO.StreamReader(byte_stream)
+        Public Function IsIntelHex(byte_stream As IO.Stream) As Boolean
             Dim ReadAtLeastOneLine As Boolean = False
-            Do
-                Dim line As String = HexFile.ReadLine()
-                If Not line.StartsWith(":") Then Return False
-                ReadAtLeastOneLine = True
-            Loop Until HexFile.Peek = -1
-            HexFile.Close()
-            HexFile.Dispose()
+            Using HexFile As New IO.StreamReader(byte_stream)
+                Do
+                    Dim line As String = HexFile.ReadLine()
+                    If Not line.StartsWith(":") Then Return False
+                    ReadAtLeastOneLine = True
+                Loop Until HexFile.Peek = -1
+            End Using
             Return ReadAtLeastOneLine
         End Function
 
         Public Function IntelHexToBin(ByRef Input() As Byte) As Byte()
             If Input Is Nothing Then Return Nothing
-            Dim byte_stream As New IO.MemoryStream(Input)
-            Dim HexFile As New IO.StreamReader(byte_stream)
-            Dim HexCollector As New ArrayList
+            Dim HexCollector As New List(Of IntelHexLine)
             Dim Upper16 As UInt32 = 0
             Dim ExtAddr As UInt32 = 0
-            Do
-                Dim line As String = HexFile.ReadLine()
-                Dim hline As New IntelHexLine
-                hline.Hex_Size = HexToInt(Mid(line, 2, 2))
-                hline.Hex_Addr = Upper16 + ExtAddr + HexToInt(Mid(line, 4, 4))
-                hline.Hex_REC = HexToInt(Mid(line, 8, 2))
-                hline.Hex_CRC = HexToInt(Mid(line, (hline.Hex_Size * 2) + 10))
-                hline.Hex_DATA = Bytes.FromHexString(Mid(line, 10, hline.Hex_Size * 2))
-                If hline.Hex_REC = 0 Then
-                    HexCollector.Add(hline) 'Collect Record DATA
-                ElseIf hline.Hex_REC = 1 Then 'End Of File record
-                    Exit Do
-                ElseIf hline.Hex_REC = 2 Then 'Extended Segment Address Record
-                    ExtAddr = ((CUInt(hline.Hex_DATA(0)) << 8) + hline.Hex_DATA(1)) * 16
-                ElseIf hline.Hex_REC = 4 Then 'Extended Linear Address Record
-                    Upper16 = ((CUInt(hline.Hex_DATA(0)) << 8) + hline.Hex_DATA(1)) << 16
-                End If
-            Loop Until HexFile.Peek = -1
-            HexFile.Close()
-            HexFile.Dispose()
+            Using byte_stream As New IO.MemoryStream(Input)
+                Using HexFile As New IO.StreamReader(byte_stream)
+                    Do
+                        Dim line As String = HexFile.ReadLine()
+                        Dim hline As New IntelHexLine
+                        hline.Hex_Size = HexToInt(Mid(line, 2, 2))
+                        hline.Hex_Addr = Upper16 + ExtAddr + HexToInt(Mid(line, 4, 4))
+                        hline.Hex_REC = HexToInt(Mid(line, 8, 2))
+                        hline.Hex_CRC = HexToInt(Mid(line, (hline.Hex_Size * 2) + 10))
+                        hline.Hex_DATA = Bytes.FromHexString(Mid(line, 10, hline.Hex_Size * 2))
+                        If hline.Hex_REC = 0 Then
+                            HexCollector.Add(hline) 'Collect Record DATA
+                        ElseIf hline.Hex_REC = 1 Then 'End Of File record
+                            Exit Do
+                        ElseIf hline.Hex_REC = 2 Then 'Extended Segment Address Record
+                            ExtAddr = ((CUInt(hline.Hex_DATA(0)) << 8) + hline.Hex_DATA(1)) * 16
+                        ElseIf hline.Hex_REC = 4 Then 'Extended Linear Address Record
+                            Upper16 = ((CUInt(hline.Hex_DATA(0)) << 8) + hline.Hex_DATA(1)) << 16
+                        End If
+                    Loop Until HexFile.Peek = -1
+                End Using
+            End Using
             Dim HighestAddr As UInt32 = 0
             Dim HexLine As IntelHexLine
             For Each HexLine In HexCollector

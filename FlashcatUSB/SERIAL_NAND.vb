@@ -12,7 +12,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     Private FCUSB As FCUSB_DEVICE
     Public Event PrintConsole(message As String) Implements MemoryDeviceUSB.PrintConsole
     Public Event SetProgress(ByVal percent As Integer) Implements MemoryDeviceUSB.SetProgress
-    Public Property MyFlashDevice As SPI_NAND_Flash
+    Public Property MyFlashDevice As SPI_NAND
     Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
     Public Property DIE_SELECTED As Integer = 0
 

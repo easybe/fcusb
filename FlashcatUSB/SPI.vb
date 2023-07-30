@@ -14,7 +14,7 @@ Namespace SPI
         Private FCUSB As FCUSB_DEVICE
         Public Event PrintConsole(ByVal msg As String) Implements MemoryDeviceUSB.PrintConsole
         Public Event SetProgress(ByVal percent As Integer) Implements MemoryDeviceUSB.SetProgress
-        Public Property MyFlashDevice As SPI_NOR_FLASH 'Contains the definition of the Flash device that is connected
+        Public Property MyFlashDevice As SPI_NOR 'Contains the definition of the Flash device that is connected
         Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
         Public Property DIE_SELECTED As Integer = 0
         Public Property W25M121AV_Mode As Boolean = False
@@ -64,7 +64,7 @@ Namespace SPI
                     Return True
                 Else
                     RaiseEvent PrintConsole(RM.GetString("unknown_device_email"))
-                    MyFlashDevice = New SPI_NOR_FLASH("Unknown", 0, DEVICEID.MANU, ID1)
+                    MyFlashDevice = New SPI_NOR("Unknown", VCC_IF.SPI_3V, 0, DEVICEID.MANU, ID1)
                     MyFlashStatus = DeviceStatus.NotSupported
                     Return False
                 End If
@@ -156,7 +156,7 @@ Namespace SPI
                     FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_READFLASH, setup_class.ToBytes, data_to_read, 0)
                 End If
             Else 'Normal SPI READ
-                If MySettings.SPI_FASTREAD AndAlso (FCUSB.HWBOARD = FCUSB.HWBOARD = FCUSB_BOARD.Professional) Then
+                If MySettings.SPI_FASTREAD AndAlso (FCUSB.HWBOARD = FCUSB_BOARD.Professional) Then
                     dummy_clocks = MyFlashDevice.SPI_DUMMY
                 End If
                 If (MyFlashDevice.STACKED_DIES > 1) Then
@@ -766,8 +766,10 @@ Namespace SPI
     End Enum
 
     Public Enum SQI_SPEED As Integer
-        MHZ_10 = 1
         MHZ_20 = 0
+        MHZ_10 = 1
+        MHZ_5 = 2
+        MHZ_2 = 3
     End Enum
 
     Friend Class ReadSetupPacket
@@ -776,7 +778,7 @@ Namespace SPI
         Property COUNT As UInt32
         Property ADDR_BYTES As Byte 'Number of bytes used for the read command (MyFlashDevice.AddressBytes)
         Property DUMMY As Integer = 0 'Number of clock toggles before reading data
-        Property SPI_MODE As SPI_MULTI_IO = SPI_MULTI_IO.NO_MULTI
+        Property SPI_MODE As SPI_QUAD_SUPPORT = SPI_QUAD_SUPPORT.NO_QUAD
 
         Sub New(ByVal cmd As Byte, ByVal offset As UInt32, ByVal d_count As UInt32, ByVal addr_size As Byte)
             Me.READ_CMD = cmd
@@ -814,9 +816,9 @@ Namespace SPI
         Property DATA_OFFSET As UInt32
         Property WR_COUNT As UInt32
         Property ADDR_BYTES As Byte 'Number of bytes used for the read command 
-        Property SPI_MODE As SPI_MULTI_IO = SPI_MULTI_IO.NO_MULTI
+        Property SPI_MODE As SPI_QUAD_SUPPORT = SPI_QUAD_SUPPORT.NO_QUAD
 
-        Sub New(ByVal spi_dev As SPI_NOR_FLASH, ByVal offset As UInt32, ByVal d_count As UInt32)
+        Sub New(ByVal spi_dev As SPI_NOR, ByVal offset As UInt32, ByVal d_count As UInt32)
             Me.CMD_PROG = spi_dev.OP_COMMANDS.PROG
             Me.CMD_WREN = spi_dev.OP_COMMANDS.WREN
             Me.CMD_RDSR = spi_dev.OP_COMMANDS.RDSR

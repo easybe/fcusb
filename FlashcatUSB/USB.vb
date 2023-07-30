@@ -538,7 +538,7 @@ Namespace USB
                 Return result
             End Function
 
-            Public Function CPLD_SetVersion(new_ver As UInt32) As Boolean
+            Public Function LOGIC_SetVersion(new_ver As UInt32) As Boolean
                 Dim result As Boolean = USB_CONTROL_MSG_OUT(USBREQ.CPLD_VERSION_SET, Nothing, new_ver)
                 Return result
             End Function

@@ -21,14 +21,14 @@ Public Class MemControl_v2
 
     Public Event SetExternalProgress(ByVal Percent As Integer)
 
-    Public Event WriteConsole(ByVal msg As String) 'Writes the console/windows console
-    Public Event SetStatus(ByVal msg As String) 'Sets the text on the status bar
+    Public Event WriteConsole(msg As String) 'Writes the console/windows console
+    Public Event SetStatus(msg As String) 'Sets the text on the status bar
     Public Event ReadMemory(base_addr As Long, ByRef data() As Byte, ByVal area As FlashMemory.FlashArea) 'We want to get data from the normal memory area
     Public Event ReadStream(data_stream As IO.Stream, ByRef f_params As ReadParameters)
     Public Event WriteMemory(base_addr As Long, data() As Byte, verify_wr As Boolean, area As FlashMemory.FlashArea, ByRef Successful As Boolean) 'Write data to the normal area
     Public Event WriteStream(data_stream As IO.Stream, ByRef f_params As WriteParameters, ByRef Successful As Boolean)
     Public Event GetSectorCount(ByRef count As UInt32)
-    Public Event GetSectorIndex(ByVal addr As Long, area As FlashMemory.FlashArea, ByRef sector_int As UInt32)
+    Public Event GetSectorIndex(addr As Long, area As FlashMemory.FlashArea, ByRef sector_int As UInt32)
     Public Event GetSectorBaseAddress(sector_int As UInt32, area As FlashMemory.FlashArea, ByRef addr As Long)
     Public Event GetSectorSize(sector_int As UInt32, area As FlashMemory.FlashArea, ByRef sector_size As UInt32)
     Public Event EraseMemory()
@@ -540,7 +540,7 @@ Public Class MemControl_v2
         ExtendedAreaVisibility(False)
         Me.AreaSelected = FlashMemory.FlashArea.Main 'Lets always default to the main area
         If Me.ParentMemDevice.FlashType = FlashMemory.MemoryType.SERIAL_NAND Then
-            Dim d As FlashMemory.SPI_NAND_Flash = DirectCast(FCUSB.SPI_NAND_IF.MyFlashDevice, FlashMemory.SPI_NAND_Flash)
+            Dim d As FlashMemory.SPI_NAND = DirectCast(FCUSB.SPI_NAND_IF.MyFlashDevice, FlashMemory.SPI_NAND)
             Dim pages_per_block As UInt32 = (d.BLOCK_SIZE / d.PAGE_SIZE)
             Dim available_pages As UInt32 = FCUSB.NAND_IF.MAPPED_PAGES
             Me.FlashAvailable = FCUSB.SPI_NAND_IF.DeviceSize
@@ -552,7 +552,7 @@ Public Class MemControl_v2
                 Me.AddExtendedArea(available_pages, d.PAGE_SIZE, d.EXT_PAGE_SIZE, pages_per_block)
             End If
         ElseIf Me.ParentMemDevice.FlashType = FlashMemory.MemoryType.NAND Then
-            Dim d As FlashMemory.SLC_NAND_Flash = DirectCast(FCUSB.EXT_IF.MyFlashDevice, FlashMemory.SLC_NAND_Flash)
+            Dim d As FlashMemory.P_NAND = DirectCast(FCUSB.EXT_IF.MyFlashDevice, FlashMemory.P_NAND)
             Dim pages_per_block As UInt32 = (d.BLOCK_SIZE / d.PAGE_SIZE)
             Dim available_pages As UInt32 = FCUSB.NAND_IF.MAPPED_PAGES
             Me.FlashAvailable = FCUSB.EXT_IF.DeviceSize

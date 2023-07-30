@@ -14,7 +14,7 @@ Namespace SPI
         Private FCUSB As FCUSB_DEVICE
         Public Event PrintConsole(ByVal msg As String) Implements MemoryDeviceUSB.PrintConsole
         Public Event SetProgress(ByVal percent As Integer) Implements MemoryDeviceUSB.SetProgress
-        Public Property MyFlashDevice As SPI_NOR_FLASH 'Contains the definition of the Flash device that is connected
+        Public Property MyFlashDevice As SPI_NOR 'Contains the definition of the Flash device that is connected
         Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
         Public Property DIE_SELECTED As Integer = 0
         Private Property SQI_IO_MODE As MULTI_IO_MODE 'IO=1/2/4 bits per clock cycle
@@ -50,7 +50,7 @@ Namespace SPI
                     MyFlashStatus = DeviceStatus.Supported
                     RaiseEvent PrintConsole(String.Format(RM.GetString("flash_detected"), Me.DeviceName, Format(Me.DeviceSize, "#,###")))
                     RaiseEvent PrintConsole(RM.GetString("spi_mode_sqi"))
-                    If MyFlashDevice.SQI_MODE = SPI_MULTI_IO.MULTI Then
+                    If MyFlashDevice.SQI_MODE = SPI_QUAD_SUPPORT.QUAD Then
                         If SQI_IO_MODE = MULTI_IO_MODE.Quad Then
                             RaiseEvent PrintConsole("Detected Flash in QUAD-SPI mode (4-bit)")
                             Me.SQI_DEVICE_MODE = SPI.SQI_IO_MODE.QUAD_ONLY
@@ -61,7 +61,7 @@ Namespace SPI
                             RaiseEvent PrintConsole("Detected Flash in SPI mode (1-bit)")
                             Me.SQI_DEVICE_MODE = SPI.SQI_IO_MODE.SPI_ONLY
                         End If
-                    ElseIf MyFlashDevice.SQI_MODE = SPI_MULTI_IO.SPI_MULTI Then
+                    ElseIf MyFlashDevice.SQI_MODE = SPI_QUAD_SUPPORT.SPI_QUAD Then
                         RaiseEvent PrintConsole("Detected Flash in SPI mode (1-bit)")
                         SQIBUS_WriteRead({&HF0}) 'SPI RESET COMMAND
                         Utilities.Sleep(20)
@@ -94,20 +94,14 @@ Namespace SPI
                     Else
                         RaiseEvent PrintConsole("Detected Flash in SPI mode (1-bit)")
                     End If
-
-
                     SQIBUS_SendCommand(&HF0) 'SPI RESET COMMAND
-
                     If MyFlashDevice.SEND_EN4B Then SQIBUS_SendCommand(MyFlashDevice.OP_COMMANDS.EN4B) '0xB7
                     SQIBUS_SendCommand(MyFlashDevice.OP_COMMANDS.ULBPR) '0x98 (global block unprotect)
                     LoadVendorSpecificConfigurations() 'Some devices may need additional configurations
-
-
-
                     Return True
                 Else
                     RaiseEvent PrintConsole(RM.GetString("unknown_device_email"))
-                    MyFlashDevice = New SPI_NOR_FLASH("Unknown", 0, FLASH_IDENT.MANU, FLASH_IDENT.RDID)
+                    MyFlashDevice = New SPI_NOR("Unknown", VCC_IF.SPI_3V, 0, FLASH_IDENT.MANU, FLASH_IDENT.RDID)
                     MyFlashStatus = DeviceStatus.NotSupported
                     Return False
                 End If
@@ -421,18 +415,30 @@ Namespace SPI
 #Region "SPIBUS"
 
         Public Sub SQIBUS_Setup()
-            Dim clock_div As UInt32 = MySettings.SPI_QUAD_SPEED
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, clock_div) '0=20MHz,1=10MHz
-            Utilities.Sleep(50) 'Allow time for device to change IO
-            If FCUSB.HWBOARD = FCUSB_BOARD.Professional OrElse FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
-                If clock_div = 0 Then
+            If FCUSB.HWBOARD = FCUSB_BOARD.Professional Then
+                If MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_20 Then
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "20 MHz"))
+                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 0)
                 Else
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
+                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 1)
+                End If
+            ElseIf FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+                FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, MySettings.SPI_QUAD_SPEED)
+                If MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_20 Then
+                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "20 MHz"))
+                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_10 Then
+                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
+                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_5 Then
+                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "5 MHz"))
+                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_2 Then
+                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "2 MHz"))
                 End If
             Else
+                FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 0)
                 GUI.PrintConsole(String.Format("SQI clock set to: {0}", "1 MHz"))
             End If
+            Utilities.Sleep(50) 'Allow time for device to change IO
         End Sub
 
         Public Function SQIBUS_WriteEnable() As Boolean

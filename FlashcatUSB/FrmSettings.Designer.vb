@@ -565,7 +565,7 @@ Partial Class FrmSettings
         '
         Me.cb_sqi_speed.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_sqi_speed.FormattingEnabled = True
-        Me.cb_sqi_speed.Items.AddRange(New Object() {"10Mhz", "20MHz"})
+        Me.cb_sqi_speed.Items.AddRange(New Object() {"20MHz", "10MHz", "5MHz", "2MHz"})
         Me.cb_sqi_speed.Location = New System.Drawing.Point(154, 34)
         Me.cb_sqi_speed.Name = "cb_sqi_speed"
         Me.cb_sqi_speed.Size = New System.Drawing.Size(90, 21)

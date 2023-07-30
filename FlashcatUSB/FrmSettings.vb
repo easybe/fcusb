@@ -166,10 +166,14 @@ Public Class FrmSettings
                 cb_jtag_tck_speed.SelectedIndex = 1
         End Select
         Select Case MySettings.SPI_QUAD_SPEED
-            Case SPI.SQI_SPEED.MHZ_10
-                cb_sqi_speed.SelectedIndex = 0
             Case SPI.SQI_SPEED.MHZ_20
+                cb_sqi_speed.SelectedIndex = 0
+            Case SPI.SQI_SPEED.MHZ_10
                 cb_sqi_speed.SelectedIndex = 1
+            Case SPI.SQI_SPEED.MHZ_5
+                cb_sqi_speed.SelectedIndex = 2
+            Case SPI.SQI_SPEED.MHZ_2
+                cb_sqi_speed.SelectedIndex = 3
         End Select
     End Sub
 
@@ -361,12 +365,15 @@ Public Class FrmSettings
             Case 1
                 MySettings.JTAG_SPEED = FlashcatSettings.JTAG_TCK_FREQ._20MHz
         End Select
-
         Select Case cb_sqi_speed.SelectedIndex
             Case 0
-                MySettings.SPI_QUAD_SPEED = SPI.SQI_SPEED.MHZ_10
-            Case 1
                 MySettings.SPI_QUAD_SPEED = SPI.SQI_SPEED.MHZ_20
+            Case 1
+                MySettings.SPI_QUAD_SPEED = SPI.SQI_SPEED.MHZ_10
+            Case 2
+                MySettings.SPI_QUAD_SPEED = SPI.SQI_SPEED.MHZ_5
+            Case 3
+                MySettings.SPI_QUAD_SPEED = SPI.SQI_SPEED.MHZ_2
         End Select
     End Sub
 

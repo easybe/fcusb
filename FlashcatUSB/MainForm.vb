@@ -1060,12 +1060,12 @@ Public Class MainForm
             If mem_dev Is Nothing Then Exit Sub
             Dim n As New NAND_Block_Management(mem_dev.FCUSB)
             If mem_dev.FlashType = MemoryType.SERIAL_NAND Then
-                Dim nand As SPI_NAND_Flash = mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice
+                Dim nand As SPI_NAND = mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice
                 Dim pages_per_block As UInt32 = (nand.BLOCK_SIZE / nand.PAGE_SIZE)
                 Dim n_layout As NAND_LAYOUT_TOOL.NANDLAYOUT_STRUCTURE = FlashMemory.NANDLAYOUT_Get(nand)
                 n.SetDeviceParameters(nand.NAME, nand.PAGE_SIZE + nand.EXT_PAGE_SIZE, pages_per_block, nand.Sector_Count, n_layout)
             ElseIf mem_dev.FlashType = MemoryType.NAND Then
-                Dim nand As SLC_NAND_Flash = DirectCast(mem_dev.FCUSB.EXT_IF.MyFlashDevice, SLC_NAND_Flash)
+                Dim nand As P_NAND = DirectCast(mem_dev.FCUSB.EXT_IF.MyFlashDevice, P_NAND)
                 Dim pages_per_block As UInt32 = (nand.BLOCK_SIZE / nand.PAGE_SIZE)
                 Dim n_layout As NAND_LAYOUT_TOOL.NANDLAYOUT_STRUCTURE = FlashMemory.NANDLAYOUT_Get(nand)
                 n.SetDeviceParameters(nand.NAME, nand.PAGE_SIZE + nand.EXT_PAGE_SIZE, pages_per_block, nand.Sector_Count, n_layout)
@@ -1360,7 +1360,7 @@ Public Class MainForm
             USBCLIENT.USB_VCC_1V8()
             MySettings.Save()
             PrintConsole(String.Format(RM.GetString("voltage_set_to"), "1.8v"))
-            Dim t As New Threading.Thread(AddressOf FCUSBPRO_CPLD_UpdateAll)
+            Dim t As New Threading.Thread(AddressOf FCUSBPRO_Update_Logic)
             t.Name = "tdCPLDUpdate"
             t.Start()
         Catch ex As Exception
@@ -1375,7 +1375,7 @@ Public Class MainForm
             USBCLIENT.USB_VCC_3V()
             MySettings.Save()
             PrintConsole(String.Format(RM.GetString("voltage_set_to"), "3.3v"))
-            Dim t As New Threading.Thread(AddressOf FCUSBPRO_CPLD_UpdateAll)
+            Dim t As New Threading.Thread(AddressOf FCUSBPRO_Update_Logic)
             t.Name = "tdCPLDUpdate"
             t.Start()
         Catch ex As Exception
@@ -1567,13 +1567,13 @@ Public Class MainForm
             WriteConsole("Flash size: " & Format(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice.FLASH_SIZE, "#,###") & " bytes")
             WriteConsole("Extended/Spare area: " & Format(mem_dev.FCUSB.NAND_IF.Extra_GetSize(), "#,###") & " bytes")
             WriteConsole("Page size: " & Format(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice.PAGE_SIZE, "#,###") & " bytes")
-            WriteConsole("Block size: " & Format(DirectCast(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice, SPI_NAND_Flash).BLOCK_SIZE, "#,###") & " bytes")
+            WriteConsole("Block size: " & Format(DirectCast(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice, SPI_NAND).BLOCK_SIZE, "#,###") & " bytes")
         ElseIf mem_dev.FlashType = MemoryType.NAND Then
             WriteConsole("Memory device name: " & mem_dev.FCUSB.EXT_IF.MyFlashDevice.NAME)
             WriteConsole("Flash size: " & Format(mem_dev.FCUSB.EXT_IF.MyFlashDevice.FLASH_SIZE, "#,###") & " bytes")
             WriteConsole("Extended/Spare area: " & Format(mem_dev.FCUSB.NAND_IF.Extra_GetSize(), "#,###") & " bytes")
             WriteConsole("Page size: " & Format(mem_dev.FCUSB.EXT_IF.MyFlashDevice.PAGE_SIZE, "#,###") & " bytes")
-            WriteConsole("Block size: " & Format(DirectCast(mem_dev.FCUSB.EXT_IF.MyFlashDevice, SLC_NAND_Flash).BLOCK_SIZE, "#,###") & " bytes")
+            WriteConsole("Block size: " & Format(DirectCast(mem_dev.FCUSB.EXT_IF.MyFlashDevice, P_NAND).BLOCK_SIZE, "#,###") & " bytes")
         End If
     End Sub
 
@@ -1632,7 +1632,7 @@ Public Class MainForm
             Dim block_size As UInt32
             Dim chipid As String
             If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND) Then
-                Dim m As SLC_NAND_Flash = DirectCast(mem_dev.FCUSB.EXT_IF.MyFlashDevice, SLC_NAND_Flash)
+                Dim m As P_NAND = DirectCast(mem_dev.FCUSB.EXT_IF.MyFlashDevice, P_NAND)
                 flash_name = m.NAME
                 chipid = Hex(m.MFG_CODE).PadLeft(2, "0") & Hex(m.ID1).PadLeft(4, "0") & Hex(m.ID2).PadLeft(4, "0")
                 flash_size = m.FLASH_SIZE
@@ -1641,7 +1641,7 @@ Public Class MainForm
                 block_count = m.Sector_Count
                 block_size = m.BLOCK_SIZE
             ElseIf (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_NAND) Then
-                Dim m As SPI_NAND_Flash = DirectCast(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice, SPI_NAND_Flash)
+                Dim m As SPI_NAND = DirectCast(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice, SPI_NAND)
                 flash_name = m.NAME
                 chipid = Hex(m.MFG_CODE).PadLeft(2, "0") & Hex(m.ID1).PadLeft(4, "0")
                 flash_size = m.FLASH_SIZE
@@ -1718,18 +1718,18 @@ Public Class MainForm
                 If NandImage Is Nothing OrElse NandImage.Count = 0 Then
                     SetStatus(RM.GetString("gui_not_valid_img")) : Exit Sub
                 End If
-                Dim cfg_io As IO.Stream = NandImage.GetFileStream("NAND.cfg")
-                If cfg_io Is Nothing Then
-                    SetStatus(RM.GetString("gui_not_valid_img")) : Exit Sub
-                End If
                 Dim config_file As New List(Of String)
-                Using nand_cfg As IO.StreamReader = New IO.StreamReader(cfg_io)
-                    Do Until nand_cfg.Peek = -1
-                        config_file.Add(nand_cfg.ReadLine)
-                    Loop
-                    nand_cfg.Close()
+                Using cfg_io As IO.Stream = NandImage.GetFileStream("NAND.cfg")
+                    If cfg_io Is Nothing Then
+                        SetStatus(RM.GetString("gui_not_valid_img")) : Exit Sub
+                    End If
+                    Using nand_cfg As IO.StreamReader = New IO.StreamReader(cfg_io)
+                        Do Until nand_cfg.Peek = -1
+                            config_file.Add(nand_cfg.ReadLine)
+                        Loop
+                        nand_cfg.Close()
+                    End Using
                 End Using
-                cfg_io.Dispose()
                 WriteConsole(String.Format(RM.GetString("gui_programming_img"), GetNandCfgParam("MEMORY_DEVICE", config_file.ToArray))) 'Programming Flash image: {0}
                 Dim flash_name As String = GetNandCfgParam("MEMORY_DEVICE", config_file.ToArray)
                 Dim flash_size As UInt32 = GetNandCfgParam("FLASH_SIZE", config_file.ToArray)

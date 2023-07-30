@@ -2,11 +2,11 @@
 
 'Implements a NAND Flash block manager
 Public Class NAND_BLOCK_IF
-    Public Event PrintConsole(ByVal msg As String)
-    Public Event SetProgress(ByVal percent As Integer)
-    Public Event ReadPages(ByVal page_addr As Long, ByVal page_offset As UInt16, ByVal count As UInt32, ByVal area As FlashArea, ByRef data() As Byte)
-    Public Event WritePages(ByVal page_addr As Long, ByVal main() As Byte, ByVal oob() As Byte, ByVal area As FlashArea, ByRef write_result As Boolean)
-    Public Event EraseSector(ByVal page_addr As Long, ByRef erase_result As Boolean)
+    Public Event PrintConsole(msg As String)
+    Public Event SetProgress(percent As Integer)
+    Public Event ReadPages(page_addr As UInt32, ByVal page_offset As UInt16, ByVal count As UInt32, ByVal area As FlashArea, ByRef data() As Byte)
+    Public Event WritePages(page_addr As UInt32, ByVal main() As Byte, ByVal oob() As Byte, ByVal area As FlashArea, ByRef write_result As Boolean)
+    Public Event EraseSector(page_addr As UInt32, ByRef erase_result As Boolean)
     Public Event Ready() 'Checks the RD/BSY pin or register (WAS WaitForReady)
     Public MAP As New List(Of MAPPING)
     Public Property MAPPED_PAGES As UInt32 'Number of pages available in the current map

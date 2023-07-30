@@ -80,7 +80,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                 RaiseEvent PrintConsole(RM.GetString("ext_prog_mode"))
                 SetupFlashDevice()
                 If (MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR) Then
-                    Dim NOR_FLASH As MFP_Flash = DirectCast(MyFlashDevice, MFP_Flash)
+                    Dim NOR_FLASH As P_NOR = DirectCast(MyFlashDevice, P_NOR)
                     If MySettings.MUTLI_NOR Then
                         RaiseEvent PrintConsole("Multi-chip select feature is enabled")
                         NOR_FLASH.AVAILABLE_SIZE = (NOR_FLASH.FLASH_SIZE * 2)
@@ -135,19 +135,19 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                     WaitForReady()
                     Print_NOR_CFI_Table()
                 ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.NAND Then
-                    RaiseEvent PrintConsole(String.Format(RM.GetString("ext_page_size"), MyFlashDevice.PAGE_SIZE, DirectCast(MyFlashDevice, SLC_NAND_Flash).EXT_PAGE_SIZE))
-                    RaiseEvent PrintConsole("Block size: " & Utilities.FormatToDataSize(DirectCast(MyFlashDevice, SLC_NAND_Flash).BLOCK_SIZE))
-                    Dim nand_mem As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
-                    If nand_mem.IFACE = ND_IF.X8_3V Then
+                    RaiseEvent PrintConsole(String.Format(RM.GetString("ext_page_size"), MyFlashDevice.PAGE_SIZE, DirectCast(MyFlashDevice, P_NAND).EXT_PAGE_SIZE))
+                    RaiseEvent PrintConsole("Block size: " & Utilities.FormatToDataSize(DirectCast(MyFlashDevice, P_NAND).BLOCK_SIZE))
+                    Dim nand_mem As P_NAND = DirectCast(MyFlashDevice, P_NAND)
+                    If nand_mem.IFACE = VCC_IF.X8_3V Then
                         RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NAND (X8 3.3V)")
-                    ElseIf nand_mem.IFACE = ND_IF.X8_1V8 Then
+                    ElseIf nand_mem.IFACE = VCC_IF.X8_1V8 Then
                         RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NAND (X8 1.8V)")
-                    ElseIf nand_mem.IFACE = ND_IF.X16_3V Then
+                    ElseIf nand_mem.IFACE = VCC_IF.X16_3V Then
                         RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NAND (X16 3.3V)")
                         RaiseEvent PrintConsole("This NAND device uses X16 IO and is not compatible with this programmer")
                         MyFlashStatus = DeviceStatus.NotCompatible
                         Return False
-                    ElseIf nand_mem.IFACE = ND_IF.X16_1V8 Then
+                    ElseIf nand_mem.IFACE = VCC_IF.X16_1V8 Then
                         RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NAND (X16 1.8V)")
                         RaiseEvent PrintConsole("This NAND device uses X16 IO and is not compatible with this programmer")
                         MyFlashStatus = DeviceStatus.NotCompatible
@@ -277,7 +277,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     Friend ReadOnly Property DeviceSize As Long Implements MemoryDeviceUSB.DeviceSize
         Get
             If MyFlashDevice.FLASH_TYPE = MemoryType.NAND Then
-                Dim d As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
+                Dim d As P_NAND = DirectCast(MyFlashDevice, P_NAND)
                 Dim available_pages As Long = FCUSB.NAND_IF.MAPPED_PAGES
                 If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then
                     Return (available_pages * (d.PAGE_SIZE + d.EXT_PAGE_SIZE))
@@ -285,13 +285,13 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                     Return (available_pages * d.PAGE_SIZE)
                 End If
             ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
-                Dim NOR_FLASH As MFP_Flash = DirectCast(MyFlashDevice, MFP_Flash)
+                Dim NOR_FLASH As P_NOR = DirectCast(MyFlashDevice, P_NOR)
                 Return NOR_FLASH.AVAILABLE_SIZE
             ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM Then
                 Dim NOR_FLASH As OTP_EPROM = DirectCast(MyFlashDevice, OTP_EPROM)
                 Return NOR_FLASH.FLASH_SIZE
             ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.FWH_NOR Then
-                Dim fwh_device As FWH_Flash = DirectCast(MyFlashDevice, FWH_Flash)
+                Dim fwh_device As FWH = DirectCast(MyFlashDevice, FWH)
                 Return fwh_device.FLASH_SIZE
             Else
                 Return Me.MyFlashDevice.FLASH_SIZE
@@ -301,7 +301,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
 
     Public Function ReadData(ByVal logical_address As Long, ByVal data_count As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
         If MyFlashDevice.FLASH_TYPE = MemoryType.NAND Then
-            Dim nand_dev As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
+            Dim nand_dev As P_NAND = DirectCast(MyFlashDevice, P_NAND)
             Dim page_addr As Long  'This is the page address
             Dim page_offset As UInt16 'this is the start offset within the page
             Dim page_size As UInt32
@@ -382,12 +382,12 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     Public Function SectorErase(ByVal sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.SectorErase
         If Not MyFlashDevice.ERASE_REQUIRED Then Return True
         If MyFlashDevice.FLASH_TYPE = MemoryType.NAND Then
-            Dim pages_per_block As UInt32 = (DirectCast(MyFlashDevice, SLC_NAND_Flash).BLOCK_SIZE / MyFlashDevice.PAGE_SIZE)
+            Dim pages_per_block As UInt32 = (DirectCast(MyFlashDevice, P_NAND).BLOCK_SIZE / MyFlashDevice.PAGE_SIZE)
             Dim page_addr As UInt32 = (pages_per_block * sector_index)
             Dim local_page_addr As UInt32 = FCUSB.NAND_IF.GetPageMapping(page_addr)
             Return FCUSB.NAND_IF.ERASEBLOCK(local_page_addr, memory_area, MySettings.NAND_Preserve)
         ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.FWH_NOR Then
-            Dim fwh_device As FWH_Flash = DirectCast(MyFlashDevice, FWH_Flash)
+            Dim fwh_device As FWH = DirectCast(MyFlashDevice, FWH)
             Dim Result As Boolean = False
 
             Dim Logical_Address As UInt32 = 0
@@ -405,7 +405,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
             Dim blank_result As Boolean = BlankCheck(Logical_Address)
             Return blank_result
         Else
-            Dim nor_device As MFP_Flash = DirectCast(MyFlashDevice, MFP_Flash)
+            Dim nor_device As P_NOR = DirectCast(MyFlashDevice, P_NOR)
             Try
                 If sector_index = 0 AndAlso SectorSize(0) = MyFlashDevice.FLASH_SIZE Then
                     Return EraseDevice() 'Single sector, must do a full chip erase instead
@@ -467,7 +467,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         ElseIf (MyFlashDevice.FLASH_TYPE = MemoryType.FWH_NOR) Then
             Return WriteData_FWH(logical_address, data_to_write, Params)
         Else
-            Dim nor_device As MFP_Flash = DirectCast(MyFlashDevice, MFP_Flash)
+            Dim nor_device As P_NOR = DirectCast(MyFlashDevice, P_NOR)
             Try
                 EXPIO_VPP_START()
                 Dim ReturnValue As Boolean
@@ -494,7 +494,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                     FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT) 'Calls the assigned WAIT function (uS, mS, SR, DQ7)
                     FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
                 Else
-                    Utilities.Sleep(DirectCast(MyFlashDevice, MFP_Flash).SOFTWARE_DELAY)
+                    Utilities.Sleep(DirectCast(MyFlashDevice, P_NOR).SOFTWARE_DELAY)
                 End If
             Catch ex As Exception
             Finally
@@ -682,9 +682,9 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
             Else
                 Try
                     EXPIO_VPP_START()
-                    Dim wm As MFP_PRG = DirectCast(MyFlashDevice, MFP_Flash).WriteMode
+                    Dim wm As MFP_PRG = DirectCast(MyFlashDevice, P_NOR).WriteMode
                     If (wm = MFP_PRG.IntelSharp Or wm = MFP_PRG.Buffer1) Then
-                        Dim BlockCount As Integer = DirectCast(MyFlashDevice, MFP_Flash).Sector_Count
+                        Dim BlockCount As Integer = DirectCast(MyFlashDevice, P_NOR).Sector_Count
                         RaiseEvent SetProgress(0)
                         For i = 0 To BlockCount - 1
                             If (Not SectorErase(i, 0)) Then
@@ -714,7 +714,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Catch ex As Exception
         Finally
             If MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
-                Dim nor_device As MFP_Flash = DirectCast(MyFlashDevice, MFP_Flash)
+                Dim nor_device As P_NOR = DirectCast(MyFlashDevice, P_NOR)
                 If nor_device.RESET_ENABLED Then ResetDevice() 'Lets do a chip reset too
             End If
         End Try
@@ -726,13 +726,13 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
             If Not MyFlashStatus = USB.DeviceStatus.Supported Then Return 0
             If FCUSB.EXT_IF.MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
                 If MySettings.MUTLI_NOR Then sector = ((MyFlashDevice.Sector_Count - 1) And sector)
-                Return DirectCast(MyFlashDevice, MFP_Flash).GetSectorSize(sector)
+                Return DirectCast(MyFlashDevice, P_NOR).GetSectorSize(sector)
             ElseIf FCUSB.EXT_IF.MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM Then
                 Return 8192 'Program 8KB at a time
             ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.FWH_NOR Then
-                Return DirectCast(MyFlashDevice, FWH_Flash).SECTOR_SIZE
+                Return DirectCast(MyFlashDevice, FWH).SECTOR_SIZE
             Else
-                Dim nand_dev As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
+                Dim nand_dev As P_NAND = DirectCast(MyFlashDevice, P_NAND)
                 Dim page_count As UInt32 = (nand_dev.BLOCK_SIZE / nand_dev.PAGE_SIZE)
                 Select Case memory_area
                     Case FlashArea.Main
@@ -939,13 +939,11 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     'We should only allow this for devices that have a 12V option/chip
     Private Sub EXPIO_VPP_START()
         Dim VPP_FEAT_EN As Boolean = False
-        If MyFlashDevice.GetType Is GetType(MFP_Flash) Then
-            Dim if_type As MFP_IF = DirectCast(MyFlashDevice, MFP_Flash).IFACE
-            If if_type = MFP_IF.X16_5V_12V Then
+        If MyFlashDevice.GetType Is GetType(P_NOR) Then
+            Dim if_type As VCC_IF = DirectCast(MyFlashDevice, P_NOR).IFACE
+            If if_type = VCC_IF.X16_5V_12VPP Then
                 VPP_FEAT_EN = True
-            ElseIf if_type = MFP_IF.X16_3V_12V Then
-                VPP_FEAT_EN = True
-            ElseIf if_type = MFP_IF.X8_5V_12V Then
+            ElseIf if_type = VCC_IF.X8_5V_12Vpp Then
                 VPP_FEAT_EN = True
             End If
             If VPP_FEAT_EN Then
@@ -957,13 +955,11 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     'We should only allow this for devices that have a 12V option/chip
     Private Sub EXPIO_VPP_STOP()
         Dim VPP_FEAT_EN As Boolean = False
-        If MyFlashDevice.GetType Is GetType(MFP_Flash) Then
-            Dim if_type As MFP_IF = DirectCast(MyFlashDevice, MFP_Flash).IFACE
-            If if_type = MFP_IF.X16_5V_12V Then
+        If MyFlashDevice.GetType Is GetType(P_NOR) Then
+            Dim if_type As VCC_IF = DirectCast(MyFlashDevice, P_NOR).IFACE
+            If if_type = VCC_IF.X16_5V_12VPP Then
                 VPP_FEAT_EN = True
-            ElseIf if_type = MFP_IF.X16_3V_12V Then
-                VPP_FEAT_EN = True
-            ElseIf if_type = MFP_IF.X8_5V_12V Then
+            ElseIf if_type = VCC_IF.X8_5V_12Vpp Then
                 VPP_FEAT_EN = True
             End If
             If VPP_FEAT_EN Then
@@ -1070,7 +1066,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Me.CHIPID_DETECT = DetectFlashByMode(AdatperType.X16_Type2) 'TSOP-48/56 devices
         If Me.CHIPID_DETECT.Successful Then
             Dim d() As Device = FlashDatabase.FindDevices(Me.CHIPID_DETECT.MFG, Me.CHIPID_DETECT.ID1, Me.CHIPID_DETECT.ID2, MemoryType.PARALLEL_NOR)
-            If (d.Count > 0) AndAlso IsIFACE16X(DirectCast(d(0), MFP_Flash).IFACE) Then
+            If (d.Count > 0) AndAlso IsIFACE16X(DirectCast(d(0), P_NOR).IFACE) Then
                 RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X16 (Type-2)"))
                 CHIPID_MFG = Me.CHIPID_DETECT.MFG
                 CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16) Or (Me.CHIPID_DETECT.ID2)
@@ -1083,7 +1079,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Me.CHIPID_DETECT = DetectFlashByMode(AdatperType.X16_Type1) 'Legacy SO-44 devices
         If Me.CHIPID_DETECT.Successful Then
             Dim d() As Device = FlashDatabase.FindDevices(Me.CHIPID_DETECT.MFG, Me.CHIPID_DETECT.ID1, 0, MemoryType.PARALLEL_NOR)
-            If (d.Count > 0) AndAlso IsIFACE16X(DirectCast(d(0), MFP_Flash).IFACE) Then
+            If (d.Count > 0) AndAlso IsIFACE16X(DirectCast(d(0), P_NOR).IFACE) Then
                 RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X16 (Type-1)"))
                 CHIPID_MFG = Me.CHIPID_DETECT.MFG
                 CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16)
@@ -1096,7 +1092,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Me.CHIPID_DETECT = DetectFlashByMode(AdatperType.X8_Type1) 'PLCC32/DIP32
         If Me.CHIPID_DETECT.Successful Then
             Dim d() As Device = FlashDatabase.FindDevices(Me.CHIPID_DETECT.MFG, Me.CHIPID_DETECT.ID1, 0, MemoryType.PARALLEL_NOR)
-            If (d.Count > 0) AndAlso IsIFACE8X(DirectCast(d(0), MFP_Flash).IFACE) Then
+            If (d.Count > 0) AndAlso IsIFACE8X(DirectCast(d(0), P_NOR).IFACE) Then
                 RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X8 (Type-1)"))
                 CHIPID_MFG = Me.CHIPID_DETECT.MFG
                 CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16)
@@ -1109,7 +1105,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Me.CHIPID_DETECT = DetectFlashByMode(AdatperType.X8_Type2) 'TSOP48 (X8)
         If Me.CHIPID_DETECT.Successful Then
             Dim d() As Device = FlashDatabase.FindDevices(Me.CHIPID_DETECT.MFG, Me.CHIPID_DETECT.ID1, 0, MemoryType.PARALLEL_NOR)
-            If (d.Count > 0) AndAlso IsIFACE8X(DirectCast(d(0), MFP_Flash).IFACE) Then
+            If (d.Count > 0) AndAlso IsIFACE8X(DirectCast(d(0), P_NOR).IFACE) Then
                 RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X8 (Type-2)"))
                 CHIPID_MFG = Me.CHIPID_DETECT.MFG
                 CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16)
@@ -1197,28 +1193,26 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
 
     Private Sub SetupFlashDevice()
         If (MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR) Or (MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM) Then
-            Select Case DirectCast(MyFlashDevice, MFP_Flash).IFACE
-                Case MFP_IF.X8_3V
+            Select Case DirectCast(MyFlashDevice, P_NOR).IFACE
+                Case VCC_IF.X8_3V
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X8 (3V)")
                     If MyAdapter = AdatperType.X16_Type1 Or MyAdapter = AdatperType.X16_Type2 Then
                         DetectFlashByMode(AdatperType.X8_Type2)
                         MyAdapter = AdatperType.X8_Type2
                     End If
-                Case MFP_IF.X8_5V
+                Case VCC_IF.X8_5V
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X8 (5V)")
                     If MyAdapter = AdatperType.X16_Type1 Or MyAdapter = AdatperType.X16_Type2 Then
                         DetectFlashByMode(AdatperType.X8_Type2)
                         MyAdapter = AdatperType.X8_Type2
                     End If
-                Case MFP_IF.X8_5V_12V
+                Case VCC_IF.X8_5V_12VPP
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X16 (5V/12V VPP)")
-                Case MFP_IF.X16_3V
+                Case VCC_IF.X16_3V
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X16 (3V)")
-                Case MFP_IF.X16_3V_12V
-                    RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X16 (3V/12V VPP)")
-                Case MFP_IF.X16_5V
+                Case VCC_IF.X16_5V
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X16 (5V)")
-                Case MFP_IF.X16_5V_12V
+                Case VCC_IF.X16_5V_12VPP
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X16 (5V/12V VPP)")
             End Select
         ElseIf (MyFlashDevice.FLASH_TYPE = MemoryType.FWH_NOR) Then
@@ -1251,26 +1245,26 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Return result
     End Function
 
-    Private Function IsIFACE8X(input As MFP_IF) As Boolean
+    Private Function IsIFACE8X(input As VCC_IF) As Boolean
         Select Case input
-            Case MFP_IF.X8_3V
+            Case VCC_IF.X8_3V
                 Return True
-            Case MFP_IF.X8_5V
+            Case VCC_IF.X8_5V
                 Return True
-            Case MFP_IF.X8_5V_12V
+            Case VCC_IF.X8_5V_12VPP
                 Return True
             Case Else
                 Return False
         End Select
     End Function
 
-    Private Function IsIFACE16X(input As MFP_IF) As Boolean
+    Private Function IsIFACE16X(input As VCC_IF) As Boolean
         Select Case input
-            Case MFP_IF.X16_3V
+            Case VCC_IF.X16_3V
                 Return True
-            Case MFP_IF.X16_5V
+            Case VCC_IF.X16_5V
                 Return True
-            Case MFP_IF.X16_5V_12V
+            Case VCC_IF.X16_5V_12VPP
                 Return True
             Case Else
                 Return False
@@ -1309,7 +1303,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     End Function
 
     Private Function GetSetupPacket_NAND(page_addr As UInt32, page_offset As UInt16, transfer_size As UInt32, area As FlashArea) As Byte()
-        Dim NAND_DEV As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
+        Dim NAND_DEV As P_NAND = DirectCast(MyFlashDevice, P_NAND)
         Dim nand_layout As NANDLAYOUT_STRUCTURE = NANDLAYOUT_Get(NAND_DEV)
         If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then area = FlashArea.All
         Dim TX_NAND_ADDRSIZE As Byte 'Number of bytes the address command table uses
@@ -1459,7 +1453,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Try
             Dim result As Boolean
             If MySettings.ECC_READ_ENABLED AndAlso (memory_area = FlashArea.Main) Then 'We need to auto-correct data uisng ECC
-                Dim NAND_DEV As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
+                Dim NAND_DEV As P_NAND = DirectCast(MyFlashDevice, P_NAND)
                 Dim page_count As UInt32 = Math.Ceiling((count + page_offset) / NAND_DEV.PAGE_SIZE) 'Number of complete pages and OOB to read and correct
                 Dim total_main_bytes As UInt32 = (page_count * NAND_DEV.PAGE_SIZE)
                 Dim total_oob_bytes As UInt32 = (page_count * NAND_DEV.EXT_PAGE_SIZE)
@@ -1491,7 +1485,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     Private Function WriteBulk_NAND(ByVal page_addr As UInt32, main_data() As Byte, oob_data() As Byte, ByVal memory_area As FlashArea) As Boolean
         Try
             If main_data Is Nothing And oob_data Is Nothing Then Return False
-            Dim NAND_DEV As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
+            Dim NAND_DEV As P_NAND = DirectCast(MyFlashDevice, P_NAND)
             Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + NAND_DEV.EXT_PAGE_SIZE)
             Dim page_aligned() As Byte = Nothing
             If memory_area = FlashArea.All Then 'Ignore OOB/SPARE
