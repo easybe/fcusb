@@ -576,25 +576,16 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_4mbit_device", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
-        '''  Looks up a localized string similar to EXT I/O board successfully initialized.
-        '''</summary>
-        Friend Shared ReadOnly Property ext_board_initalized() As String
-            Get
-                Return ResourceManager.GetString("ext_board_initalized", resourceCulture)
-            End Get
-        End Property
-        
-        '''<summary>
-        '''  Looks up a localized string similar to Unable to connect to the Extension I/O board.
+        '''  Looks up a localized string similar to Unable to connect to the Parallel I/O board.
         '''</summary>
         Friend Shared ReadOnly Property ext_board_not_detected() As String
             Get
                 Return ResourceManager.GetString("ext_board_not_detected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Connected to Flash (CHIP ID: 0x{0}).
         '''</summary>
@@ -603,7 +594,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_connected_chipid", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Attempting to automatically detect Flash device.
         '''</summary>
@@ -612,7 +603,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_detecting_device", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Successfully detected device in {0} mode.
         '''</summary>
@@ -621,7 +612,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_device_detected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Device interface.
         '''</summary>
@@ -630,16 +621,16 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_device_interface", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
-        '''  Looks up a localized string similar to Initializing EXT I/O hardware board.
+        '''  Looks up a localized string similar to Initializing Parallel mode.
         '''</summary>
         Friend Shared ReadOnly Property ext_init() As String
             Get
                 Return ResourceManager.GetString("ext_init", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Notice: {0} device detected, Extension Port can only access up to Mb512.
         '''</summary>
@@ -648,16 +639,16 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_large_flash_detected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
-        '''  Looks up a localized string similar to Flash device not detected in Extension I/O mode.
+        '''  Looks up a localized string similar to Flash device not detected in Parallel I/O mode.
         '''</summary>
         Friend Shared ReadOnly Property ext_not_detected() As String
             Get
                 Return ResourceManager.GetString("ext_not_detected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Flash page size: {0} bytes ({1} bytes extended).
         '''</summary>
@@ -666,25 +657,16 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_page_size", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
-        '''  Looks up a localized string similar to Programming mode: EXT I/O (Parallel).
+        '''  Looks up a localized string similar to Programming mode: Parallel I/O.
         '''</summary>
         Friend Shared ReadOnly Property ext_prog_mode() As String
             Get
                 Return ResourceManager.GetString("ext_prog_mode", resourceCulture)
             End Get
         End Property
-        
-        '''<summary>
-        '''  Looks up a localized string similar to Error: unable to connect to EXT I/O board over SPI.
-        '''</summary>
-        Friend Shared ReadOnly Property ext_unable_to_connect_to_board() As String
-            Get
-                Return ResourceManager.GetString("ext_unable_to_connect_to_board", resourceCulture)
-            End Get
-        End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Write mode supported.
         '''</summary>
@@ -693,7 +675,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_write_mode_supported", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Flash detected: {0} ({1} bytes).
         '''</summary>
@@ -702,7 +684,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("flash_detected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Firmware features supported.
         '''</summary>
@@ -711,7 +693,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("fw_feat_supported", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to FlashcatUSB firmware is out of date, please update.
         '''</summary>
@@ -720,7 +702,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("fw_out_of_date", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Firmware update available, performing automatic update.
         '''</summary>
@@ -729,7 +711,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("fw_update_available", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Error: failed to start firmware update.
         '''</summary>
@@ -738,7 +720,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("fw_update_error", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Performing firmware unit update.
         '''</summary>
@@ -747,7 +729,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("fw_update_performing", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Programming new firmware into FlashcatUSB.
         '''</summary>
@@ -756,7 +738,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("fw_update_programming", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Firmware update starting (sending {0} bytes).
         '''</summary>
@@ -765,7 +747,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("fw_update_starting", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Active script.
         '''</summary>
@@ -774,7 +756,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_active_script", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Compressed File Archive.
         '''</summary>
@@ -783,7 +765,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_compressed_img", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Console text copied to the clipboard.
         '''</summary>
@@ -792,7 +774,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_console_text_copied", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Creating NAND Flash Image file.
         '''</summary>
@@ -801,7 +783,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_creating_nand_file", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to {0} database loaded: {1} devices supported.
         '''</summary>
@@ -810,7 +792,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_database_supported", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to FlashcatUSB status: Connected.
         '''</summary>
@@ -819,7 +801,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_fcusb_connected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to FlashcatUSB status: Connected ({0} devices).
         '''</summary>
@@ -828,7 +810,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_fcusb_connected_multi", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to FlashcatUSB status: Disconnected.
         '''</summary>
@@ -837,7 +819,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_fcusb_disconnected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to New device connected: {0}.
         '''</summary>
@@ -846,7 +828,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_fcusb_new_device", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to This will erase all connected Flash devices, are you sure?.
         '''</summary>
@@ -855,7 +837,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gand_erase_all_confirm", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Write.
         '''</summary>
@@ -864,7 +846,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gane_write", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Choose a binary file for programming.
         '''</summary>
@@ -873,7 +855,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gang_choose_binary", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to One or more devices are busy.
         '''</summary>
@@ -882,7 +864,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gang_device_busy", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to All Flash devices programmed.
         '''</summary>
@@ -891,7 +873,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gang_devices_programmed", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Erase.
         '''</summary>
@@ -900,7 +882,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gang_erase", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to All Flash devices erased.
         '''</summary>
@@ -909,7 +891,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gang_erase_complete", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Erasing all Flash devices.
         '''</summary>
@@ -918,7 +900,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gang_erasing", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to This is the multi-device programmer interface tool.
         '''</summary>
@@ -927,7 +909,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gang_info", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Flash image saved to disk: {0}.
         '''</summary>
@@ -936,7 +918,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_img_saved_to_disk", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Successfully programmed Flash image into current device.
         '''</summary>
@@ -945,7 +927,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_img_successful", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Device {0}: Not Connected.
         '''</summary>
@@ -954,7 +936,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_mem_device_status", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Flash memory size.
         '''</summary>
@@ -963,7 +945,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_mem_size", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Memory device.
         '''</summary>
@@ -972,7 +954,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_memory_device", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Language.
         '''</summary>
@@ -981,7 +963,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_language", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Main.
         '''</summary>
@@ -990,7 +972,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_main", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Detect (re-initialize).
         '''</summary>
@@ -999,7 +981,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_main_detect", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Exit.
         '''</summary>
@@ -1008,7 +990,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_main_exit", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Refresh flash device.
         '''</summary>
@@ -1017,7 +999,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_main_refresh", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Repeat write operation.
         '''</summary>
@@ -1026,7 +1008,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_main_repeat", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Mode.
         '''</summary>
@@ -1035,7 +1017,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_mode", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Bit Swapping.
         '''</summary>
@@ -1044,7 +1026,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_mode_bitswap", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Endian mode.
         '''</summary>
@@ -1053,7 +1035,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_mode_endian", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Protocol settings.
         '''</summary>
@@ -1062,7 +1044,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_mode_settings", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Verify programming.
         '''</summary>
@@ -1071,7 +1053,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_mode_verify", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Voltage ({0}).
         '''</summary>
@@ -1080,7 +1062,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_mode_voltage", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to VPP Setting.
         '''</summary>
@@ -1089,7 +1071,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_mode_vpp", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Script.
         '''</summary>
@@ -1098,7 +1080,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_script", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Load script.
         '''</summary>
@@ -1107,7 +1089,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_script_load", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Select script.
         '''</summary>
@@ -1116,7 +1098,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_script_select", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Unload script.
         '''</summary>
@@ -1125,7 +1107,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_script_unload", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Tools.
         '''</summary>
@@ -1134,7 +1116,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_tools", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Create image.
         '''</summary>
@@ -1143,7 +1125,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_tools_create", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Erase chip.
         '''</summary>
@@ -1152,7 +1134,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_tools_erase", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to NAND memory map.
         '''</summary>
@@ -1161,7 +1143,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_tools_mem_map", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to SPI NAND internal ECC.
         '''</summary>
@@ -1170,7 +1152,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_tools_spi_ecc", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Vendor Features.
         '''</summary>
@@ -1179,7 +1161,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_tools_vendor", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Write image.
         '''</summary>
@@ -1188,7 +1170,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_tools_write", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Error creating backup: read memory returned inconsistance results.
         '''</summary>
@@ -1197,7 +1179,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_nand_creating_backup", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Error: file is not a valid Flash image.
         '''</summary>
@@ -1206,7 +1188,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_not_valid_img", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Open Flash image file to program.
         '''</summary>
@@ -1215,7 +1197,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_open_img", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Programming Flash image: {0}.
         '''</summary>
@@ -1224,7 +1206,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_programming_img", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Reading Flash: {0} of {1} bytes ({2}% complete).
         '''</summary>
@@ -1233,7 +1215,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_reading_flash", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Reading NAND spare area: {0} of {1} bytes ({2}% complete).
         '''</summary>
@@ -1242,7 +1224,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_reading_spare_area", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Performing repeat write operation, resetting device.
         '''</summary>
@@ -1251,7 +1233,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_repeat_beginning", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Error, can not detect Flash device to perform repeat operation.
         '''</summary>
@@ -1260,7 +1242,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_repeat_failed_detect", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Error, unable to reconnect to FlashcatUSB.
         '''</summary>
@@ -1269,7 +1251,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_repeat_failed_reconnect", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Choose location to save the console log.
         '''</summary>
@@ -1278,7 +1260,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_save_dialog", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Saved Flash image to disk: {0}.
         '''</summary>
@@ -1287,7 +1269,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_saved_img_to_disk", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Can not load script, file does not exist.
         '''</summary>
@@ -1296,7 +1278,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_script_can_not_load", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Checking for a device specific script to automatically load.
         '''</summary>
@@ -1305,7 +1287,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_script_checking", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Loaded script {0} successfully.
         '''</summary>
@@ -1314,7 +1296,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_script_loaded", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Loading device specific script: {0}.
         '''</summary>
@@ -1323,7 +1305,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_script_loading", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to No script files available.
         '''</summary>
@@ -1332,7 +1314,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_script_non_available", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Select FlashcatUSB script file to open.
         '''</summary>
@@ -1341,7 +1323,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_script_open", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to The FlashcatUSB script engine has been reset.
         '''</summary>
@@ -1350,7 +1332,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_script_reset", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Select location to save Flash image file.
         '''</summary>
@@ -1359,7 +1341,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_select_location", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Welcome to FlashcatUSB (SPI / I2C / JTAG Programing Software)!.
         '''</summary>
@@ -1368,7 +1350,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_status_welcome", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Console.
         '''</summary>
@@ -1377,7 +1359,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_tab_console", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Multi-device.
         '''</summary>
@@ -1386,7 +1368,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_tab_multi", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Status.
         '''</summary>
@@ -1395,7 +1377,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_tab_status", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Are you sure you want to enable this feature?.
         '''</summary>
@@ -1404,7 +1386,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_vpp_confirm", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Confirm +12V VPP Setting.
         '''</summary>
@@ -1413,7 +1395,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_vpp_setting", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Warning, this setting should only be used with adapters with a +12V switch.
         '''</summary>
@@ -1422,7 +1404,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_vpp_warning", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Writing Flash: {0} of {1} bytes ({2}% complete).
         '''</summary>
@@ -1431,7 +1413,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_writing_flash", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to I2C Address byte: 0x{0}.
         '''</summary>
@@ -1440,7 +1422,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_addr_byte", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Attempting to detect I2C EEPROM device.
         '''</summary>
@@ -1449,7 +1431,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_attempt_detect", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Successfully connected to I2C EEPROM.
         '''</summary>
@@ -1458,7 +1440,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_connected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to I2C EEPROM detected and ready for operation.
         '''</summary>
@@ -1467,7 +1449,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_detected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to I2C EEPROM device size: {0} bytes.
         '''</summary>
@@ -1476,7 +1458,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_eeprom_size", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to I2C EEPROM not detected.
         '''</summary>
@@ -1485,7 +1467,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_not_detected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to I2C protocol speed.
         '''</summary>
@@ -1494,7 +1476,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_protocol_speed", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Unable to connect to I2C EEPROM.
         '''</summary>
@@ -1503,7 +1485,16 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_unable_to_connect", resourceCulture)
             End Get
         End Property
-        
+
+        '''<summary>
+        '''  Looks up a localized string similar to Parallel mode successfully initialized.
+        '''</summary>
+        Friend Shared ReadOnly Property io_mode_initalized() As String
+            Get
+                Return ResourceManager.GetString("io_mode_initalized", resourceCulture)
+            End Get
+        End Property
+
         '''<summary>
         '''  Looks up a localized string similar to Attempting to detect CFI flash at address 0x{0}.
         '''</summary>

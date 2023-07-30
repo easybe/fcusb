@@ -240,6 +240,9 @@ Public Class ISC_LOGIC_PROG
     End Function
 
     Private Sub FPGA_TEST_MODE()
+        'sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.JTAG_INIT, Nothing, 2)
+        'sel_usb_dev.SQI_NOR_IF.SQIBUS_Setup(SPI.SQI_SPEED.MHZ_10)
+
         'Dim d_size As Integer = 512
         'Dim data_out(d_size - 1) As Byte
         'Dim data_in(d_size - 1) As Byte
@@ -250,6 +253,8 @@ Public Class ISC_LOGIC_PROG
         'sel_usb_dev.USB_SETUP_BULKOUT(USBREQ.TEST_WRITE, Nothing, data_out, data_out.Length)
         'sel_usb_dev.USB_SETUP_BULKIN(USBREQ.TEST_READ, Nothing, data_in, data_in.Length)
         'Beep() 'data_in is correct!! 0x01 0x02 0x03 etc.
+
+
         'sel_usb_dev.SQI_NOR_IF.SQIBUS_Setup(SPI.SQI_SPEED.MHZ_10)
         'Dim io_mode As Byte = SPI.MULTI_IO_MODE.Single
         'sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.SQI_SS_ENABLE)

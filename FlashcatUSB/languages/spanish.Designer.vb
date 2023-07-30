@@ -578,16 +578,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to La placa de EXT I/O inicializado exitosamente.
-        '''</summary>
-        Friend Shared ReadOnly Property ext_board_initalized() As String
-            Get
-                Return ResourceManager.GetString("ext_board_initalized", resourceCulture)
-            End Get
-        End Property
-        
-        '''<summary>
-        '''  Looks up a localized string similar to No se puede conectar a la placa de Extension I/O.
+        '''  Looks up a localized string similar to No se puede conectar a la placa de Parallel I/O.
         '''</summary>
         Friend Shared ReadOnly Property ext_board_not_detected() As String
             Get
@@ -632,7 +623,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Inicializando la placa de hardware EXT I/O.
+        '''  Looks up a localized string similar to Inicializando la placa de hardware Parallel I/O.
         '''</summary>
         Friend Shared ReadOnly Property ext_init() As String
             Get
@@ -650,7 +641,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Dispositivo flash no detectado en el modo de Extension I/O.
+        '''  Looks up a localized string similar to Dispositivo flash no detectado en el modo de Parallel I/O.
         '''</summary>
         Friend Shared ReadOnly Property ext_not_detected() As String
             Get
@@ -668,20 +659,11 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Modo de programación: EXT I/O (Parallel).
+        '''  Looks up a localized string similar to Modo de programación: Parallel Modo.
         '''</summary>
         Friend Shared ReadOnly Property ext_prog_mode() As String
             Get
                 Return ResourceManager.GetString("ext_prog_mode", resourceCulture)
-            End Get
-        End Property
-        
-        '''<summary>
-        '''  Looks up a localized string similar to Error: no se puede conectar a la placa de EXT I/O sobre SPI.
-        '''</summary>
-        Friend Shared ReadOnly Property ext_unable_to_connect_to_board() As String
-            Get
-                Return ResourceManager.GetString("ext_unable_to_connect_to_board", resourceCulture)
             End Get
         End Property
         
@@ -1501,6 +1483,15 @@ Namespace My.Resources
         Friend Shared ReadOnly Property i2c_unable_to_connect() As String
             Get
                 Return ResourceManager.GetString("i2c_unable_to_connect", resourceCulture)
+            End Get
+        End Property
+        
+        '''<summary>
+        '''  Looks up a localized string similar to Modo paralelo inicializado con éxito.
+        '''</summary>
+        Friend Shared ReadOnly Property io_mode_initalized() As String
+            Get
+                Return ResourceManager.GetString("io_mode_initalized", resourceCulture)
             End Get
         End Property
         

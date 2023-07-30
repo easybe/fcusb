@@ -264,11 +264,11 @@
   <data name="ext_4mbit_device" xml:space="preserve">
     <value>Обнаружено устройство DIP32/PLCC32 4Мбит, включаем A18 на Pin 1 (reset)</value>
   </data>
-  <data name="ext_board_initalized" xml:space="preserve">
-    <value>Плата EXT I/O успешно инициализирована</value>
+  <data name="io_mode_initalized" xml:space="preserve">
+    <value>Параллельный режим успешно инициализирован</value>
   </data>
   <data name="ext_board_not_detected" xml:space="preserve">
-    <value>Невозможно подключиться к плате EXT I/O</value>
+    <value>Невозможно подключиться к плате parallel mode</value>
   </data>
   <data name="ext_connected_chipid" xml:space="preserve">
     <value>Подключено устройство Flash (CHIP ID: 0x{0})</value>
@@ -283,22 +283,19 @@
     <value>Интерфейс устройства</value>
   </data>
   <data name="ext_init" xml:space="preserve">
-    <value>Инициализация EXT I/O платы</value>
+    <value>Инициализация parallel mode платы</value>
   </data>
   <data name="ext_large_flash_detected" xml:space="preserve">
     <value>Внимание: Обнаружено устройство {0}, Порт Расширения может использовать только до 512Мбит</value>
   </data>
   <data name="ext_not_detected" xml:space="preserve">
-    <value>Flash устройство не обнаружено в режиме Extension I/O</value>
+    <value>Flash устройство не обнаружено в режиме Parallel I/O</value>
   </data>
   <data name="ext_page_size" xml:space="preserve">
     <value>Размер Flash страницы: {0} байт ({1} байт расширенных)</value>
   </data>
   <data name="ext_prog_mode" xml:space="preserve">
-    <value>Режим программирования: EXT I/O (параллельный)</value>
-  </data>
-  <data name="ext_unable_to_connect_to_board" xml:space="preserve">
-    <value>Ошибка: невозможно подключиться к плате EXT I/O в режиме SPI</value>
+    <value>Режим программирования: Parallel I/O (параллельный)</value>
   </data>
   <data name="ext_write_mode_supported" xml:space="preserve">
     <value>Режим записи поддерживается</value>

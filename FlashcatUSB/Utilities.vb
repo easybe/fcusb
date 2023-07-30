@@ -1443,7 +1443,7 @@ Namespace Utilities
 
 #Region "Type conversions"
 
-        Public Function HexToInt(ByVal value As String) As Int32
+        Public Function HexToInt(value As String) As Int32
             Try
                 If value.ToUpper.StartsWith("0X") Then value = Mid(value, 3)
                 If value = "" Then Return 0
@@ -1453,7 +1453,7 @@ Namespace Utilities
             End Try
         End Function
 
-        Public Function HexToUInt(ByVal value As String) As UInt32
+        Public Function HexToUInt(value As String) As UInt32
             Try
                 If value.ToUpper.StartsWith("0X") Then value = Mid(value, 3)
                 If value = "" Then Return 0
@@ -1463,7 +1463,7 @@ Namespace Utilities
             End Try
         End Function
 
-        Public Function HexToLng(ByVal value As String) As Long
+        Public Function HexToLng(value As String) As Long
             Try
                 If UCase(value).StartsWith("0X") Then value = Mid(value, 3)
                 If value = "" Then Return 0
@@ -1473,7 +1473,7 @@ Namespace Utilities
             End Try
         End Function
 
-        Public Function BoolToInt(ByVal en As Boolean) As Int32
+        Public Function BoolToInt(en As Boolean) As Int32
             If en Then
                 Return 1
             Else
@@ -1481,7 +1481,7 @@ Namespace Utilities
             End If
         End Function
 
-        Public Function BitStringToInteger(ByVal input As String) As Integer
+        Public Function BitStringToInteger(input As String) As Integer
             input = Trim(UCase(input))
             Dim firstpart As String
             If input.EndsWith("MBPS") Then

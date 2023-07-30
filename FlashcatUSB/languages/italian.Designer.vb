@@ -578,15 +578,6 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Scheda I / O EXT inizializzata correttamente.
-        '''</summary>
-        Friend Shared ReadOnly Property ext_board_initalized() As String
-            Get
-                Return ResourceManager.GetString("ext_board_initalized", resourceCulture)
-            End Get
-        End Property
-        
-        '''<summary>
         '''  Looks up a localized string similar to Impossibile connettersi alla scheda I / O di estensione.
         '''</summary>
         Friend Shared ReadOnly Property ext_board_not_detected() As String
@@ -673,15 +664,6 @@ Namespace My.Resources
         Friend Shared ReadOnly Property ext_prog_mode() As String
             Get
                 Return ResourceManager.GetString("ext_prog_mode", resourceCulture)
-            End Get
-        End Property
-        
-        '''<summary>
-        '''  Looks up a localized string similar to Errore: impossibile connettersi alla scheda I / O EXT su SPI.
-        '''</summary>
-        Friend Shared ReadOnly Property ext_unable_to_connect_to_board() As String
-            Get
-                Return ResourceManager.GetString("ext_unable_to_connect_to_board", resourceCulture)
             End Get
         End Property
         
@@ -1501,6 +1483,15 @@ Namespace My.Resources
         Friend Shared ReadOnly Property i2c_unable_to_connect() As String
             Get
                 Return ResourceManager.GetString("i2c_unable_to_connect", resourceCulture)
+            End Get
+        End Property
+        
+        '''<summary>
+        '''  Looks up a localized string similar to Modalità parallela inizializzata correttamente.
+        '''</summary>
+        Friend Shared ReadOnly Property io_mode_initalized() As String
+            Get
+                Return ResourceManager.GetString("io_mode_initalized", resourceCulture)
             End Get
         End Property
         

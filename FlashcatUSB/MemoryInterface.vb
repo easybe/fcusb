@@ -568,11 +568,7 @@ Public Class MemoryInterface
                         If (FlashType = MemoryType.NAND) OrElse (FlashType = MemoryType.SERIAL_NAND) Then
                             If MySettings.NAND_MismatchSkip Then 'Bad block
                                 If (i = TotalSectors - 1) Then Return False 'No more blocks to write
-                                If (Params.Address = 0) Then
-                                    data_stream.Position = 0
-                                Else
-                                    data_stream.Position -= SectorData.Length 'We are going to re-write these bytes to the next block
-                                End If
+                                data_stream.Position -= StreamCount 'We are going to re-write these bytes to the next block
                                 Params.Address += SectorData.Length 'and to this base address
                             Else
                                 Return False

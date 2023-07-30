@@ -593,7 +593,7 @@ Public Class JTAG_STATE_CONTROLLER
         GotoState(JTAG_MACHINE_STATE.Select_DR)
     End Sub
 
-    Public Sub ShiftDR(ByVal tdi_bits() As Byte, ByRef tdo_bits() As Byte, ByVal bit_count As Integer, Optional exit_mode As Boolean = True)
+    Public Sub ShiftDR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As Integer, Optional exit_mode As Boolean = True)
         GotoState(JTAG_MACHINE_STATE.Shift_DR)
         If exit_mode Then
             tdo_bits = ShiftOut(tdi_bits, bit_count, True)
@@ -603,7 +603,7 @@ Public Class JTAG_STATE_CONTROLLER
         End If
     End Sub
 
-    Public Sub ShiftIR(ByVal tdi_bits() As Byte, ByRef tdo_bits() As Byte, ByVal bit_count As Integer, Optional exit_mode As Boolean = True)
+    Public Sub ShiftIR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As Integer, Optional exit_mode As Boolean = True)
         GotoState(JTAG_MACHINE_STATE.Shift_IR)
         If exit_mode Then
             tdo_bits = ShiftOut(tdi_bits, bit_count, True)
@@ -613,7 +613,7 @@ Public Class JTAG_STATE_CONTROLLER
         End If
     End Sub
 
-    Private Function GetBytes_FromUint(ByVal input As UInt32, ByVal MinBits As Integer) As Byte()
+    Private Function GetBytes_FromUint(input As UInt32, MinBits As Integer) As Byte()
         Dim current(3) As Byte
         current(0) = (input And &HFF000000) >> 24
         current(1) = (input And &HFF0000) >> 16
@@ -627,7 +627,7 @@ Public Class JTAG_STATE_CONTROLLER
         Return out
     End Function
 
-    Public Function ShiftOut(ByVal TDI_IN() As Byte, ByVal bit_count As UInt32, Optional ByVal exit_mode As Boolean = False) As Byte()
+    Public Function ShiftOut(TDI_IN() As Byte, bit_count As UInt32, Optional exit_mode As Boolean = False) As Byte()
         Dim TotalBytes As UInt32 = Math.Ceiling(bit_count / 8)
         Dim TDO_OUT(TotalBytes - 1) As Byte
         Array.Reverse(TDI_IN)

@@ -1415,7 +1415,7 @@ Partial Class FrmSettings
         '
         Me.cb_jtag_tck_speed.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_jtag_tck_speed.FormattingEnabled = True
-        Me.cb_jtag_tck_speed.Items.AddRange(New Object() {"10 MHz", "20 MHz"})
+        Me.cb_jtag_tck_speed.Items.AddRange(New Object() {"10 MHz", "20 MHz", "40 MHz"})
         Me.cb_jtag_tck_speed.Location = New System.Drawing.Point(9, 45)
         Me.cb_jtag_tck_speed.Name = "cb_jtag_tck_speed"
         Me.cb_jtag_tck_speed.Size = New System.Drawing.Size(117, 21)

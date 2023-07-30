@@ -194,10 +194,12 @@ Public Class FrmSettings
         cb_retry_write.SelectedIndex = (MySettings.VERIFY_COUNT - 1)
         cbSrec.SelectedIndex = MySettings.SREC_BITMODE
         Select Case MySettings.JTAG_SPEED
-            Case FlashcatSettings.JTAG_TCK_FREQ._10MHZ
+            Case JTAG.JTAG_SPEED._10MHZ
                 cb_jtag_tck_speed.SelectedIndex = 0
-            Case FlashcatSettings.JTAG_TCK_FREQ._20MHz
+            Case JTAG.JTAG_SPEED._20MHZ
                 cb_jtag_tck_speed.SelectedIndex = 1
+            Case JTAG.JTAG_SPEED._40MHZ
+                cb_jtag_tck_speed.SelectedIndex = 2
         End Select
         For Each item In cb_nor_read_access.Items
             If item.ToString.StartsWith(MySettings.NOR_READ_ACCESS) Then
@@ -342,9 +344,11 @@ Public Class FrmSettings
         Microwire_Save()
         Select Case cb_jtag_tck_speed.SelectedIndex
             Case 0
-                MySettings.JTAG_SPEED = FlashcatSettings.JTAG_TCK_FREQ._10MHZ
+                MySettings.JTAG_SPEED = JTAG.JTAG_SPEED._10MHZ
             Case 1
-                MySettings.JTAG_SPEED = FlashcatSettings.JTAG_TCK_FREQ._20MHz
+                MySettings.JTAG_SPEED = JTAG.JTAG_SPEED._20MHZ
+            Case 2
+                MySettings.JTAG_SPEED = JTAG.JTAG_SPEED._40MHZ
         End Select
         Dim s As String = cb_nor_read_access.SelectedItem.ToString
         MySettings.NOR_READ_ACCESS = CInt(s.Substring(0, s.IndexOf(" ")))
@@ -977,8 +981,5 @@ Public Class FrmSettings
             lbl_s93_size.Visible = False
         End If
     End Sub
-
-
-
 
 End Class

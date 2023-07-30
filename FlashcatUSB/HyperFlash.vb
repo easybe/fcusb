@@ -5,7 +5,7 @@ Imports FlashcatUSB.USB.HostClient
 
 Public Class HF_Port : Implements MemoryDeviceUSB
     Private FCUSB As FCUSB_DEVICE
-    Public Property MyFlashDevice As HYPERFLASH  'Contains the definition for the EXT I/O device that is connected
+    Public Property MyFlashDevice As HYPERFLASH  'Contains the definition for the parallel mode device that is connected
     Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
 
     Public Event PrintConsole(ByVal msg As String) Implements MemoryDeviceUSB.PrintConsole

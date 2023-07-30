@@ -33,13 +33,18 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             Dim clk_speed As Integer = GetMaxSpiClock(FCUSB.HWBOARD, MySettings.SPI_CLOCK_MAX)
             Me.FCUSB.USB_SPI_SETUP(MySettings.SPI_MODE, MySettings.SPI_BIT_ORDER, clk_speed)
             SPIBUS_WriteRead({SPI_Command_DEF.RDID}, rdid) 'NAND devives use 1 dummy byte, then MFG and ID1 (and sometimes, ID2)
-            If Not (rdid(0) = 0 Or rdid(0) = 255) Then Return False
-            If rdid(1) = 0 OrElse rdid(1) = 255 Then Return False
-            If rdid(2) = 0 OrElse rdid(2) = 255 Then Return False
-            If rdid(1) = rdid(2) Then Return False
-            MFG = rdid(1)
-            PART = rdid(2)
-            If Not rdid(3) = MFG Then PART = (CUShort(rdid(2)) << 8) + rdid(3)
+            If (rdid(0) = &HC8 AndAlso rdid(3) = &HC8) Then 'GigaDevice device
+                MFG = rdid(0)
+                PART = (CUShort(rdid(1)) << 8) + rdid(2)
+            Else 'Other Manufacturers use this
+                If Not (rdid(0) = 0 Or rdid(0) = 255) Then Return False
+                If rdid(1) = 0 OrElse rdid(1) = 255 Then Return False
+                If rdid(2) = 0 OrElse rdid(2) = 255 Then Return False
+                If rdid(1) = rdid(2) Then Return False
+                MFG = rdid(1)
+                PART = rdid(2)
+                If Not rdid(3) = MFG Then PART = (CUShort(rdid(2)) << 8) + rdid(3)
+            End If
         End If
         Dim RDID_Str As String = "0x" & Hex(MFG).PadLeft(2, "0") & Hex(PART).PadLeft(4, "0")
         RaiseEvent PrintConsole(RM.GetString("spinand_opened_device"))
@@ -482,22 +487,31 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             Dim data_out(data_count - 1) As Byte
             If (FCUSB.HasLogic()) Then 'Hardware-enabled routine
                 Dim setup() As Byte = SetupPacket_NAND(page_addr, page_offset, data_count, memory_area)
-                Dim param As UInt32 = Utilities.BoolToInt(MyFlashDevice.PLANE_SELECT)
+                Dim param As UInt32 = 0
+                If MyFlashDevice.PLANE_SELECT Then param = (param Or 1)
+                If MyFlashDevice.READ_CMD_DUMMY Then param = (param Or (1 << 1))
                 Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.SPINAND_READFLASH, setup, data_out, param)
                 If Not result Then Return Nothing
-            Else
+                Else
                 Dim nand_layout As NANDLAYOUT_STRUCTURE = NANDLAYOUT_Get(MyFlashDevice)
                 Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE)
                 Dim logical_block As UInt16 = (nand_layout.Layout_Main + nand_layout.Layout_Spare)
                 Dim data_ptr As UInt32 = 0
+                Dim op_setup() As Byte = Nothing
                 Do While (bytes_left > 0)
                     Dim read_offset As UInt16 = 0 'We always want to read the entire page
                     If MyFlashDevice.PLANE_SELECT Then read_offset = read_offset Or &H1000 'Sets plane select to HIGH
-                    Dim op_setup(3) As Byte
-                    op_setup(0) = OPCMD_READCACHE
-                    op_setup(1) = ((read_offset >> 8) And 255) 'Column address (upper)
-                    op_setup(2) = (read_offset And 255) 'Lower
-                    op_setup(3) = 0 'Dummy bits
+                    If MyFlashDevice.READ_CMD_DUMMY Then
+                        ReDim op_setup(4)
+                        op_setup(0) = OPCMD_READCACHE
+                        op_setup(2) = ((read_offset >> 8) And 255) 'Column address (upper)
+                        op_setup(3) = (read_offset And 255) 'Lower
+                    Else
+                        ReDim op_setup(3)
+                        op_setup(0) = OPCMD_READCACHE
+                        op_setup(1) = ((read_offset >> 8) And 255) 'Column address (upper)
+                        op_setup(2) = (read_offset And 255) 'Lower
+                    End If
                     Dim read_packet(page_size_tot - 1) As Byte
                     SPIBUS_WriteRead({OPCMD_PAGEREAD, ((page_addr >> 16) And 255), ((page_addr >> 8) And 255), (page_addr And 255)})
                     SPIBUS_WriteRead(op_setup, read_packet)

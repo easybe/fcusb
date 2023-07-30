@@ -948,10 +948,10 @@ Namespace USB
         VPP_0V = 7
         VPP_5V = 8
         VPP_12V = 9
-        RELAY_ON = 10
-        RELAY_OFF = 11
-        VPP_DISABLE = 12
-        VPP_ENABLE = 13
+        RELAY_ON = 10 'PE7=HIGH
+        RELAY_OFF = 11 'PE7=LOW
+        VPP_DISABLE = 12 'CLE_LOW
+        VPP_ENABLE = 13 'CLE_HIGH
     End Enum
 
     Public Enum DeviceStatus

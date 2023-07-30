@@ -576,25 +576,16 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_4mbit_device", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
-        '''  Looks up a localized string similar to EXT I/O 初始化成功.
-        '''</summary>
-        Friend Shared ReadOnly Property ext_board_initalized() As String
-            Get
-                Return ResourceManager.GetString("ext_board_initalized", resourceCulture)
-            End Get
-        End Property
-        
-        '''<summary>
-        '''  Looks up a localized string similar to 无法连接到 Extension I/O 电路板.
+        '''  Looks up a localized string similar to 无法连接到 Parallel I/O 电路板.
         '''</summary>
         Friend Shared ReadOnly Property ext_board_not_detected() As String
             Get
                 Return ResourceManager.GetString("ext_board_not_detected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 连接到闪存（芯片ID：0x{0}）.
         '''</summary>
@@ -603,7 +594,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_connected_chipid", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 尝试自动检测闪存设备.
         '''</summary>
@@ -612,7 +603,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_detecting_device", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 成功检测设备在{0}模式.
         '''</summary>
@@ -621,7 +612,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_device_detected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 存储器接口.
         '''</summary>
@@ -630,16 +621,16 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_device_interface", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
-        '''  Looks up a localized string similar to 正在初始化EXT I/O硬件板.
+        '''  Looks up a localized string similar to 正在初始化parallel mode硬件板.
         '''</summary>
         Friend Shared ReadOnly Property ext_init() As String
             Get
                 Return ResourceManager.GetString("ext_init", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 注意：检测到{0}设备，Extension Port最高可存取512Mb.
         '''</summary>
@@ -648,16 +639,16 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_large_flash_detected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
-        '''  Looks up a localized string similar to 未在Extension I/O模式中检测到闪存设备.
+        '''  Looks up a localized string similar to 未在Parallel I/O模式中检测到闪存设备.
         '''</summary>
         Friend Shared ReadOnly Property ext_not_detected() As String
             Get
                 Return ResourceManager.GetString("ext_not_detected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 闪存页面大小：{0}字节（扩展{1}字节）.
         '''</summary>
@@ -666,25 +657,16 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_page_size", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
-        '''  Looks up a localized string similar to 编辑模式：EXT I/O(并行).
+        '''  Looks up a localized string similar to 编辑模式：parallel mode(并行).
         '''</summary>
         Friend Shared ReadOnly Property ext_prog_mode() As String
             Get
                 Return ResourceManager.GetString("ext_prog_mode", resourceCulture)
             End Get
         End Property
-        
-        '''<summary>
-        '''  Looks up a localized string similar to 错误：无法连接到EXT I/O.
-        '''</summary>
-        Friend Shared ReadOnly Property ext_unable_to_connect_to_board() As String
-            Get
-                Return ResourceManager.GetString("ext_unable_to_connect_to_board", resourceCulture)
-            End Get
-        End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 支持写入模式.
         '''</summary>
@@ -693,7 +675,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("ext_write_mode_supported", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 检测到闪存：{0}{1}字节.
         '''</summary>
@@ -702,7 +684,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("flash_detected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 支持固件功能.
         '''</summary>
@@ -711,7 +693,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("fw_feat_supported", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to FlashcatUSB固件已过期，请更新.
         '''</summary>
@@ -720,7 +702,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("fw_out_of_date", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 有可用更新，执行自动更新.
         '''</summary>
@@ -729,7 +711,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("fw_update_available", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 错误：更新失败.
         '''</summary>
@@ -738,7 +720,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("fw_update_error", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 执行固件单元更新.
         '''</summary>
@@ -747,7 +729,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("fw_update_performing", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 编辑新的固件到FlashcatUSB Pro.
         '''</summary>
@@ -756,7 +738,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("fw_update_programming", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 更新开始（发送中{0}字节）.
         '''</summary>
@@ -765,7 +747,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("fw_update_starting", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 激活脚本.
         '''</summary>
@@ -774,7 +756,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_active_script", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 压缩文件存档.
         '''</summary>
@@ -783,7 +765,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_compressed_img", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 控制台文本复制到剪贴板.
         '''</summary>
@@ -792,7 +774,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_console_text_copied", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 从NAND建立映像文件.
         '''</summary>
@@ -801,7 +783,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_creating_nand_file", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 加载数据库：{1}支持的设备.
         '''</summary>
@@ -810,7 +792,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_database_supported", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to FlashcatUSB状态：已连接.
         '''</summary>
@@ -819,7 +801,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_fcusb_connected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to FlashcatUSB状态：已连接({0}设备）.
         '''</summary>
@@ -828,7 +810,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_fcusb_connected_multi", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to FlashcatUSB状态：未连接.
         '''</summary>
@@ -837,7 +819,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_fcusb_disconnected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 连接到新设备：{0}.
         '''</summary>
@@ -846,7 +828,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_fcusb_new_device", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 此项操作将会删除所有已连接的闪存设备，确定执行？.
         '''</summary>
@@ -855,7 +837,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gand_erase_all_confirm", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 写入.
         '''</summary>
@@ -864,7 +846,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gane_write", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 选择所要编程的二进制文件.
         '''</summary>
@@ -873,7 +855,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gang_choose_binary", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 一个或多个设备正在工作中.
         '''</summary>
@@ -882,7 +864,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gang_device_busy", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 所有闪存设备已编辑.
         '''</summary>
@@ -891,7 +873,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gang_devices_programmed", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 清除.
         '''</summary>
@@ -900,7 +882,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gang_erase", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 所有闪存设备已清除.
         '''</summary>
@@ -909,7 +891,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gang_erase_complete", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 正在清除所有闪存设备.
         '''</summary>
@@ -918,7 +900,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gang_erasing", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 这是多设备程序接口工具.
         '''</summary>
@@ -927,7 +909,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_gang_info", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 闪存文件已经保存到磁盘：{0}.
         '''</summary>
@@ -936,7 +918,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_img_saved_to_disk", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 成功编程闪存文件到当前设备.
         '''</summary>
@@ -945,7 +927,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_img_successful", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 设备{0}：未连接 .
         '''</summary>
@@ -954,7 +936,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_mem_device_status", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 闪存容量 .
         '''</summary>
@@ -963,7 +945,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_mem_size", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 存储设备.
         '''</summary>
@@ -972,7 +954,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_memory_device", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 语言.
         '''</summary>
@@ -981,7 +963,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_language", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 主菜单.
         '''</summary>
@@ -990,7 +972,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_main", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 检测（重新初始化）.
         '''</summary>
@@ -999,7 +981,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_main_detect", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 退出.
         '''</summary>
@@ -1008,7 +990,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_main_exit", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 刷新闪存设备.
         '''</summary>
@@ -1017,7 +999,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_main_refresh", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 重复写入操作.
         '''</summary>
@@ -1026,7 +1008,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_main_repeat", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 模式.
         '''</summary>
@@ -1035,7 +1017,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_mode", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 位交换 .
         '''</summary>
@@ -1044,7 +1026,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_mode_bitswap", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to Endian模式.
         '''</summary>
@@ -1053,7 +1035,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_mode_endian", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 协议设备.
         '''</summary>
@@ -1062,7 +1044,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_mode_settings", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 验证编程.
         '''</summary>
@@ -1071,7 +1053,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_mode_verify", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 电压（{0}）.
         '''</summary>
@@ -1080,7 +1062,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_mode_voltage", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to VPP设备.
         '''</summary>
@@ -1089,7 +1071,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_mode_vpp", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 脚本.
         '''</summary>
@@ -1098,7 +1080,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_script", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 加载脚本.
         '''</summary>
@@ -1107,7 +1089,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_script_load", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 选择脚本.
         '''</summary>
@@ -1116,7 +1098,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_script_select", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 停止加载脚本.
         '''</summary>
@@ -1125,7 +1107,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_script_unload", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 工具.
         '''</summary>
@@ -1134,7 +1116,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_tools", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 建立文件.
         '''</summary>
@@ -1143,7 +1125,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_tools_create", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 芯片擦除.
         '''</summary>
@@ -1152,7 +1134,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_tools_erase", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to NAN内存映像.
         '''</summary>
@@ -1161,7 +1143,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_tools_mem_map", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to SPI NAND 内部 ECC.
         '''</summary>
@@ -1170,7 +1152,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_tools_spi_ecc", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 供应商特性.
         '''</summary>
@@ -1179,7 +1161,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_tools_vendor", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 写入文件.
         '''</summary>
@@ -1188,7 +1170,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_menu_tools_write", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 建立备份出错：读取内存返回结果不一致.
         '''</summary>
@@ -1197,7 +1179,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_nand_creating_backup", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 错误：文件失效.
         '''</summary>
@@ -1206,7 +1188,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_not_valid_img", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 打开要编程的闪存文件.
         '''</summary>
@@ -1215,7 +1197,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_open_img", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 正在编程闪存文件：{0}.
         '''</summary>
@@ -1224,7 +1206,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_programming_img", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 正在读取内存：{0} of {1}字节(完成{2}%）.
         '''</summary>
@@ -1233,7 +1215,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_reading_flash", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 正在读取NAND备用区：{0} of {1} 字节（完成{2}%）.
         '''</summary>
@@ -1242,7 +1224,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_reading_spare_area", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 执行重复写入操作，重置设备.
         '''</summary>
@@ -1251,7 +1233,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_repeat_beginning", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 错误，未检测到闪存设备，无法进行重复操作.
         '''</summary>
@@ -1260,7 +1242,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_repeat_failed_detect", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 错误，无法重新连接到FlashcatUSB.
         '''</summary>
@@ -1269,7 +1251,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_repeat_failed_reconnect", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 选择存储控制台日志的路径.
         '''</summary>
@@ -1278,7 +1260,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_save_dialog", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 保存文件到磁盘：{0}.
         '''</summary>
@@ -1287,7 +1269,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_saved_img_to_disk", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 无法加载脚本，文件不存在.
         '''</summary>
@@ -1296,7 +1278,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_script_can_not_load", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 检查设备特定的脚本以自动加载 .
         '''</summary>
@@ -1305,7 +1287,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_script_checking", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 成功加载脚本{0}.
         '''</summary>
@@ -1314,7 +1296,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_script_loaded", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 加载设备特定脚本：{0}.
         '''</summary>
@@ -1323,7 +1305,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_script_loading", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 没有脚本文件.
         '''</summary>
@@ -1332,7 +1314,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_script_non_available", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 打开FlashcatUSB脚本文件.
         '''</summary>
@@ -1341,7 +1323,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_script_open", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to FlashcatUSB脚本引擎已被重置 .
         '''</summary>
@@ -1350,7 +1332,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_script_reset", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 选择要保存闪存文件的路径.
         '''</summary>
@@ -1359,7 +1341,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_select_location", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 欢迎使用FlashcatUSB(SPI/I2C/JTAG编程软件).
         '''</summary>
@@ -1368,7 +1350,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_status_welcome", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 控制台.
         '''</summary>
@@ -1377,7 +1359,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_tab_console", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 多功能设备.
         '''</summary>
@@ -1386,7 +1368,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_tab_multi", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 状态 .
         '''</summary>
@@ -1395,7 +1377,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_tab_status", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 你确定要启用此项功能吗？.
         '''</summary>
@@ -1404,7 +1386,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_vpp_confirm", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 确认+12V VPP设置.
         '''</summary>
@@ -1413,7 +1395,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_vpp_setting", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 警告！此设置仅用于+12V开关的适配器.
         '''</summary>
@@ -1422,7 +1404,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_vpp_warning", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 写入闪存：{0} of {1} 字节（完成{2}%）.
         '''</summary>
@@ -1431,7 +1413,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("gui_writing_flash", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to I2C 字节地址：0x{0}.
         '''</summary>
@@ -1440,7 +1422,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_addr_byte", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 尝试检测I2C EEPROM设备.
         '''</summary>
@@ -1449,7 +1431,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_attempt_detect", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 成功连接I2C EEPROM.
         '''</summary>
@@ -1458,7 +1440,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_connected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 已检测到I2C EEPROM，等待操作.
         '''</summary>
@@ -1467,7 +1449,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_detected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to I2C EEPROM 设备大小：{0}字节.
         '''</summary>
@@ -1476,7 +1458,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_eeprom_size", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 未检测到I2C EEPROM .
         '''</summary>
@@ -1485,7 +1467,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_not_detected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to I2C协议速度 .
         '''</summary>
@@ -1494,7 +1476,7 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_protocol_speed", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
         '''  Looks up a localized string similar to 无法连接到I2C EEPROM .
         '''</summary>
@@ -1503,7 +1485,16 @@ Namespace My.Resources
                 Return ResourceManager.GetString("i2c_unable_to_connect", resourceCulture)
             End Get
         End Property
-        
+
+        '''<summary>
+        '''  Looks up a localized string similar to 并行模式已成功初始化.
+        '''</summary>
+        Friend Shared ReadOnly Property io_mode_initalized() As String
+            Get
+                Return ResourceManager.GetString("io_mode_initalized", resourceCulture)
+            End Get
+        End Property
+
         '''<summary>
         '''  Looks up a localized string similar to 尝试检测CFI闪存设备在0x{0}.
         '''</summary>

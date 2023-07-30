@@ -264,11 +264,11 @@
   <data name="ext_4mbit_device" xml:space="preserve">
     <value>发现设备DIP32/PLCC32 4MBIT, 在Pin 1上启用A18 (重启)</value>
   </data>
-  <data name="ext_board_initalized" xml:space="preserve">
-    <value>EXT I/O 初始化成功</value>
+  <data name="io_mode_initalized" xml:space="preserve">
+    <value>并行模式已成功初始化</value>
   </data>
   <data name="ext_board_not_detected" xml:space="preserve">
-    <value>无法连接到 Extension I/O 电路板</value>
+    <value>无法连接到 Parallel I/O 电路板</value>
   </data>
   <data name="ext_connected_chipid" xml:space="preserve">
     <value>连接到闪存（芯片ID：0x{0}）</value>
@@ -284,22 +284,19 @@
     <comment>I.E. the memory type</comment>
   </data>
   <data name="ext_init" xml:space="preserve">
-    <value>正在初始化EXT I/O硬件板</value>
+    <value>正在初始化parallel mode硬件板</value>
   </data>
   <data name="ext_large_flash_detected" xml:space="preserve">
     <value>注意：检测到{0}设备，Extension Port最高可存取512Mb</value>
   </data>
   <data name="ext_not_detected" xml:space="preserve">
-    <value>未在Extension I/O模式中检测到闪存设备</value>
+    <value>未在Parallel I/O模式中检测到闪存设备</value>
   </data>
   <data name="ext_page_size" xml:space="preserve">
     <value>闪存页面大小：{0}字节（扩展{1}字节）</value>
   </data>
   <data name="ext_prog_mode" xml:space="preserve">
-    <value>编辑模式：EXT I/O(并行)</value>
-  </data>
-  <data name="ext_unable_to_connect_to_board" xml:space="preserve">
-    <value>错误：无法连接到EXT I/O</value>
+    <value>编辑模式：parallel mode(并行)</value>
   </data>
   <data name="ext_write_mode_supported" xml:space="preserve">
     <value>支持写入模式</value>

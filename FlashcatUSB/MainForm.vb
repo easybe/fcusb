@@ -236,11 +236,11 @@ Public Class MainForm
 
 #Region "Console Tab"
 
-    Delegate Sub cbPrintConsole(ByVal msg As String)
+    Delegate Sub cbPrintConsole(msg As String)
     Private CommandThread As Threading.Thread
     Private ScriptCommand As String
 
-    Public Sub PrintConsole(ByVal Msg As String)
+    Public Sub PrintConsole(Msg As String)
         Try
             If AppIsClosing Then Exit Sub
             If Me.InvokeRequired Then
@@ -372,15 +372,16 @@ Public Class MainForm
 #End Region
 
 #Region "Tab System"
-    Private Delegate Sub cbAddToTab(ByVal usertab As Integer, ByVal Value As Object)
-    Private Delegate Sub cbAddTab(ByVal tb As TabPage)
-    Private Delegate Sub cbRemoveTab(ByVal i As MemoryDeviceInstance)
-    Private Delegate Sub cbCreateFormTab(ByVal Index As Integer, ByVal Name As String)
+    Private Delegate Sub cbAddToTab(usertab As Integer, Value As Object)
+    Private Delegate Sub cbAddTab(tb As TabPage)
+    Private Delegate Sub cbRemoveTab(i As MemoryDeviceInstance)
+    Private Delegate Sub cbCreateFormTab(Index As Integer, Name As String)
     Private Delegate Sub cbRemoveAllTabs()
-    Private Delegate Sub cbSetStatus(ByVal msg As String)
+    Private Delegate Sub cbSetStatus(msg As String)
     Private Delegate Function cbGetSelectedMemoryInterface() As MemoryDeviceInstance
-    Private Delegate Sub SetBtnCallback(ByVal Value As Button)
-    Delegate Sub cbSetControlText(ByVal usertabind As Integer, ByVal Value As String, ByVal NewText As String)
+    Private Delegate Sub SetBtnCallback(Value As Button)
+    Private Delegate Sub cbSetControlText(usertabind As Integer, ctr_name As String, NewText As String)
+    Private Delegate Function cbGetControlText(usertabind As Integer, ctr_name As String)
 
     Public Sub RemoveAllTabs()
         If Me.MyTabs.InvokeRequired Then
@@ -518,7 +519,7 @@ Public Class MainForm
         Return Nothing
     End Function
 
-    Public Sub AddControlToTable(ByVal tab_index As Integer, ByVal obj As Object)
+    Public Sub AddControlToTable(tab_index As Integer, obj As Object)
         If Me.MyTabs.InvokeRequired Then
             Dim d As New cbAddToTab(AddressOf AddControlToTable)
             Me.Invoke(d, New Object() {tab_index, [obj]})
@@ -531,7 +532,7 @@ Public Class MainForm
         End If
     End Sub
 
-    Public Sub CreateFormTab(ByVal TabIndex As Integer, ByVal TabName As String)
+    Public Sub CreateFormTab(TabIndex As Integer, TabName As String)
         If Me.MyTabs.InvokeRequired Then
             Dim d As New cbCreateFormTab(AddressOf CreateFormTab)
             Me.Invoke(d, New Object() {TabIndex, [TabName]})
@@ -542,7 +543,7 @@ Public Class MainForm
         End If
     End Sub
 
-    Public Function GetUserTab(ByVal ind As Integer) As TabPage
+    Public Function GetUserTab(ind As Integer) As TabPage
         Dim MyObj As String = "IND:" & CStr(ind)
         Dim tP As TabPage
         For Each tP In MyTabs.Controls
@@ -570,7 +571,7 @@ Public Class MainForm
         End If
     End Sub
 
-    Private Sub MyTabs_DrawItem(sender As Object, e As System.Windows.Forms.DrawItemEventArgs) Handles MyTabs.DrawItem
+    Private Sub MyTabs_DrawItem(sender As Object, e As DrawItemEventArgs) Handles MyTabs.DrawItem
         Dim SelectedTab As TabPage = MyTabs.TabPages(e.Index) 'Select the active tab
         Dim HeaderRect As Rectangle = MyTabs.GetTabRect(e.Index) 'Get the area of the header of this TabPage
         Dim TextBrush As New SolidBrush(Color.Black) 'Create a Brush to paint the Text
@@ -601,7 +602,7 @@ Public Class MainForm
         End If
     End Function
 
-    Public Sub HandleButtons(ByVal usertabind As Integer, ByVal Enabled As Boolean, ByVal BtnName As String)
+    Public Sub HandleButtons(usertabind As Integer, Enabled As Boolean, BtnName As String)
         Dim usertab As TabPage = GetUserTab(usertabind)
         If usertab Is Nothing Then Exit Sub
         For Each user_control In usertab.Controls
@@ -617,7 +618,7 @@ Public Class MainForm
         Next
     End Sub
 
-    Public Sub DisableButton(ByVal b As Button)
+    Public Sub DisableButton(b As Button)
         If b.InvokeRequired Then
             Dim d As New SetBtnCallback(AddressOf DisableButton)
             Me.Invoke(d, New Object() {b})
@@ -626,7 +627,7 @@ Public Class MainForm
         End If
     End Sub
 
-    Public Sub EnableButton(ByVal b As Button)
+    Public Sub EnableButton(b As Button)
         If b.InvokeRequired Then
             Dim d As New SetBtnCallback(AddressOf EnableButton)
             Me.Invoke(d, New Object() {b})
@@ -635,7 +636,7 @@ Public Class MainForm
         End If
     End Sub
 
-    Public Sub SetControlText(ByVal usertabind As Integer, ByVal UserControl As String, ByVal NewText As String)
+    Public Sub SetControlText(usertabind As Integer, UserControl As String, NewText As String)
         If Me.MyTabs.InvokeRequired Then
             Dim d As New cbSetControlText(AddressOf SetControlText)
             Me.Invoke(d, New Object() {usertabind, UserControl, NewText})
@@ -655,18 +656,32 @@ Public Class MainForm
         End If
     End Sub
 
-    Public Function GetTabObjectText(ByVal ControlName As String, ByVal TabIndex As Integer) As String
+    Public Function GetControlText(usertabind As Integer, UserControl As String) As String
+        If Me.MyTabs.InvokeRequired Then
+            Dim d As New cbGetControlText(AddressOf GetControlText)
+            Return Me.Invoke(d, {usertabind, UserControl})
+        Else
+            Dim usertab As TabPage = GetUserTab(usertabind)
+            If usertab Is Nothing Then Return ""
+            For Each user_control In usertab.Controls
+                If user_control.Name.ToUpper.Equals(UserControl.ToUpper) Then
+                    Return user_control.Text
+                End If
+            Next
+            Return ""
+        End If
+    End Function
+
+    Public Function GetTabObjectText(ControlName As String, TabIndex As Integer) As String
         Dim MyObj As String = "IND:" & CStr(TabIndex)
-        Dim tP As TabPage
-        For Each tP In MyTabs.Controls
-            If tP.Name = MyObj Then
-                Dim Ct As Control
-                For Each Ct In tP.Controls
-                    If UCase(Ct.Name) = UCase(ControlName) Then
+        For Each tP As TabPage In MyTabs.Controls
+            If tP.Name.Equals(MyObj) Then
+                For Each Ct As Control In tP.Controls
+                    If Ct.Name.ToUpper.Equals(ControlName.ToUpper) Then
                         Return Ct.Text
                     End If
                 Next
-                Return "" 'not found
+                Exit For
             End If
         Next
         Return ""

@@ -39,6 +39,7 @@ Public Class FcScriptEngine : Implements IDisposable
         CmdFunctions.AddNest(STR_CMD)
         Dim DATA_CMD As New ScriptCmd("DATA")
         DATA_CMD.Add("new", {CmdParam.Integer, CmdParam.Any}, New ScriptFunction(AddressOf c_data_new))
+        DATA_CMD.Add("fromhex", {CmdParam.String}, New ScriptFunction(AddressOf c_data_fromhex))
         DATA_CMD.Add("compare", {CmdParam.Data}, New ScriptFunction(AddressOf c_data_compare))
         DATA_CMD.Add("length", {CmdParam.Data}, New ScriptFunction(AddressOf c_data_length))
         DATA_CMD.Add("resize", {CmdParam.Data, CmdParam.Integer, CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_data_resize))
@@ -77,6 +78,7 @@ Public Class FcScriptEngine : Implements IDisposable
         TAB_CMD.Add("addprogress", {CmdParam.Integer, CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_tab_addprogress))
         TAB_CMD.Add("remove", {CmdParam.String}, New ScriptFunction(AddressOf c_tab_remove))
         TAB_CMD.Add("settext", {CmdParam.String, CmdParam.String}, New ScriptFunction(AddressOf c_tab_settext))
+        TAB_CMD.Add("gettext", {CmdParam.String}, New ScriptFunction(AddressOf c_tab_gettext))
         TAB_CMD.Add("buttondisable", {CmdParam.String_Optional}, New ScriptFunction(AddressOf c_tab_buttondisable))
         TAB_CMD.Add("buttonenable", {CmdParam.String_Optional}, New ScriptFunction(AddressOf c_tab_buttonenable))
         CmdFunctions.AddNest(TAB_CMD)
@@ -110,6 +112,9 @@ Public Class FcScriptEngine : Implements IDisposable
         JTAG_CMD.Add("graycode", {CmdParam.Integer, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_jtag_graycode))
         JTAG_CMD.Add("setdelay", {CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_setdelay)) 'Legacy support
         JTAG_CMD.Add("exitstate", {CmdParam.Bool}, New ScriptFunction(AddressOf c_jtag_exitstate)) 'SVF player option
+        JTAG_CMD.Add("epc2_read", Nothing, New ScriptFunction(AddressOf c_jtag_epc2_read))
+        JTAG_CMD.Add("epc2_write", {CmdParam.Data, CmdParam.Data}, New ScriptFunction(AddressOf c_jtag_epc2_write))
+        JTAG_CMD.Add("epc2_erase", Nothing, New ScriptFunction(AddressOf c_jtag_epc2_erase))
         CmdFunctions.AddNest(JTAG_CMD)
         Dim BCM_CMD As New ScriptCmd("BCM")
         BCM_CMD.Add("init", {CmdParam.Integer}, New ScriptFunction(AddressOf c_bcm_init))
@@ -2406,7 +2411,7 @@ Public Class FcScriptEngine : Implements IDisposable
                         Dim d As New UpdateFunction_Progress(AddressOf ProgressUpdate_Percent)
                         GUI.Invoke(d, New Object() {percent})
                     Else
-                        If percent > 100 Then percent = 100
+                        If (percent > 100) Then percent = 100
                         ScriptBar.Value = percent
                     End If
                 End If
@@ -2782,6 +2787,19 @@ Public Class FcScriptEngine : Implements IDisposable
             Return sv
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Data.New function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_data_fromhex(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
+        Try
+            Dim input As String = arguments(0).Value
+            Dim data() As Byte = Utilities.Bytes.FromHexString(input)
+            Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Data)
+            sv.Value = data
+            Return sv
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Data.FromHex function exception"}
         End Try
         Return Nothing
     End Function
@@ -3808,6 +3826,52 @@ Public Class FcScriptEngine : Implements IDisposable
         Return Nothing
     End Function
 
+    Private Function c_jtag_epc2_read(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
+        Try
+            ProgressUpdate_Percent(0)
+            Dim cbProgress As New JTAG_IF.EPC2_ProgressCallback(AddressOf ProgressUpdate_Percent)
+            Dim e_data() As Byte = USBCLIENT.FCUSB(Index).JTAG_IF.EPC2_ReadBinary(cbProgress)
+            ProgressUpdate_Percent(0)
+            If e_data IsNot Nothing Then
+                Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Data)
+                sv.Value = e_data
+                Return sv
+            End If
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.EPC2_Read function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_jtag_epc2_write(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
+        Try
+            Dim BootData() As Byte = arguments(0).Value
+            Dim CfgData() As Byte = arguments(1).Value
+            ProgressUpdate_Percent(0)
+            Dim cbProgress As New JTAG_IF.EPC2_ProgressCallback(AddressOf ProgressUpdate_Percent)
+            Dim result As Boolean = USBCLIENT.FCUSB(Index).JTAG_IF.EPC2_WriteBinary(BootData, CfgData, cbProgress)
+            ProgressUpdate_Percent(0)
+            Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Bool)
+            sv.Value = result
+            Return sv
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.EPC2_Write function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_jtag_epc2_erase(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
+        Try
+            Dim e_result As Boolean = USBCLIENT.FCUSB(Index).JTAG_IF.EPC2_Erase()
+            Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Bool)
+            sv.Value = e_result
+            Return sv
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.EPC2_Erase function exception"}
+        End Try
+        Return Nothing
+    End Function
+
 #End Region
 
 #Region "BCM / Legacy"
@@ -4142,7 +4206,7 @@ Public Class FcScriptEngine : Implements IDisposable
             Dim NewTextBox As New TextBox
             NewTextBox.Name = arguments(0).Value
             NewTextBox.Text = arguments(1).Value
-            NewTextBox.Width = (NewTextBox.Text.Length * 6) + 2
+            NewTextBox.Width = (NewTextBox.Text.Length * 8) + 2
             NewTextBox.TextAlign = HorizontalAlignment.Center
             NewTextBox.Left = arguments(2).Value
             NewTextBox.Top = arguments(3).Value
@@ -4236,11 +4300,24 @@ Public Class FcScriptEngine : Implements IDisposable
 
     Private Function c_tab_settext(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
-            Dim tab_name As String = arguments(0).Value
+            Dim ctrl_name As String = arguments(0).Value
             Dim new_text As String = arguments(1).Value
-            GUI.SetControlText(Index, tab_name, new_text)
+            GUI.SetControlText(Index, ctrl_name, new_text)
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "TAB.SetText function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_tab_gettext(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
+        Try
+            Dim ctrl_name As String = arguments(0).Value
+            Dim result_str As String = GUI.GetControlText(Index, ctrl_name)
+            Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.String)
+            sv.Value = result_str
+            Return sv
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "TAB.GetText function exception"}
         End Try
         Return Nothing
     End Function
@@ -4318,14 +4395,13 @@ Public Class FcScriptEngine : Implements IDisposable
         Return DataOut 'Checked ok!
     End Function
     'Removes a user control from NAME
-    Private Sub RemoveUserControl(Name As String)
+    Private Sub RemoveUserControl(ctr_name As String)
         If GUI Is Nothing Then Exit Sub
         If UserTabCount = 0 Then Exit Sub
-        Dim i As Integer
         For i = 0 To UserTabCount - 1
             Dim uTab As TabPage = GUI.GetUserTab(i)
             For Each user_control As Control In uTab.Controls
-                If UCase(user_control.Name) = UCase(Name) Then
+                If user_control.Name.ToUpper.Equals(ctr_name.ToUpper) Then
                     uTab.Controls.Remove(user_control)
                     Exit Sub
                 End If

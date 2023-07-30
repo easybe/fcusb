@@ -578,15 +578,6 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to La carte EXT I/O a été initialisée correctement.
-        '''</summary>
-        Friend Shared ReadOnly Property ext_board_initalized() As String
-            Get
-                Return ResourceManager.GetString("ext_board_initalized", resourceCulture)
-            End Get
-        End Property
-        
-        '''<summary>
         '''  Looks up a localized string similar to Impossible de se connecter à la carte d&apos;extension I/O.
         '''</summary>
         Friend Shared ReadOnly Property ext_board_not_detected() As String
@@ -632,7 +623,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Initialisation de la carte EXT I/O.
+        '''  Looks up a localized string similar to Initialisation de la carte Parallèle Mode.
         '''</summary>
         Friend Shared ReadOnly Property ext_init() As String
             Get
@@ -668,20 +659,11 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Mode de programmation: EXT I/O (Parallèle).
+        '''  Looks up a localized string similar to Mode de programmation: Parallèle Mode.
         '''</summary>
         Friend Shared ReadOnly Property ext_prog_mode() As String
             Get
                 Return ResourceManager.GetString("ext_prog_mode", resourceCulture)
-            End Get
-        End Property
-        
-        '''<summary>
-        '''  Looks up a localized string similar to Erreur: impossible de connecter à la carte EXT I/O au travers du SPI.
-        '''</summary>
-        Friend Shared ReadOnly Property ext_unable_to_connect_to_board() As String
-            Get
-                Return ResourceManager.GetString("ext_unable_to_connect_to_board", resourceCulture)
             End Get
         End Property
         
@@ -1501,6 +1483,15 @@ Namespace My.Resources
         Friend Shared ReadOnly Property i2c_unable_to_connect() As String
             Get
                 Return ResourceManager.GetString("i2c_unable_to_connect", resourceCulture)
+            End Get
+        End Property
+        
+        '''<summary>
+        '''  Looks up a localized string similar to La carte Parallèle Mode a été initialisée correctement.
+        '''</summary>
+        Friend Shared ReadOnly Property io_mode_initalized() As String
+            Get
+                Return ResourceManager.GetString("io_mode_initalized", resourceCulture)
             End Get
         End Property
         

@@ -264,8 +264,8 @@
   <data name="ext_4mbit_device" xml:space="preserve">
     <value>Dispositivo DIP32 / PLCC32 4MBIT detectado, permitindo a A18 no Pin 1 (reiniciar)</value>
   </data>
-  <data name="ext_board_initalized" xml:space="preserve">
-    <value>Placa EXT I / O bem sucedida inicializada</value>
+  <data name="io_mode_initalized" xml:space="preserve">
+    <value>Modo paralelo inicializado com sucesso</value>
   </data>
   <data name="ext_board_not_detected" xml:space="preserve">
     <value>Não é possível conectar-se à placa de extensão E / S</value>
@@ -283,22 +283,19 @@
     <value>Interface do dispositivo</value>
   </data>
   <data name="ext_init" xml:space="preserve">
-    <value>Inicializando placa de hardware EXT I / O</value>
+    <value>Inicializando placa de hardware Paralelo Modo</value>
   </data>
   <data name="ext_large_flash_detected" xml:space="preserve">
     <value>Aviso: {0} dispositivo detectado, a porta de extensão só pode acessar até Mb512</value>
   </data>
   <data name="ext_not_detected" xml:space="preserve">
-    <value>Dispositivo Flash não detectado no modo Extensão I / O</value>
+    <value>Dispositivo Flash não detectado no Paralelo Modo</value>
   </data>
   <data name="ext_page_size" xml:space="preserve">
     <value>Tamanho da página Flash: {0} bytes ({1} bytes estendidos)</value>
   </data>
   <data name="ext_prog_mode" xml:space="preserve">
-    <value>Modo de programação: EXT I / O (Paralelo)</value>
-  </data>
-  <data name="ext_unable_to_connect_to_board" xml:space="preserve">
-    <value>Erro: não é possível conectar-se à placa EXT I / O sobre SPI</value>
+    <value>Modo de programação: Paralelo Modo</value>
   </data>
   <data name="ext_write_mode_supported" xml:space="preserve">
     <value>Modo de gravação suportado</value>

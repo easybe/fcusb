@@ -11,7 +11,7 @@ Imports FlashcatUSB.USB.HostClient
 
 Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     Private FCUSB As FCUSB_DEVICE
-    Public Property MyFlashDevice As Device  'Contains the definition for the EXT I/O device that is connected
+    Public Property MyFlashDevice As Device
     Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
     Public Property ONFI As NAND_ONFI 'Contains ONFI table information (NAND)
     Public Property CFI As NOR_CFI 'Contains CFI table information (NOR)
@@ -36,11 +36,11 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Me.ONFI = Nothing
         Me.CFI = Nothing
         If Not EXPIO_SETUP_USB(MEM_PROTOCOL.SETUP) Then
-            RaiseEvent PrintConsole(RM.GetString("ext_unable_to_connect_to_board"))
+            RaiseEvent PrintConsole("Parallel I/O failed to initialize")
             MyFlashStatus = DeviceStatus.ExtIoNotConnected
             Return False
         Else
-            RaiseEvent PrintConsole(RM.GetString("ext_board_initalized"))
+            RaiseEvent PrintConsole(RM.GetString("io_mode_initalized"))
         End If
         If DetectFlashDevice() Then
             Dim chip_id_str As String = Hex(FLASH_IDENT.MFG).PadLeft(2, "0") & Hex(FLASH_IDENT.PART).PadLeft(8, "0")
@@ -62,6 +62,9 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
             End If
             If ((MyAdapter = MEM_PROTOCOL.NAND_X8_ASYNC) Or (MyAdapter = MEM_PROTOCOL.NAND_X16_ASYNC)) Then
                 Me.ONFI = New NAND_ONFI(NAND_GetONFITable())
+                If Me.ONFI Is Nothing Then
+                    RaiseEvent PrintConsole("NAND device failed to load ONFI table")
+                End If
             Else
                 Me.CFI = New NOR_CFI(EXPIO_NOR_GetCFI())
             End If
@@ -1564,7 +1567,9 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                 End If
             End If
             Dim data_out(read_count - 1) As Byte 'Bytes we want to read
-            Dim setup_data() As Byte = GetSetupPacket_NOR(address, read_count, MyFlashDevice.PAGE_SIZE)
+            Dim page_size As Integer = 512
+            If MyFlashDevice IsNot Nothing Then page_size = MyFlashDevice.PAGE_SIZE
+            Dim setup_data() As Byte = GetSetupPacket_NOR(address, read_count, page_size)
             Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, data_out, 0)
             If Not result Then Return Nothing
             If addr_offset Then
@@ -1695,6 +1700,8 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         HardwareControl(EXPIO_CTRL.OE_HIGH)
         HardwareControl(EXPIO_CTRL.CE_HIGH)
         HardwareControl(EXPIO_CTRL.WE_HIGH)
+        HardwareControl(EXPIO_CTRL.RELAY_OFF)
+        HardwareControl(EXPIO_CTRL.VPP_DISABLE) 'Turns off adapter
         Utilities.Sleep(500)
         WriteCommandData(0, 0)
         Utilities.Sleep(500)

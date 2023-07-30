@@ -18,10 +18,10 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 590
+    Public Const Build As Integer = 591
 
-    Private Const PRO_PCB4_FW As Single = 1.21F 'This is the embedded firmware version for pro
-    Private Const PRO_PCB5_FW As Single = 1.02F 'This is the embedded firmware version for pro
+    Private Const PRO_PCB4_FW As Single = 1.22F 'This is the embedded firmware version for pro
+    Private Const PRO_PCB5_FW As Single = 1.03F 'This is the embedded firmware version for pro
     Private Const MACH1_PCB2_FW As Single = 2.14F 'Firmware version for Mach1
     Private Const XPORT_PCB1_FW As Single = 4.55F 'XPORT PCB 1.x
     Private Const XPORT_PCB2_FW As Single = 5.13F 'XPORT PCB 2.x
@@ -1219,7 +1219,7 @@ Public Module MainApp
         Public Property S93_DEVICE_ORG As Integer '0=8-bit,1=16-bit
         Public Property SREC_BITMODE As Integer '0=8-bit,1=16-bit
         'JTAG
-        Public Property JTAG_SPEED As JTAG_TCK_FREQ
+        Public Property JTAG_SPEED As JTAG.JTAG_SPEED
         'License
         Public Property LICENSE_KEY As String
         Public Property LICENSED_TO As String
@@ -1274,7 +1274,7 @@ Public Module MainApp
             Me.S93_DEVICE = GetRegistryValue("S93_DEVICE_NAME", "")
             Me.S93_DEVICE_ORG = GetRegistryValue("S93_ORG", 0)
             Me.SREC_BITMODE = GetRegistryValue("SREC_ORG", 0)
-            Me.JTAG_SPEED = GetRegistryValue("JTAG_FREQ", JTAG_TCK_FREQ._10MHZ)
+            Me.JTAG_SPEED = GetRegistryValue("JTAG_FREQ", JTAG.JTAG_SPEED._10MHZ)
             Me.NOR_READ_ACCESS = GetRegistryValue("NOR_READ_ACCESS", 200)
             Me.NOR_WE_PULSE = GetRegistryValue("NOR_WE_PULSE", 125)
             LoadCustomSPI()
@@ -1401,11 +1401,6 @@ Public Module MainApp
                     Return "ERROR"
             End Select
         End Function
-
-        Public Enum JTAG_TCK_FREQ As Integer
-            _10MHZ = 1
-            _20MHz = 2
-        End Enum
 
         Public Enum DeviceMode As Byte
             SPI = 1
@@ -1780,7 +1775,7 @@ Public Module MainApp
                 modes.Add(DeviceMode.SPI_NAND)
                 modes.Add(DeviceMode.Microwire)
                 modes.Add(DeviceMode.SQI)
-                'modes.Add(DeviceMode.JTAG)
+                modes.Add(DeviceMode.JTAG)
             Case FCUSB_BOARD.Mach1
                 modes.Add(DeviceMode.SPI)
                 modes.Add(DeviceMode.SPI_NAND)
@@ -1894,8 +1889,12 @@ Public Module MainApp
                 End If
         End Select
         Dim SupportedModes() As DeviceMode = GetSupportedModes(usb_dev)
-        If Array.IndexOf(SupportedModes, MySettings.OPERATION_MODE) = -1 Then
-            MySettings.OPERATION_MODE = SupportedModes(0)
+        If (Array.IndexOf(SupportedModes, MySettings.OPERATION_MODE) = -1) Then
+            If usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
+                MySettings.OPERATION_MODE = DeviceMode.NOR_NAND
+            Else
+                MySettings.OPERATION_MODE = SupportedModes(0)
+            End If
         End If
         Select Case usb_dev.HWBOARD
             Case FCUSB_BOARD.Professional_PCB4
@@ -2073,7 +2072,7 @@ Public Module MainApp
                 Exit Sub
             End If
         ElseIf MySettings.OPERATION_MODE = DeviceMode.NOR_NAND Then
-            GUI.PrintConsole(RM.GetString("ext_init")) 'Initializing EXT I/O hardware board
+            GUI.PrintConsole(RM.GetString("ext_init")) 'Initializing parallel mode hardware board
             Utilities.Sleep(250) 'Wait for IO board vcc to charge
             usb_dev.EXT_IF.DeviceInit()
             Select Case usb_dev.EXT_IF.MyFlashStatus
@@ -2104,14 +2103,14 @@ Public Module MainApp
                 Case DeviceStatus.NotSupported
                     GUI.SetStatus(RM.GetString("mem_not_supported")) '"Flash memory detected but not found in Flash library"
                 Case DeviceStatus.NotDetected
-                    GUI.SetStatus(RM.GetString("ext_not_detected")) '"Flash device not detected in Extension I/O mode"
+                    GUI.SetStatus(RM.GetString("ext_not_detected")) '"Flash device not detected in Parallel I/O mode"
                 Case DeviceStatus.ExtIoNotConnected
-                    GUI.SetStatus(RM.GetString("ext_board_not_detected")) '"Unable to connect to the Extension I/O board"
+                    GUI.SetStatus(RM.GetString("ext_board_not_detected")) '"Unable to connect to the Parallel I/O board"
                 Case DeviceStatus.NotCompatible
                     GUI.SetStatus("Flash memory is not compatible with this FlashcatUSB programmer model")
             End Select
         ElseIf MySettings.OPERATION_MODE = DeviceMode.HyperFlash Then
-            GUI.PrintConsole("Initializing HyperFlash device mode") 'Initializing EXT I/O hardware board
+            GUI.PrintConsole("Initializing HyperFlash device mode") 'Initializing parallel mode hardware board
             Utilities.Sleep(250) 'Wait for IO board vcc to charge
             usb_dev.HF_IF.DeviceInit()
             Select Case usb_dev.HF_IF.MyFlashStatus
@@ -2554,7 +2553,7 @@ Public Module MainApp
         Return SPI_CFG_IF.SSPI_ProgramICE(bit_data)
     End Function
 
-    Private Sub OnUpdateProgress(ByVal percent As Integer)
+    Public Sub OnUpdateProgress(percent As Integer)
         Static LastPercent As Integer = -1
         If LastPercent = percent Then Exit Sub
         If GUI IsNot Nothing Then
@@ -2591,9 +2590,12 @@ Public Module MainApp
             Dim svf_file() As String = Utilities.Bytes.ToCharStringArray(svf_data)
             usb_dev.LOGIC_SetVersion(&HFFFFFFFFUI)
             Dim result As Boolean = usb_dev.JTAG_IF.JSP.RunFile_SVF(svf_file)
-            If Not result Then
-                WriteConsole("Error: failed to erase FPGA via JTAG")
+            If (Not result) Then
+                Dim err_msg As String = "FPGA erase failed"
+                WriteConsole(err_msg) : SetStatus(err_msg)
                 Exit Sub
+            Else
+                SetStatus("FPGA erased successfully")
             End If
         Catch ex As Exception
         End Try
@@ -2644,7 +2646,10 @@ Public Module MainApp
                 SPI_CFG_IF.SSPI_Init(0, 1, 24)
                 SPI_ID = SPI_CFG_IF.SSPI_ReadIdent()
             End If
-            If Not (SPI_ID = &H12BC043) Then Return False
+            If Not (SPI_ID = &H12BC043) Then
+                SetStatus("FPGA error: unable to communicate via SPI")
+                Return False
+            End If
             SetStatus("Programming on board FPGA with new logic")
             If SPI_CFG_IF.SSPI_ProgramMACHXO(bit_data) Then
                 Dim status_msg As String = "FPGA device successfully programmed"

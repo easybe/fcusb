@@ -12,16 +12,18 @@ Namespace JTAG
         Public Property Current_Hertz As Integer = 1000000 'Default of 1 MHz
         Public Property Actual_Hertz As Integer = 500000 '500kHz
 
-        Public Event Progress(ByVal percent As Integer)
-        Public Event SetFrequency(ByVal Hz As Integer)
-        Public Event SetTRST(ByVal Enabled As Boolean)
-        Public Event Writeconsole(ByVal msg As String)
+        Public Event Progress(percent As Integer)
+        Public Event SetFrequency(Hz As Integer)
+        Public Event SetTRST(Enabled As Boolean)
+        Public Event Writeconsole(msg As String)
 
         Public Event ResetTap()
         Public Event GotoState(dst_state As JTAG_MACHINE_STATE)
-        Public Event ShiftIR(ByVal tdi_bits() As Byte, ByRef tdo_bits() As Byte, ByVal bit_count As Integer, exit_mode As Boolean)
-        Public Event ShiftDR(ByVal tdi_bits() As Byte, ByRef tdo_bits() As Byte, ByVal bit_count As Integer, exit_mode As Boolean)
+        Public Event ShiftIR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As Integer, exit_mode As Boolean)
+        Public Event ShiftDR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As Integer, exit_mode As Boolean)
         Public Event ToggleClock(ByVal clk_tck As UInt32)
+
+        Private Const COMPENSATE_CLK As Boolean = True
 
         Sub New()
 
@@ -220,6 +222,7 @@ Namespace JTAG
 
         Public Function RunFile_SVF(user_file() As String) As Boolean
             Setup()
+            RaiseEvent ResetTap()
             Dim svf_file() As String = Nothing
             Dim svf_index() As Integer = Nothing
             ConvertFileToProperFormat(user_file, svf_file, svf_index)
@@ -415,8 +418,10 @@ Namespace JTAG
                 Select Case Params(Counter + 1).Trim.ToUpper
                     Case "TCK" 'Toggle test-clock
                         Dim ticks As UInt32 = CUInt(wait_time)
-                        If Me.Actual_Hertz > Me.Current_Hertz Then
-                            ticks = ticks * (CSng(Me.Actual_Hertz) / CSng(Me.Current_Hertz))
+                        If COMPENSATE_CLK Then
+                            If Me.Actual_Hertz > Me.Current_Hertz Then
+                                ticks = ticks * (CSng(Me.Actual_Hertz) / CSng(Me.Current_Hertz))
+                            End If
                         End If
                         RaiseEvent ToggleClock(ticks)
                     Case "SCK" 'Toggle system-clock
@@ -663,18 +668,18 @@ Namespace JTAG
 
         End Sub
 
-        Sub New(ByVal input As String)
+        Sub New(input As String)
             LoadParams(input)
         End Sub
 
-        Public Sub LoadParams(ByVal input As String)
+        Public Sub LoadParams(input As String)
             input = Mid(input, InStr(input, " ") + 1) 'We remove the first part (TIR, etc)
             If Not input.Contains(" ") Then
                 LEN = CInt(input)
             Else
                 LEN = CInt(Mid(input, 1, InStr(input, " ") - 1))
                 input = Mid(input, InStr(input, " ") + 1)
-                Do Until input = ""
+                Do Until input.Equals("")
                     If input.ToUpper.StartsWith("TDI") Then
                         input = Mid(input, 4).Trim
                         TDI = GetBytes_Param(input)
@@ -697,7 +702,8 @@ Namespace JTAG
             Dim x2 As Integer = InStr(line, ")")
             Dim HexStr As String = line.Substring(x1, x2 - 2).Replace(" ", "")
             line = Mid(line, x2 + 1).Trim
-            Return GetBytes_FromHexString(HexStr)
+            Dim data() As Byte = HexStringToBytes(HexStr)
+            Return data
         End Function
 
     End Class
@@ -759,30 +765,21 @@ Namespace JTAG
             Return input
         End Function
 
-        Public Function GetBytes_FromHexString(ByVal hex_string As String) As Byte()
-            If hex_string Is Nothing OrElse hex_string.Trim = "" Then Return Nothing
-            hex_string = hex_string.Replace(" ", "").Trim.ToUpper
-            If hex_string.StartsWith("0X") Then hex_string = Mid(hex_string, 3)
-            If UCase(hex_string).EndsWith("H") Then hex_string = Mid(hex_string, 1, hex_string.Length - 1)
-            If Not hex_string.Length Mod 2 = 0 Then hex_string = "0" & hex_string
-            Dim out((hex_string.Length / 2) - 1) As Byte
-            For i = 0 To out.Length - 1
-                out(i) = CByte(Utilities.HexToInt(Mid(hex_string, (i * 2) + 1, 2)))
+        Friend Function HexStringToBytes(hex_str As String) As Byte()
+            If hex_str.Length Mod 2 = 1 Then
+                hex_str = "0" & hex_str
+            End If
+            Dim data_out((hex_str.Length / 2) - 1) As Byte
+            Dim str_ptr As Integer = 0
+            For i = 0 To data_out.Length - 1
+                Dim b As Byte = CByte(Utilities.HexToInt(hex_str.Substring(str_ptr, 2)))
+                str_ptr += 2
+                data_out(i) = b
             Next
-            Return out
+            Return data_out
         End Function
 
-        Public Function FeedWord(ByRef line As String) As String
-            Dim word_out As String = ""
-            If line.Contains(" ") Then
-                word_out = Mid(line, 1, InStr(line, " ") - 1)
-                line = Mid(line, InStr(line, " ") + 1) 'Feeds a word
-            Else
-                word_out = line
-                line = ""
-            End If
-            Return word_out
-        End Function
+
 
     End Module
 
