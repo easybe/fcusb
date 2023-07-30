@@ -1,4 +1,4 @@
-﻿''COPYRIGHT EMBEDDEDCOMPUTERS.NET 2017 - ALL RIGHTS RESERVED
+﻿''COPYRIGHT EMBEDDEDCOMPUTERS.NET 2018 - ALL RIGHTS RESERVED
 ''CONTACT EMAIL: contact@embeddedcomputers.net
 ''ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 ''INFO: This class is the entire scripting engine which can control the software
@@ -76,6 +76,7 @@ Public Class FcScriptEngine
         SPI_CMD.Add("getsr", {CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_spi_getsr))
         SPI_CMD.Add("setsr", {CmdParam.Data}, New ScriptFunction(AddressOf c_spi_setsr))
         SPI_CMD.Add("writeread", {CmdParam.Data, CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_spi_writeread))
+        SPI_CMD.Add("prog", {CmdParam.Integer}, New ScriptFunction(AddressOf c_spi_prog))
         CmdFunctions.AddNest(SPI_CMD)
         Dim JTAG_CMD As New ScriptCmd("JTAG")
         JTAG_CMD.Add("idcode", Nothing, New ScriptFunction(AddressOf c_jtag_idcode))
@@ -118,7 +119,7 @@ Public Class FcScriptEngine
         CmdFunctions.Add("endian", {CmdParam.String}, New ScriptFunction(AddressOf c_endian))
         CmdFunctions.Add("abort", Nothing, New ScriptFunction(AddressOf c_abort))
         CmdFunctions.Add("samsung_cs2", Nothing, New ScriptFunction(AddressOf c_samsung_cs2))
-        CmdFunctions.Add("debug", Nothing, New ScriptFunction(AddressOf c_debug))
+        'CmdFunctions.Add("debug", Nothing, New ScriptFunction(AddressOf c_debug))
     End Sub
 
     Private Function c_samsung_cs2(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
@@ -3241,6 +3242,21 @@ Public Class FcScriptEngine
             End If
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "SPI.WriteRead function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_spi_prog(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Dim spi_port As SPI.SPI_Programmer = USBCLIENT.FCUSB(Index).SPI_NOR_IF
+            Dim state As Integer = arguments(0).Value
+            If state = 1 Then 'Set the PROGPIN to HIGH
+                spi_port.SetProgPin(True)
+            Else 'Set the PROGPIN to LOW
+                spi_port.SetProgPin(False)
+            End If
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "SPI.PROG function exception"}
         End Try
         Return Nothing
     End Function

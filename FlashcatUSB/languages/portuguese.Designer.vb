@@ -25,7 +25,7 @@ Namespace My.Resources
     <Global.System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0"),  _
      Global.System.Diagnostics.DebuggerNonUserCodeAttribute(),  _
      Global.System.Runtime.CompilerServices.CompilerGeneratedAttribute()>  _
-    Friend Class english
+    Friend Class portuguese
         
         Private Shared resourceMan As Global.System.Resources.ResourceManager
         
@@ -43,7 +43,7 @@ Namespace My.Resources
         Friend Shared ReadOnly Property ResourceManager() As Global.System.Resources.ResourceManager
             Get
                 If Object.ReferenceEquals(resourceMan, Nothing) Then
-                    Dim temp As Global.System.Resources.ResourceManager = New Global.System.Resources.ResourceManager("FlashcatUSB.english", GetType(english).Assembly)
+                    Dim temp As Global.System.Resources.ResourceManager = New Global.System.Resources.ResourceManager("FlashcatUSB.portuguese", GetType(portuguese).Assembly)
                     resourceMan = temp
                 End If
                 Return resourceMan
@@ -65,7 +65,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Please leave your email address in the comment.
+        '''  Looks up a localized string similar to Deixe seu endereço de e-mail no comentário.
         '''</summary>
         Friend Shared ReadOnly Property AUTHORS() As String
             Get
@@ -74,7 +74,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Board firmware version.
+        '''  Looks up a localized string similar to Versão do firmware da placa.
         '''</summary>
         Friend Shared ReadOnly Property board_fw_version() As String
             Get
@@ -83,7 +83,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Bootloader mode.
+        '''  Looks up a localized string similar to Modo Bootloader.
         '''</summary>
         Friend Shared ReadOnly Property bootloader_mode() As String
             Get
@@ -92,7 +92,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to CFI Flash base address: 0x{0}.
+        '''  Looks up a localized string similar to CFI Flash base endereço: 0x{0}.
         '''</summary>
         Friend Shared ReadOnly Property cfi_flash_base() As String
             Get
@@ -101,7 +101,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to CFI compatible Flash detected at 0x{0}.
+        '''  Looks up a localized string similar to CFI compatível Flash detectado em 0x{0}.
         '''</summary>
         Friend Shared ReadOnly Property cfi_flash_detected() As String
             Get
@@ -110,7 +110,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Failed to detect CFI compatible Flash.
+        '''  Looks up a localized string similar to Falha ao detectar o Flash compatível com CFI.
         '''</summary>
         Friend Shared ReadOnly Property cfi_flash_failed() As String
             Get
@@ -119,7 +119,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to CFI Flash description: {0} ({1} bytes).
+        '''  Looks up a localized string similar to Descrição do Flash CFI: {0} ({1} bytes).
         '''</summary>
         Friend Shared ReadOnly Property cfi_flash_info() As String
             Get
@@ -128,7 +128,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Connected to FlashcatUSB in bootloader mode.
+        '''  Looks up a localized string similar to Conectado ao FlashcatUSB no modo bootloader.
         '''</summary>
         Friend Shared ReadOnly Property connected_bl_mode() As String
             Get
@@ -137,7 +137,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Connected to {0}, firmware version: {1}.
+        '''  Looks up a localized string similar to Conectado a {0}, versão do firmware: {1}.
         '''</summary>
         Friend Shared ReadOnly Property connected_fw_ver() As String
             Get
@@ -146,7 +146,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Application completed.
+        '''  Looks up a localized string similar to Aplicação concluída.
         '''</summary>
         Friend Shared ReadOnly Property console_complete() As String
             Get
@@ -155,7 +155,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to The EEPROM device you specified was not found.
+        '''  Looks up a localized string similar to O dispositivo EEPROM que você especificou não foi encontrado.
         '''</summary>
         Friend Shared ReadOnly Property console_eeprom_not_specified() As String
             Get
@@ -164,7 +164,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Erase option is only for -WRITE mode.
+        '''  Looks up a localized string similar to A opção Apagar é apenas para o modo -RARREIRO.
         '''</summary>
         Friend Shared ReadOnly Property console_erase_not_valid() As String
             Get
@@ -173,7 +173,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Operation ExecuteScript requires option -FILE to specify which script to run.
+        '''  Looks up a localized string similar to Opção ExecuteScript requer opção -FILE para especificar qual script executar.
         '''</summary>
         Friend Shared ReadOnly Property console_exescript_req() As String
             Get
@@ -182,7 +182,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to I2C parameters: slave-address 0x{0}, offset: 0x{1}, length: {2} bytes.
+        '''  Looks up a localized string similar to Parâmetros I2C: endereço escravo 0x{0}, deslocamento: 0x{1}, comprimento: {2} bytes.
         '''</summary>
         Friend Shared ReadOnly Property console_i2c_params() As String
             Get
@@ -191,7 +191,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Reading data from I2C Flash device: {0} ({1} bytes).
+        '''  Looks up a localized string similar to Lendo dados do dispositivo Flash I2C: {0} ({1} bytes).
         '''</summary>
         Friend Shared ReadOnly Property console_i2c_reading() As String
             Get
@@ -200,7 +200,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Saved I2C data to: {0}.
+        '''  Looks up a localized string similar to Dados I2C salvos para: {0}.
         '''</summary>
         Friend Shared ReadOnly Property console_i2c_saved() As String
             Get
@@ -209,7 +209,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error: unable to write to I2C EEPROM device.
+        '''  Looks up a localized string similar to Erro: incapaz de gravar no dispositivo I2C EEPROM.
         '''</summary>
         Friend Shared ReadOnly Property console_i2c_write_error() As String
             Get
@@ -218,7 +218,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to I2C EEPROM write was successful.
+        '''  Looks up a localized string similar to A gravação I2C EEPROM foi bem sucedida.
         '''</summary>
         Friend Shared ReadOnly Property console_i2c_write_success() As String
             Get
@@ -227,7 +227,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Writing data to I2C Flash device: {0} ({1} bytes).
+        '''  Looks up a localized string similar to Escrevendo dados no dispositivo Flash I2C: {0} ({1} bytes).
         '''</summary>
         Friend Shared ReadOnly Property console_i2c_writing() As String
             Get
@@ -236,7 +236,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Append the console text to an existing file.
+        '''  Looks up a localized string similar to Anexe o texto do console a um arquivo existente.
         '''</summary>
         Friend Shared ReadOnly Property console_logappend() As String
             Get
@@ -245,7 +245,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to MODE not specified (i.e. -SPI or -I2C).
+        '''  Looks up a localized string similar to MODE não especificado (isto é, -SPI ou -I2C).
         '''</summary>
         Friend Shared ReadOnly Property console_mode_not_specified() As String
             Get
@@ -254,7 +254,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to No FlashcatUSB devices connected.
+        '''  Looks up a localized string similar to Nenhum dispositivo FlashcatUSB conectado.
         '''</summary>
         Friend Shared ReadOnly Property console_no_fcusb() As String
             Get
@@ -263,7 +263,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Unable to perform any actions because there are no detected memory devices.
+        '''  Looks up a localized string similar to Não é possível executar quaisquer ações porque não há dispositivos de memória detectados.
         '''</summary>
         Friend Shared ReadOnly Property console_no_mem_devices() As String
             Get
@@ -272,7 +272,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to OPERATION not specified (i.e. -READ or -WRITE).
+        '''  Looks up a localized string similar to OPERAÇÃO não especificada (i.e -READ ou -WRITE).
         '''</summary>
         Friend Shared ReadOnly Property console_operation_not_specified() As String
             Get
@@ -281,7 +281,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Specifies the I2C slave address (i.e. 0xA0).
+        '''  Looks up a localized string similar to Especifica o endereço do escravo I2C (ou seja, 0xA0).
         '''</summary>
         Friend Shared ReadOnly Property console_opt_addr() As String
             Get
@@ -290,7 +290,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Specifies a SPI/I2C EEPROM (i.e. M95080 or 24XX64).
+        '''  Looks up a localized string similar to Especifica uma EEPROM SPI / I2C (ou seja, M95080 ou 24XX64).
         '''</summary>
         Friend Shared ReadOnly Property console_opt_eeprom() As String
             Get
@@ -299,7 +299,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Perform a whole memory erase prior to writing data.
+        '''  Looks up a localized string similar to Execute um apagamento total da memória antes de escrever dados.
         '''</summary>
         Friend Shared ReadOnly Property console_opt_erase() As String
             Get
@@ -308,7 +308,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Erases the entire memory device.
+        '''  Looks up a localized string similar to Apaga todo o dispositivo de memória.
         '''</summary>
         Friend Shared ReadOnly Property console_opt_erasechip() As String
             Get
@@ -317,7 +317,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Allows you to execute a FlashcatUSB script file (*.fcs).
+        '''  Looks up a localized string similar to Permite que você execute um arquivo de script FlashcatUSB (* .fcs).
         '''</summary>
         Friend Shared ReadOnly Property console_opt_exe() As String
             Get
@@ -326,7 +326,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Automatically close window when completed.
+        '''  Looks up a localized string similar to Fechar automaticamente a janela quando concluída.
         '''</summary>
         Friend Shared ReadOnly Property console_opt_exit() As String
             Get
@@ -335,7 +335,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Specifies the file to use for read/write/execute.
+        '''  Looks up a localized string similar to Especifica o arquivo a ser usado para leitura / gravação / execução.
         '''</summary>
         Friend Shared ReadOnly Property console_opt_file() As String
             Get
@@ -344,7 +344,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Shows this dialog.
+        '''  Looks up a localized string similar to Mostra esse diálogo.
         '''</summary>
         Friend Shared ReadOnly Property console_opt_help() As String
             Get
@@ -353,7 +353,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Specifies the number of bytes to read/write.
+        '''  Looks up a localized string similar to Especifica o número de bytes para ler / escrever.
         '''</summary>
         Friend Shared ReadOnly Property console_opt_length() As String
             Get
@@ -362,7 +362,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Displays the USB paths for all conneted FlashcatUSB devices.
+        '''  Looks up a localized string similar to Exibe os caminhos USB para todos os dispositivos FlashcatUSB conectados.
         '''</summary>
         Friend Shared ReadOnly Property console_opt_list() As String
             Get
@@ -371,7 +371,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Save the output from the console to a file.
+        '''  Looks up a localized string similar to Salve a saída do console em um arquivo.
         '''</summary>
         Friend Shared ReadOnly Property console_opt_log() As String
             Get
@@ -380,7 +380,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Option not recognized: {0}.
+        '''  Looks up a localized string similar to Opção não reconhecida: {0}.
         '''</summary>
         Friend Shared ReadOnly Property console_opt_not_valid() As String
             Get
@@ -389,7 +389,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Specifies the offset to write the file to flash.
+        '''  Looks up a localized string similar to Especifica o deslocamento para gravar o arquivo no flash.
         '''</summary>
         Friend Shared ReadOnly Property console_opt_offset() As String
             Get
@@ -398,7 +398,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Select which FlashcatUSB to use (use quotes around path).
+        '''  Looks up a localized string similar to Selecione o FlashcatUSB para usar (use aspas em torno do caminho).
         '''</summary>
         Friend Shared ReadOnly Property console_opt_path() As String
             Get
@@ -407,7 +407,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Will perform a flash memory read operation.
+        '''  Looks up a localized string similar to Executa uma operação de leitura de memória flash.
         '''</summary>
         Friend Shared ReadOnly Property console_opt_read() As String
             Get
@@ -416,7 +416,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Turns off data verification for flash write operations.
+        '''  Looks up a localized string similar to Desliga a verificação de dados para operações de gravação instantânea.
         '''</summary>
         Friend Shared ReadOnly Property console_opt_verify() As String
             Get
@@ -425,7 +425,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Will perform a flash memory write operation.
+        '''  Looks up a localized string similar to Executa uma operação de gravação de memória flash.
         '''</summary>
         Friend Shared ReadOnly Property console_opt_write() As String
             Get
@@ -434,7 +434,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to [{0}% complete].
+        '''  Looks up a localized string similar to [{0}% concluído].
         '''</summary>
         Friend Shared ReadOnly Property console_progress() As String
             Get
@@ -443,7 +443,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error: Read was not successful because there is no data to read.
+        '''  Looks up a localized string similar to Erro: Leia não foi bem-sucedido porque não há dados para ler.
         '''</summary>
         Friend Shared ReadOnly Property console_read_err_nodata() As String
             Get
@@ -452,7 +452,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Operation ReadMemory requires option -FILE to specify where to save to.
+        '''  Looks up a localized string similar to Operation ReadMemory requer opção -FILE para especificar onde salvar.
         '''</summary>
         Friend Shared ReadOnly Property console_readmem_req() As String
             Get
@@ -461,7 +461,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Listing the USB root paths for connected FlashcatUSB devices.
+        '''  Looks up a localized string similar to Listando os caminhos de raiz USB para dispositivos FlashcatUSB conectados.
         '''</summary>
         Friend Shared ReadOnly Property console_usb_list() As String
             Get
@@ -470,7 +470,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to You must specify a value following -{0}.
+        '''  Looks up a localized string similar to Você deve especificar um valor a seguir - {0}.
         '''</summary>
         Friend Shared ReadOnly Property console_value_missing() As String
             Get
@@ -479,7 +479,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to -{0} value must be numeric or hexadecimal.
+        '''  Looks up a localized string similar to - {0} o valor deve ser numérico ou hexadecimal.
         '''</summary>
         Friend Shared ReadOnly Property console_value_numeric_hex() As String
             Get
@@ -488,7 +488,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error: Write was not successful because there is no data to write.
+        '''  Looks up a localized string similar to Erro: a gravação não foi bem-sucedida porque não há dados para escrever.
         '''</summary>
         Friend Shared ReadOnly Property console_write_err_nodata() As String
             Get
@@ -497,7 +497,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Operation WriteMemory requires option -FILE to specify where to save to.
+        '''  Looks up a localized string similar to Operação WriteMemory requer opção -FILE para especificar onde salvar.
         '''</summary>
         Friend Shared ReadOnly Property console_writemem_req() As String
             Get
@@ -506,7 +506,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Detecting connected Flash device....
+        '''  Looks up a localized string similar to Detectando o dispositivo Flash conectado ....
         '''</summary>
         Friend Shared ReadOnly Property detecting_device() As String
             Get
@@ -515,7 +515,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Device mode.
+        '''  Looks up a localized string similar to Modo dispositivo.
         '''</summary>
         Friend Shared ReadOnly Property device_mode() As String
             Get
@@ -524,7 +524,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Device mode set to I2C EEPROM, configure I2C settings then click &apos;Detect&apos;.
+        '''  Looks up a localized string similar to Modo de dispositivo configurado para I2C EEPROM, configure as configurações do I2C e clique em &apos;Detectar&apos;.
         '''</summary>
         Friend Shared ReadOnly Property device_mode_i2c() As String
             Get
@@ -533,7 +533,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Disconnected from {0} device.
+        '''  Looks up a localized string similar to Desconectado do dispositivo {0}.
         '''</summary>
         Friend Shared ReadOnly Property disconnected_from_device() As String
             Get
@@ -542,7 +542,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error: file not found.
+        '''  Looks up a localized string similar to Erro: arquivo não encontrado.
         '''</summary>
         Friend Shared ReadOnly Property err_file_not_found() As String
             Get
@@ -551,7 +551,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error: Unable to connect to FlashcatUSB.
+        '''  Looks up a localized string similar to Erro: não é possível se conectar ao FlashcatUSB.
         '''</summary>
         Friend Shared ReadOnly Property err_unable_to_connect() As String
             Get
@@ -560,7 +560,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error, file not found: {0}.
+        '''  Looks up a localized string similar to Erro, arquivo não encontrado: {0}.
         '''</summary>
         Friend Shared ReadOnly Property error_file_not_found() As String
             Get
@@ -569,7 +569,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to DIP32/PLCC32 4MBIT device detected, enabling A18 on Pin 1 (reset).
+        '''  Looks up a localized string similar to Dispositivo DIP32 / PLCC32 4MBIT detectado, permitindo a A18 no Pin 1 (reiniciar).
         '''</summary>
         Friend Shared ReadOnly Property ext_4mbit_device() As String
             Get
@@ -578,7 +578,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to EXT I/O board successfully initialized.
+        '''  Looks up a localized string similar to Placa EXT I / O bem sucedida inicializada.
         '''</summary>
         Friend Shared ReadOnly Property ext_board_initalized() As String
             Get
@@ -587,7 +587,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Unable to connect to the Extension I/O board.
+        '''  Looks up a localized string similar to Não é possível conectar-se à placa de extensão E / S.
         '''</summary>
         Friend Shared ReadOnly Property ext_board_not_detected() As String
             Get
@@ -596,7 +596,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Connected to Flash (CHIP ID: 0x{0}).
+        '''  Looks up a localized string similar to Conectado ao Flash (CHIP ID: 0x{0}).
         '''</summary>
         Friend Shared ReadOnly Property ext_connected_chipid() As String
             Get
@@ -605,7 +605,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Attemping to automatically detect Flash device.
+        '''  Looks up a localized string similar to Tentando detectar automaticamente o dispositivo Flash.
         '''</summary>
         Friend Shared ReadOnly Property ext_detecting_device() As String
             Get
@@ -614,7 +614,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Successfully detected device in {0} mode.
+        '''  Looks up a localized string similar to Dispositivo detectado com sucesso no modo {0}.
         '''</summary>
         Friend Shared ReadOnly Property ext_device_detected() As String
             Get
@@ -623,7 +623,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Device interface.
+        '''  Looks up a localized string similar to Interface do dispositivo.
         '''</summary>
         Friend Shared ReadOnly Property ext_device_interface() As String
             Get
@@ -632,7 +632,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Initializing EXT I/O hardware board.
+        '''  Looks up a localized string similar to Inicializando placa de hardware EXT I / O.
         '''</summary>
         Friend Shared ReadOnly Property ext_init() As String
             Get
@@ -641,7 +641,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Notice: {0} device detected, Extension Port can only access up to Mb512.
+        '''  Looks up a localized string similar to Aviso: {0} dispositivo detectado, a porta de extensão só pode acessar até Mb512.
         '''</summary>
         Friend Shared ReadOnly Property ext_large_flash_detected() As String
             Get
@@ -650,7 +650,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Flash device not detected in Extension I/O mode.
+        '''  Looks up a localized string similar to Dispositivo Flash não detectado no modo Extensão I / O.
         '''</summary>
         Friend Shared ReadOnly Property ext_not_detected() As String
             Get
@@ -659,7 +659,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Flash page size: {0} bytes ({1} bytes extended).
+        '''  Looks up a localized string similar to Tamanho da página Flash: {0} bytes ({1} bytes estendidos).
         '''</summary>
         Friend Shared ReadOnly Property ext_page_size() As String
             Get
@@ -668,7 +668,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Programming mode: EXT I/O (Parallel).
+        '''  Looks up a localized string similar to Modo de programação: EXT I / O (Paralelo).
         '''</summary>
         Friend Shared ReadOnly Property ext_prog_mode() As String
             Get
@@ -677,7 +677,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error: unable to connect to EXT I/O board over SPI.
+        '''  Looks up a localized string similar to Erro: não é possível conectar-se à placa EXT I / O sobre SPI.
         '''</summary>
         Friend Shared ReadOnly Property ext_unable_to_connect_to_board() As String
             Get
@@ -686,7 +686,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Write mode supported.
+        '''  Looks up a localized string similar to Modo de gravação suportado.
         '''</summary>
         Friend Shared ReadOnly Property ext_write_mode_supported() As String
             Get
@@ -695,7 +695,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Flash detected: {0} ({1} bytes).
+        '''  Looks up a localized string similar to Flash detectado: {0} ({1} bytes).
         '''</summary>
         Friend Shared ReadOnly Property flash_detected() As String
             Get
@@ -704,7 +704,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Firmware features supported.
+        '''  Looks up a localized string similar to Recursos de firmware suportados.
         '''</summary>
         Friend Shared ReadOnly Property fw_feat_supported() As String
             Get
@@ -713,7 +713,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to FlashcatUSB firmware is out of date, please update.
+        '''  Looks up a localized string similar to O firmware do FlashcatUSB está desactualizado, por favor, atualize.
         '''</summary>
         Friend Shared ReadOnly Property fw_out_of_date() As String
             Get
@@ -722,7 +722,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Firmware update available, performing automatic update.
+        '''  Looks up a localized string similar to Atualização de firmware disponível, realizando atualização automática.
         '''</summary>
         Friend Shared ReadOnly Property fw_update_available() As String
             Get
@@ -731,7 +731,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error: failed to start firmware update.
+        '''  Looks up a localized string similar to Erro: não foi possível iniciar a atualização do firmware.
         '''</summary>
         Friend Shared ReadOnly Property fw_update_error() As String
             Get
@@ -740,7 +740,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Performing firmware unit update.
+        '''  Looks up a localized string similar to Atualização da unidade de firmware.
         '''</summary>
         Friend Shared ReadOnly Property fw_update_performing() As String
             Get
@@ -749,7 +749,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Programming new firmware into FlashcatUSB.
+        '''  Looks up a localized string similar to Programação de novo firmware no FlashcatUSB.
         '''</summary>
         Friend Shared ReadOnly Property fw_update_programming() As String
             Get
@@ -758,7 +758,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Firmware update starting (sending {0} bytes).
+        '''  Looks up a localized string similar to Início da atualização do firmware (envio de {0} bytes).
         '''</summary>
         Friend Shared ReadOnly Property fw_update_starting() As String
             Get
@@ -767,7 +767,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Active script.
+        '''  Looks up a localized string similar to Script ativo.
         '''</summary>
         Friend Shared ReadOnly Property gui_active_script() As String
             Get
@@ -776,7 +776,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Compressed File Archive.
+        '''  Looks up a localized string similar to Arquivo de arquivos compactados.
         '''</summary>
         Friend Shared ReadOnly Property gui_compressed_img() As String
             Get
@@ -785,7 +785,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Console text copied to the clipboard.
+        '''  Looks up a localized string similar to Texto do console copiado para a área de transferência.
         '''</summary>
         Friend Shared ReadOnly Property gui_console_text_copied() As String
             Get
@@ -794,7 +794,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Creating NAND Flash Image file.
+        '''  Looks up a localized string similar to Criando arquivo de imagem flash NAND.
         '''</summary>
         Friend Shared ReadOnly Property gui_creating_nand_file() As String
             Get
@@ -803,7 +803,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to {0} database loaded: {1} devices supported.
+        '''  Looks up a localized string similar to {0} banco de dados carregado: {1} dispositivos suportados.
         '''</summary>
         Friend Shared ReadOnly Property gui_database_supported() As String
             Get
@@ -812,7 +812,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to FlashcatUSB status: Connected.
+        '''  Looks up a localized string similar to Estado FlashcatUSB: conectado.
         '''</summary>
         Friend Shared ReadOnly Property gui_fcusb_connected() As String
             Get
@@ -821,7 +821,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to FlashcatUSB status: Connected ({0} devices).
+        '''  Looks up a localized string similar to Status FlashcatUSB: conectados ({0} dispositivos).
         '''</summary>
         Friend Shared ReadOnly Property gui_fcusb_connected_multi() As String
             Get
@@ -830,7 +830,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to FlashcatUSB status: Disconnected.
+        '''  Looks up a localized string similar to Estado FlashcatUSB: desconectado.
         '''</summary>
         Friend Shared ReadOnly Property gui_fcusb_disconnected() As String
             Get
@@ -839,7 +839,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to New device connected: {0}.
+        '''  Looks up a localized string similar to Novo dispositivo conectado: {0}.
         '''</summary>
         Friend Shared ReadOnly Property gui_fcusb_new_device() As String
             Get
@@ -848,7 +848,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to This will erase all connected Flash devices, are you sure?.
+        '''  Looks up a localized string similar to Isso irá apagar todos os dispositivos Flash conectados, você tem certeza?.
         '''</summary>
         Friend Shared ReadOnly Property gui_gand_erase_all_confirm() As String
             Get
@@ -857,7 +857,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Write.
+        '''  Looks up a localized string similar to Escreva.
         '''</summary>
         Friend Shared ReadOnly Property gui_gane_write() As String
             Get
@@ -866,7 +866,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Choose a binary file for programming.
+        '''  Looks up a localized string similar to Escolha um arquivo binário para programação.
         '''</summary>
         Friend Shared ReadOnly Property gui_gang_choose_binary() As String
             Get
@@ -875,7 +875,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to One or more devices are busy.
+        '''  Looks up a localized string similar to Um ou mais dispositivos estão ocupados.
         '''</summary>
         Friend Shared ReadOnly Property gui_gang_device_busy() As String
             Get
@@ -884,7 +884,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to All Flash devices programmed.
+        '''  Looks up a localized string similar to Todos os dispositivos Flash programados.
         '''</summary>
         Friend Shared ReadOnly Property gui_gang_devices_programmed() As String
             Get
@@ -893,7 +893,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Erase.
+        '''  Looks up a localized string similar to Apagar.
         '''</summary>
         Friend Shared ReadOnly Property gui_gang_erase() As String
             Get
@@ -902,7 +902,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to All Flash devices erased.
+        '''  Looks up a localized string similar to Todos os dispositivos Flash foram apagados.
         '''</summary>
         Friend Shared ReadOnly Property gui_gang_erase_complete() As String
             Get
@@ -911,7 +911,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Erasing all Flash devices.
+        '''  Looks up a localized string similar to Apagar todos os dispositivos Flash.
         '''</summary>
         Friend Shared ReadOnly Property gui_gang_erasing() As String
             Get
@@ -920,7 +920,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to This is the multi-device programmer interface tool.
+        '''  Looks up a localized string similar to Esta é a ferramenta de interface do programador multi-dispositivo.
         '''</summary>
         Friend Shared ReadOnly Property gui_gang_info() As String
             Get
@@ -929,7 +929,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Flash image saved to disk: {0}.
+        '''  Looks up a localized string similar to Imagem instantânea gravada no disco: {0}.
         '''</summary>
         Friend Shared ReadOnly Property gui_img_saved_to_disk() As String
             Get
@@ -938,7 +938,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Successfully programmed Flash image into current device.
+        '''  Looks up a localized string similar to Imagem Flash Flash programada com sucesso no dispositivo atual.
         '''</summary>
         Friend Shared ReadOnly Property gui_img_successful() As String
             Get
@@ -947,7 +947,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Device {0}: Not Connected.
+        '''  Looks up a localized string similar to Dispositivo {0}: Não conectado.
         '''</summary>
         Friend Shared ReadOnly Property gui_mem_device_status() As String
             Get
@@ -956,7 +956,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Flash memory size.
+        '''  Looks up a localized string similar to Tamanho da memória flash.
         '''</summary>
         Friend Shared ReadOnly Property gui_mem_size() As String
             Get
@@ -965,7 +965,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Memory device.
+        '''  Looks up a localized string similar to Dispositivo de memória.
         '''</summary>
         Friend Shared ReadOnly Property gui_memory_device() As String
             Get
@@ -974,7 +974,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Language.
+        '''  Looks up a localized string similar to Língua.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_language() As String
             Get
@@ -983,7 +983,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Main.
+        '''  Looks up a localized string similar to Principal.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_main() As String
             Get
@@ -992,7 +992,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Detect (re-initialize).
+        '''  Looks up a localized string similar to Detectar (reinicializar).
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_main_detect() As String
             Get
@@ -1001,7 +1001,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Exit.
+        '''  Looks up a localized string similar to Saída.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_main_exit() As String
             Get
@@ -1010,7 +1010,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Refresh flash device.
+        '''  Looks up a localized string similar to Atualizar dispositivo flash.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_main_refresh() As String
             Get
@@ -1019,7 +1019,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Repeat write operation.
+        '''  Looks up a localized string similar to Operação de gravação repetida.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_main_repeat() As String
             Get
@@ -1028,7 +1028,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Mode.
+        '''  Looks up a localized string similar to Modo.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_mode() As String
             Get
@@ -1037,7 +1037,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Bit Swapping.
+        '''  Looks up a localized string similar to Troca de bits.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_mode_bitswap() As String
             Get
@@ -1046,7 +1046,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Endian mode.
+        '''  Looks up a localized string similar to Modo Endian.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_mode_endian() As String
             Get
@@ -1055,7 +1055,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Protocol settings.
+        '''  Looks up a localized string similar to Configurações de protocolo.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_mode_settings() As String
             Get
@@ -1064,7 +1064,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Verify programming.
+        '''  Looks up a localized string similar to Verifique a programação.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_mode_verify() As String
             Get
@@ -1073,7 +1073,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Voltage ({0}).
+        '''  Looks up a localized string similar to Tensão ({0}).
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_mode_voltage() As String
             Get
@@ -1082,7 +1082,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to VPP Setting.
+        '''  Looks up a localized string similar to Configuração VPP.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_mode_vpp() As String
             Get
@@ -1091,7 +1091,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Script.
+        '''  Looks up a localized string similar to Roteiro.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_script() As String
             Get
@@ -1100,7 +1100,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Load script.
+        '''  Looks up a localized string similar to Carregar script.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_script_load() As String
             Get
@@ -1109,7 +1109,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Select script.
+        '''  Looks up a localized string similar to Selecionar script.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_script_select() As String
             Get
@@ -1118,7 +1118,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Unload script.
+        '''  Looks up a localized string similar to Script de descarregamento.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_script_unload() As String
             Get
@@ -1127,7 +1127,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Tools.
+        '''  Looks up a localized string similar to Ferramentas.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_tools() As String
             Get
@@ -1136,7 +1136,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Create image.
+        '''  Looks up a localized string similar to Criar imagem.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_tools_create() As String
             Get
@@ -1145,7 +1145,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Erase chip.
+        '''  Looks up a localized string similar to Apagar chip.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_tools_erase() As String
             Get
@@ -1154,7 +1154,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to NAND memory map.
+        '''  Looks up a localized string similar to Mapa de memória NAND.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_tools_mem_map() As String
             Get
@@ -1163,7 +1163,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to SPI NAND internal ECC.
+        '''  Looks up a localized string similar to SPI NAND ECC interno.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_tools_spi_ecc() As String
             Get
@@ -1172,7 +1172,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Vendor Features.
+        '''  Looks up a localized string similar to Características do Vendedor.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_tools_vendor() As String
             Get
@@ -1181,7 +1181,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Write image.
+        '''  Looks up a localized string similar to Escreva imagem.
         '''</summary>
         Friend Shared ReadOnly Property gui_menu_tools_write() As String
             Get
@@ -1190,7 +1190,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error creating backup: read memory returned inconsistance results.
+        '''  Looks up a localized string similar to Erro ao criar backup: ler memória retornou resultados inconsistentes.
         '''</summary>
         Friend Shared ReadOnly Property gui_nand_creating_backup() As String
             Get
@@ -1199,7 +1199,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error: file is not a valid Flash image.
+        '''  Looks up a localized string similar to Erro: o arquivo não é uma imagem Flash válida.
         '''</summary>
         Friend Shared ReadOnly Property gui_not_valid_img() As String
             Get
@@ -1208,7 +1208,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Open Flash image file to program.
+        '''  Looks up a localized string similar to Abra o arquivo de imagem do Flash para o programa.
         '''</summary>
         Friend Shared ReadOnly Property gui_open_img() As String
             Get
@@ -1217,7 +1217,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Programming Flash image: {0}.
+        '''  Looks up a localized string similar to Programação da imagem do Flash: {0}.
         '''</summary>
         Friend Shared ReadOnly Property gui_programming_img() As String
             Get
@@ -1226,7 +1226,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Reading Flash: {0} of {1} bytes ({2}% complete).
+        '''  Looks up a localized string similar to Leitura de Flash: {0} de {1} bytes ({2}% concluído).
         '''</summary>
         Friend Shared ReadOnly Property gui_reading_flash() As String
             Get
@@ -1235,7 +1235,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Reading NAND spare area: {0} of {1} bytes ({2}% complete).
+        '''  Looks up a localized string similar to Leitura da área de reposição NAND: {0} de {1} bytes ({2}% concluído).
         '''</summary>
         Friend Shared ReadOnly Property gui_reading_spare_area() As String
             Get
@@ -1244,7 +1244,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Performing repeat write operation, resetting device.
+        '''  Looks up a localized string similar to Execução de operação de gravação repetida, dispositivo de redefinição.
         '''</summary>
         Friend Shared ReadOnly Property gui_repeat_beginning() As String
             Get
@@ -1253,7 +1253,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error, can not detect Flash device to perform repeat operation.
+        '''  Looks up a localized string similar to Erro, não é possível detectar o dispositivo Flash para executar a operação repetida.
         '''</summary>
         Friend Shared ReadOnly Property gui_repeat_failed_detect() As String
             Get
@@ -1262,7 +1262,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error, unable to reconnect to FlashcatUSB.
+        '''  Looks up a localized string similar to Erro, incapaz de se reconectar ao FlashcatUSB.
         '''</summary>
         Friend Shared ReadOnly Property gui_repeat_failed_reconnect() As String
             Get
@@ -1271,7 +1271,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Choose location to save the console log.
+        '''  Looks up a localized string similar to Escolha o local para salvar o log do console.
         '''</summary>
         Friend Shared ReadOnly Property gui_save_dialog() As String
             Get
@@ -1280,7 +1280,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Saved Flash image to disk: {0}.
+        '''  Looks up a localized string similar to Imagem de Flash guardada no disco: {0}.
         '''</summary>
         Friend Shared ReadOnly Property gui_saved_img_to_disk() As String
             Get
@@ -1289,7 +1289,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Can not load script, file does not exist.
+        '''  Looks up a localized string similar to Não é possível carregar o script, o arquivo não existe.
         '''</summary>
         Friend Shared ReadOnly Property gui_script_can_not_load() As String
             Get
@@ -1298,7 +1298,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Checking for a device specific script to automatically load.
+        '''  Looks up a localized string similar to Verificando um script específico do dispositivo para carregar automaticamente.
         '''</summary>
         Friend Shared ReadOnly Property gui_script_checking() As String
             Get
@@ -1307,7 +1307,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Loaded script {0} successfully.
+        '''  Looks up a localized string similar to Script carregado {0} com sucesso.
         '''</summary>
         Friend Shared ReadOnly Property gui_script_loaded() As String
             Get
@@ -1316,7 +1316,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Loading device specific script: {0}.
+        '''  Looks up a localized string similar to Carregando o script específico do dispositivo: {0}.
         '''</summary>
         Friend Shared ReadOnly Property gui_script_loading() As String
             Get
@@ -1325,7 +1325,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to No script files available.
+        '''  Looks up a localized string similar to Nenhum arquivo de script disponível.
         '''</summary>
         Friend Shared ReadOnly Property gui_script_non_available() As String
             Get
@@ -1334,7 +1334,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Select FlashcatUSB script file to open.
+        '''  Looks up a localized string similar to Selecione o arquivo de script FlashcatUSB para abrir.
         '''</summary>
         Friend Shared ReadOnly Property gui_script_open() As String
             Get
@@ -1343,7 +1343,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to The FlashcatUSB script engine has been reset.
+        '''  Looks up a localized string similar to O mecanismo do script FlashcatUSB foi reiniciado.
         '''</summary>
         Friend Shared ReadOnly Property gui_script_reset() As String
             Get
@@ -1352,7 +1352,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Select location to save Flash image file.
+        '''  Looks up a localized string similar to Selecione o local para salvar o arquivo de imagem do Flash.
         '''</summary>
         Friend Shared ReadOnly Property gui_select_location() As String
             Get
@@ -1361,7 +1361,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Welcome to FlashcatUSB (SPI / I2C / JTAG Programing Software)!.
+        '''  Looks up a localized string similar to Bem-vindo ao FlashcatUSB  (software de programação SPI / I2C / JTAG)!.
         '''</summary>
         Friend Shared ReadOnly Property gui_status_welcome() As String
             Get
@@ -1379,7 +1379,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Multi-device.
+        '''  Looks up a localized string similar to Multidispositivo.
         '''</summary>
         Friend Shared ReadOnly Property gui_tab_multi() As String
             Get
@@ -1397,7 +1397,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Are you sure you want to enable this feature?.
+        '''  Looks up a localized string similar to Tem certeza de que deseja ativar esse recurso?.
         '''</summary>
         Friend Shared ReadOnly Property gui_vpp_confirm() As String
             Get
@@ -1406,7 +1406,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Confirm +12V VPP Setting.
+        '''  Looks up a localized string similar to Confirmar + Configuração VPP de 12V.
         '''</summary>
         Friend Shared ReadOnly Property gui_vpp_setting() As String
             Get
@@ -1415,7 +1415,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Warning, this setting should only be used with adapters with a +12V switch.
+        '''  Looks up a localized string similar to Aviso, esta configuração só deve ser usada com adaptadores com uma chave + 12V.
         '''</summary>
         Friend Shared ReadOnly Property gui_vpp_warning() As String
             Get
@@ -1424,7 +1424,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Writing Flash: {0} of {1} bytes ({2}% complete).
+        '''  Looks up a localized string similar to Escrevendo Flash: {0} de {1} bytes ({2}% concluído).
         '''</summary>
         Friend Shared ReadOnly Property gui_writing_flash() As String
             Get
@@ -1433,7 +1433,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Address byte: 0x{0}.
+        '''  Looks up a localized string similar to Byte de endereço: 0x{0}.
         '''</summary>
         Friend Shared ReadOnly Property i2c_addr_byte() As String
             Get
@@ -1442,7 +1442,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Attempting to detect I2C EEPROM device.
+        '''  Looks up a localized string similar to Tentando detectar o dispositivo I2C EEPROM.
         '''</summary>
         Friend Shared ReadOnly Property i2c_attempt_detect() As String
             Get
@@ -1451,7 +1451,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Successfully connected to I2C EEPROM.
+        '''  Looks up a localized string similar to Conectado com sucesso à EEPROM I2C.
         '''</summary>
         Friend Shared ReadOnly Property i2c_connected() As String
             Get
@@ -1460,7 +1460,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to I2C EEPROM detected and ready for operation.
+        '''  Looks up a localized string similar to EECOM I2C detectada e pronta para operação.
         '''</summary>
         Friend Shared ReadOnly Property i2c_detected() As String
             Get
@@ -1469,7 +1469,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to I2C EEPROM device size: {0} bytes.
+        '''  Looks up a localized string similar to Tamanho do dispositivo I2C EEPROM: {0} bytes.
         '''</summary>
         Friend Shared ReadOnly Property i2c_eeprom_size() As String
             Get
@@ -1478,7 +1478,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to I2C EEPROM not detected.
+        '''  Looks up a localized string similar to EEPROM I2C não detectada.
         '''</summary>
         Friend Shared ReadOnly Property i2c_not_detected() As String
             Get
@@ -1487,7 +1487,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to I2C protocol speed.
+        '''  Looks up a localized string similar to Velocidade do protocolo I2C.
         '''</summary>
         Friend Shared ReadOnly Property i2c_protocol_speed() As String
             Get
@@ -1496,7 +1496,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Unable to connect to I2C EEPROM.
+        '''  Looks up a localized string similar to Não é possível conectar-se a I2C EEPROM.
         '''</summary>
         Friend Shared ReadOnly Property i2c_unable_to_connect() As String
             Get
@@ -1505,7 +1505,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Attempting to detect CFI flash at address 0x{0}.
+        '''  Looks up a localized string similar to Tentando detectar CFI flash no endereço 0x{0}.
         '''</summary>
         Friend Shared ReadOnly Property jtag_cfi_attempt_detect() As String
             Get
@@ -1514,7 +1514,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error: unable to detect CFI flash device over JTAG.
+        '''  Looks up a localized string similar to Erro: não é possível detectar o dispositivo flash CFI sobre JTAG.
         '''</summary>
         Friend Shared ReadOnly Property jtag_cfi_no_detect() As String
             Get
@@ -1523,7 +1523,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Target device supports DMA mode.
+        '''  Looks up a localized string similar to O dispositivo de destino suporta o modo DMA.
         '''</summary>
         Friend Shared ReadOnly Property jtag_dma() As String
             Get
@@ -1532,7 +1532,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error: MCU does not support DMA register access.
+        '''  Looks up a localized string similar to Erro: MCU não suporta acesso de registro DMA.
         '''</summary>
         Friend Shared ReadOnly Property jtag_dma_not_supported() As String
             Get
@@ -1541,7 +1541,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Failed to connect to target board using JTAG.
+        '''  Looks up a localized string similar to Falha ao conectar-se à placa-alvo usando JTAG.
         '''</summary>
         Friend Shared ReadOnly Property jtag_failed_to_connect() As String
             Get
@@ -1550,7 +1550,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Target device does not support DMA mode.
+        '''  Looks up a localized string similar to O dispositivo de destino não suporta o modo DMA.
         '''</summary>
         Friend Shared ReadOnly Property jtag_no_dma() As String
             Get
@@ -1559,7 +1559,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Device did not return IDCODE.
+        '''  Looks up a localized string similar to O dispositivo não retornou IDCODE.
         '''</summary>
         Friend Shared ReadOnly Property jtag_no_idcode() As String
             Get
@@ -1568,7 +1568,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to {0} ready for operation in JTAG mode.
+        '''  Looks up a localized string similar to {0} pronto para operação no modo JTAG.
         '''</summary>
         Friend Shared ReadOnly Property jtag_ready() As String
             Get
@@ -1577,7 +1577,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to JTAG engine setup successfully.
+        '''  Looks up a localized string similar to Configuração do mecanismo JTAG com sucesso.
         '''</summary>
         Friend Shared ReadOnly Property jtag_setup() As String
             Get
@@ -1586,7 +1586,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Software does not support MCU for SPI operation.
+        '''  Looks up a localized string similar to O software não suporta MCU para operação SPI.
         '''</summary>
         Friend Shared ReadOnly Property jtag_spi_api_not_loaded() As String
             Get
@@ -1595,7 +1595,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Attempting to detect SPI flash connected to MCU via JTAG.
+        '''  Looks up a localized string similar to Tentando detectar SPI flash conectado a MCU via JTAG.
         '''</summary>
         Friend Shared ReadOnly Property jtag_spi_attempt_detect() As String
             Get
@@ -1604,7 +1604,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error: unable to detect SPI flash device over JTAG.
+        '''  Looks up a localized string similar to Erro: não é possível detectar o dispositivo flash SPI sobre JTAG.
         '''</summary>
         Friend Shared ReadOnly Property jtag_spi_no_detect() As String
             Get
@@ -1613,7 +1613,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Unknown JTAG device.
+        '''  Looks up a localized string similar to Dispositivo JTAG desconhecido.
         '''</summary>
         Friend Shared ReadOnly Property jtag_unknown_device() As String
             Get
@@ -1622,7 +1622,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to BAD NAND BLOCK AT address: 0x{0} (Mapped to 0x{1}).
+        '''  Looks up a localized string similar to BAD NAND BLOCK AT endereço: 0x{0} (Mapped to 0x{1}).
         '''</summary>
         Friend Shared ReadOnly Property mc_badnand_block() As String
             Get
@@ -1631,7 +1631,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to All Data.
+        '''  Looks up a localized string similar to Todos os dados.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_alldata() As String
             Get
@@ -1640,7 +1640,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Cancel.
+        '''  Looks up a localized string similar to Cancelar.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_cancel() As String
             Get
@@ -1649,7 +1649,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Close.
+        '''  Looks up a localized string similar to Fechar.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_close() As String
             Get
@@ -1658,7 +1658,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Compare memory contents.
+        '''  Looks up a localized string similar to Compare os conteúdos da memória.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_compare() As String
             Get
@@ -1667,7 +1667,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Erase all memory.
+        '''  Looks up a localized string similar to Apague toda a memória.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_erase() As String
             Get
@@ -1676,7 +1676,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Main.
+        '''  Looks up a localized string similar to a Principal.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_main() As String
             Get
@@ -1685,7 +1685,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to OK.
+        '''  Looks up a localized string similar to Está bem.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_ok() As String
             Get
@@ -1694,7 +1694,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Read memory to disk.
+        '''  Looks up a localized string similar to Leia a memória no disco.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_read() As String
             Get
@@ -1703,7 +1703,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Spare.
+        '''  Looks up a localized string similar to Poupar.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_spare() As String
             Get
@@ -1712,7 +1712,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Write data to memory.
+        '''  Looks up a localized string similar to Escreva dados na memória.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_write() As String
             Get
@@ -1721,7 +1721,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Memory compare canceled.
+        '''  Looks up a localized string similar to Comparação de memória cancelada.
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_canceled() As String
             Get
@@ -1730,7 +1730,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Memory compare complete: {0}% data match.
+        '''  Looks up a localized string similar to A comparação de memória é completa: {0}% de correspondência de dados.
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_complete_match() As String
             Get
@@ -1739,7 +1739,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Memory compare complete: {0} total mismatches ({1}% match).
+        '''  Looks up a localized string similar to A comparação de memória é completa: {0} desajustes totais ({1}% correspondem).
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_complete_tot() As String
             Get
@@ -1748,7 +1748,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Filename.
+        '''  Looks up a localized string similar to Nome do arquivo.
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_filename() As String
             Get
@@ -1757,7 +1757,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Flash address.
+        '''  Looks up a localized string similar to Endereço de flash.
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_flash_addr() As String
             Get
@@ -1766,7 +1766,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Flash address: 0x{0}, size: {1} bytes.
+        '''  Looks up a localized string similar to Endereço do Flash: 0x{0}, tamanho: {1} bytes.
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_info() As String
             Get
@@ -1775,7 +1775,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Mismatch count: {0} bytes ({1}% match).
+        '''  Looks up a localized string similar to Contagem incompatível: {0} bytes ({1}% correspondência).
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_mismatch() As String
             Get
@@ -1784,7 +1784,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Memory Compare Results.
+        '''  Looks up a localized string similar to Resultados de comparação de memória.
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_results() As String
             Get
@@ -1793,7 +1793,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to File selected, comparing {0}.
+        '''  Looks up a localized string similar to Arquivo selecionado, comparando {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_selected() As String
             Get
@@ -1802,7 +1802,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Beginning memory compare operation.
+        '''  Looks up a localized string similar to Operação de comparação de memória inicial.
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_start() As String
             Get
@@ -1811,7 +1811,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Total bytes processed.
+        '''  Looks up a localized string similar to Total de bytes processados.
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_total_processed() As String
             Get
@@ -1820,7 +1820,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Sent memory erase command to device: {0}.
+        '''  Looks up a localized string similar to Mandar o comando de apagar memória para o dispositivo: {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_erase_command_sent() As String
             Get
@@ -1829,7 +1829,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Confirm memory erase of {0}.
+        '''  Looks up a localized string similar to Confirmar apagar memória de {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_erase_confirm() As String
             Get
@@ -1838,7 +1838,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to This action will permanently delete all data.
+        '''  Looks up a localized string similar to Esta ação eliminará permanentemente todos os dados.
         '''</summary>
         Friend Shared ReadOnly Property mc_erase_warning() As String
             Get
@@ -1847,7 +1847,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Target Flash address: 0x{0}, bytes to write: {1} bytes.
+        '''  Looks up a localized string similar to Endereço do Flash de destino: 0x{0}, bytes para escrever: {1} bytes.
         '''</summary>
         Friend Shared ReadOnly Property mc_io_destination() As String
             Get
@@ -1856,7 +1856,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to User canceled. No data written to {0}.
+        '''  Looks up a localized string similar to Usuário cancelado. Nenhum dado escrito em {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_io_file_cancel_to() As String
             Get
@@ -1865,7 +1865,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Choose file to write into {0}.
+        '''  Looks up a localized string similar to Escolha o arquivo para escrever em {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_io_file_choose() As String
             Get
@@ -1874,7 +1874,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Select file to compare with memory.
+        '''  Looks up a localized string similar to Selecione o arquivo para comparar com a memória.
         '''</summary>
         Friend Shared ReadOnly Property mc_io_file_compare() As String
             Get
@@ -1883,7 +1883,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to File chosen, writting into {0}.
+        '''  Looks up a localized string similar to Arquivo escolhido, escrevendo para {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_io_file_writing() As String
             Get
@@ -1892,7 +1892,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Opened file for writing: {0}, (size: {1} bytes).
+        '''  Looks up a localized string similar to Arquivo aberto para escrita: {0}, (tamanho: {1} bytes).
         '''</summary>
         Friend Shared ReadOnly Property mc_io_open_file() As String
             Get
@@ -1901,7 +1901,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to User canceled. No data has been saved.
+        '''  Looks up a localized string similar to Usuário cancelado. Nenhum dado foi salvo.
         '''</summary>
         Friend Shared ReadOnly Property mc_io_save_canceled() As String
             Get
@@ -1910,7 +1910,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Choose hard drive location and output data format.
+        '''  Looks up a localized string similar to Escolha a localização do disco rígido e o formato de dados de saída.
         '''</summary>
         Friend Shared ReadOnly Property mc_io_save_type() As String
             Get
@@ -1919,7 +1919,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Converting binary file to {0} file format.
+        '''  Looks up a localized string similar to Convertendo arquivo binário para o formato de arquivo {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_converting_format() As String
             Get
@@ -1928,7 +1928,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Selected file is not in {0} file format.
+        '''  Looks up a localized string similar to O arquivo selecionado não está no formato de arquivo {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_incorrect_format() As String
             Get
@@ -1937,7 +1937,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Opened file for writing: {0} ({1}), total file size: {2} bytes.
+        '''  Looks up a localized string similar to Arquivo aberto para escrita: {0} ({1}), tamanho total do arquivo: {2} bytes.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_open_file_write() As String
             Get
@@ -1946,7 +1946,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Beginning memory read from {0}.
+        '''  Looks up a localized string similar to Memória de início lida de {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_read_begin() As String
             Get
@@ -1955,7 +1955,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Read operation canceled.
+        '''  Looks up a localized string similar to Operação de leitura cancelada.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_read_canceled() As String
             Get
@@ -1964,7 +1964,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Read operation complete.
+        '''  Looks up a localized string similar to Operação de leitura completa.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_read_done() As String
             Get
@@ -1973,7 +1973,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Select range to read from {0}.
+        '''  Looks up a localized string similar to Selecione o intervalo para ler de {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_read_from() As String
             Get
@@ -1982,7 +1982,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Read {0} bytes in {1} seconds, {2}.
+        '''  Looks up a localized string similar to Leia {0} bytes em {1} segundos, {2}.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_read_result() As String
             Get
@@ -1991,7 +1991,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Performing memory read operation.
+        '''  Looks up a localized string similar to Execução de operação de leitura de memória.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_read_start() As String
             Get
@@ -2000,7 +2000,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Start address: {0} ({1}) Length: {2}.
+        '''  Looks up a localized string similar to Endereço de início: {0} ({1}) Comprimento: {2}.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_start_addr() As String
             Get
@@ -2009,7 +2009,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to User canceled read operation.
+        '''  Looks up a localized string similar to Operação de leitura cancelada pelo usuário.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_user_cancel() As String
             Get
@@ -2018,7 +2018,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to {0} successfully saved to disk.
+        '''  Looks up a localized string similar to {0} salvo com sucesso no disco.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_write_success() As String
             Get
@@ -2027,7 +2027,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Reading: {0} of {1}.
+        '''  Looks up a localized string similar to Leitura: {0} de {1}.
         '''</summary>
         Friend Shared ReadOnly Property mc_reading() As String
             Get
@@ -2036,7 +2036,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Base address.
+        '''  Looks up a localized string similar to Endereço base.
         '''</summary>
         Friend Shared ReadOnly Property mc_rngbox_base() As String
             Get
@@ -2045,7 +2045,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Length.
+        '''  Looks up a localized string similar to comprimento.
         '''</summary>
         Friend Shared ReadOnly Property mc_rngbox_len() As String
             Get
@@ -2054,7 +2054,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Select range to write data to {0}.
+        '''  Looks up a localized string similar to Selecione o intervalo para gravar dados em {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_select_range() As String
             Get
@@ -2063,7 +2063,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Write operation complete, {0} bytes written.
+        '''  Looks up a localized string similar to A operação de gravação completa, {0} bytes escrito.
         '''</summary>
         Friend Shared ReadOnly Property mc_wr_oper_complete() As String
             Get
@@ -2072,7 +2072,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Write operation was not successful.
+        '''  Looks up a localized string similar to A operação de gravação não foi bem sucedida.
         '''</summary>
         Friend Shared ReadOnly Property mc_wr_oper_failed() As String
             Get
@@ -2081,7 +2081,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error, file does not exist or does not contain data.
+        '''  Looks up a localized string similar to Erro, o arquivo não existe ou não contém dados.
         '''</summary>
         Friend Shared ReadOnly Property mc_wr_oper_file_err() As String
             Get
@@ -2090,7 +2090,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to {0} bytes written in {1} seconds, {2} Bytes/s.
+        '''  Looks up a localized string similar to {0} bytes escritos em {1} segundos, {2} Bytes / s.
         '''</summary>
         Friend Shared ReadOnly Property mc_wr_oper_result() As String
             Get
@@ -2099,7 +2099,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Performing memory write operation.
+        '''  Looks up a localized string similar to Execução de operação de gravação de memória.
         '''</summary>
         Friend Shared ReadOnly Property mc_wr_oper_start() As String
             Get
@@ -2108,7 +2108,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Writing file {0} into {1} ({2} bytes to write).
+        '''  Looks up a localized string similar to Escrevendo o arquivo {0} em {1} ({2} bytes para escrever).
         '''</summary>
         Friend Shared ReadOnly Property mc_wr_oper_status() As String
             Get
@@ -2117,7 +2117,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to User cancelled write operation.
+        '''  Looks up a localized string similar to Operação de gravação cancelada pelo usuário.
         '''</summary>
         Friend Shared ReadOnly Property mc_wr_user_canceled() As String
             Get
@@ -2126,7 +2126,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Continue write operation?.
+        '''  Looks up a localized string similar to Continuar a operação de gravação?.
         '''</summary>
         Friend Shared ReadOnly Property mem_ask_continue() As String
             Get
@@ -2135,7 +2135,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to BAD NAND BLOCK at page index: 0x{0} (block index: {1}).
+        '''  Looks up a localized string similar to BAD NAND BLOCK AT endereço: 0x{0}.
         '''</summary>
         Friend Shared ReadOnly Property mem_bad_nand_block() As String
             Get
@@ -2144,7 +2144,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Performing a full chip erase.
+        '''  Looks up a localized string similar to Executando um apagamento completo de fichas.
         '''</summary>
         Friend Shared ReadOnly Property mem_erase_device() As String
             Get
@@ -2153,7 +2153,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error: erasing device failed.
+        '''  Looks up a localized string similar to Erro: apagando o dispositivo falhou.
         '''</summary>
         Friend Shared ReadOnly Property mem_erase_device_fail() As String
             Get
@@ -2162,7 +2162,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Memory device erased successfully.
+        '''  Looks up a localized string similar to Dispositivo de memória apagado com sucesso.
         '''</summary>
         Friend Shared ReadOnly Property mem_erase_device_success() As String
             Get
@@ -2171,7 +2171,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Failed to erase Flash at address: 0x{0} (sector index: {1}).
+        '''  Looks up a localized string similar to Falha ao apagar o Flash no endereço: 0x{0} (índice do setor: {1}).
         '''</summary>
         Friend Shared ReadOnly Property mem_erase_failed_at() As String
             Get
@@ -2180,7 +2180,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Flash erase failed.
+        '''  Looks up a localized string similar to O apagamento do flash falhou.
         '''</summary>
         Friend Shared ReadOnly Property mem_erase_failed_title() As String
             Get
@@ -2189,7 +2189,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Erasing Flash memory device... (this may take up to 2 minutes).
+        '''  Looks up a localized string similar to Apagar dispositivo de memória flash ... (isso pode levar até 2 minutos).
         '''</summary>
         Friend Shared ReadOnly Property mem_erasing_device() As String
             Get
@@ -2198,7 +2198,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Erasing memory sector.
+        '''  Looks up a localized string similar to Erupção do setor de memória.
         '''</summary>
         Friend Shared ReadOnly Property mem_erasing_sector() As String
             Get
@@ -2207,7 +2207,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Flash device successfully detected and ready for operation.
+        '''  Looks up a localized string similar to Dispositivo Flash detectado com sucesso e pronto para operação.
         '''</summary>
         Friend Shared ReadOnly Property mem_flash_supported() As String
             Get
@@ -2216,7 +2216,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error communicating with I2C device.
+        '''  Looks up a localized string similar to Erro ao se comunicar com o dispositivo I2C.
         '''</summary>
         Friend Shared ReadOnly Property mem_i2c_error() As String
             Get
@@ -2225,7 +2225,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Flash memory detected but not found in Flash library.
+        '''  Looks up a localized string similar to Memória flash detectada, mas não encontrada na biblioteca Flash.
         '''</summary>
         Friend Shared ReadOnly Property mem_not_supported() As String
             Get
@@ -2234,7 +2234,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Reading memory of {0} bytes.
+        '''  Looks up a localized string similar to Memória de leitura de {0} bytes.
         '''</summary>
         Friend Shared ReadOnly Property mem_reading_memory() As String
             Get
@@ -2243,7 +2243,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Verifying written data.
+        '''  Looks up a localized string similar to Verificando dados escritos.
         '''</summary>
         Friend Shared ReadOnly Property mem_verify_data() As String
             Get
@@ -2252,7 +2252,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Verifing written data at {0}.
+        '''  Looks up a localized string similar to Verificando dados escritos em {0}.
         '''</summary>
         Friend Shared ReadOnly Property mem_verify_data_at() As String
             Get
@@ -2261,7 +2261,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Data verification failed!.
+        '''  Looks up a localized string similar to A verificação de dados falhou!.
         '''</summary>
         Friend Shared ReadOnly Property mem_verify_failed() As String
             Get
@@ -2270,7 +2270,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Data verification failed at 0x{0}.
+        '''  Looks up a localized string similar to A verificação de dados falhou em 0x{0}.
         '''</summary>
         Friend Shared ReadOnly Property mem_verify_failed_at() As String
             Get
@@ -2279,7 +2279,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error verification failed.
+        '''  Looks up a localized string similar to Falha na verificação de erro.
         '''</summary>
         Friend Shared ReadOnly Property mem_verify_failed_title() As String
             Get
@@ -2288,7 +2288,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Address {0}: wrote {1} and read {2} ({3} mismatches).
+        '''  Looks up a localized string similar to Endereço {0}: escreveu {1} e lê {2} ({3} desajustes).
         '''</summary>
         Friend Shared ReadOnly Property mem_verify_mismatches() As String
             Get
@@ -2297,7 +2297,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Data verification was successful.
+        '''  Looks up a localized string similar to A verificação dos dados foi bem sucedida.
         '''</summary>
         Friend Shared ReadOnly Property mem_verify_okay() As String
             Get
@@ -2306,7 +2306,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error, write operation was not successful.
+        '''  Looks up a localized string similar to Erro, a operação de escrita não foi bem sucedida.
         '''</summary>
         Friend Shared ReadOnly Property mem_write_not_successful() As String
             Get
@@ -2315,7 +2315,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Write operation was successful.
+        '''  Looks up a localized string similar to A operação de gravação foi bem sucedida.
         '''</summary>
         Friend Shared ReadOnly Property mem_write_successful() As String
             Get
@@ -2324,7 +2324,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Writing memory with {0} bytes.
+        '''  Looks up a localized string similar to Escrevendo memória com {0} bytes.
         '''</summary>
         Friend Shared ReadOnly Property mem_writing_memory() As String
             Get
@@ -2333,7 +2333,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to NAND block manager disabled.
+        '''  Looks up a localized string similar to Gerenciador de bloco NAND desativado.
         '''</summary>
         Friend Shared ReadOnly Property nand_block_manager_disabled() As String
             Get
@@ -2342,7 +2342,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Write image completed with {0} NAND blocks unused.
+        '''  Looks up a localized string similar to Escrever imagem concluída com {0} blocos NAND não utilizados.
         '''</summary>
         Friend Shared ReadOnly Property nand_completed_with_blocks_left() As String
             Get
@@ -2351,7 +2351,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Error while erasing NAND flash device.
+        '''  Looks up a localized string similar to Erro ao apagar o dispositivo flash NAND.
         '''</summary>
         Friend Shared ReadOnly Property nand_erase_failed() As String
             Get
@@ -2360,7 +2360,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Successfully erased NAND Flash device.
+        '''  Looks up a localized string similar to Removido com sucesso dispositivo NAND Flash.
         '''</summary>
         Friend Shared ReadOnly Property nand_erase_successful() As String
             Get
@@ -2369,7 +2369,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to NAND memory device detected, loading valid memory map.
+        '''  Looks up a localized string similar to Dispositivo de memória NAND detectado, carregando mapa de memória válido.
         '''</summary>
         Friend Shared ReadOnly Property nand_mem_device_detected() As String
             Get
@@ -2378,7 +2378,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to NAND memory map complete: {0} pages available for access.
+        '''  Looks up a localized string similar to Mapa de memória NAND completo: {0} páginas disponíveis para acesso.
         '''</summary>
         Friend Shared ReadOnly Property nand_mem_map_complete() As String
             Get
@@ -2387,7 +2387,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Loading NAND memory map for valid memory.
+        '''  Looks up a localized string similar to Carregando o mapa de memória NAND para memória válida.
         '''</summary>
         Friend Shared ReadOnly Property nand_mem_map_loading() As String
             Get
@@ -2396,7 +2396,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to NAND Block missing from image file: {0}.
+        '''  Looks up a localized string similar to NAND Block faltando no arquivo de imagem: {0}.
         '''</summary>
         Friend Shared ReadOnly Property nand_missing_block() As String
             Get
@@ -2405,7 +2405,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Reading NAND block {0} of {1} ({2}% complete).
+        '''  Looks up a localized string similar to Leitura do bloco NAND {0} de {1} ({2}% completo).
         '''</summary>
         Friend Shared ReadOnly Property nand_reading_block() As String
             Get
@@ -2414,7 +2414,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Writing NAND block {0} of {1} ({2}% complete).
+        '''  Looks up a localized string similar to Escrevendo o bloco NAND {0} de {1} ({2}% completo).
         '''</summary>
         Friend Shared ReadOnly Property nand_writing_block() As String
             Get
@@ -2423,7 +2423,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Algorithm.
+        '''  Looks up a localized string similar to Algoritmo.
         '''</summary>
         Friend Shared ReadOnly Property nandecc_algorithm() As String
             Get
@@ -2432,7 +2432,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Bit-error.
+        '''  Looks up a localized string similar to Erro de bit.
         '''</summary>
         Friend Shared ReadOnly Property nandecc_biterror() As String
             Get
@@ -2441,7 +2441,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to * Changes take effect on device detect event.
+        '''  Looks up a localized string similar to As alterações produzem efeito no evento de detecção de dispositivo.
         '''</summary>
         Friend Shared ReadOnly Property nandecc_changes() As String
             Get
@@ -2450,7 +2450,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to ECC location.
+        '''  Looks up a localized string similar to Localização ECC.
         '''</summary>
         Friend Shared ReadOnly Property nandecc_ecclocation() As String
             Get
@@ -2459,7 +2459,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Enabled.
+        '''  Looks up a localized string similar to Activado.
         '''</summary>
         Friend Shared ReadOnly Property nandecc_enabled() As String
             Get
@@ -2468,7 +2468,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Software ECC Feature.
+        '''  Looks up a localized string similar to Recurso de software ECC.
         '''</summary>
         Friend Shared ReadOnly Property nandecc_groupbox() As String
             Get
@@ -2477,7 +2477,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Read operation (auto-correct).
+        '''  Looks up a localized string similar to Operação de leitura (auto-correção).
         '''</summary>
         Friend Shared ReadOnly Property nandecc_read_operation() As String
             Get
@@ -2486,7 +2486,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Write operation (write ECC).
+        '''  Looks up a localized string similar to Operação de gravação (ECC de gravação).
         '''</summary>
         Friend Shared ReadOnly Property nandecc_write_operation() As String
             Get
@@ -2495,7 +2495,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Analyze.
+        '''  Looks up a localized string similar to Analisar.
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_analyze() As String
             Get
@@ -2504,7 +2504,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to NAND blocks analyzed ({0} bad blocks found).
+        '''  Looks up a localized string similar to Blocos NAND analisados ​​({0} blocos defeituosos encontrados).
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_analyzed_done() As String
             Get
@@ -2513,7 +2513,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Bad block marker.
+        '''  Looks up a localized string similar to Marcador de bloco ruim.
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_bad_block() As String
             Get
@@ -2522,7 +2522,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to bad marker.
+        '''  Looks up a localized string similar to marcador ruim.
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_bad_marker() As String
             Get
@@ -2531,7 +2531,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to NAND Block Map ({0} total blocks; {1} bytes each).
+        '''  Looks up a localized string similar to Mapa de bloco NAND ({0} blocos totais; {1} bytes cada).
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_block_map() As String
             Get
@@ -2540,7 +2540,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Close.
+        '''  Looks up a localized string similar to Fechar.
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_close() As String
             Get
@@ -2549,7 +2549,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Confirm operation.
+        '''  Looks up a localized string similar to Confirmar operação.
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_confim() As String
             Get
@@ -2558,7 +2558,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to No error.
+        '''  Looks up a localized string similar to Sem erro.
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_no_error() As String
             Get
@@ -2567,7 +2567,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Selected page: {0} [block: {1}].
+        '''  Looks up a localized string similar to Página selecionada: {0} [bloco: {1}].
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_selected_page() As String
             Get
@@ -2576,7 +2576,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to NAND Block Management ({0}).
+        '''  Looks up a localized string similar to Gerenciamento de bloco NAND ({0}).
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_title() As String
             Get
@@ -2585,7 +2585,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to user discarded.
+        '''  Looks up a localized string similar to usuário descartado.
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_user_discarded() As String
             Get
@@ -2594,7 +2594,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to User marked.
+        '''  Looks up a localized string similar to Usuário marcado.
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_user_marked() As String
             Get
@@ -2603,7 +2603,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to valid.
+        '''  Looks up a localized string similar to válido.
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_valid() As String
             Get
@@ -2612,7 +2612,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Verifying block: {0}.
+        '''  Looks up a localized string similar to Bloque de verificação: {0}.
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_verifing_block() As String
             Get
@@ -2621,7 +2621,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Warning, this operation will erase and overwrite all blocks, continue?.
+        '''  Looks up a localized string similar to Atenção, esta operação irá apagar e substituir todos os blocos, continuar?.
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_warning() As String
             Get
@@ -2630,7 +2630,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Write error.
+        '''  Looks up a localized string similar to Escrever erro.
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_write_error() As String
             Get
@@ -2639,7 +2639,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Write BAD BLOCK markers to spare area.
+        '''  Looks up a localized string similar to Escreva marcadores BAD BLOCK para área de reposição.
         '''</summary>
         Friend Shared ReadOnly Property nandmngr_write_marker() As String
             Get
@@ -2648,7 +2648,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to No Flash Detected.
+        '''  Looks up a localized string similar to Nenhum flash detectado.
         '''</summary>
         Friend Shared ReadOnly Property no_flash_detected() As String
             Get
@@ -2657,7 +2657,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Use automatic settings.
+        '''  Looks up a localized string similar to Use configurações automáticas.
         '''</summary>
         Friend Shared ReadOnly Property settings_auto() As String
             Get
@@ -2666,7 +2666,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to 1st byte:.
+        '''  Looks up a localized string similar to 1º byte:.
         '''</summary>
         Friend Shared ReadOnly Property settings_blk_1stbyte() As String
             Get
@@ -2675,7 +2675,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to First spare page.
+        '''  Looks up a localized string similar to Primeira página.
         '''</summary>
         Friend Shared ReadOnly Property settings_blk_1stpage() As String
             Get
@@ -2684,7 +2684,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Second spare page.
+        '''  Looks up a localized string similar to Segunda página.
         '''</summary>
         Friend Shared ReadOnly Property settings_blk_2ndpage() As String
             Get
@@ -2693,7 +2693,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to 6th byte:.
+        '''  Looks up a localized string similar to 6º byte:.
         '''</summary>
         Friend Shared ReadOnly Property settings_blk_6thbyte() As String
             Get
@@ -2702,7 +2702,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Disabled.
+        '''  Looks up a localized string similar to Desativado.
         '''</summary>
         Friend Shared ReadOnly Property settings_blk_disabled() As String
             Get
@@ -2711,7 +2711,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Enabled (check for bad block markers).
+        '''  Looks up a localized string similar to Ativado (verifique se há marcadores de bloco incorretos).
         '''</summary>
         Friend Shared ReadOnly Property settings_blk_enabled() As String
             Get
@@ -2720,7 +2720,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Last spare page.
+        '''  Looks up a localized string similar to Última página.
         '''</summary>
         Friend Shared ReadOnly Property settings_blk_lastpage() As String
             Get
@@ -2729,7 +2729,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Bad block manager.
+        '''  Looks up a localized string similar to Gerenciador de bloco ruim.
         '''</summary>
         Friend Shared ReadOnly Property settings_box_block() As String
             Get
@@ -2738,7 +2738,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to General.
+        '''  Looks up a localized string similar to Geral.
         '''</summary>
         Friend Shared ReadOnly Property settings_box_general() As String
             Get
@@ -2747,7 +2747,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Main/spare area layout.
+        '''  Looks up a localized string similar to Layout da área principal / sobressalente.
         '''</summary>
         Friend Shared ReadOnly Property settings_box_layout() As String
             Get
@@ -2756,7 +2756,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Combined.
+        '''  Looks up a localized string similar to Combinado.
         '''</summary>
         Friend Shared ReadOnly Property settings_combined() As String
             Get
@@ -2765,7 +2765,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Disable SPI-NAND ECC generator.
+        '''  Looks up a localized string similar to Desativar o gerador SPI-NAND ECC.
         '''</summary>
         Friend Shared ReadOnly Property settings_disable_ecc() As String
             Get
@@ -2774,7 +2774,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to On write mismatch, write data to next block.
+        '''  Looks up a localized string similar to Na falta de correspondência de escrita, escreva dados para o próximo bloco.
         '''</summary>
         Friend Shared ReadOnly Property settings_mismatch() As String
             Get
@@ -2783,7 +2783,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Use Read-Verify on &apos;Create Image&apos;.
+        '''  Looks up a localized string similar to Usar Read-Verify em &apos;Criar imagem&apos;.
         '''</summary>
         Friend Shared ReadOnly Property settings_nand_readverify() As String
             Get
@@ -2792,7 +2792,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Preserve memory areas.
+        '''  Looks up a localized string similar to Preserve áreas de memória.
         '''</summary>
         Friend Shared ReadOnly Property settings_preserve_mem() As String
             Get
@@ -2801,7 +2801,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Read command.
+        '''  Looks up a localized string similar to Ler comando.
         '''</summary>
         Friend Shared ReadOnly Property settings_read_cmd() As String
             Get
@@ -2819,7 +2819,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Seperate.
+        '''  Looks up a localized string similar to Separado.
         '''</summary>
         Friend Shared ReadOnly Property settings_seperate() As String
             Get
@@ -2828,7 +2828,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Use these settings.
+        '''  Looks up a localized string similar to Use estas configurações.
         '''</summary>
         Friend Shared ReadOnly Property settings_specify() As String
             Get
@@ -2837,7 +2837,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Attempting to detect SPI device (auto-detect mode).
+        '''  Looks up a localized string similar to Tentando detectar o dispositivo SPI (modo de detecção automática).
         '''</summary>
         Friend Shared ReadOnly Property spi_attempting_detect() As String
             Get
@@ -2846,7 +2846,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Connected to SPI Flash (RDID:{0} REMS:{1}).
+        '''  Looks up a localized string similar to Conectado ao SPI Flash (RDID: {0} REMS: {1}).
         '''</summary>
         Friend Shared ReadOnly Property spi_connected_to_flash_spi() As String
             Get
@@ -2855,7 +2855,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Connected to SQI Flash (RDID:{0}).
+        '''  Looks up a localized string similar to Conectado ao SQI Flash (RDID: {0}).
         '''</summary>
         Friend Shared ReadOnly Property spi_connected_to_flash_sqi() As String
             Get
@@ -2864,7 +2864,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Detected SPI Flash on low-speed SPI port.
+        '''  Looks up a localized string similar to Detetou SPI Flash na porta SPI de baixa velocidade.
         '''</summary>
         Friend Shared ReadOnly Property spi_detected_ls_spi() As String
             Get
@@ -2873,7 +2873,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Detected SPI Flash on high-speed SPI port.
+        '''  Looks up a localized string similar to Detectou SPI Flash na porta SPI de alta velocidade.
         '''</summary>
         Friend Shared ReadOnly Property spi_detected_spi() As String
             Get
@@ -2882,7 +2882,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Detected SPI Flash on SQI port.
+        '''  Looks up a localized string similar to Detectou SPI Flash na porta SQI.
         '''</summary>
         Friend Shared ReadOnly Property spi_detected_sqi() As String
             Get
@@ -2891,7 +2891,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Device opened in SQI mode but not supported in Flash library.
+        '''  Looks up a localized string similar to Dispositivo aberto no modo SQI, mas não suportado na biblioteca Flash.
         '''</summary>
         Friend Shared ReadOnly Property spi_device_not_found_sqi() As String
             Get
@@ -2900,7 +2900,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Successfully opened device in SPI mode.
+        '''  Looks up a localized string similar to Dispositivo aberto com sucesso no modo SPI.
         '''</summary>
         Friend Shared ReadOnly Property spi_device_opened() As String
             Get
@@ -2909,7 +2909,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Configured to use SPI EEPROM device.
+        '''  Looks up a localized string similar to Configurado para usar o dispositivo SPI EEPROM.
         '''</summary>
         Friend Shared ReadOnly Property spi_eeprom_cfg() As String
             Get
@@ -2918,7 +2918,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Flash erase complete in {0} seconds.
+        '''  Looks up a localized string similar to Apagar o flash completo em {0} segundos.
         '''</summary>
         Friend Shared ReadOnly Property spi_erase_complete() As String
             Get
@@ -2927,7 +2927,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Erasing flash die index: {0} ({1} bytes).
+        '''  Looks up a localized string similar to Apagar o índice do flash: {0} ({1} bytes).
         '''</summary>
         Friend Shared ReadOnly Property spi_erasing_die() As String
             Get
@@ -2936,7 +2936,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Erasing entire flash device, total size: {0} bytes (this may take a moment).
+        '''  Looks up a localized string similar to Apagar dispositivo flash inteiro, tamanho total: {0} bytes (isso pode demorar um momento).
         '''</summary>
         Friend Shared ReadOnly Property spi_erasing_flash_device() As String
             Get
@@ -2945,7 +2945,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to SPI: Error reading data from USB port.
+        '''  Looks up a localized string similar to SPI: Erro ao ler dados da porta USB.
         '''</summary>
         Friend Shared ReadOnly Property spi_error_reading() As String
             Get
@@ -2954,7 +2954,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to SPI: Error writing data to USB port.
+        '''  Looks up a localized string similar to SPI: Erro ao escrever dados na porta USB.
         '''</summary>
         Friend Shared ReadOnly Property spi_error_writing() As String
             Get
@@ -2963,7 +2963,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Unable to detect compatible SPI device (Port {0}).
+        '''  Looks up a localized string similar to Não é possível detectar o dispositivo SPI compatível.
         '''</summary>
         Friend Shared ReadOnly Property spi_flash_not_detected() As String
             Get
@@ -2972,7 +2972,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Page erase size: {0} bytes.
+        '''  Looks up a localized string similar to Tamanho da eliminação da página: {0} bytes.
         '''</summary>
         Friend Shared ReadOnly Property spi_flash_page_size() As String
             Get
@@ -2981,7 +2981,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Programming mode: SQI (SPI-QUAD).
+        '''  Looks up a localized string similar to Modo de programação: SQI (SPI-QUAD).
         '''</summary>
         Friend Shared ReadOnly Property spi_mode_sqi() As String
             Get
@@ -2990,7 +2990,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Attempting to detect SPI NAND device.
+        '''  Looks up a localized string similar to Tentando detectar o dispositivo SPI NAND.
         '''</summary>
         Friend Shared ReadOnly Property spi_nand_attempt_detect() As String
             Get
@@ -2999,7 +2999,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Successfully detected SPI NAND Flash device.
+        '''  Looks up a localized string similar to Detectado com sucesso o dispositivo SPI NAND Flash.
         '''</summary>
         Friend Shared ReadOnly Property spi_nand_detected() As String
             Get
@@ -3008,7 +3008,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Unable to detect SPI NAND Flash device.
+        '''  Looks up a localized string similar to Não foi possível detectar o dispositivo SPI NAND Flash.
         '''</summary>
         Friend Shared ReadOnly Property spi_nand_unable_to_detect() As String
             Get
@@ -3017,7 +3017,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Flash memory not detected on SPI NOR mode.
+        '''  Looks up a localized string similar to Memória flash não detectada no modo SPI NOR.
         '''</summary>
         Friend Shared ReadOnly Property spi_not_detected() As String
             Get
@@ -3026,7 +3026,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Setting SPI clock to: {0}.
+        '''  Looks up a localized string similar to Configurando o relógio SPI para: {0}.
         '''</summary>
         Friend Shared ReadOnly Property spi_set_clock() As String
             Get
@@ -3035,7 +3035,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Successfully opened device in SQI mode.
+        '''  Looks up a localized string similar to Dispositivo aberto com sucesso no modo SQI.
         '''</summary>
         Friend Shared ReadOnly Property spi_successfully_opened_sqi() As String
             Get
@@ -3044,7 +3044,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Unable to detect to SPI NOR Flash device.
+        '''  Looks up a localized string similar to Não é possível detectar o dispositivo SPI NOR Flash.
         '''</summary>
         Friend Shared ReadOnly Property spi_unable_detect() As String
             Get
@@ -3053,7 +3053,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Connected to SPI NAND Flash (RDID:{0}).
+        '''  Looks up a localized string similar to Conectado ao SPI NAND Flash (RDID: {0}).
         '''</summary>
         Friend Shared ReadOnly Property spinand_connected() As String
             Get
@@ -3062,7 +3062,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Flash detected: {0} ({1} bytes).
+        '''  Looks up a localized string similar to Flash detectado: {0} ({1} bytes).
         '''</summary>
         Friend Shared ReadOnly Property spinand_flash_size() As String
             Get
@@ -3071,7 +3071,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Successfully opened device in SPI NAND mode.
+        '''  Looks up a localized string similar to Dispositivo aberto com sucesso no modo SPI NAND.
         '''</summary>
         Friend Shared ReadOnly Property spinand_opened_device() As String
             Get
@@ -3080,7 +3080,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Flash page size: {0} bytes ({1} bytes extended).
+        '''  Looks up a localized string similar to Tamanho da página Flash: {0} bytes ({1} bytes estendidos).
         '''</summary>
         Friend Shared ReadOnly Property spinand_page_size() As String
             Get
@@ -3089,7 +3089,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Successfully connected to FlashcatUSB over USB.
+        '''  Looks up a localized string similar to Conectado com sucesso ao FlashcatUSB por USB.
         '''</summary>
         Friend Shared ReadOnly Property successfully_connected() As String
             Get
@@ -3098,7 +3098,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Software requires firmware version {0} or newer.
+        '''  Looks up a localized string similar to O software requer a versão do firmware {0} ou mais recente.
         '''</summary>
         Friend Shared ReadOnly Property sw_requires_fw() As String
             Get
@@ -3107,7 +3107,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to For device support email contact@embeddedcomputers.net with the CHIP ID.
+        '''  Looks up a localized string similar to Para suporte de dispositivo, envie um email para contact@embeddedcomputers.net com o ID CHIP.
         '''</summary>
         Friend Shared ReadOnly Property unknown_device_email() As String
             Get
@@ -3116,7 +3116,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Your FlashcatUSB driver is out of date, please update your driver to the newest version included in this software release.
+        '''  Looks up a localized string similar to Seu driver FlashcatUSB está desatualizado, atualize seu driver para a versão mais recente incluída nesta versão do software.
         '''</summary>
         Friend Shared ReadOnly Property usb_driver_out_of_date() As String
             Get
@@ -3125,7 +3125,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Your FlashcatUSB firmware is out of date, please update to the version included in this software release.
+        '''  Looks up a localized string similar to Seu firmware FlashcatUSB está desatualizado, atualize a versão incluída nesta versão do software.
         '''</summary>
         Friend Shared ReadOnly Property usb_firm_out_of_date() As String
             Get
@@ -3134,7 +3134,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Voltage set to: {0}.
+        '''  Looks up a localized string similar to Tensão ajustada para: {0}.
         '''</summary>
         Friend Shared ReadOnly Property voltage_set_to() As String
             Get
@@ -3143,7 +3143,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Welcome to the FlashcatUSB interfacing software.
+        '''  Looks up a localized string similar to Bem-vindo ao software de interface FlashcatUSB.
         '''</summary>
         Friend Shared ReadOnly Property welcome_to_flashcatusb() As String
             Get

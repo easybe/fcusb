@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2017 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2018 - ALL RIGHTS RESERVED
 'CONTACT EMAIL: contact@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: this class creates a flash memory interface that is used by the main program
@@ -231,6 +231,13 @@ Public Class MemoryInterface
         Private Sub OnGetSectorCount(ByRef count As UInt32) Handles GuiControl.GetSectorCount
             count = Me.GetSectorCount()
             If count = 0 Then count = 1
+        End Sub
+
+        Private Sub OnGetEccLastResult(ByRef result As ECC_LIB.decode_result) Handles GuiControl.GetEccLastResult
+            Select Case Me.FlashType
+                Case MemoryType.SLC_NAND
+                    result = FCUSB.EXT_IF.ECC_LAST_RESULT
+            End Select
         End Sub
 
 #End Region

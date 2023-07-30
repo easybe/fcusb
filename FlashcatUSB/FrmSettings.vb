@@ -1,4 +1,5 @@
 ﻿Imports System.ComponentModel
+Imports FlashcatUSB.ECC_LIB
 
 Public Class FrmSettings
 
@@ -12,6 +13,7 @@ Public Class FrmSettings
     Private Sub FrmSettings_Load(sender As Object, e As EventArgs) Handles Me.Load
         Language_setup()
         Me.MyTabs.DrawMode = TabDrawMode.OwnerDrawFixed
+        cb_sym_width.Enabled = False
         cb_spi_pro_clock.Items.Clear()
         cb_spi_pro_clock.Items.Add("5MHz")
         cb_spi_pro_clock.Items.Add("8MHz")
@@ -125,6 +127,48 @@ Public Class FrmSettings
         cb_spi_quad.Checked = MySettings.SPI_QUAD
         cb_spinand_disable_ecc.Checked = MySettings.SPI_NAND_DISABLE_ECC
         cb_nand_image_readverify.Checked = MySettings.NAND_Verify
+        cb_ECC_ReadEnable.Checked = MySettings.ECC_READ_ENABLED
+        cb_ECC_WriteEnable.Checked = MySettings.ECC_WRITE_ENABLED
+        Select Case MySettings.ECC_Algorithum
+            Case 0
+                rb_ECC_Hamming.Checked = True
+            Case 1
+                rb_ECC_ReedSolomon.Checked = True
+            Case 2
+                rb_ECC_BHC.Checked = True
+        End Select
+        If MySettings.ECC_BitError = 1 Then
+            cb_ECC_BITERR.SelectedIndex = 0
+        ElseIf MySettings.ECC_BitError = 2 Then
+            cb_ECC_BITERR.SelectedIndex = 1
+        ElseIf MySettings.ECC_BitError = 4 Then
+            cb_ECC_BITERR.SelectedIndex = 2
+        ElseIf MySettings.ECC_BitError = 8 Then
+            cb_ECC_BITERR.SelectedIndex = 3
+        ElseIf MySettings.ECC_BitError = 10 Then
+            cb_ECC_BITERR.SelectedIndex = 4
+        ElseIf MySettings.ECC_BitError = 14 Then
+            cb_ECC_BITERR.SelectedIndex = 5
+        Else
+            cb_ECC_BITERR.SelectedIndex = 0
+        End If
+        Select Case MySettings.ECC_Location
+            Case ecc_location_opt.half_of_oob_page
+                cb_ecc_loc.SelectedIndex = 0
+            Case ecc_location_opt.end_of_obb_page
+                cb_ecc_loc.SelectedIndex = 1
+            Case ecc_location_opt.start_of_obb_page
+                cb_ecc_loc.SelectedIndex = 2
+        End Select
+        Select Case MySettings.ECC_SymWidth
+            Case 8
+                cb_sym_width.SelectedIndex = 0
+            Case 9
+                cb_sym_width.SelectedIndex = 1
+            Case 10
+                cb_sym_width.SelectedIndex = 2
+        End Select
+        ECC_CheckIfEnabled()
         'BETA VERSION ONLY - DISABLE THESE
         MyTabs.TabPages.Remove(TP_JTAG)
     End Sub
@@ -152,6 +196,14 @@ Public Class FrmSettings
         rb_mainspare_default.Text = RM.GetString("settings_seperate") '"Seperate"
         rb_mainspare_segmented.Text = RM.GetString("settings_segmented") '"Segmented"
         rb_mainspare_all.Text = RM.GetString("settings_combined") '"Combined"
+        lbl_nandecc_enabled.Text = RM.GetString("nandecc_enabled") '"Enabled"
+        lbl_nandecc_algorithm.Text = RM.GetString("nandecc_algorithm") '"Algorithm"
+        lbl_nandecc_biterror.Text = RM.GetString("nandecc_biterror") '"Bit-error"
+        lbl_nandecc_location.Text = RM.GetString("nandecc_ecclocation") '"ECC location"
+        cb_ECC_ReadEnable.Text = RM.GetString("nandecc_read_operation") '"Read operation (auto-correct)"
+        cb_ECC_WriteEnable.Text = RM.GetString("nandecc_write_operation") '"Write operation (write ECC)"
+        lbl_nandecc_changes.Text = RM.GetString("nandecc_changes") '"* Changes take effect on device detect event"
+        gb_nandecc_title.Text = RM.GetString("nandecc_groupbox") '"Software ECC Feature"
     End Sub
 
     Private Sub FrmSettings_Closing(sender As Object, e As CancelEventArgs) Handles Me.Closing
@@ -232,32 +284,73 @@ Public Class FrmSettings
             Case 0
                 MySettings.I2C_SIZE = 0
             Case 1
-                MySettings.I2C_SIZE = 256
+                MySettings.I2C_SIZE = 128
             Case 2
-                MySettings.I2C_SIZE = 512
+                MySettings.I2C_SIZE = 256
             Case 3
-                MySettings.I2C_SIZE = 1024
+                MySettings.I2C_SIZE = 512
             Case 4
-                MySettings.I2C_SIZE = 2048
+                MySettings.I2C_SIZE = 1024
             Case 5
-                MySettings.I2C_SIZE = 4096
+                MySettings.I2C_SIZE = 2048
             Case 6
-                MySettings.I2C_SIZE = 8192
+                MySettings.I2C_SIZE = 4096
             Case 7
-                MySettings.I2C_SIZE = 16384
+                MySettings.I2C_SIZE = 8192
             Case 8
-                MySettings.I2C_SIZE = 32768
+                MySettings.I2C_SIZE = 16384
             Case 9
-                MySettings.I2C_SIZE = 65536
+                MySettings.I2C_SIZE = 32768
             Case 10
-                MySettings.I2C_SIZE = 131072
+                MySettings.I2C_SIZE = 65536
             Case 11
+                MySettings.I2C_SIZE = 131072
+            Case 12
                 MySettings.I2C_SIZE = 262144
         End Select
         MySettings.SPI_EEPROM = cb_spi_eeprom.SelectedIndex
         MySettings.SPI_QUAD = cb_spi_quad.Checked
         MySettings.SPI_NAND_DISABLE_ECC = cb_spinand_disable_ecc.Checked
         MySettings.NAND_Verify = cb_nand_image_readverify.Checked
+        MySettings.ECC_READ_ENABLED = cb_ECC_ReadEnable.Checked
+        MySettings.ECC_WRITE_ENABLED = cb_ECC_WriteEnable.Checked
+        If rb_ECC_Hamming.Checked Then
+            MySettings.ECC_Algorithum = 0
+        ElseIf rb_ECC_ReedSolomon.Checked Then
+            MySettings.ECC_Algorithum = 1
+        ElseIf rb_ECC_BHC.Checked Then
+            MySettings.ECC_Algorithum = 2
+        End If
+        Select Case cb_ECC_BITERR.SelectedIndex
+            Case 0
+                MySettings.ECC_BitError = 1
+            Case 1
+                MySettings.ECC_BitError = 2
+            Case 2
+                MySettings.ECC_BitError = 4
+            Case 3
+                MySettings.ECC_BitError = 8
+            Case 4
+                MySettings.ECC_BitError = 10
+            Case 5
+                MySettings.ECC_BitError = 14
+        End Select
+        Select Case cb_ecc_loc.SelectedIndex
+            Case 0
+                MySettings.ECC_Location = ecc_location_opt.half_of_oob_page
+            Case 1
+                MySettings.ECC_Location = ecc_location_opt.end_of_obb_page
+            Case 2
+                MySettings.ECC_Location = ecc_location_opt.start_of_obb_page
+        End Select
+        Select Case cb_sym_width.SelectedIndex
+            Case 0
+                MySettings.ECC_SymWidth = 8
+            Case 1
+                MySettings.ECC_SymWidth = 9
+            Case 2
+                MySettings.ECC_SymWidth = 10
+        End Select
     End Sub
 
     Private Sub CustomDevice_LoadSettings()
@@ -571,30 +664,32 @@ Public Class FrmSettings
         Select Case MySettings.I2C_SIZE
             Case 0
                 cbi2cDensity.SelectedIndex = 0
-            Case 256
+            Case 128
                 cbi2cDensity.SelectedIndex = 1
-            Case 512
+            Case 256
                 cbi2cDensity.SelectedIndex = 2
-            Case 1024
+            Case 512
                 cbi2cDensity.SelectedIndex = 3
-            Case 2048
+            Case 1024
                 cbi2cDensity.SelectedIndex = 4
-            Case 4096
+            Case 2048
                 cbi2cDensity.SelectedIndex = 5
+            Case 4096
+                cbi2cDensity.SelectedIndex = 6
             Case 8192
-                cbi2cDensity.SelectedIndex = 6
-            Case 16384
                 cbi2cDensity.SelectedIndex = 7
-            Case 32768
+            Case 16384
                 cbi2cDensity.SelectedIndex = 8
-            Case 65536
+            Case 32768
                 cbi2cDensity.SelectedIndex = 9
-            Case 131072
+            Case 65536
                 cbi2cDensity.SelectedIndex = 10
-            Case 262144
+            Case 131072
                 cbi2cDensity.SelectedIndex = 11
+            Case 262144
+                cbi2cDensity.SelectedIndex = 12
             Case Else
-                cbi2cDensity.SelectedIndex = 6
+                cbi2cDensity.SelectedIndex = 7
         End Select
         Select Case MySettings.I2C_SPEED
             Case FlashcatSettings.I2C_SPEED_MODE._100kHz
@@ -610,10 +705,10 @@ Public Class FrmSettings
         cbI2C_A0.Enabled = True
         cbI2C_A1.Enabled = True
         cbI2C_A2.Enabled = True
-        If cbi2cDensity.SelectedIndex = 10 Then
+        If cbi2cDensity.SelectedIndex = 11 Then
             cbI2C_A0.Checked = False
             cbI2C_A0.Enabled = False
-        ElseIf cbi2cDensity.SelectedIndex = 11 Then
+        ElseIf cbi2cDensity.SelectedIndex = 12 Then
             cbI2C_A0.Checked = False
             cbI2C_A1.Checked = False
             cbI2C_A0.Enabled = False
@@ -671,6 +766,65 @@ Public Class FrmSettings
             cb_badmarker_6th_page2.Enabled = True
         End If
     End Sub
+
+#Region "NAND (ECC) TAB"
+
+    Private Sub rb_ECC_Hamming_CheckedChanged(sender As Object, e As EventArgs) Handles rb_ECC_Hamming.CheckedChanged
+        If rb_ECC_Hamming.Checked Then
+            cb_ECC_BITERR.SelectedIndex = 0
+            cb_ECC_BITERR.Enabled = False 'Only 1-bit ECC supported
+            cb_sym_width.Enabled = False
+        End If
+    End Sub
+
+    Private Sub rb_ECC_ReedSolomon_CheckedChanged(sender As Object, e As EventArgs) Handles rb_ECC_ReedSolomon.CheckedChanged
+        If rb_ECC_ReedSolomon.Checked Then
+            cb_ECC_BITERR.Enabled = True
+            cb_sym_width.Enabled = True
+        End If
+    End Sub
+
+    Private Sub rb_ECC_BHC_CheckedChanged(sender As Object, e As EventArgs) Handles rb_ECC_BHC.CheckedChanged
+        If rb_ECC_BHC.Checked Then
+            cb_ECC_BITERR.Enabled = True
+            cb_sym_width.Enabled = False
+        End If
+    End Sub
+
+    Private Sub cb_ECC_ReadEnable_CheckedChanged(sender As Object, e As EventArgs) Handles cb_ECC_ReadEnable.CheckedChanged
+        ECC_CheckIfEnabled()
+    End Sub
+
+    Private Sub cb_ECC_WriteEnable_CheckedChanged(sender As Object, e As EventArgs) Handles cb_ECC_WriteEnable.CheckedChanged
+        ECC_CheckIfEnabled()
+    End Sub
+
+    Private Sub ECC_CheckIfEnabled()
+        If cb_ECC_ReadEnable.Checked Or cb_ECC_WriteEnable.Checked Then
+            rb_ECC_Hamming.Enabled = True
+            rb_ECC_ReedSolomon.Enabled = True
+            rb_ECC_BHC.Enabled = True
+            cb_ecc_loc.Enabled = True
+            If cb_ECC_ReadEnable.Checked Then cb_sym_width.Enabled = True
+            cb_rs_reverse_data.Enabled = True
+            If rb_ECC_Hamming.Checked Then
+                cb_ECC_BITERR.Enabled = False
+                cb_ECC_BITERR.SelectedIndex = 0
+            Else
+                cb_ECC_BITERR.Enabled = True
+            End If
+        Else
+            rb_ECC_Hamming.Enabled = False
+            rb_ECC_ReedSolomon.Enabled = False
+            rb_ECC_BHC.Enabled = False
+            cb_ECC_BITERR.Enabled = False
+            cb_ecc_loc.Enabled = False
+            cb_sym_width.Enabled = False
+            cb_rs_reverse_data.Enabled = False
+        End If
+    End Sub
+
+#End Region
 
 
 End Class

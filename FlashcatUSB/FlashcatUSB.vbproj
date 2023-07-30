@@ -12,9 +12,10 @@
     <FileAlignment>512</FileAlignment>
     <MyType>WindowsFormsWithCustomSubMain</MyType>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
+    <PlatformTarget>x86</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <DefineDebug>true</DefineDebug>
@@ -22,16 +23,18 @@
     <OutputPath>..\Binaries\</OutputPath>
     <DocumentationFile>FlashcatUSB.xml</DocumentationFile>
     <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+    <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
+    <PlatformTarget>x86</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <DefineDebug>false</DefineDebug>
     <DefineTrace>true</DefineTrace>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>..\Binaries\</OutputPath>
     <DocumentationFile>FlashcatUSB.xml</DocumentationFile>
     <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+    <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
     <OptionExplicit>On</OptionExplicit>
@@ -49,6 +52,10 @@
     <ApplicationIcon>Main.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="ECC, Version=1.0.6589.39316, Culture=neutral, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Binaries\ECC.dll</HintPath>
+    </Reference>
     <Reference Include="LibUsbDotNet">
       <HintPath>.\LibUsbDotNet.dll</HintPath>
     </Reference>
@@ -119,6 +126,26 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>english.resx</DependentUpon>
     </Compile>
+    <Compile Include="languages\french.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>french.resx</DependentUpon>
+    </Compile>
+    <Compile Include="languages\portuguese.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>portuguese.resx</DependentUpon>
+    </Compile>
+    <Compile Include="languages\russian.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>russian.resx</DependentUpon>
+    </Compile>
+    <Compile Include="languages\spanish.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>spanish.resx</DependentUpon>
+    </Compile>
     <Compile Include="MainApp.vb" />
     <Compile Include="MainForm.designer.vb">
       <DependentUpon>MainForm.vb</DependentUpon>
@@ -183,6 +210,7 @@
   <ItemGroup>
     <EmbeddedResource Include="DfuControl.resx">
       <DependentUpon>DfuControl.vb</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DropPanelList.resx">
       <DependentUpon>DropPanelList.vb</DependentUpon>
@@ -195,9 +223,29 @@
     </EmbeddedResource>
     <EmbeddedResource Include="languages\english.resx">
       <CustomToolNamespace>My.Resources</CustomToolNamespace>
+      <SubType>Designer</SubType>
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>english.Designer.vb</LastGenOutput>
-      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="languages\french.resx">
+      <CustomToolNamespace>My.Resources</CustomToolNamespace>
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>french.Designer.vb</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="languages\portuguese.resx">
+      <CustomToolNamespace>My.Resources</CustomToolNamespace>
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>portuguese.Designer.vb</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="languages\russian.resx">
+      <CustomToolNamespace>My.Resources</CustomToolNamespace>
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>russian.Designer.vb</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="languages\spanish.resx">
+      <CustomToolNamespace>My.Resources</CustomToolNamespace>
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>spanish.Designer.vb</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.vb</DependentUpon>
@@ -225,6 +273,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <EmbeddedResource Include="FCUSB_V3.bin" />
     <None Include="My Project\Application.myapp">
       <Generator>MyApplicationCodeGenerator</Generator>
@@ -324,9 +373,17 @@
     <None Include="images\nand_page_combined.png" />
     <None Include="images\nand_page_segmented.png" />
     <None Include="images\nand_page_seperate.png" />
+    <None Include="images\ecc_blue.png" />
+    <None Include="images\ecc_valid.png" />
+    <None Include="languages\china.png" />
+    <None Include="languages\English.png" />
+    <None Include="languages\france.png" />
+    <None Include="languages\german.png" />
+    <None Include="languages\portugal.png" />
+    <None Include="languages\spain.png" />
+    <None Include="languages\russia.png" />
     <Content Include="Main.ico" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2017 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2018 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB
 'CONTACT EMAIL: contact@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
@@ -35,7 +35,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Dim RDID_Str As String = "0x" & Hex(MFG).PadLeft(2, "0") & Hex(PART).PadLeft(4, "0")
         RaiseEvent PrintConsole(RM.GetString("spinand_opened_device"))
         RaiseEvent PrintConsole(String.Format(RM.GetString("spinand_connected"), RDID_Str))
-        MyFlashDevice = FlashDatabase.FindDevice(MFG, PART, 0, False, MemoryType.SERIAL_NAND)
+        MyFlashDevice = FlashDatabase.FindDevice(MFG, PART, 0, MemoryType.SERIAL_NAND)
         If MyFlashDevice IsNot Nothing Then
             MyFlashStatus = USB.DeviceStatus.Supported
             RaiseEvent PrintConsole(String.Format(RM.GetString("spinand_flash_size"), MyFlashDevice.NAME, MyFlashDevice.FLASH_SIZE))

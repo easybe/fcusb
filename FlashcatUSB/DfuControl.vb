@@ -38,7 +38,7 @@ Public Class DfuControl
         OpenMe.Title = "Choose AVR firmware to program"
         OpenMe.CheckPathExists = True
         OpenMe.Filter = "Intel Hex Format (*.hex)|*.hex"
-        If OpenMe.ShowDialog = Windows.Forms.DialogResult.OK Then
+        If OpenMe.ShowDialog = DialogResult.OK Then
             Dim finfo As New IO.FileInfo(OpenMe.FileName)
             Dim FileData() As Byte = Utilities.FileIO.ReadBytes(finfo.FullName)
             If Utilities.IsIntelHex(FileData) Then

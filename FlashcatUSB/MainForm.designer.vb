@@ -41,7 +41,8 @@ Partial Class MainForm
         Me.mi_bitswap_16bit = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_bitswap_32bit = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_endian = New System.Windows.Forms.ToolStripMenuItem()
-        Me.mi_bitendian_big = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_bitendian_big_32 = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_bitendian_big_16 = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_bitendian_little_16 = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_bitendian_little_8 = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator9 = New System.Windows.Forms.ToolStripSeparator()
@@ -74,6 +75,11 @@ Partial Class MainForm
         Me.ToolStripSeparator5 = New System.Windows.Forms.ToolStripSeparator()
         Me.mi_device_features = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_Language = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_language_english = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_language_spanish = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_language_french = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_language_portuguese = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_language_russian = New System.Windows.Forms.ToolStripMenuItem()
         Me.FlashStatus = New System.Windows.Forms.StatusStrip()
         Me.FlashStatusLabel = New System.Windows.Forms.ToolStripStatusLabel()
         Me.MyTabs = New System.Windows.Forms.TabControl()
@@ -236,17 +242,23 @@ Partial Class MainForm
         '
         'mi_endian
         '
-        Me.mi_endian.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_bitendian_big, Me.mi_bitendian_little_16, Me.mi_bitendian_little_8})
+        Me.mi_endian.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_bitendian_big_32, Me.mi_bitendian_big_16, Me.mi_bitendian_little_16, Me.mi_bitendian_little_8})
         Me.mi_endian.Image = Global.FlashcatUSB.My.Resources.Resources.binary
         Me.mi_endian.Name = "mi_endian"
         Me.mi_endian.Size = New System.Drawing.Size(180, 22)
         Me.mi_endian.Text = "Endian mode"
         '
-        'mi_bitendian_big
+        'mi_bitendian_big_32
         '
-        Me.mi_bitendian_big.Name = "mi_bitendian_big"
-        Me.mi_bitendian_big.Size = New System.Drawing.Size(186, 22)
-        Me.mi_bitendian_big.Text = "Big Endian"
+        Me.mi_bitendian_big_32.Name = "mi_bitendian_big_32"
+        Me.mi_bitendian_big_32.Size = New System.Drawing.Size(186, 22)
+        Me.mi_bitendian_big_32.Text = "Big Endian (32-bit)"
+        '
+        'mi_bitendian_big_16
+        '
+        Me.mi_bitendian_big_16.Name = "mi_bitendian_big_16"
+        Me.mi_bitendian_big_16.Size = New System.Drawing.Size(186, 22)
+        Me.mi_bitendian_big_16.Text = "Big Endian (16-bit)"
         '
         'mi_bitendian_little_16
         '
@@ -365,21 +377,21 @@ Partial Class MainForm
         '
         Me.mi_script_selected.Image = Global.FlashcatUSB.My.Resources.Resources.config
         Me.mi_script_selected.Name = "mi_script_selected"
-        Me.mi_script_selected.Size = New System.Drawing.Size(152, 22)
+        Me.mi_script_selected.Size = New System.Drawing.Size(144, 22)
         Me.mi_script_selected.Text = "Select script"
         '
         'mi_script_load
         '
         Me.mi_script_load.Image = Global.FlashcatUSB.My.Resources.Resources.openfile
         Me.mi_script_load.Name = "mi_script_load"
-        Me.mi_script_load.Size = New System.Drawing.Size(152, 22)
+        Me.mi_script_load.Size = New System.Drawing.Size(144, 22)
         Me.mi_script_load.Text = "Load script"
         '
         'mi_script_unload
         '
         Me.mi_script_unload.Image = Global.FlashcatUSB.My.Resources.Resources.clear_x
         Me.mi_script_unload.Name = "mi_script_unload"
-        Me.mi_script_unload.Size = New System.Drawing.Size(152, 22)
+        Me.mi_script_unload.Size = New System.Drawing.Size(144, 22)
         Me.mi_script_unload.Text = "Unload script"
         '
         'mi_tools_menu
@@ -441,9 +453,45 @@ Partial Class MainForm
         '
         'mi_Language
         '
+        Me.mi_Language.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_language_english, Me.mi_language_spanish, Me.mi_language_french, Me.mi_language_portuguese, Me.mi_language_russian})
         Me.mi_Language.Name = "mi_Language"
         Me.mi_Language.Size = New System.Drawing.Size(71, 20)
         Me.mi_Language.Text = "Language"
+        '
+        'mi_language_english
+        '
+        Me.mi_language_english.Image = Global.FlashcatUSB.My.Resources.Resources.English
+        Me.mi_language_english.Name = "mi_language_english"
+        Me.mi_language_english.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_english.Text = "English"
+        '
+        'mi_language_spanish
+        '
+        Me.mi_language_spanish.Image = Global.FlashcatUSB.My.Resources.Resources.spain
+        Me.mi_language_spanish.Name = "mi_language_spanish"
+        Me.mi_language_spanish.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_spanish.Text = "Spanish"
+        '
+        'mi_language_french
+        '
+        Me.mi_language_french.Image = Global.FlashcatUSB.My.Resources.Resources.france
+        Me.mi_language_french.Name = "mi_language_french"
+        Me.mi_language_french.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_french.Text = "French"
+        '
+        'mi_language_portuguese
+        '
+        Me.mi_language_portuguese.Image = Global.FlashcatUSB.My.Resources.Resources.portugal
+        Me.mi_language_portuguese.Name = "mi_language_portuguese"
+        Me.mi_language_portuguese.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_portuguese.Text = "Portuguese"
+        '
+        'mi_language_russian
+        '
+        Me.mi_language_russian.Image = Global.FlashcatUSB.My.Resources.Resources.russia
+        Me.mi_language_russian.Name = "mi_language_russian"
+        Me.mi_language_russian.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_russian.Text = "Russian"
         '
         'FlashStatus
         '
@@ -881,7 +929,7 @@ Partial Class MainForm
     Friend WithEvents mi_bitswap_16bit As ToolStripMenuItem
     Friend WithEvents mi_bitswap_32bit As ToolStripMenuItem
     Friend WithEvents mi_endian As ToolStripMenuItem
-    Friend WithEvents mi_bitendian_big As ToolStripMenuItem
+    Friend WithEvents mi_bitendian_big_32 As ToolStripMenuItem
     Friend WithEvents mi_bitendian_little_8 As ToolStripMenuItem
     Friend WithEvents mi_bitendian_little_16 As ToolStripMenuItem
     Friend WithEvents ToolStripSeparator8 As ToolStripSeparator
@@ -916,4 +964,10 @@ Partial Class MainForm
     Friend WithEvents cmd_gang_erase As Button
     Friend WithEvents cmd_gang_write As Button
     Friend WithEvents mi_mode_spi_nand As ToolStripMenuItem
+    Friend WithEvents mi_bitendian_big_16 As ToolStripMenuItem
+    Friend WithEvents mi_language_english As ToolStripMenuItem
+    Friend WithEvents mi_language_spanish As ToolStripMenuItem
+    Friend WithEvents mi_language_french As ToolStripMenuItem
+    Friend WithEvents mi_language_portuguese As ToolStripMenuItem
+    Friend WithEvents mi_language_russian As ToolStripMenuItem
 End Class

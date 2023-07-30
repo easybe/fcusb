@@ -26,16 +26,18 @@ Partial Class MemControl_v2
         Me.pbar = New System.Windows.Forms.ProgressBar()
         Me.cmd_area = New System.Windows.Forms.Button()
         Me.gb_flash = New System.Windows.Forms.GroupBox()
+        Me.Editor = New FlashcatUSB.HexEditor_v2()
         Me.txtAddress = New System.Windows.Forms.TextBox()
         Me.cmd_cancel = New System.Windows.Forms.Button()
         Me.menu_tip = New System.Windows.Forms.ToolTip(Me.components)
+        Me.pb_ecc = New System.Windows.Forms.PictureBox()
         Me.cmd_ident = New System.Windows.Forms.Button()
         Me.cmd_compare = New System.Windows.Forms.Button()
         Me.cmd_erase = New System.Windows.Forms.Button()
         Me.cmd_write = New System.Windows.Forms.Button()
         Me.cmd_read = New System.Windows.Forms.Button()
-        Me.Editor = New FlashcatUSB.HexEditor_v2()
         Me.gb_flash.SuspendLayout()
+        CType(Me.pb_ecc, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
         '
         'pbar
@@ -62,6 +64,7 @@ Partial Class MemControl_v2
         Me.gb_flash.Anchor = CType((((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Bottom) _
             Or System.Windows.Forms.AnchorStyles.Left) _
             Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.gb_flash.Controls.Add(Me.pb_ecc)
         Me.gb_flash.Controls.Add(Me.cmd_ident)
         Me.gb_flash.Controls.Add(Me.cmd_compare)
         Me.gb_flash.Controls.Add(Me.Editor)
@@ -78,6 +81,19 @@ Partial Class MemControl_v2
         Me.gb_flash.TabIndex = 20
         Me.gb_flash.TabStop = False
         Me.gb_flash.Text = "(FLASH_NAME PART_NUMBER)"
+        '
+        'Editor
+        '
+        Me.Editor.Anchor = CType((((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Bottom) _
+            Or System.Windows.Forms.AnchorStyles.Left) _
+            Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.Editor.BaseOffset = CType(0UI, UInteger)
+        Me.Editor.BaseSize = CType(0UI, UInteger)
+        Me.Editor.Location = New System.Drawing.Point(2, 66)
+        Me.Editor.Name = "Editor"
+        Me.Editor.Size = New System.Drawing.Size(368, 139)
+        Me.Editor.TabIndex = 24
+        Me.Editor.TopAddress = CType(0UI, UInteger)
         '
         'txtAddress
         '
@@ -101,6 +117,16 @@ Partial Class MemControl_v2
         Me.menu_tip.AutoPopDelay = 5000
         Me.menu_tip.InitialDelay = 1000
         Me.menu_tip.ReshowDelay = 100
+        '
+        'pb_ecc
+        '
+        Me.pb_ecc.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.pb_ecc.Image = Global.FlashcatUSB.My.Resources.Resources.ecc_blue
+        Me.pb_ecc.Location = New System.Drawing.Point(190, 22)
+        Me.pb_ecc.Name = "pb_ecc"
+        Me.pb_ecc.Size = New System.Drawing.Size(20, 20)
+        Me.pb_ecc.TabIndex = 28
+        Me.pb_ecc.TabStop = False
         '
         'cmd_ident
         '
@@ -152,19 +178,6 @@ Partial Class MemControl_v2
         Me.menu_tip.SetToolTip(Me.cmd_read, "Read memory to disk")
         Me.cmd_read.UseVisualStyleBackColor = True
         '
-        'Editor
-        '
-        Me.Editor.Anchor = CType((((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Bottom) _
-            Or System.Windows.Forms.AnchorStyles.Left) _
-            Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.Editor.BaseOffset = CType(0UI, UInteger)
-        Me.Editor.BaseSize = CType(0UI, UInteger)
-        Me.Editor.Location = New System.Drawing.Point(2, 66)
-        Me.Editor.Name = "Editor"
-        Me.Editor.Size = New System.Drawing.Size(368, 139)
-        Me.Editor.TabIndex = 24
-        Me.Editor.TopAddress = CType(0UI, UInteger)
-        '
         'MemControl_v2
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -174,6 +187,7 @@ Partial Class MemControl_v2
         Me.Size = New System.Drawing.Size(379, 218)
         Me.gb_flash.ResumeLayout(False)
         Me.gb_flash.PerformLayout()
+        CType(Me.pb_ecc, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
 
     End Sub
@@ -189,4 +203,5 @@ Partial Class MemControl_v2
     Friend WithEvents cmd_compare As Button
     Friend WithEvents menu_tip As ToolTip
     Friend WithEvents cmd_ident As Button
+    Friend WithEvents pb_ecc As PictureBox
 End Class

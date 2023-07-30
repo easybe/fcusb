@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2017 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2018 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB
 'CONTACT EMAIL: contact@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
@@ -1010,6 +1010,22 @@ Namespace SPI
             If Not Success Then RaiseEvent PrintConsole(RM.GetString("spi_error_reading"))
             Return Success
         End Function
+
+        Public Sub SetProgPin(ByVal enabled As Boolean)
+            Try
+                Select Case PORT_SELECT
+                    Case SPIBUS_PORT.Port_A
+                        Dim value As UInt32 = 0 'Set to LOW
+                        If enabled Then value = 1 'Set to HIGH
+                        FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.SPI_PROG, Nothing, value)
+                    Case SPIBUS_PORT.Port_B
+                        Dim value As UInt32 = (1 << 16) Or 0 'Set to LOW
+                        If enabled Then value = (1 << 16) Or 1 'Set to HIGH
+                        FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.SPI_PROG, Nothing, value)
+                End Select
+            Catch ex As Exception
+            End Try
+        End Sub
 
 #End Region
 

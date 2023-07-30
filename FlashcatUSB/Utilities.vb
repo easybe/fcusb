@@ -1538,7 +1538,7 @@ Namespace Utilities
             Next
         End Sub
         '0x01020304 = 0x02010403
-        Public Sub ChangeEndian16_LSB(ByRef Buffer() As Byte)
+        Public Sub ChangeEndian16_MSB(ByRef Buffer() As Byte)
             Dim step_value As UInteger = 2
             Dim last_index As UInt32 = Buffer.Length - (Buffer.Length Mod step_value)
             For i = 0 To last_index - 1 Step step_value

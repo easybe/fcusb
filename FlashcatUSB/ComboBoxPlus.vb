@@ -2,7 +2,6 @@
 Imports System.ComponentModel
 Imports System.Drawing
 Imports System.Security.Permissions
-Imports System.Windows.Forms
 Imports System.Windows.Forms.Design
 Imports System.Runtime.InteropServices
 
@@ -31,7 +30,7 @@ Namespace CustomComboPlus
             'm_popupCtrl.Closing += New ToolStripDropDownClosingEventHandler(AddressOf m_dropDown_Closing)
             AddHandler m_popupCtrl.Closing, New ToolStripDropDownClosingEventHandler(AddressOf m_dropDown_Closing)
 
-            Me.DrawMode = Windows.Forms.DrawMode.OwnerDrawFixed
+            Me.DrawMode = DrawMode.OwnerDrawFixed
         End Sub
 
         Private Sub m_dropDown_Closing(sender As Object, e As ToolStripDropDownClosingEventArgs)

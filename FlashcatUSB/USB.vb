@@ -818,7 +818,7 @@ Namespace USB
         SPI_INIT = &H40
         SPI_SS_ENABLE = &H41
         SPI_SS_DISABLE = &H42
-        SPI_PROG = &H43
+        SPI_PROG = &H43 'Change this to be able to control the pin
         SPI_RD_DATA = &H44
         SPI_WR_DATA = &H45
         SPI_READFLASH = &H46

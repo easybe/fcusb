@@ -24,6 +24,7 @@ Partial Class FrmSettings
     Private Sub InitializeComponent()
         Me.MyTabs = New System.Windows.Forms.TabControl()
         Me.TP_SPI = New System.Windows.Forms.TabPage()
+        Me.RadioUseSpiSettings = New System.Windows.Forms.RadioButton()
         Me.group_custom = New System.Windows.Forms.GroupBox()
         Me.Label13 = New System.Windows.Forms.Label()
         Me.cbEN4B = New System.Windows.Forms.CheckBox()
@@ -56,7 +57,6 @@ Partial Class FrmSettings
         Me.op_read = New System.Windows.Forms.ComboBox()
         Me.op_sectorerase = New System.Windows.Forms.ComboBox()
         Me.op_prog = New System.Windows.Forms.ComboBox()
-        Me.RadioUseSpiSettings = New System.Windows.Forms.RadioButton()
         Me.RadioUseSpiAuto = New System.Windows.Forms.RadioButton()
         Me.GroupBox1 = New System.Windows.Forms.GroupBox()
         Me.cb_spi_quad = New System.Windows.Forms.CheckBox()
@@ -81,27 +81,44 @@ Partial Class FrmSettings
         Me.rb_speed_1mhz = New System.Windows.Forms.RadioButton()
         Me.rb_speed_400khz = New System.Windows.Forms.RadioButton()
         Me.rb_speed_100khz = New System.Windows.Forms.RadioButton()
-        Me.TP_NAND = New System.Windows.Forms.TabPage()
+        Me.TP_NAND1 = New System.Windows.Forms.TabPage()
         Me.gb_block_layout = New System.Windows.Forms.GroupBox()
         Me.nand_box = New System.Windows.Forms.PictureBox()
         Me.rb_mainspare_all = New System.Windows.Forms.RadioButton()
         Me.rb_mainspare_segmented = New System.Windows.Forms.RadioButton()
         Me.rb_mainspare_default = New System.Windows.Forms.RadioButton()
         Me.gb_block_manager = New System.Windows.Forms.GroupBox()
+        Me.cb_badblock_enabled = New System.Windows.Forms.RadioButton()
         Me.cb_badmarker_6th_page2 = New System.Windows.Forms.CheckBox()
         Me.cb_badmarker_6th_page1 = New System.Windows.Forms.CheckBox()
-        Me.lbl_6th_byte = New System.Windows.Forms.Label()
-        Me.lbl_1st_byte = New System.Windows.Forms.Label()
         Me.cb_badmarker_1st_lastpage = New System.Windows.Forms.CheckBox()
         Me.cb_badmarker_1st_page2 = New System.Windows.Forms.CheckBox()
         Me.cb_badmarker_1st_page1 = New System.Windows.Forms.CheckBox()
-        Me.cb_badblock_enabled = New System.Windows.Forms.RadioButton()
+        Me.lbl_6th_byte = New System.Windows.Forms.Label()
+        Me.lbl_1st_byte = New System.Windows.Forms.Label()
         Me.cb_badblock_disabled = New System.Windows.Forms.RadioButton()
         Me.gb_nand_general = New System.Windows.Forms.GroupBox()
         Me.cb_nand_image_readverify = New System.Windows.Forms.CheckBox()
         Me.cb_spinand_disable_ecc = New System.Windows.Forms.CheckBox()
         Me.cb_mismatch = New System.Windows.Forms.CheckBox()
         Me.cb_preserve = New System.Windows.Forms.CheckBox()
+        Me.TP_NAND2 = New System.Windows.Forms.TabPage()
+        Me.gb_nandecc_title = New System.Windows.Forms.GroupBox()
+        Me.rb_ECC_BHC = New System.Windows.Forms.RadioButton()
+        Me.rb_ECC_ReedSolomon = New System.Windows.Forms.RadioButton()
+        Me.rb_ECC_Hamming = New System.Windows.Forms.RadioButton()
+        Me.lbl_nandecc_algorithm = New System.Windows.Forms.Label()
+        Me.lbl_nandecc_changes = New System.Windows.Forms.Label()
+        Me.cb_rs_reverse_data = New System.Windows.Forms.CheckBox()
+        Me.cb_sym_width = New System.Windows.Forms.ComboBox()
+        Me.Label2 = New System.Windows.Forms.Label()
+        Me.cb_ecc_loc = New System.Windows.Forms.ComboBox()
+        Me.lbl_nandecc_location = New System.Windows.Forms.Label()
+        Me.cb_ECC_WriteEnable = New System.Windows.Forms.CheckBox()
+        Me.cb_ECC_ReadEnable = New System.Windows.Forms.CheckBox()
+        Me.lbl_nandecc_enabled = New System.Windows.Forms.Label()
+        Me.cb_ECC_BITERR = New System.Windows.Forms.ComboBox()
+        Me.lbl_nandecc_biterror = New System.Windows.Forms.Label()
         Me.MyTabs.SuspendLayout()
         Me.TP_SPI.SuspendLayout()
         Me.group_custom.SuspendLayout()
@@ -110,11 +127,13 @@ Partial Class FrmSettings
         Me.GroupBox6.SuspendLayout()
         Me.GroupBox5.SuspendLayout()
         Me.GroupBox4.SuspendLayout()
-        Me.TP_NAND.SuspendLayout()
+        Me.TP_NAND1.SuspendLayout()
         Me.gb_block_layout.SuspendLayout()
         CType(Me.nand_box, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.gb_block_manager.SuspendLayout()
         Me.gb_nand_general.SuspendLayout()
+        Me.TP_NAND2.SuspendLayout()
+        Me.gb_nandecc_title.SuspendLayout()
         Me.SuspendLayout()
         '
         'MyTabs
@@ -125,26 +144,37 @@ Partial Class FrmSettings
         Me.MyTabs.Controls.Add(Me.TP_SPI)
         Me.MyTabs.Controls.Add(Me.TP_JTAG)
         Me.MyTabs.Controls.Add(Me.TP_I2C)
-        Me.MyTabs.Controls.Add(Me.TP_NAND)
+        Me.MyTabs.Controls.Add(Me.TP_NAND1)
+        Me.MyTabs.Controls.Add(Me.TP_NAND2)
         Me.MyTabs.Location = New System.Drawing.Point(6, 6)
         Me.MyTabs.Name = "MyTabs"
         Me.MyTabs.SelectedIndex = 0
-        Me.MyTabs.Size = New System.Drawing.Size(459, 354)
+        Me.MyTabs.Size = New System.Drawing.Size(532, 354)
         Me.MyTabs.TabIndex = 0
         '
         'TP_SPI
         '
         Me.TP_SPI.BackColor = System.Drawing.SystemColors.Control
-        Me.TP_SPI.Controls.Add(Me.group_custom)
         Me.TP_SPI.Controls.Add(Me.RadioUseSpiSettings)
+        Me.TP_SPI.Controls.Add(Me.group_custom)
         Me.TP_SPI.Controls.Add(Me.RadioUseSpiAuto)
         Me.TP_SPI.Controls.Add(Me.GroupBox1)
         Me.TP_SPI.Location = New System.Drawing.Point(4, 22)
         Me.TP_SPI.Name = "TP_SPI"
         Me.TP_SPI.Padding = New System.Windows.Forms.Padding(3)
-        Me.TP_SPI.Size = New System.Drawing.Size(451, 328)
+        Me.TP_SPI.Size = New System.Drawing.Size(524, 328)
         Me.TP_SPI.TabIndex = 0
         Me.TP_SPI.Text = " SPI "
+        '
+        'RadioUseSpiSettings
+        '
+        Me.RadioUseSpiSettings.AutoSize = True
+        Me.RadioUseSpiSettings.Location = New System.Drawing.Point(265, 123)
+        Me.RadioUseSpiSettings.Name = "RadioUseSpiSettings"
+        Me.RadioUseSpiSettings.Size = New System.Drawing.Size(112, 17)
+        Me.RadioUseSpiSettings.TabIndex = 27
+        Me.RadioUseSpiSettings.Text = "Use these settings"
+        Me.RadioUseSpiSettings.UseVisualStyleBackColor = True
         '
         'group_custom
         '
@@ -181,7 +211,7 @@ Partial Class FrmSettings
         Me.group_custom.Controls.Add(Me.op_prog)
         Me.group_custom.Location = New System.Drawing.Point(6, 146)
         Me.group_custom.Name = "group_custom"
-        Me.group_custom.Size = New System.Drawing.Size(439, 176)
+        Me.group_custom.Size = New System.Drawing.Size(512, 176)
         Me.group_custom.TabIndex = 28
         Me.group_custom.TabStop = False
         Me.group_custom.Text = "Operation commands"
@@ -189,7 +219,7 @@ Partial Class FrmSettings
         'Label13
         '
         Me.Label13.AutoSize = True
-        Me.Label13.Location = New System.Drawing.Point(8, 153)
+        Me.Label13.Location = New System.Drawing.Point(48, 151)
         Me.Label13.Name = "Label13"
         Me.Label13.Size = New System.Drawing.Size(108, 13)
         Me.Label13.TabIndex = 63
@@ -198,7 +228,7 @@ Partial Class FrmSettings
         'cbEN4B
         '
         Me.cbEN4B.AutoSize = True
-        Me.cbEN4B.Location = New System.Drawing.Point(202, 151)
+        Me.cbEN4B.Location = New System.Drawing.Point(242, 149)
         Me.cbEN4B.Name = "cbEN4B"
         Me.cbEN4B.Size = New System.Drawing.Size(54, 17)
         Me.cbEN4B.TabIndex = 62
@@ -208,7 +238,7 @@ Partial Class FrmSettings
         'Label6
         '
         Me.Label6.AutoSize = True
-        Me.Label6.Location = New System.Drawing.Point(254, 25)
+        Me.Label6.Location = New System.Drawing.Point(294, 23)
         Me.Label6.Name = "Label6"
         Me.Label6.Size = New System.Drawing.Size(66, 13)
         Me.Label6.TabIndex = 60
@@ -219,7 +249,7 @@ Partial Class FrmSettings
         Me.cb_addr_size.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_addr_size.FormattingEnabled = True
         Me.cb_addr_size.Items.AddRange(New Object() {"16-bit", "24-bit", "32-bit"})
-        Me.cb_addr_size.Location = New System.Drawing.Point(257, 43)
+        Me.cb_addr_size.Location = New System.Drawing.Point(297, 41)
         Me.cb_addr_size.Name = "cb_addr_size"
         Me.cb_addr_size.Size = New System.Drawing.Size(65, 21)
         Me.cb_addr_size.TabIndex = 61
@@ -227,7 +257,7 @@ Partial Class FrmSettings
         'cbENWS
         '
         Me.cbENWS.AutoSize = True
-        Me.cbENWS.Location = New System.Drawing.Point(122, 151)
+        Me.cbENWS.Location = New System.Drawing.Point(162, 149)
         Me.cbENWS.Name = "cbENWS"
         Me.cbENWS.Size = New System.Drawing.Size(59, 17)
         Me.cbENWS.TabIndex = 13
@@ -237,7 +267,7 @@ Partial Class FrmSettings
         'Label14
         '
         Me.Label14.AutoSize = True
-        Me.Label14.Location = New System.Drawing.Point(280, 100)
+        Me.Label14.Location = New System.Drawing.Point(320, 98)
         Me.Label14.Name = "Label14"
         Me.Label14.Size = New System.Drawing.Size(40, 13)
         Me.Label14.TabIndex = 59
@@ -246,7 +276,7 @@ Partial Class FrmSettings
         'Label15
         '
         Me.Label15.AutoSize = True
-        Me.Label15.Location = New System.Drawing.Point(280, 76)
+        Me.Label15.Location = New System.Drawing.Point(320, 74)
         Me.Label15.Name = "Label15"
         Me.Label15.Size = New System.Drawing.Size(65, 13)
         Me.Label15.TabIndex = 58
@@ -255,7 +285,7 @@ Partial Class FrmSettings
         'Label12
         '
         Me.Label12.AutoSize = True
-        Me.Label12.Location = New System.Drawing.Point(146, 127)
+        Me.Label12.Location = New System.Drawing.Point(186, 125)
         Me.Label12.Name = "Label12"
         Me.Label12.Size = New System.Drawing.Size(66, 13)
         Me.Label12.TabIndex = 53
@@ -265,7 +295,7 @@ Partial Class FrmSettings
         '
         Me.op_ewsr.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.op_ewsr.FormattingEnabled = True
-        Me.op_ewsr.Location = New System.Drawing.Point(372, 97)
+        Me.op_ewsr.Location = New System.Drawing.Point(412, 95)
         Me.op_ewsr.Name = "op_ewsr"
         Me.op_ewsr.Size = New System.Drawing.Size(51, 21)
         Me.op_ewsr.TabIndex = 56
@@ -274,7 +304,7 @@ Partial Class FrmSettings
         '
         Me.op_ws.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.op_ws.FormattingEnabled = True
-        Me.op_ws.Location = New System.Drawing.Point(372, 70)
+        Me.op_ws.Location = New System.Drawing.Point(412, 68)
         Me.op_ws.Name = "op_ws"
         Me.op_ws.Size = New System.Drawing.Size(51, 21)
         Me.op_ws.TabIndex = 55
@@ -283,7 +313,7 @@ Partial Class FrmSettings
         '
         Me.op_rs.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.op_rs.FormattingEnabled = True
-        Me.op_rs.Location = New System.Drawing.Point(223, 124)
+        Me.op_rs.Location = New System.Drawing.Point(263, 122)
         Me.op_rs.Name = "op_rs"
         Me.op_rs.Size = New System.Drawing.Size(51, 21)
         Me.op_rs.TabIndex = 54
@@ -291,7 +321,7 @@ Partial Class FrmSettings
         'Label11
         '
         Me.Label11.AutoSize = True
-        Me.Label11.Location = New System.Drawing.Point(146, 100)
+        Me.Label11.Location = New System.Drawing.Point(186, 98)
         Me.Label11.Name = "Label11"
         Me.Label11.Size = New System.Drawing.Size(58, 13)
         Me.Label11.TabIndex = 51
@@ -302,7 +332,7 @@ Partial Class FrmSettings
         Me.cb_spare.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_spare.FormattingEnabled = True
         Me.cb_spare.Items.AddRange(New Object() {"0 bits", "8 bits", "16 bits", "32 bits", "64 bits", "128 bits"})
-        Me.cb_spare.Location = New System.Drawing.Point(363, 124)
+        Me.cb_spare.Location = New System.Drawing.Point(403, 122)
         Me.cb_spare.Name = "cb_spare"
         Me.cb_spare.Size = New System.Drawing.Size(60, 21)
         Me.cb_spare.TabIndex = 40
@@ -310,7 +340,7 @@ Partial Class FrmSettings
         'Label5
         '
         Me.Label5.AutoSize = True
-        Me.Label5.Location = New System.Drawing.Point(280, 127)
+        Me.Label5.Location = New System.Drawing.Point(320, 125)
         Me.Label5.Name = "Label5"
         Me.Label5.Size = New System.Drawing.Size(79, 13)
         Me.Label5.TabIndex = 39
@@ -321,7 +351,7 @@ Partial Class FrmSettings
         Me.cb_prog_mode.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_prog_mode.FormattingEnabled = True
         Me.cb_prog_mode.Items.AddRange(New Object() {"Page", "AAI (BYTE)", "AAI (WORD)", "AT45 Series"})
-        Me.cb_prog_mode.Location = New System.Drawing.Point(333, 43)
+        Me.cb_prog_mode.Location = New System.Drawing.Point(373, 41)
         Me.cb_prog_mode.Name = "cb_prog_mode"
         Me.cb_prog_mode.Size = New System.Drawing.Size(90, 21)
         Me.cb_prog_mode.TabIndex = 34
@@ -329,7 +359,7 @@ Partial Class FrmSettings
         'Label10
         '
         Me.Label10.AutoSize = True
-        Me.Label10.Location = New System.Drawing.Point(146, 76)
+        Me.Label10.Location = New System.Drawing.Point(186, 74)
         Me.Label10.Name = "Label10"
         Me.Label10.Size = New System.Drawing.Size(68, 13)
         Me.Label10.TabIndex = 49
@@ -338,7 +368,7 @@ Partial Class FrmSettings
         'Label4
         '
         Me.Label4.AutoSize = True
-        Me.Label4.Location = New System.Drawing.Point(169, 25)
+        Me.Label4.Location = New System.Drawing.Point(209, 23)
         Me.Label4.Name = "Label4"
         Me.Label4.Size = New System.Drawing.Size(55, 13)
         Me.Label4.TabIndex = 34
@@ -348,7 +378,7 @@ Partial Class FrmSettings
         '
         Me.op_ce.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.op_ce.FormattingEnabled = True
-        Me.op_ce.Location = New System.Drawing.Point(223, 97)
+        Me.op_ce.Location = New System.Drawing.Point(263, 95)
         Me.op_ce.Name = "op_ce"
         Me.op_ce.Size = New System.Drawing.Size(51, 21)
         Me.op_ce.TabIndex = 52
@@ -358,7 +388,7 @@ Partial Class FrmSettings
         Me.cb_page_size.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_page_size.FormattingEnabled = True
         Me.cb_page_size.Items.AddRange(New Object() {"8 bytes", "16 bytes", "32 bytes", "64 bytes", "128 bytes", "256 bytes", "512 bytes", "1024 bytes"})
-        Me.cb_page_size.Location = New System.Drawing.Point(172, 43)
+        Me.cb_page_size.Location = New System.Drawing.Point(212, 41)
         Me.cb_page_size.Name = "cb_page_size"
         Me.cb_page_size.Size = New System.Drawing.Size(77, 21)
         Me.cb_page_size.TabIndex = 38
@@ -366,7 +396,7 @@ Partial Class FrmSettings
         'Label9
         '
         Me.Label9.AutoSize = True
-        Me.Label9.Location = New System.Drawing.Point(8, 127)
+        Me.Label9.Location = New System.Drawing.Point(48, 125)
         Me.Label9.Name = "Label9"
         Me.Label9.Size = New System.Drawing.Size(68, 13)
         Me.Label9.TabIndex = 47
@@ -375,7 +405,7 @@ Partial Class FrmSettings
         'lblSpiProgMode
         '
         Me.lblSpiProgMode.AutoSize = True
-        Me.lblSpiProgMode.Location = New System.Drawing.Point(330, 25)
+        Me.lblSpiProgMode.Location = New System.Drawing.Point(370, 23)
         Me.lblSpiProgMode.Name = "lblSpiProgMode"
         Me.lblSpiProgMode.Size = New System.Drawing.Size(76, 13)
         Me.lblSpiProgMode.TabIndex = 27
@@ -384,7 +414,7 @@ Partial Class FrmSettings
         'Label8
         '
         Me.Label8.AutoSize = True
-        Me.Label8.Location = New System.Drawing.Point(8, 100)
+        Me.Label8.Location = New System.Drawing.Point(48, 98)
         Me.Label8.Name = "Label8"
         Me.Label8.Size = New System.Drawing.Size(46, 13)
         Me.Label8.TabIndex = 45
@@ -395,7 +425,7 @@ Partial Class FrmSettings
         Me.cb_erase_size.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_erase_size.FormattingEnabled = True
         Me.cb_erase_size.Items.AddRange(New Object() {"(Disabled)", "4 KB", "8 KB", "16 KB", "32 KB", "64 KB", "128 KB", "256 KB"})
-        Me.cb_erase_size.Location = New System.Drawing.Point(89, 43)
+        Me.cb_erase_size.Location = New System.Drawing.Point(129, 41)
         Me.cb_erase_size.Name = "cb_erase_size"
         Me.cb_erase_size.Size = New System.Drawing.Size(77, 21)
         Me.cb_erase_size.TabIndex = 36
@@ -405,7 +435,7 @@ Partial Class FrmSettings
         Me.cb_chip_size.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_chip_size.FormattingEnabled = True
         Me.cb_chip_size.Items.AddRange(New Object() {"1 Mbit", "2 Mbit", "4 Mbit", "8 Mbit", "16 Mbit", "32 Mbit", "64 Mbit", "128 Mbit", "256 Mbit", "512 Mbit", "1 Gbit", "2 Gbit"})
-        Me.cb_chip_size.Location = New System.Drawing.Point(6, 43)
+        Me.cb_chip_size.Location = New System.Drawing.Point(46, 41)
         Me.cb_chip_size.Name = "cb_chip_size"
         Me.cb_chip_size.Size = New System.Drawing.Size(77, 21)
         Me.cb_chip_size.TabIndex = 34
@@ -414,7 +444,7 @@ Partial Class FrmSettings
         '
         Me.op_we.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.op_we.FormattingEnabled = True
-        Me.op_we.Location = New System.Drawing.Point(223, 70)
+        Me.op_we.Location = New System.Drawing.Point(263, 68)
         Me.op_we.Name = "op_we"
         Me.op_we.Size = New System.Drawing.Size(51, 21)
         Me.op_we.TabIndex = 50
@@ -422,7 +452,7 @@ Partial Class FrmSettings
         'lblSpiChipSize
         '
         Me.lblSpiChipSize.AutoSize = True
-        Me.lblSpiChipSize.Location = New System.Drawing.Point(3, 25)
+        Me.lblSpiChipSize.Location = New System.Drawing.Point(43, 23)
         Me.lblSpiChipSize.Name = "lblSpiChipSize"
         Me.lblSpiChipSize.Size = New System.Drawing.Size(51, 13)
         Me.lblSpiChipSize.TabIndex = 7
@@ -431,7 +461,7 @@ Partial Class FrmSettings
         'lblSpiEraseSize
         '
         Me.lblSpiEraseSize.AutoSize = True
-        Me.lblSpiEraseSize.Location = New System.Drawing.Point(86, 25)
+        Me.lblSpiEraseSize.Location = New System.Drawing.Point(126, 23)
         Me.lblSpiEraseSize.Name = "lblSpiEraseSize"
         Me.lblSpiEraseSize.Size = New System.Drawing.Size(57, 13)
         Me.lblSpiEraseSize.TabIndex = 5
@@ -440,7 +470,7 @@ Partial Class FrmSettings
         'Label7
         '
         Me.Label7.AutoSize = True
-        Me.Label7.Location = New System.Drawing.Point(8, 76)
+        Me.Label7.Location = New System.Drawing.Point(48, 74)
         Me.Label7.Name = "Label7"
         Me.Label7.Size = New System.Drawing.Size(57, 13)
         Me.Label7.TabIndex = 43
@@ -450,7 +480,7 @@ Partial Class FrmSettings
         '
         Me.op_read.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.op_read.FormattingEnabled = True
-        Me.op_read.Location = New System.Drawing.Point(89, 70)
+        Me.op_read.Location = New System.Drawing.Point(129, 68)
         Me.op_read.Name = "op_read"
         Me.op_read.Size = New System.Drawing.Size(51, 21)
         Me.op_read.TabIndex = 44
@@ -459,7 +489,7 @@ Partial Class FrmSettings
         '
         Me.op_sectorerase.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.op_sectorerase.FormattingEnabled = True
-        Me.op_sectorerase.Location = New System.Drawing.Point(89, 124)
+        Me.op_sectorerase.Location = New System.Drawing.Point(129, 122)
         Me.op_sectorerase.Name = "op_sectorerase"
         Me.op_sectorerase.Size = New System.Drawing.Size(51, 21)
         Me.op_sectorerase.TabIndex = 48
@@ -468,26 +498,16 @@ Partial Class FrmSettings
         '
         Me.op_prog.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.op_prog.FormattingEnabled = True
-        Me.op_prog.Location = New System.Drawing.Point(89, 97)
+        Me.op_prog.Location = New System.Drawing.Point(129, 95)
         Me.op_prog.Name = "op_prog"
         Me.op_prog.Size = New System.Drawing.Size(51, 21)
         Me.op_prog.TabIndex = 46
-        '
-        'RadioUseSpiSettings
-        '
-        Me.RadioUseSpiSettings.AutoSize = True
-        Me.RadioUseSpiSettings.Location = New System.Drawing.Point(253, 123)
-        Me.RadioUseSpiSettings.Name = "RadioUseSpiSettings"
-        Me.RadioUseSpiSettings.Size = New System.Drawing.Size(112, 17)
-        Me.RadioUseSpiSettings.TabIndex = 27
-        Me.RadioUseSpiSettings.Text = "Use these settings"
-        Me.RadioUseSpiSettings.UseVisualStyleBackColor = True
         '
         'RadioUseSpiAuto
         '
         Me.RadioUseSpiAuto.AutoSize = True
         Me.RadioUseSpiAuto.Checked = True
-        Me.RadioUseSpiAuto.Location = New System.Drawing.Point(41, 123)
+        Me.RadioUseSpiAuto.Location = New System.Drawing.Point(6, 123)
         Me.RadioUseSpiAuto.Name = "RadioUseSpiAuto"
         Me.RadioUseSpiAuto.Size = New System.Drawing.Size(132, 17)
         Me.RadioUseSpiAuto.TabIndex = 26
@@ -509,7 +529,7 @@ Partial Class FrmSettings
         Me.GroupBox1.Controls.Add(Me.Label1)
         Me.GroupBox1.Location = New System.Drawing.Point(6, 6)
         Me.GroupBox1.Name = "GroupBox1"
-        Me.GroupBox1.Size = New System.Drawing.Size(439, 111)
+        Me.GroupBox1.Size = New System.Drawing.Size(512, 111)
         Me.GroupBox1.TabIndex = 2
         Me.GroupBox1.TabStop = False
         Me.GroupBox1.Text = "General"
@@ -528,7 +548,7 @@ Partial Class FrmSettings
         '
         Me.cb_spi_pro_clock.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_spi_pro_clock.FormattingEnabled = True
-        Me.cb_spi_pro_clock.Location = New System.Drawing.Point(122, 34)
+        Me.cb_spi_pro_clock.Location = New System.Drawing.Point(157, 34)
         Me.cb_spi_pro_clock.Name = "cb_spi_pro_clock"
         Me.cb_spi_pro_clock.Size = New System.Drawing.Size(77, 21)
         Me.cb_spi_pro_clock.TabIndex = 6
@@ -536,7 +556,7 @@ Partial Class FrmSettings
         'Label16
         '
         Me.Label16.AutoSize = True
-        Me.Label16.Location = New System.Drawing.Point(122, 18)
+        Me.Label16.Location = New System.Drawing.Point(157, 18)
         Me.Label16.Name = "Label16"
         Me.Label16.Size = New System.Drawing.Size(78, 13)
         Me.Label16.TabIndex = 7
@@ -546,7 +566,7 @@ Partial Class FrmSettings
         '
         Me.cb_spi_eeprom.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_spi_eeprom.FormattingEnabled = True
-        Me.cb_spi_eeprom.Location = New System.Drawing.Point(250, 34)
+        Me.cb_spi_eeprom.Location = New System.Drawing.Point(298, 34)
         Me.cb_spi_eeprom.Name = "cb_spi_eeprom"
         Me.cb_spi_eeprom.Size = New System.Drawing.Size(156, 21)
         Me.cb_spi_eeprom.TabIndex = 4
@@ -554,7 +574,7 @@ Partial Class FrmSettings
         'Label3
         '
         Me.Label3.AutoSize = True
-        Me.Label3.Location = New System.Drawing.Point(249, 18)
+        Me.Label3.Location = New System.Drawing.Point(297, 18)
         Me.Label3.Name = "Label3"
         Me.Label3.Size = New System.Drawing.Size(108, 13)
         Me.Label3.TabIndex = 5
@@ -581,7 +601,7 @@ Partial Class FrmSettings
         'rb_fastread_op
         '
         Me.rb_fastread_op.AutoSize = True
-        Me.rb_fastread_op.Location = New System.Drawing.Point(194, 63)
+        Me.rb_fastread_op.Location = New System.Drawing.Point(298, 63)
         Me.rb_fastread_op.Name = "rb_fastread_op"
         Me.rb_fastread_op.Size = New System.Drawing.Size(118, 17)
         Me.rb_fastread_op.TabIndex = 3
@@ -592,7 +612,7 @@ Partial Class FrmSettings
         'rb_read_op
         '
         Me.rb_read_op.AutoSize = True
-        Me.rb_read_op.Location = New System.Drawing.Point(101, 63)
+        Me.rb_read_op.Location = New System.Drawing.Point(157, 65)
         Me.rb_read_op.Name = "rb_read_op"
         Me.rb_read_op.Size = New System.Drawing.Size(87, 17)
         Me.rb_read_op.TabIndex = 2
@@ -615,7 +635,7 @@ Partial Class FrmSettings
         Me.TP_JTAG.Location = New System.Drawing.Point(4, 22)
         Me.TP_JTAG.Name = "TP_JTAG"
         Me.TP_JTAG.Padding = New System.Windows.Forms.Padding(3)
-        Me.TP_JTAG.Size = New System.Drawing.Size(451, 328)
+        Me.TP_JTAG.Size = New System.Drawing.Size(524, 328)
         Me.TP_JTAG.TabIndex = 1
         Me.TP_JTAG.Text = " JTAG "
         '
@@ -628,7 +648,7 @@ Partial Class FrmSettings
         Me.TP_I2C.Location = New System.Drawing.Point(4, 22)
         Me.TP_I2C.Name = "TP_I2C"
         Me.TP_I2C.Padding = New System.Windows.Forms.Padding(3)
-        Me.TP_I2C.Size = New System.Drawing.Size(451, 328)
+        Me.TP_I2C.Size = New System.Drawing.Size(524, 328)
         Me.TP_I2C.TabIndex = 2
         Me.TP_I2C.Text = " I ² C "
         '
@@ -637,7 +657,7 @@ Partial Class FrmSettings
         Me.GroupBox6.Controls.Add(Me.cbi2cDensity)
         Me.GroupBox6.Location = New System.Drawing.Point(6, 57)
         Me.GroupBox6.Name = "GroupBox6"
-        Me.GroupBox6.Size = New System.Drawing.Size(433, 51)
+        Me.GroupBox6.Size = New System.Drawing.Size(512, 51)
         Me.GroupBox6.TabIndex = 35
         Me.GroupBox6.TabStop = False
         Me.GroupBox6.Text = "Density"
@@ -646,8 +666,8 @@ Partial Class FrmSettings
         '
         Me.cbi2cDensity.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cbi2cDensity.FormattingEnabled = True
-        Me.cbi2cDensity.Items.AddRange(New Object() {"(Not Selected)", "256 Bytes (256 x 8) - 24XX02", "512 Bytes (512 x 8) - 24XX04", "1024 Bytes (1K x 8) - 24XX08", "2048 Bytes (2K x 8) - 24XX16", "4096 Bytes (4K x 8) - 24XX32", "8192 Bytes (8K x 8) - 24XX64", "16K Bytes (16K x 8) - 24XX128", "32K Bytes (32K x 8) - 24XX256", "64K Bytes (64K x 8) - 24XX512", "128K Bytes (128K x 8) - 24XXM01", "256K Bytes (256K x 8) - 24XXM02"})
-        Me.cbi2cDensity.Location = New System.Drawing.Point(9, 22)
+        Me.cbi2cDensity.Items.AddRange(New Object() {"(Not Selected)", "128 Bytes (128 x 8) - 24XX01", "256 Bytes (256 x 8) - 24XX02", "512 Bytes (512 x 8) - 24XX04", "1024 Bytes (1K x 8) - 24XX08", "2048 Bytes (2K x 8) - 24XX16", "4096 Bytes (4K x 8) - 24XX32", "8192 Bytes (8K x 8) - 24XX64", "16K Bytes (16K x 8) - 24XX128", "32K Bytes (32K x 8) - 24XX256", "64K Bytes (64K x 8) - 24XX512", "128K Bytes (128K x 8) - 24XXM01", "256K Bytes (256K x 8) - 24XXM02"})
+        Me.cbi2cDensity.Location = New System.Drawing.Point(137, 19)
         Me.cbi2cDensity.Name = "cbi2cDensity"
         Me.cbi2cDensity.Size = New System.Drawing.Size(187, 21)
         Me.cbi2cDensity.TabIndex = 36
@@ -659,7 +679,7 @@ Partial Class FrmSettings
         Me.GroupBox5.Controls.Add(Me.cbI2C_A2)
         Me.GroupBox5.Location = New System.Drawing.Point(3, 114)
         Me.GroupBox5.Name = "GroupBox5"
-        Me.GroupBox5.Size = New System.Drawing.Size(433, 52)
+        Me.GroupBox5.Size = New System.Drawing.Size(515, 52)
         Me.GroupBox5.TabIndex = 34
         Me.GroupBox5.TabStop = False
         Me.GroupBox5.Text = "Addressing mode"
@@ -667,7 +687,7 @@ Partial Class FrmSettings
         'cbI2C_A0
         '
         Me.cbI2C_A0.AutoSize = True
-        Me.cbI2C_A0.Location = New System.Drawing.Point(97, 24)
+        Me.cbI2C_A0.Location = New System.Drawing.Point(274, 19)
         Me.cbI2C_A0.Name = "cbI2C_A0"
         Me.cbI2C_A0.Size = New System.Drawing.Size(39, 17)
         Me.cbI2C_A0.TabIndex = 28
@@ -677,7 +697,7 @@ Partial Class FrmSettings
         'cbI2C_A1
         '
         Me.cbI2C_A1.AutoSize = True
-        Me.cbI2C_A1.Location = New System.Drawing.Point(52, 24)
+        Me.cbI2C_A1.Location = New System.Drawing.Point(219, 19)
         Me.cbI2C_A1.Name = "cbI2C_A1"
         Me.cbI2C_A1.Size = New System.Drawing.Size(39, 17)
         Me.cbI2C_A1.TabIndex = 29
@@ -687,7 +707,7 @@ Partial Class FrmSettings
         'cbI2C_A2
         '
         Me.cbI2C_A2.AutoSize = True
-        Me.cbI2C_A2.Location = New System.Drawing.Point(9, 24)
+        Me.cbI2C_A2.Location = New System.Drawing.Point(164, 19)
         Me.cbI2C_A2.Name = "cbI2C_A2"
         Me.cbI2C_A2.Size = New System.Drawing.Size(39, 17)
         Me.cbI2C_A2.TabIndex = 30
@@ -701,7 +721,7 @@ Partial Class FrmSettings
         Me.GroupBox4.Controls.Add(Me.rb_speed_100khz)
         Me.GroupBox4.Location = New System.Drawing.Point(6, 6)
         Me.GroupBox4.Name = "GroupBox4"
-        Me.GroupBox4.Size = New System.Drawing.Size(433, 45)
+        Me.GroupBox4.Size = New System.Drawing.Size(512, 45)
         Me.GroupBox4.TabIndex = 33
         Me.GroupBox4.TabStop = False
         Me.GroupBox4.Text = "Speed mode"
@@ -709,7 +729,7 @@ Partial Class FrmSettings
         'rb_speed_1mhz
         '
         Me.rb_speed_1mhz.AutoSize = True
-        Me.rb_speed_1mhz.Location = New System.Drawing.Point(253, 19)
+        Me.rb_speed_1mhz.Location = New System.Drawing.Point(323, 19)
         Me.rb_speed_1mhz.Name = "rb_speed_1mhz"
         Me.rb_speed_1mhz.Size = New System.Drawing.Size(82, 17)
         Me.rb_speed_1mhz.TabIndex = 36
@@ -720,7 +740,7 @@ Partial Class FrmSettings
         'rb_speed_400khz
         '
         Me.rb_speed_400khz.AutoSize = True
-        Me.rb_speed_400khz.Location = New System.Drawing.Point(102, 19)
+        Me.rb_speed_400khz.Location = New System.Drawing.Point(172, 19)
         Me.rb_speed_400khz.Name = "rb_speed_400khz"
         Me.rb_speed_400khz.Size = New System.Drawing.Size(123, 17)
         Me.rb_speed_400khz.TabIndex = 35
@@ -731,7 +751,7 @@ Partial Class FrmSettings
         'rb_speed_100khz
         '
         Me.rb_speed_100khz.AutoSize = True
-        Me.rb_speed_100khz.Location = New System.Drawing.Point(6, 19)
+        Me.rb_speed_100khz.Location = New System.Drawing.Point(76, 19)
         Me.rb_speed_100khz.Name = "rb_speed_100khz"
         Me.rb_speed_100khz.Size = New System.Drawing.Size(65, 17)
         Me.rb_speed_100khz.TabIndex = 34
@@ -739,18 +759,18 @@ Partial Class FrmSettings
         Me.rb_speed_100khz.Text = "100 kHz"
         Me.rb_speed_100khz.UseVisualStyleBackColor = True
         '
-        'TP_NAND
+        'TP_NAND1
         '
-        Me.TP_NAND.BackColor = System.Drawing.SystemColors.Control
-        Me.TP_NAND.Controls.Add(Me.gb_block_layout)
-        Me.TP_NAND.Controls.Add(Me.gb_block_manager)
-        Me.TP_NAND.Controls.Add(Me.gb_nand_general)
-        Me.TP_NAND.Location = New System.Drawing.Point(4, 22)
-        Me.TP_NAND.Name = "TP_NAND"
-        Me.TP_NAND.Padding = New System.Windows.Forms.Padding(3)
-        Me.TP_NAND.Size = New System.Drawing.Size(451, 328)
-        Me.TP_NAND.TabIndex = 3
-        Me.TP_NAND.Text = " NAND "
+        Me.TP_NAND1.BackColor = System.Drawing.SystemColors.Control
+        Me.TP_NAND1.Controls.Add(Me.gb_block_layout)
+        Me.TP_NAND1.Controls.Add(Me.gb_block_manager)
+        Me.TP_NAND1.Controls.Add(Me.gb_nand_general)
+        Me.TP_NAND1.Location = New System.Drawing.Point(4, 22)
+        Me.TP_NAND1.Name = "TP_NAND1"
+        Me.TP_NAND1.Padding = New System.Windows.Forms.Padding(3)
+        Me.TP_NAND1.Size = New System.Drawing.Size(524, 328)
+        Me.TP_NAND1.TabIndex = 3
+        Me.TP_NAND1.Text = " NAND"
         '
         'gb_block_layout
         '
@@ -760,14 +780,14 @@ Partial Class FrmSettings
         Me.gb_block_layout.Controls.Add(Me.rb_mainspare_default)
         Me.gb_block_layout.Location = New System.Drawing.Point(6, 245)
         Me.gb_block_layout.Name = "gb_block_layout"
-        Me.gb_block_layout.Size = New System.Drawing.Size(433, 77)
+        Me.gb_block_layout.Size = New System.Drawing.Size(512, 77)
         Me.gb_block_layout.TabIndex = 2
         Me.gb_block_layout.TabStop = False
         Me.gb_block_layout.Text = "Page layout"
         '
         'nand_box
         '
-        Me.nand_box.Location = New System.Drawing.Point(44, 19)
+        Me.nand_box.Location = New System.Drawing.Point(69, 19)
         Me.nand_box.Name = "nand_box"
         Me.nand_box.Size = New System.Drawing.Size(356, 20)
         Me.nand_box.TabIndex = 4
@@ -776,7 +796,7 @@ Partial Class FrmSettings
         'rb_mainspare_all
         '
         Me.rb_mainspare_all.AutoSize = True
-        Me.rb_mainspare_all.Location = New System.Drawing.Point(305, 52)
+        Me.rb_mainspare_all.Location = New System.Drawing.Point(322, 51)
         Me.rb_mainspare_all.Name = "rb_mainspare_all"
         Me.rb_mainspare_all.Size = New System.Drawing.Size(72, 17)
         Me.rb_mainspare_all.TabIndex = 3
@@ -787,7 +807,7 @@ Partial Class FrmSettings
         'rb_mainspare_segmented
         '
         Me.rb_mainspare_segmented.AutoSize = True
-        Me.rb_mainspare_segmented.Location = New System.Drawing.Point(177, 52)
+        Me.rb_mainspare_segmented.Location = New System.Drawing.Point(194, 51)
         Me.rb_mainspare_segmented.Name = "rb_mainspare_segmented"
         Me.rb_mainspare_segmented.Size = New System.Drawing.Size(79, 17)
         Me.rb_mainspare_segmented.TabIndex = 2
@@ -798,7 +818,7 @@ Partial Class FrmSettings
         'rb_mainspare_default
         '
         Me.rb_mainspare_default.AutoSize = True
-        Me.rb_mainspare_default.Location = New System.Drawing.Point(69, 52)
+        Me.rb_mainspare_default.Location = New System.Drawing.Point(86, 51)
         Me.rb_mainspare_default.Name = "rb_mainspare_default"
         Me.rb_mainspare_default.Size = New System.Drawing.Size(68, 17)
         Me.rb_mainspare_default.TabIndex = 1
@@ -808,26 +828,37 @@ Partial Class FrmSettings
         '
         'gb_block_manager
         '
+        Me.gb_block_manager.Controls.Add(Me.cb_badblock_enabled)
         Me.gb_block_manager.Controls.Add(Me.cb_badmarker_6th_page2)
         Me.gb_block_manager.Controls.Add(Me.cb_badmarker_6th_page1)
-        Me.gb_block_manager.Controls.Add(Me.lbl_6th_byte)
-        Me.gb_block_manager.Controls.Add(Me.lbl_1st_byte)
         Me.gb_block_manager.Controls.Add(Me.cb_badmarker_1st_lastpage)
         Me.gb_block_manager.Controls.Add(Me.cb_badmarker_1st_page2)
         Me.gb_block_manager.Controls.Add(Me.cb_badmarker_1st_page1)
-        Me.gb_block_manager.Controls.Add(Me.cb_badblock_enabled)
+        Me.gb_block_manager.Controls.Add(Me.lbl_6th_byte)
+        Me.gb_block_manager.Controls.Add(Me.lbl_1st_byte)
         Me.gb_block_manager.Controls.Add(Me.cb_badblock_disabled)
         Me.gb_block_manager.Location = New System.Drawing.Point(6, 124)
         Me.gb_block_manager.Name = "gb_block_manager"
-        Me.gb_block_manager.Size = New System.Drawing.Size(433, 115)
+        Me.gb_block_manager.Size = New System.Drawing.Size(512, 115)
         Me.gb_block_manager.TabIndex = 0
         Me.gb_block_manager.TabStop = False
         Me.gb_block_manager.Text = "Bad block manager"
         '
+        'cb_badblock_enabled
+        '
+        Me.cb_badblock_enabled.AutoSize = True
+        Me.cb_badblock_enabled.Location = New System.Drawing.Point(143, 19)
+        Me.cb_badblock_enabled.Name = "cb_badblock_enabled"
+        Me.cb_badblock_enabled.Size = New System.Drawing.Size(208, 17)
+        Me.cb_badblock_enabled.TabIndex = 1
+        Me.cb_badblock_enabled.TabStop = True
+        Me.cb_badblock_enabled.Text = "Enabled (check for bad block markers)"
+        Me.cb_badblock_enabled.UseVisualStyleBackColor = True
+        '
         'cb_badmarker_6th_page2
         '
         Me.cb_badmarker_6th_page2.AutoSize = True
-        Me.cb_badmarker_6th_page2.Location = New System.Drawing.Point(176, 66)
+        Me.cb_badmarker_6th_page2.Location = New System.Drawing.Point(208, 66)
         Me.cb_badmarker_6th_page2.Name = "cb_badmarker_6th_page2"
         Me.cb_badmarker_6th_page2.Size = New System.Drawing.Size(119, 17)
         Me.cb_badmarker_6th_page2.TabIndex = 8
@@ -837,12 +868,42 @@ Partial Class FrmSettings
         'cb_badmarker_6th_page1
         '
         Me.cb_badmarker_6th_page1.AutoSize = True
-        Me.cb_badmarker_6th_page1.Location = New System.Drawing.Point(69, 66)
+        Me.cb_badmarker_6th_page1.Location = New System.Drawing.Point(78, 66)
         Me.cb_badmarker_6th_page1.Name = "cb_badmarker_6th_page1"
         Me.cb_badmarker_6th_page1.Size = New System.Drawing.Size(101, 17)
         Me.cb_badmarker_6th_page1.TabIndex = 7
         Me.cb_badmarker_6th_page1.Text = "First spare page"
         Me.cb_badmarker_6th_page1.UseVisualStyleBackColor = True
+        '
+        'cb_badmarker_1st_lastpage
+        '
+        Me.cb_badmarker_1st_lastpage.AutoSize = True
+        Me.cb_badmarker_1st_lastpage.Location = New System.Drawing.Point(356, 45)
+        Me.cb_badmarker_1st_lastpage.Name = "cb_badmarker_1st_lastpage"
+        Me.cb_badmarker_1st_lastpage.Size = New System.Drawing.Size(102, 17)
+        Me.cb_badmarker_1st_lastpage.TabIndex = 4
+        Me.cb_badmarker_1st_lastpage.Text = "Last spare page"
+        Me.cb_badmarker_1st_lastpage.UseVisualStyleBackColor = True
+        '
+        'cb_badmarker_1st_page2
+        '
+        Me.cb_badmarker_1st_page2.AutoSize = True
+        Me.cb_badmarker_1st_page2.Location = New System.Drawing.Point(208, 45)
+        Me.cb_badmarker_1st_page2.Name = "cb_badmarker_1st_page2"
+        Me.cb_badmarker_1st_page2.Size = New System.Drawing.Size(119, 17)
+        Me.cb_badmarker_1st_page2.TabIndex = 3
+        Me.cb_badmarker_1st_page2.Text = "Second spare page"
+        Me.cb_badmarker_1st_page2.UseVisualStyleBackColor = True
+        '
+        'cb_badmarker_1st_page1
+        '
+        Me.cb_badmarker_1st_page1.AutoSize = True
+        Me.cb_badmarker_1st_page1.Location = New System.Drawing.Point(78, 45)
+        Me.cb_badmarker_1st_page1.Name = "cb_badmarker_1st_page1"
+        Me.cb_badmarker_1st_page1.Size = New System.Drawing.Size(101, 17)
+        Me.cb_badmarker_1st_page1.TabIndex = 2
+        Me.cb_badmarker_1st_page1.Text = "First spare page"
+        Me.cb_badmarker_1st_page1.UseVisualStyleBackColor = True
         '
         'lbl_6th_byte
         '
@@ -864,47 +925,6 @@ Partial Class FrmSettings
         Me.lbl_1st_byte.TabIndex = 5
         Me.lbl_1st_byte.Text = "1st byte:"
         '
-        'cb_badmarker_1st_lastpage
-        '
-        Me.cb_badmarker_1st_lastpage.AutoSize = True
-        Me.cb_badmarker_1st_lastpage.Location = New System.Drawing.Point(301, 45)
-        Me.cb_badmarker_1st_lastpage.Name = "cb_badmarker_1st_lastpage"
-        Me.cb_badmarker_1st_lastpage.Size = New System.Drawing.Size(102, 17)
-        Me.cb_badmarker_1st_lastpage.TabIndex = 4
-        Me.cb_badmarker_1st_lastpage.Text = "Last spare page"
-        Me.cb_badmarker_1st_lastpage.UseVisualStyleBackColor = True
-        '
-        'cb_badmarker_1st_page2
-        '
-        Me.cb_badmarker_1st_page2.AutoSize = True
-        Me.cb_badmarker_1st_page2.Location = New System.Drawing.Point(176, 45)
-        Me.cb_badmarker_1st_page2.Name = "cb_badmarker_1st_page2"
-        Me.cb_badmarker_1st_page2.Size = New System.Drawing.Size(119, 17)
-        Me.cb_badmarker_1st_page2.TabIndex = 3
-        Me.cb_badmarker_1st_page2.Text = "Second spare page"
-        Me.cb_badmarker_1st_page2.UseVisualStyleBackColor = True
-        '
-        'cb_badmarker_1st_page1
-        '
-        Me.cb_badmarker_1st_page1.AutoSize = True
-        Me.cb_badmarker_1st_page1.Location = New System.Drawing.Point(69, 45)
-        Me.cb_badmarker_1st_page1.Name = "cb_badmarker_1st_page1"
-        Me.cb_badmarker_1st_page1.Size = New System.Drawing.Size(101, 17)
-        Me.cb_badmarker_1st_page1.TabIndex = 2
-        Me.cb_badmarker_1st_page1.Text = "First spare page"
-        Me.cb_badmarker_1st_page1.UseVisualStyleBackColor = True
-        '
-        'cb_badblock_enabled
-        '
-        Me.cb_badblock_enabled.AutoSize = True
-        Me.cb_badblock_enabled.Location = New System.Drawing.Point(78, 19)
-        Me.cb_badblock_enabled.Name = "cb_badblock_enabled"
-        Me.cb_badblock_enabled.Size = New System.Drawing.Size(208, 17)
-        Me.cb_badblock_enabled.TabIndex = 1
-        Me.cb_badblock_enabled.TabStop = True
-        Me.cb_badblock_enabled.Text = "Enabled (check for bad block markers)"
-        Me.cb_badblock_enabled.UseVisualStyleBackColor = True
-        '
         'cb_badblock_disabled
         '
         Me.cb_badblock_disabled.AutoSize = True
@@ -924,7 +944,7 @@ Partial Class FrmSettings
         Me.gb_nand_general.Controls.Add(Me.cb_preserve)
         Me.gb_nand_general.Location = New System.Drawing.Point(6, 6)
         Me.gb_nand_general.Name = "gb_nand_general"
-        Me.gb_nand_general.Size = New System.Drawing.Size(433, 112)
+        Me.gb_nand_general.Size = New System.Drawing.Size(512, 112)
         Me.gb_nand_general.TabIndex = 1
         Me.gb_nand_general.TabStop = False
         Me.gb_nand_general.Text = "General"
@@ -964,16 +984,203 @@ Partial Class FrmSettings
         Me.cb_preserve.AutoSize = True
         Me.cb_preserve.Location = New System.Drawing.Point(6, 19)
         Me.cb_preserve.Name = "cb_preserve"
-        Me.cb_preserve.Size = New System.Drawing.Size(394, 17)
+        Me.cb_preserve.Size = New System.Drawing.Size(136, 17)
         Me.cb_preserve.TabIndex = 0
-        Me.cb_preserve.Text = "Preserve memory areas (i.e. copy spare area prior to main area write operation)"
+        Me.cb_preserve.Text = "Preserve memory areas"
         Me.cb_preserve.UseVisualStyleBackColor = True
+        '
+        'TP_NAND2
+        '
+        Me.TP_NAND2.BackColor = System.Drawing.SystemColors.Control
+        Me.TP_NAND2.Controls.Add(Me.gb_nandecc_title)
+        Me.TP_NAND2.Location = New System.Drawing.Point(4, 22)
+        Me.TP_NAND2.Name = "TP_NAND2"
+        Me.TP_NAND2.Padding = New System.Windows.Forms.Padding(3)
+        Me.TP_NAND2.Size = New System.Drawing.Size(524, 328)
+        Me.TP_NAND2.TabIndex = 4
+        Me.TP_NAND2.Text = "  ECC  "
+        '
+        'gb_nandecc_title
+        '
+        Me.gb_nandecc_title.Controls.Add(Me.rb_ECC_BHC)
+        Me.gb_nandecc_title.Controls.Add(Me.rb_ECC_ReedSolomon)
+        Me.gb_nandecc_title.Controls.Add(Me.rb_ECC_Hamming)
+        Me.gb_nandecc_title.Controls.Add(Me.lbl_nandecc_algorithm)
+        Me.gb_nandecc_title.Controls.Add(Me.lbl_nandecc_changes)
+        Me.gb_nandecc_title.Controls.Add(Me.cb_rs_reverse_data)
+        Me.gb_nandecc_title.Controls.Add(Me.cb_sym_width)
+        Me.gb_nandecc_title.Controls.Add(Me.Label2)
+        Me.gb_nandecc_title.Controls.Add(Me.cb_ecc_loc)
+        Me.gb_nandecc_title.Controls.Add(Me.lbl_nandecc_location)
+        Me.gb_nandecc_title.Controls.Add(Me.cb_ECC_WriteEnable)
+        Me.gb_nandecc_title.Controls.Add(Me.cb_ECC_ReadEnable)
+        Me.gb_nandecc_title.Controls.Add(Me.lbl_nandecc_enabled)
+        Me.gb_nandecc_title.Controls.Add(Me.cb_ECC_BITERR)
+        Me.gb_nandecc_title.Controls.Add(Me.lbl_nandecc_biterror)
+        Me.gb_nandecc_title.Location = New System.Drawing.Point(6, 6)
+        Me.gb_nandecc_title.Name = "gb_nandecc_title"
+        Me.gb_nandecc_title.Size = New System.Drawing.Size(512, 200)
+        Me.gb_nandecc_title.TabIndex = 1
+        Me.gb_nandecc_title.TabStop = False
+        Me.gb_nandecc_title.Text = "Software ECC Feature"
+        '
+        'rb_ECC_BHC
+        '
+        Me.rb_ECC_BHC.AutoSize = True
+        Me.rb_ECC_BHC.Location = New System.Drawing.Point(250, 81)
+        Me.rb_ECC_BHC.Name = "rb_ECC_BHC"
+        Me.rb_ECC_BHC.Size = New System.Drawing.Size(79, 17)
+        Me.rb_ECC_BHC.TabIndex = 4
+        Me.rb_ECC_BHC.TabStop = True
+        Me.rb_ECC_BHC.Text = "Binary BHC"
+        Me.rb_ECC_BHC.UseVisualStyleBackColor = True
+        '
+        'rb_ECC_ReedSolomon
+        '
+        Me.rb_ECC_ReedSolomon.AutoSize = True
+        Me.rb_ECC_ReedSolomon.Location = New System.Drawing.Point(250, 58)
+        Me.rb_ECC_ReedSolomon.Name = "rb_ECC_ReedSolomon"
+        Me.rb_ECC_ReedSolomon.Size = New System.Drawing.Size(95, 17)
+        Me.rb_ECC_ReedSolomon.TabIndex = 3
+        Me.rb_ECC_ReedSolomon.TabStop = True
+        Me.rb_ECC_ReedSolomon.Text = "Reed-Solomon"
+        Me.rb_ECC_ReedSolomon.UseVisualStyleBackColor = True
+        '
+        'rb_ECC_Hamming
+        '
+        Me.rb_ECC_Hamming.AutoSize = True
+        Me.rb_ECC_Hamming.Location = New System.Drawing.Point(250, 35)
+        Me.rb_ECC_Hamming.Name = "rb_ECC_Hamming"
+        Me.rb_ECC_Hamming.Size = New System.Drawing.Size(69, 17)
+        Me.rb_ECC_Hamming.TabIndex = 2
+        Me.rb_ECC_Hamming.TabStop = True
+        Me.rb_ECC_Hamming.Text = "Hamming"
+        Me.rb_ECC_Hamming.UseVisualStyleBackColor = True
+        '
+        'lbl_nandecc_algorithm
+        '
+        Me.lbl_nandecc_algorithm.AutoSize = True
+        Me.lbl_nandecc_algorithm.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lbl_nandecc_algorithm.Location = New System.Drawing.Point(247, 19)
+        Me.lbl_nandecc_algorithm.Name = "lbl_nandecc_algorithm"
+        Me.lbl_nandecc_algorithm.Size = New System.Drawing.Size(59, 13)
+        Me.lbl_nandecc_algorithm.TabIndex = 1
+        Me.lbl_nandecc_algorithm.Text = "Algorithm"
+        '
+        'lbl_nandecc_changes
+        '
+        Me.lbl_nandecc_changes.AutoSize = True
+        Me.lbl_nandecc_changes.Location = New System.Drawing.Point(6, 171)
+        Me.lbl_nandecc_changes.Name = "lbl_nandecc_changes"
+        Me.lbl_nandecc_changes.Size = New System.Drawing.Size(223, 13)
+        Me.lbl_nandecc_changes.TabIndex = 11
+        Me.lbl_nandecc_changes.Text = "* Changes take effect on device detect event"
+        '
+        'cb_rs_reverse_data
+        '
+        Me.cb_rs_reverse_data.AutoSize = True
+        Me.cb_rs_reverse_data.Location = New System.Drawing.Point(9, 116)
+        Me.cb_rs_reverse_data.Name = "cb_rs_reverse_data"
+        Me.cb_rs_reverse_data.Size = New System.Drawing.Size(116, 17)
+        Me.cb_rs_reverse_data.TabIndex = 30
+        Me.cb_rs_reverse_data.Text = "Reverse byte order"
+        Me.cb_rs_reverse_data.UseVisualStyleBackColor = True
+        '
+        'cb_sym_width
+        '
+        Me.cb_sym_width.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_sym_width.FormattingEnabled = True
+        Me.cb_sym_width.Items.AddRange(New Object() {"8-bit", "9-bit", "10-bit"})
+        Me.cb_sym_width.Location = New System.Drawing.Point(366, 85)
+        Me.cb_sym_width.Name = "cb_sym_width"
+        Me.cb_sym_width.Size = New System.Drawing.Size(80, 21)
+        Me.cb_sym_width.TabIndex = 28
+        '
+        'Label2
+        '
+        Me.Label2.AutoSize = True
+        Me.Label2.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Label2.Location = New System.Drawing.Point(363, 68)
+        Me.Label2.Name = "Label2"
+        Me.Label2.Size = New System.Drawing.Size(81, 13)
+        Me.Label2.TabIndex = 29
+        Me.Label2.Text = "Symbol width"
+        '
+        'cb_ecc_loc
+        '
+        Me.cb_ecc_loc.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_ecc_loc.FormattingEnabled = True
+        Me.cb_ecc_loc.Items.AddRange(New Object() {"OOB Middle", "OOB End", "OOB Start"})
+        Me.cb_ecc_loc.Location = New System.Drawing.Point(366, 137)
+        Me.cb_ecc_loc.Name = "cb_ecc_loc"
+        Me.cb_ecc_loc.Size = New System.Drawing.Size(102, 21)
+        Me.cb_ecc_loc.TabIndex = 9
+        '
+        'lbl_nandecc_location
+        '
+        Me.lbl_nandecc_location.AutoSize = True
+        Me.lbl_nandecc_location.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lbl_nandecc_location.Location = New System.Drawing.Point(363, 120)
+        Me.lbl_nandecc_location.Name = "lbl_nandecc_location"
+        Me.lbl_nandecc_location.Size = New System.Drawing.Size(80, 13)
+        Me.lbl_nandecc_location.TabIndex = 10
+        Me.lbl_nandecc_location.Text = "ECC location"
+        '
+        'cb_ECC_WriteEnable
+        '
+        Me.cb_ECC_WriteEnable.AutoSize = True
+        Me.cb_ECC_WriteEnable.Location = New System.Drawing.Point(9, 67)
+        Me.cb_ECC_WriteEnable.Name = "cb_ECC_WriteEnable"
+        Me.cb_ECC_WriteEnable.Size = New System.Drawing.Size(153, 17)
+        Me.cb_ECC_WriteEnable.TabIndex = 6
+        Me.cb_ECC_WriteEnable.Text = "Write operation (write ECC)"
+        Me.cb_ECC_WriteEnable.UseVisualStyleBackColor = True
+        '
+        'cb_ECC_ReadEnable
+        '
+        Me.cb_ECC_ReadEnable.AutoSize = True
+        Me.cb_ECC_ReadEnable.Location = New System.Drawing.Point(9, 44)
+        Me.cb_ECC_ReadEnable.Name = "cb_ECC_ReadEnable"
+        Me.cb_ECC_ReadEnable.Size = New System.Drawing.Size(165, 17)
+        Me.cb_ECC_ReadEnable.TabIndex = 0
+        Me.cb_ECC_ReadEnable.Text = "Read operation (auto-correct)"
+        Me.cb_ECC_ReadEnable.UseVisualStyleBackColor = True
+        '
+        'lbl_nandecc_enabled
+        '
+        Me.lbl_nandecc_enabled.AutoSize = True
+        Me.lbl_nandecc_enabled.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lbl_nandecc_enabled.Location = New System.Drawing.Point(6, 27)
+        Me.lbl_nandecc_enabled.Name = "lbl_nandecc_enabled"
+        Me.lbl_nandecc_enabled.Size = New System.Drawing.Size(53, 13)
+        Me.lbl_nandecc_enabled.TabIndex = 8
+        Me.lbl_nandecc_enabled.Text = "Enabled"
+        '
+        'cb_ECC_BITERR
+        '
+        Me.cb_ECC_BITERR.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_ECC_BITERR.FormattingEnabled = True
+        Me.cb_ECC_BITERR.Items.AddRange(New Object() {"1-bit", "2-bit", "4-bit", "8-bit", "10-bit", "14-bit"})
+        Me.cb_ECC_BITERR.Location = New System.Drawing.Point(366, 36)
+        Me.cb_ECC_BITERR.Name = "cb_ECC_BITERR"
+        Me.cb_ECC_BITERR.Size = New System.Drawing.Size(80, 21)
+        Me.cb_ECC_BITERR.TabIndex = 5
+        '
+        'lbl_nandecc_biterror
+        '
+        Me.lbl_nandecc_biterror.AutoSize = True
+        Me.lbl_nandecc_biterror.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lbl_nandecc_biterror.Location = New System.Drawing.Point(363, 19)
+        Me.lbl_nandecc_biterror.Name = "lbl_nandecc_biterror"
+        Me.lbl_nandecc_biterror.Size = New System.Drawing.Size(52, 13)
+        Me.lbl_nandecc_biterror.TabIndex = 7
+        Me.lbl_nandecc_biterror.Text = "Bit-error"
         '
         'FrmSettings
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(470, 363)
+        Me.ClientSize = New System.Drawing.Size(543, 363)
         Me.Controls.Add(Me.MyTabs)
         Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle
         Me.MaximizeBox = False
@@ -996,7 +1203,7 @@ Partial Class FrmSettings
         Me.GroupBox5.PerformLayout()
         Me.GroupBox4.ResumeLayout(False)
         Me.GroupBox4.PerformLayout()
-        Me.TP_NAND.ResumeLayout(False)
+        Me.TP_NAND1.ResumeLayout(False)
         Me.gb_block_layout.ResumeLayout(False)
         Me.gb_block_layout.PerformLayout()
         CType(Me.nand_box, System.ComponentModel.ISupportInitialize).EndInit()
@@ -1004,6 +1211,9 @@ Partial Class FrmSettings
         Me.gb_block_manager.PerformLayout()
         Me.gb_nand_general.ResumeLayout(False)
         Me.gb_nand_general.PerformLayout()
+        Me.TP_NAND2.ResumeLayout(False)
+        Me.gb_nandecc_title.ResumeLayout(False)
+        Me.gb_nandecc_title.PerformLayout()
         Me.ResumeLayout(False)
 
     End Sub
@@ -1012,7 +1222,7 @@ Partial Class FrmSettings
     Friend WithEvents TP_SPI As TabPage
     Friend WithEvents TP_JTAG As TabPage
     Friend WithEvents TP_I2C As TabPage
-    Friend WithEvents TP_NAND As TabPage
+    Friend WithEvents TP_NAND1 As TabPage
     Friend WithEvents Label1 As Label
     Friend WithEvents cb_spi_clock As ComboBox
     Friend WithEvents GroupBox1 As GroupBox
@@ -1088,4 +1298,21 @@ Partial Class FrmSettings
     Friend WithEvents cb_badmarker_6th_page2 As CheckBox
     Friend WithEvents cb_badmarker_6th_page1 As CheckBox
     Friend WithEvents lbl_6th_byte As Label
+    Friend WithEvents TP_NAND2 As TabPage
+    Friend WithEvents cb_ECC_ReadEnable As CheckBox
+    Friend WithEvents gb_nandecc_title As GroupBox
+    Friend WithEvents lbl_nandecc_algorithm As Label
+    Friend WithEvents lbl_nandecc_biterror As Label
+    Friend WithEvents cb_ECC_WriteEnable As CheckBox
+    Friend WithEvents cb_ECC_BITERR As ComboBox
+    Friend WithEvents rb_ECC_BHC As RadioButton
+    Friend WithEvents rb_ECC_ReedSolomon As RadioButton
+    Friend WithEvents rb_ECC_Hamming As RadioButton
+    Friend WithEvents lbl_nandecc_enabled As Label
+    Friend WithEvents cb_ecc_loc As ComboBox
+    Friend WithEvents lbl_nandecc_location As Label
+    Friend WithEvents lbl_nandecc_changes As Label
+    Friend WithEvents cb_rs_reverse_data As CheckBox
+    Friend WithEvents cb_sym_width As ComboBox
+    Friend WithEvents Label2 As Label
 End Class

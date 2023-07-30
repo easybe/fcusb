@@ -118,1091 +118,1091 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="AUTHORS" xml:space="preserve">
-    <value>Please leave your email address in the comment</value>
+    <value>Пожалуйста, оставьте ваш е-мейл в комментарии</value>
   </data>
   <data name="board_fw_version" xml:space="preserve">
-    <value>Board firmware version</value>
+    <value>Версия прошивки платы</value>
   </data>
   <data name="bootloader_mode" xml:space="preserve">
-    <value>Bootloader mode</value>
+    <value>Режим загрузчика</value>
   </data>
   <data name="connected_bl_mode" xml:space="preserve">
-    <value>Connected to FlashcatUSB in bootloader mode</value>
+    <value>Подключен к FlashcatUSB в режиме загрузчика</value>
   </data>
   <data name="connected_fw_ver" xml:space="preserve">
-    <value>Connected to {0}, firmware version: {1}</value>
+    <value>Подключен к {0}, версия прошивки: {1}</value>
   </data>
   <data name="console_complete" xml:space="preserve">
-    <value>Application completed</value>
+    <value>Приложение завершено</value>
     <comment>Shown after the console mode has completed</comment>
   </data>
   <data name="mem_erasing_device" xml:space="preserve">
-    <value>Erasing Flash memory device... (this may take up to 2 minutes)</value>
+    <value>Очищается устройство Flash памяти...(процесс может занять до 2х минут)</value>
   </data>
   <data name="console_exescript_req" xml:space="preserve">
-    <value>Operation ExecuteScript requires option -FILE to specify which script to run</value>
+    <value>Для операции ExecuteScript нужна опция -FILE, указывающая на скрипт который необходимо выполнить</value>
   </data>
   <data name="console_i2c_params" xml:space="preserve">
-    <value>I2C parameters: slave-address 0x{0}, offset: 0x{1}, length: {2} bytes</value>
+    <value>Параметры I2C: slave-адрес 0x{0}, оффсет: 0x{1}, длинна: {2} байт</value>
   </data>
   <data name="console_i2c_reading" xml:space="preserve">
-    <value>Reading data from I2C Flash device: {0} ({1} bytes)</value>
+    <value>Считывание данных с I2C Flash устройства: {0} ({1} байт)</value>
   </data>
   <data name="console_i2c_saved" xml:space="preserve">
-    <value>Saved I2C data to: {0}</value>
+    <value>Данные с I2C сохранены на: {0}</value>
   </data>
   <data name="console_i2c_write_error" xml:space="preserve">
-    <value>Error: unable to write to I2C EEPROM device</value>
+    <value>Ошибка: сбой записи на I2C EEPROM устройство</value>
   </data>
   <data name="console_i2c_write_success" xml:space="preserve">
-    <value>I2C EEPROM write was successful</value>
+    <value>Запись на I2C EEPROM завершена успешно</value>
   </data>
   <data name="console_i2c_writing" xml:space="preserve">
-    <value>Writing data to I2C Flash device: {0} ({1} bytes)</value>
+    <value>Запись данных на I2C Flash устройство:  {0} ({1} байт)</value>
   </data>
   <data name="console_logappend" xml:space="preserve">
-    <value>Append the console text to an existing file</value>
+    <value>Прикрепить текст консоли к существующему файлу</value>
   </data>
   <data name="console_mode_not_specified" xml:space="preserve">
-    <value>MODE not specified (i.e. -SPI or -I2C)</value>
+    <value>Режим не определён (-SPI или I2C)</value>
   </data>
   <data name="console_no_fcusb" xml:space="preserve">
-    <value>No FlashcatUSB devices connected</value>
+    <value>FlashcatUSB устройство не подключено</value>
   </data>
   <data name="console_no_mem_devices" xml:space="preserve">
-    <value>Unable to perform any actions because there are no detected memory devices</value>
+    <value>Невозможно выполнить операции, так как не подключено ни одно устройство памяти</value>
   </data>
   <data name="console_operation_not_specified" xml:space="preserve">
-    <value>OPERATION not specified (i.e. -READ or -WRITE)</value>
+    <value>Операция не определена (- READ или -WRITE)</value>
   </data>
   <data name="console_opt_addr" xml:space="preserve">
-    <value>Specifies the I2C slave address (i.e. 0xA0)</value>
+    <value>Определяет I2C slave-адрес (например 0хА0)</value>
   </data>
   <data name="console_opt_eeprom" xml:space="preserve">
-    <value>Specifies a SPI/I2C EEPROM (i.e. M95080 or 24XX64)</value>
+    <value>Определяет SPI/I2C EEPROM (например M95080 или 24XX64)</value>
   </data>
   <data name="console_opt_erase" xml:space="preserve">
-    <value>Perform a whole memory erase prior to writing data</value>
+    <value>Произвести полную очистку данных до записи</value>
   </data>
   <data name="console_opt_exe" xml:space="preserve">
-    <value>Allows you to execute a FlashcatUSB script file (*.fcs)</value>
+    <value>Позволяет выполнить FlashcatUSB скрипт (*.fcs)</value>
   </data>
   <data name="console_opt_exit" xml:space="preserve">
-    <value>Automatically close window when completed</value>
+    <value>Автоматически закрыть окно по заврешении</value>
   </data>
   <data name="console_opt_file" xml:space="preserve">
-    <value>Specifies the file to use for read/write/execute</value>
+    <value>Определяет файл используемый для операций чтения/записи/исполнения</value>
   </data>
   <data name="console_opt_help" xml:space="preserve">
-    <value>Shows this dialog</value>
+    <value>Показывает этот диалог</value>
     <comment>text seen in the console help menu</comment>
   </data>
   <data name="console_opt_length" xml:space="preserve">
-    <value>Specifies the number of bytes to read/write</value>
+    <value>Определяет количество байт для чтения/записи</value>
   </data>
   <data name="console_opt_list" xml:space="preserve">
-    <value>Displays the USB paths for all conneted FlashcatUSB devices</value>
+    <value>Показывает пути USB для всех подключённых устройств FlashcatUSB</value>
   </data>
   <data name="console_opt_log" xml:space="preserve">
-    <value>Save the output from the console to a file</value>
+    <value>Сохранить вывод консоли в файл</value>
   </data>
   <data name="console_opt_offset" xml:space="preserve">
-    <value>Specifies the offset to write the file to flash</value>
+    <value>Указывает оффсет для записи файла на flash-устройство</value>
   </data>
   <data name="console_opt_path" xml:space="preserve">
-    <value>Select which FlashcatUSB to use (use quotes around path)</value>
+    <value>Выбрать активное устройство FlashcatUSB (путь к устройству должен быть в кавычках)</value>
   </data>
   <data name="console_opt_read" xml:space="preserve">
-    <value>Will perform a flash memory read operation</value>
+    <value>Выполняет операцию чтения из flash памяти</value>
   </data>
   <data name="console_opt_verify" xml:space="preserve">
-    <value>Turns off data verification for flash write operations</value>
+    <value>Отключает проверку данных для операций записи на flash</value>
   </data>
   <data name="console_opt_write" xml:space="preserve">
-    <value>Will perform a flash memory write operation</value>
+    <value>Выполняет операцию записи в flash память</value>
   </data>
   <data name="console_progress" xml:space="preserve">
-    <value>[{0}% complete]</value>
+    <value>[{0}% завершено]</value>
     <comment>Progress bar for the console window</comment>
   </data>
   <data name="console_readmem_req" xml:space="preserve">
-    <value>Operation ReadMemory requires option -FILE to specify where to save to</value>
+    <value>Для операции ReadMemory нужна опция -FILE, указывающая файл для записи</value>
   </data>
   <data name="console_read_err_nodata" xml:space="preserve">
-    <value>Error: Read was not successful because there is no data to read</value>
+    <value>Ошибка: Операция чтения не выполнена, т.к. отсутствуют данные для чтения</value>
   </data>
   <data name="console_usb_list" xml:space="preserve">
-    <value>Listing the USB root paths for connected FlashcatUSB devices</value>
+    <value>Выводит дерево путей USB устройств для всех подключённых FlashcatUSB</value>
   </data>
   <data name="console_writemem_req" xml:space="preserve">
-    <value>Operation WriteMemory requires option -FILE to specify where to save to</value>
+    <value>Для операции WriteMemory нужна опция -FILE, указывающая файл для cохранения</value>
   </data>
   <data name="console_write_err_nodata" xml:space="preserve">
-    <value>Error: Write was not successful because there is no data to write</value>
+    <value>Ошибка: Операция записи не выполнена, т.к. отсутствуют данные для записи</value>
   </data>
   <data name="detecting_device" xml:space="preserve">
-    <value>Detecting connected Flash device...</value>
+    <value>Обнаруживаем подключённые Flash устройства…</value>
   </data>
   <data name="device_mode" xml:space="preserve">
-    <value>Device mode</value>
+    <value>Режим устройства</value>
   </data>
   <data name="device_mode_i2c" xml:space="preserve">
-    <value>Device mode set to I2C EEPROM, configure I2C settings then click 'Detect'</value>
+    <value>Выбран режим устройства I2C EEPROM, установите настройки I2C и нажмите "Обнаружить"</value>
   </data>
   <data name="disconnected_from_device" xml:space="preserve">
-    <value>Disconnected from {0} device</value>
+    <value>Устройство {0} отключено</value>
   </data>
   <data name="error_file_not_found" xml:space="preserve">
-    <value>Error, file not found: {0}</value>
+    <value>Ошибка, файл не найден: {0}</value>
   </data>
   <data name="err_file_not_found" xml:space="preserve">
-    <value>Error: file not found</value>
+    <value>Ошибка: файл не найден</value>
   </data>
   <data name="err_unable_to_connect" xml:space="preserve">
-    <value>Error: Unable to connect to FlashcatUSB</value>
+    <value>Ошибка: Невозможно подключиться к FlashcatUSB</value>
   </data>
   <data name="ext_4mbit_device" xml:space="preserve">
-    <value>DIP32/PLCC32 4MBIT device detected, enabling A18 on Pin 1 (reset)</value>
+    <value>Обнаружено устройство DIP32/PLCC32 4Мбит, включаем A18 на Pin 1 (reset)</value>
   </data>
   <data name="ext_board_initalized" xml:space="preserve">
-    <value>EXT I/O board successfully initialized</value>
+    <value>Плата EXT I/O успешно инициализирована</value>
   </data>
   <data name="ext_board_not_detected" xml:space="preserve">
-    <value>Unable to connect to the Extension I/O board</value>
+    <value>Невозможно подключиться к плате EXT I/O</value>
   </data>
   <data name="ext_connected_chipid" xml:space="preserve">
-    <value>Connected to Flash (CHIP ID: 0x{0})</value>
+    <value>Подключено устройство Flash (CHIP ID: 0x{0})</value>
   </data>
   <data name="ext_detecting_device" xml:space="preserve">
-    <value>Attemping to automatically detect Flash device</value>
+    <value>Попытка автоматического определения Flash устройства</value>
   </data>
   <data name="ext_device_detected" xml:space="preserve">
-    <value>Successfully detected device in {0} mode</value>
+    <value>Успешно обнаружено устройство в режиме {0}</value>
   </data>
   <data name="ext_device_interface" xml:space="preserve">
-    <value>Device interface</value>
+    <value>Интерфейс устройства</value>
   </data>
   <data name="ext_init" xml:space="preserve">
-    <value>Initializing EXT I/O hardware board</value>
+    <value>Инициализация EXT I/O платы</value>
   </data>
   <data name="ext_large_flash_detected" xml:space="preserve">
-    <value>Notice: {0} device detected, Extension Port can only access up to Mb512</value>
+    <value>Внимание: Обнаружено устройство {0}, Порт Расширения может использовать только до 512Мбит</value>
   </data>
   <data name="ext_not_detected" xml:space="preserve">
-    <value>Flash device not detected in Extension I/O mode</value>
+    <value>Flash устройство не обнаружено в режиме Extension I/O</value>
   </data>
   <data name="ext_page_size" xml:space="preserve">
-    <value>Flash page size: {0} bytes ({1} bytes extended)</value>
+    <value>Размер Flash страницы: {0} байт ({1} байт расширенных)</value>
   </data>
   <data name="ext_prog_mode" xml:space="preserve">
-    <value>Programming mode: EXT I/O (Parallel)</value>
+    <value>Режим программирования: EXT I/O (параллельный)</value>
   </data>
   <data name="ext_unable_to_connect_to_board" xml:space="preserve">
-    <value>Error: unable to connect to EXT I/O board over SPI</value>
+    <value>Ошибка: невозможно подключиться к плате EXT I/O в режиме SPI</value>
   </data>
   <data name="ext_write_mode_supported" xml:space="preserve">
-    <value>Write mode supported</value>
+    <value>Режим записи поддерживается</value>
   </data>
   <data name="flash_detected" xml:space="preserve">
-    <value>Flash detected: {0} ({1} bytes)</value>
+    <value>Обнаружено Flash устройство: {0} ({1} байт)</value>
   </data>
   <data name="fw_feat_supported" xml:space="preserve">
-    <value>Firmware features supported</value>
+    <value>Поддерживаются функции прошивки</value>
   </data>
   <data name="fw_out_of_date" xml:space="preserve">
-    <value>FlashcatUSB firmware is out of date, please update</value>
+    <value>Прошивка FlashcatUSB устарела, пожалуйста обновите</value>
   </data>
   <data name="fw_update_available" xml:space="preserve">
-    <value>Firmware update available, performing automatic update</value>
+    <value>Доступно обновление прошивки, выполняется автоматическое обновление</value>
   </data>
   <data name="fw_update_error" xml:space="preserve">
-    <value>Error: failed to start firmware update</value>
+    <value>Ошибка: сбой обновления прошивки</value>
   </data>
   <data name="fw_update_performing" xml:space="preserve">
-    <value>Performing firmware unit update</value>
+    <value>Выполняется обновление прошивки</value>
   </data>
   <data name="fw_update_programming" xml:space="preserve">
-    <value>Programming new firmware into FlashcatUSB</value>
+    <value>Программируется новая прошивка в FlashcatUSB</value>
   </data>
   <data name="fw_update_starting" xml:space="preserve">
-    <value>Firmware update starting (sending {0} bytes)</value>
+    <value>Начало обновления прошивки (отправляется {0} байт)</value>
   </data>
   <data name="i2c_addr_byte" xml:space="preserve">
-    <value>Address byte: 0x{0}</value>
+    <value>Байты адреса: 0x{0}</value>
     <comment>I2C EEPROM ADDRESS</comment>
   </data>
   <data name="i2c_attempt_detect" xml:space="preserve">
-    <value>Attempting to detect I2C EEPROM device</value>
+    <value>Попытка обнаружения I2C EEPROM устройства</value>
   </data>
   <data name="i2c_connected" xml:space="preserve">
-    <value>Successfully connected to I2C EEPROM</value>
+    <value>Успешно обнаружено I2C EEPROM устройство</value>
   </data>
   <data name="i2c_detected" xml:space="preserve">
-    <value>I2C EEPROM detected and ready for operation</value>
+    <value>I2C EEPROM устройство обнаружено и готово к работе</value>
   </data>
   <data name="i2c_eeprom_size" xml:space="preserve">
-    <value>I2C EEPROM device size: {0} bytes</value>
+    <value>Размер I2C EEPROM устройства: {0} байт</value>
   </data>
   <data name="i2c_not_detected" xml:space="preserve">
-    <value>I2C EEPROM not detected</value>
+    <value>I2C EEPROM устройство не обнаружено</value>
   </data>
   <data name="i2c_protocol_speed" xml:space="preserve">
-    <value>I2C protocol speed</value>
+    <value>Скорость протокола I2C</value>
   </data>
   <data name="i2c_unable_to_connect" xml:space="preserve">
-    <value>Unable to connect to I2C EEPROM</value>
+    <value>Невозможно присоединиться к I2C EEPROM</value>
   </data>
   <data name="jtag_cfi_attempt_detect" xml:space="preserve">
-    <value>Attempting to detect CFI flash at address 0x{0}</value>
+    <value>Попытка обнаружения CFI flash по адресу 0x{0}</value>
   </data>
   <data name="jtag_cfi_no_detect" xml:space="preserve">
-    <value>Error: unable to detect CFI flash device over JTAG</value>
+    <value>Ошибка: невозможно обнаружить CFI flash устройство через JTAG</value>
   </data>
   <data name="jtag_dma" xml:space="preserve">
-    <value>Target device supports DMA mode</value>
+    <value>Целевое устройство поддерживает режим DMA</value>
   </data>
   <data name="jtag_dma_not_supported" xml:space="preserve">
-    <value>Error: MCU does not support DMA register access</value>
+    <value>Ошибка: микроконтроллер не поддерживает доступ к регистрам через DMA</value>
   </data>
   <data name="jtag_failed_to_connect" xml:space="preserve">
-    <value>Failed to connect to target board using JTAG</value>
+    <value>Сбой подключения к целевой плате через JTAG</value>
   </data>
   <data name="jtag_no_dma" xml:space="preserve">
-    <value>Target device does not support DMA mode</value>
+    <value>Целевое устройство не поддерживает режим DMA</value>
   </data>
   <data name="jtag_no_idcode" xml:space="preserve">
-    <value>Device did not return IDCODE</value>
+    <value>Устройство не вернуло IDCODE</value>
   </data>
   <data name="jtag_ready" xml:space="preserve">
-    <value>{0} ready for operation in JTAG mode</value>
+    <value>{0} готово к использованию в режиме JTAG</value>
   </data>
   <data name="jtag_setup" xml:space="preserve">
-    <value>JTAG engine setup successfully</value>
+    <value>JTAG окружение успешно запущено</value>
   </data>
   <data name="jtag_spi_api_not_loaded" xml:space="preserve">
-    <value>Software does not support MCU for SPI operation</value>
+    <value>Программа не поддерживает режим SPI для микроконтроллера</value>
   </data>
   <data name="jtag_spi_attempt_detect" xml:space="preserve">
-    <value>Attempting to detect SPI flash connected to MCU via JTAG</value>
+    <value>Попытка обнаружить SPI flash подключённые к микроконтроллеру через JTAG</value>
   </data>
   <data name="jtag_spi_no_detect" xml:space="preserve">
-    <value>Error: unable to detect SPI flash device over JTAG</value>
+    <value>Ошибка: невозможно обнаружить SPI flash устройство через JTAG</value>
   </data>
   <data name="jtag_unknown_device" xml:space="preserve">
-    <value>Unknown JTAG device</value>
+    <value>Неизвестное JTAG устройство</value>
   </data>
   <data name="mem_ask_continue" xml:space="preserve">
-    <value>Continue write operation?</value>
+    <value>Продолжить запись?</value>
   </data>
   <data name="mem_bad_nand_block" xml:space="preserve">
-    <value>BAD NAND BLOCK at page index: 0x{0} (block index: {1})</value>
+    <value>BAD NAND BLOCK по адресу: 0x{0} (индекс блока: {1})</value>
   </data>
   <data name="mem_erase_device" xml:space="preserve">
-    <value>Performing a full chip erase</value>
+    <value>Выполняется полная очистка чипа</value>
   </data>
   <data name="mem_erase_device_fail" xml:space="preserve">
-    <value>Error: erasing device failed</value>
+    <value>Ошибка: сбой очистки устройства</value>
   </data>
   <data name="mem_erase_device_success" xml:space="preserve">
-    <value>Memory device erased successfully</value>
+    <value>Устройство памяти успешно очищено</value>
   </data>
   <data name="mem_erasing_sector" xml:space="preserve">
-    <value>Erasing memory sector</value>
+    <value>Очищается сектор памяти</value>
   </data>
   <data name="mem_flash_supported" xml:space="preserve">
-    <value>Flash device successfully detected and ready for operation</value>
+    <value>Flash устройство успешно обнаружено и готово к работе</value>
   </data>
   <data name="mem_i2c_error" xml:space="preserve">
-    <value>Error communicating with I2C device</value>
+    <value>Ошибка соединения с I2C устройством</value>
   </data>
   <data name="mem_not_supported" xml:space="preserve">
-    <value>Flash memory detected but not found in Flash library</value>
+    <value>Flash устройство обнаружено, но не найдено в библиотеке устройств</value>
   </data>
   <data name="mem_reading_memory" xml:space="preserve">
-    <value>Reading memory of {0} bytes</value>
+    <value>Считывается {0} байт памяти</value>
   </data>
   <data name="mem_verify_data" xml:space="preserve">
-    <value>Verifying written data</value>
+    <value>Проверка записанных данных</value>
   </data>
   <data name="mem_verify_failed" xml:space="preserve">
-    <value>Data verification failed!</value>
+    <value>Ошибка проверки данных!</value>
   </data>
   <data name="mem_verify_failed_at" xml:space="preserve">
-    <value>Data verification failed at 0x{0}</value>
+    <value>Ошибка проверки данных по адресу 0x{0}</value>
   </data>
   <data name="mem_verify_failed_title" xml:space="preserve">
-    <value>Error verification failed</value>
+    <value>Проверка на ошибки завершилась неуспешно</value>
   </data>
   <data name="mem_verify_mismatches" xml:space="preserve">
-    <value>Address {0}: wrote {1} and read {2} ({3} mismatches)</value>
+    <value>Адрес {0}: записано {1} а считано {2} ({3} несовпадения)</value>
   </data>
   <data name="mem_verify_okay" xml:space="preserve">
-    <value>Data verification was successful</value>
+    <value>Проверка данных выполнена успешно</value>
   </data>
   <data name="mem_write_not_successful" xml:space="preserve">
-    <value>Error, write operation was not successful</value>
+    <value>Ошибка, операция записи завершилась неуспешно</value>
   </data>
   <data name="mem_write_successful" xml:space="preserve">
-    <value>Write operation was successful</value>
+    <value>Операция записи выполнена успешно</value>
   </data>
   <data name="mem_writing_memory" xml:space="preserve">
-    <value>Writing memory with {0} bytes</value>
+    <value>Запись {0} байт в память</value>
   </data>
   <data name="nand_block_manager_disabled" xml:space="preserve">
-    <value>NAND block manager disabled</value>
+    <value>Менеджер блоков NAND отключён</value>
   </data>
   <data name="nand_erase_failed" xml:space="preserve">
-    <value>Error while erasing NAND flash device</value>
+    <value>Сбой очистки NAND flash устройства</value>
   </data>
   <data name="nand_erase_successful" xml:space="preserve">
-    <value>Successfully erased NAND Flash device</value>
+    <value>Очистка NAND flash выполнена успешно</value>
   </data>
   <data name="nand_mem_device_detected" xml:space="preserve">
-    <value>NAND memory device detected, loading valid memory map</value>
+    <value>Обнаружено устройство NAND, загружается разметка памяти</value>
   </data>
   <data name="nand_mem_map_complete" xml:space="preserve">
-    <value>NAND memory map complete: {0} pages available for access</value>
+    <value>Разметка NAND памяти завершена: {0} страниц доступно</value>
   </data>
   <data name="nand_mem_map_loading" xml:space="preserve">
-    <value>Loading NAND memory map for valid memory</value>
+    <value>Загрузка разметки NAND для исправной памяти</value>
   </data>
   <data name="no_flash_detected" xml:space="preserve">
-    <value>No Flash Detected</value>
+    <value>Flash не обнаружена</value>
   </data>
   <data name="spinand_connected" xml:space="preserve">
-    <value>Connected to SPI NAND Flash (RDID:{0})</value>
+    <value>Подключено устройство SPI NAND Flash (RDID:{0})</value>
   </data>
   <data name="spinand_flash_size" xml:space="preserve">
-    <value>Flash detected: {0} ({1} bytes)</value>
+    <value>Flash обнаружена: {0} ({1} байт)</value>
   </data>
   <data name="spinand_opened_device" xml:space="preserve">
-    <value>Successfully opened device in SPI NAND mode</value>
+    <value>Устройств успешно открыто в режиме SPI NAND</value>
   </data>
   <data name="spinand_page_size" xml:space="preserve">
-    <value>Flash page size: {0} bytes ({1} bytes extended)</value>
+    <value>Размер Flash страницы: {0} байт ({1} байт расширенных)</value>
   </data>
   <data name="spi_attempting_detect" xml:space="preserve">
-    <value>Attempting to detect SPI device (auto-detect mode)</value>
+    <value>Попытка обнаружить SPI устройство (режим авто-определения)</value>
   </data>
   <data name="spi_connected_to_flash_spi" xml:space="preserve">
-    <value>Connected to SPI Flash (RDID:{0} REMS:{1})</value>
+    <value>Подключено устройство SPI Flash (RDID:{0} REMS:{1})</value>
   </data>
   <data name="spi_connected_to_flash_sqi" xml:space="preserve">
-    <value>Connected to SQI Flash (RDID:{0})</value>
+    <value>Подключено устройство SQI Flash (RDID:{0})</value>
   </data>
   <data name="spi_detected_ls_spi" xml:space="preserve">
-    <value>Detected SPI Flash on low-speed SPI port</value>
+    <value>Обнаружено устройство SPI Flash на медленном SPI порту</value>
   </data>
   <data name="spi_detected_spi" xml:space="preserve">
-    <value>Detected SPI Flash on high-speed SPI port</value>
+    <value>Обнаружено устройство SPI Flash на быстром SPI порту</value>
   </data>
   <data name="spi_detected_sqi" xml:space="preserve">
-    <value>Detected SPI Flash on SQI port</value>
+    <value>Обнаружено устройство SPI Flash на SQI порту</value>
   </data>
   <data name="spi_device_not_found_sqi" xml:space="preserve">
-    <value>Device opened in SQI mode but not supported in Flash library</value>
+    <value>Устройство запущено в SQI режиме, но не поддерживается библиотекой Flash устройств</value>
   </data>
   <data name="spi_device_opened" xml:space="preserve">
-    <value>Successfully opened device in SPI mode</value>
+    <value>Устройство успешно запущено в SPI режиме</value>
   </data>
   <data name="spi_eeprom_cfg" xml:space="preserve">
-    <value>Configured to use SPI EEPROM device</value>
+    <value>Устройство SPI EEPROM настроено для использования</value>
   </data>
   <data name="spi_erase_complete" xml:space="preserve">
-    <value>Flash erase complete in {0} seconds</value>
+    <value>Очистка Flash выполнена за {0} секунд</value>
   </data>
   <data name="spi_erasing_die" xml:space="preserve">
-    <value>Erasing flash die index: {0} ({1} bytes)</value>
+    <value>Очистка индекса Flash чипа: {0} ({1} байт)</value>
   </data>
   <data name="spi_erasing_flash_device" xml:space="preserve">
-    <value>Erasing entire flash device, total size: {0} bytes (this may take a moment)</value>
+    <value>Очистка всего Flash устройства, общий размер: {0} байт (это займёт некоторое время)</value>
   </data>
   <data name="spi_error_reading" xml:space="preserve">
-    <value>SPI: Error reading data from USB port</value>
+    <value>SPI: ошибка чтения данных с USB порта</value>
   </data>
   <data name="spi_error_writing" xml:space="preserve">
-    <value>SPI: Error writing data to USB port</value>
+    <value>SPI: ошибка записи данных на USB порт</value>
   </data>
   <data name="spi_flash_not_detected" xml:space="preserve">
-    <value>Unable to detect compatible SPI device (Port {0})</value>
+    <value>Невозможно обнаружить совместимое SPI устройство (Порт {0})</value>
   </data>
   <data name="spi_flash_page_size" xml:space="preserve">
-    <value>Page erase size: {0} bytes</value>
+    <value>Размер стираемой страницы: {0} байт</value>
   </data>
   <data name="spi_mode_sqi" xml:space="preserve">
-    <value>Programming mode: SQI (SPI-QUAD)</value>
+    <value>Режим программирования: SQI (SPI-QUAD)</value>
   </data>
   <data name="spi_nand_attempt_detect" xml:space="preserve">
-    <value>Attempting to detect SPI NAND device</value>
+    <value>Попытка обнаружить SPI NAND устройство</value>
   </data>
   <data name="spi_nand_detected" xml:space="preserve">
-    <value>Successfully detected SPI NAND Flash device</value>
+    <value>Успешно обнаружено  SPI NAND Flash устройство</value>
   </data>
   <data name="spi_nand_unable_to_detect" xml:space="preserve">
-    <value>Unable to detect SPI NAND Flash device</value>
+    <value>Невозможно обнаружить  SPI NAND Flash устройство</value>
   </data>
   <data name="spi_not_detected" xml:space="preserve">
-    <value>Flash memory not detected on SPI NOR mode</value>
+    <value>Flash память не обнаружена в режиме SPI NOR</value>
   </data>
   <data name="spi_set_clock" xml:space="preserve">
-    <value>Setting SPI clock to: {0}</value>
+    <value>Устанавливаем частоту SPI: {0}</value>
   </data>
   <data name="spi_successfully_opened_sqi" xml:space="preserve">
-    <value>Successfully opened device in SQI mode</value>
+    <value>Устройство успешно запущено в SQI режиме</value>
   </data>
   <data name="spi_unable_detect" xml:space="preserve">
-    <value>Unable to detect to SPI NOR Flash device</value>
+    <value>Невозможно обнаружить  SPI NOR Flash устройство</value>
   </data>
   <data name="successfully_connected" xml:space="preserve">
-    <value>Successfully connected to FlashcatUSB over USB</value>
+    <value>FlashcatUSB устройство успешно подключено через USB</value>
   </data>
   <data name="sw_requires_fw" xml:space="preserve">
-    <value>Software requires firmware version {0} or newer</value>
+    <value>Программа требует версию прошивки {0} или выше</value>
   </data>
   <data name="unknown_device_email" xml:space="preserve">
-    <value>For device support email contact@embeddedcomputers.net with the CHIP ID</value>
+    <value>Для поддержки устройства отправьте сообщение на contact@embeddedcomputers.net с идентификатором чипа</value>
   </data>
   <data name="usb_driver_out_of_date" xml:space="preserve">
-    <value>Your FlashcatUSB driver is out of date, please update your driver to the newest version included in this software release</value>
+    <value>Драйвер FlashcatUSB устарел, пожалуйста обновите его до версии включённой в этот релиз</value>
   </data>
   <data name="usb_firm_out_of_date" xml:space="preserve">
-    <value>Your FlashcatUSB firmware is out of date, please update to the version included in this software release</value>
+    <value>Прошивка FlashcatUSB устарела, пожалуйста обновите её до версии включённой в этот релиз</value>
   </data>
   <data name="voltage_set_to" xml:space="preserve">
-    <value>Voltage set to: {0}</value>
+    <value>Вольтаж установлен на: {0}</value>
   </data>
   <data name="welcome_to_flashcatusb" xml:space="preserve">
-    <value>Welcome to the FlashcatUSB interfacing software</value>
+    <value>Добро пожаловать в программу интерфейса FlashcatUSB</value>
   </data>
   <data name="gui_active_script" xml:space="preserve">
-    <value>Active script</value>
+    <value>Активный скрипт</value>
     <comment>Label for the form</comment>
   </data>
   <data name="gui_compressed_img" xml:space="preserve">
-    <value>Compressed File Archive</value>
+    <value>Сжатый Архивный Файл</value>
   </data>
   <data name="gui_console_text_copied" xml:space="preserve">
-    <value>Console text copied to the clipboard</value>
+    <value>Текст консоли скопирован в буфер обмена</value>
   </data>
   <data name="gui_creating_nand_file" xml:space="preserve">
-    <value>Creating NAND Flash Image file</value>
+    <value>Создаётся файл образа NAND Flash </value>
   </data>
   <data name="gui_database_supported" xml:space="preserve">
-    <value>{0} database loaded: {1} devices supported</value>
+    <value>{0} база загружена: {1} поддерживаемых устройств</value>
     <comment>Displays how many flash devices the database contains</comment>
   </data>
   <data name="gui_fcusb_connected" xml:space="preserve">
-    <value>FlashcatUSB status: Connected</value>
+    <value>Статус FlashcatUSB: Подключено</value>
   </data>
   <data name="gui_fcusb_connected_multi" xml:space="preserve">
-    <value>FlashcatUSB status: Connected ({0} devices)</value>
+    <value>Статус FlashcatUSB: Подключено ({0} устройств)</value>
   </data>
   <data name="gui_fcusb_disconnected" xml:space="preserve">
-    <value>FlashcatUSB status: Disconnected</value>
+    <value>Статус FlashcatUSB: Отключено</value>
   </data>
   <data name="gui_fcusb_new_device" xml:space="preserve">
-    <value>New device connected: {0}</value>
+    <value>Подключено новое устройство: {0}</value>
   </data>
   <data name="gui_gand_erase_all_confirm" xml:space="preserve">
-    <value>This will erase all connected Flash devices, are you sure?</value>
+    <value>Вы уверены что хотите стереть все подключённые Flash устройства?</value>
   </data>
   <data name="gui_gane_write" xml:space="preserve">
-    <value>Write</value>
+    <value>Записать</value>
     <comment>Button to program data into multi devices</comment>
   </data>
   <data name="gui_gang_choose_binary" xml:space="preserve">
-    <value>Choose a binary file for programming</value>
+    <value>Выбирете бинарный файл для программирования</value>
   </data>
   <data name="gui_gang_devices_programmed" xml:space="preserve">
-    <value>All Flash devices programmed</value>
+    <value>Все Flash устройства были запрограммированы</value>
   </data>
   <data name="gui_gang_device_busy" xml:space="preserve">
-    <value>One or more devices are busy</value>
+    <value>Одно устройство (или более) заняты</value>
   </data>
   <data name="gui_gang_erase" xml:space="preserve">
-    <value>Erase</value>
+    <value>Стереть</value>
     <comment>Button to erase memory device</comment>
   </data>
   <data name="gui_gang_erase_complete" xml:space="preserve">
-    <value>All Flash devices erased</value>
+    <value>Все Flash устройства были очищены</value>
   </data>
   <data name="gui_gang_erasing" xml:space="preserve">
-    <value>Erasing all Flash devices</value>
+    <value>Очистка всех Flash устройств</value>
   </data>
   <data name="gui_gang_info" xml:space="preserve">
-    <value>This is the multi-device programmer interface tool</value>
+    <value>Это интерфейс инструмента программирования нескольких устройств</value>
   </data>
   <data name="gui_img_saved_to_disk" xml:space="preserve">
-    <value>Flash image saved to disk: {0}</value>
+    <value>Образ Flash сохранён на диск: {0}</value>
   </data>
   <data name="gui_img_successful" xml:space="preserve">
-    <value>Successfully programmed Flash image into current device</value>
+    <value>Образ Flash успешно записан на текущее устройство</value>
   </data>
   <data name="gui_memory_device" xml:space="preserve">
-    <value>Memory device</value>
+    <value>Устройство памяти</value>
     <comment>The beginning label of each Flash memory device</comment>
   </data>
   <data name="gui_mem_device_status" xml:space="preserve">
-    <value>Device {0}: Not Connected</value>
+    <value>Устройство {0}: Отключено</value>
   </data>
   <data name="gui_mem_size" xml:space="preserve">
-    <value>Flash memory size</value>
+    <value>Размер Flash памяти</value>
   </data>
   <data name="gui_menu_language" xml:space="preserve">
-    <value>Language</value>
+    <value>Язык</value>
     <comment>Name of the Language menu</comment>
   </data>
   <data name="gui_menu_main" xml:space="preserve">
-    <value>Main</value>
+    <value>Главная</value>
     <comment>Name of the Main menu</comment>
   </data>
   <data name="gui_menu_main_detect" xml:space="preserve">
-    <value>Detect (re-initialize)</value>
+    <value>Определить (ре-инициализировать)</value>
     <comment>Detects any connected Flash device</comment>
   </data>
   <data name="gui_menu_main_exit" xml:space="preserve">
-    <value>Exit</value>
+    <value>Выход</value>
     <comment>Closes the application</comment>
   </data>
   <data name="gui_menu_main_refresh" xml:space="preserve">
-    <value>Refresh flash device</value>
+    <value>Обновить flash устройство</value>
     <comment>Updates the hex editor</comment>
   </data>
   <data name="gui_menu_main_repeat" xml:space="preserve">
-    <value>Repeat write operation</value>
+    <value>Повторить запись</value>
     <comment>Allows to repeat the last programming operation</comment>
   </data>
   <data name="gui_menu_mode" xml:space="preserve">
-    <value>Mode</value>
+    <value>Режим</value>
     <comment>Name of the Mode menu</comment>
   </data>
   <data name="gui_menu_mode_bitswap" xml:space="preserve">
-    <value>Bit Swapping</value>
+    <value>Замена битов</value>
   </data>
   <data name="gui_menu_mode_endian" xml:space="preserve">
-    <value>Endian mode</value>
+    <value>Режим Endian</value>
   </data>
   <data name="gui_menu_mode_settings" xml:space="preserve">
-    <value>Protocol settings</value>
+    <value>Настройки протокола</value>
     <comment>The settings form</comment>
   </data>
   <data name="gui_menu_mode_verify" xml:space="preserve">
-    <value>Verify programming</value>
+    <value>Проверка записи</value>
     <comment>Makes the software read and verify after programming data</comment>
   </data>
   <data name="gui_menu_mode_voltage" xml:space="preserve">
-    <value>Voltage ({0})</value>
+    <value>Напряжение({0})</value>
     <comment>Sets the voltage of FCUSB Pro</comment>
   </data>
   <data name="gui_menu_mode_vpp" xml:space="preserve">
-    <value>VPP Setting</value>
+    <value>Настройка VPP</value>
   </data>
   <data name="gui_menu_script" xml:space="preserve">
-    <value>Script</value>
+    <value>Скрипт</value>
     <comment>Name of the Script menu</comment>
   </data>
   <data name="gui_menu_script_load" xml:space="preserve">
-    <value>Load script</value>
+    <value>Загрузить скрипт</value>
     <comment>Loads and runs a script file</comment>
   </data>
   <data name="gui_menu_script_select" xml:space="preserve">
-    <value>Select script</value>
+    <value>Выбрать скрипт</value>
     <comment>Chooses a script file</comment>
   </data>
   <data name="gui_menu_script_unload" xml:space="preserve">
-    <value>Unload script</value>
+    <value>Выгрузить скрипт</value>
     <comment>Removes the script file/tab</comment>
   </data>
   <data name="gui_menu_tools" xml:space="preserve">
-    <value>Tools</value>
+    <value>Инструменты</value>
     <comment>Name of the Tools menu</comment>
   </data>
   <data name="gui_menu_tools_create" xml:space="preserve">
-    <value>Create image</value>
+    <value>Создать образ</value>
     <comment>Reads and creates an image file</comment>
   </data>
   <data name="gui_menu_tools_erase" xml:space="preserve">
-    <value>Erase chip</value>
+    <value>Стереть чип</value>
     <comment>Erase a Flash device</comment>
   </data>
   <data name="gui_menu_tools_mem_map" xml:space="preserve">
-    <value>NAND memory map</value>
+    <value>Разметка NAND памяти</value>
   </data>
   <data name="gui_menu_tools_spi_ecc" xml:space="preserve">
-    <value>SPI NAND internal ECC</value>
+    <value>Встроенный ECC SPI NAND</value>
   </data>
   <data name="gui_menu_tools_vendor" xml:space="preserve">
-    <value>Vendor Features</value>
+    <value>Свойства производителя</value>
   </data>
   <data name="gui_menu_tools_write" xml:space="preserve">
-    <value>Write image</value>
+    <value>Записать образ</value>
     <comment>Programs an image file</comment>
   </data>
   <data name="gui_nand_creating_backup" xml:space="preserve">
-    <value>Error creating backup: read memory returned inconsistance results</value>
+    <value>Ошибка создания резервной копии: чтение из памяти вернуло неопределённый результат</value>
   </data>
   <data name="gui_not_valid_img" xml:space="preserve">
-    <value>Error: file is not a valid Flash image</value>
+    <value>Ошибка: файл не является корректным образом Flash</value>
   </data>
   <data name="gui_open_img" xml:space="preserve">
-    <value>Open Flash image file to program</value>
+    <value>Открыть файл образа для записи</value>
   </data>
   <data name="gui_programming_img" xml:space="preserve">
-    <value>Programming Flash image: {0}</value>
+    <value>Запись образа Flash: {0}</value>
   </data>
   <data name="gui_reading_flash" xml:space="preserve">
-    <value>Reading Flash: {0} of {1} bytes ({2}% complete)</value>
+    <value>Считывание Flash: {0} из {1} байт ({2}% завершено)</value>
   </data>
   <data name="gui_reading_spare_area" xml:space="preserve">
-    <value>Reading NAND spare area: {0} of {1} bytes ({2}% complete)</value>
+    <value>Считывание запасной зоны NAND: {0} из {1} байт ({2}% завершено)</value>
   </data>
   <data name="gui_repeat_beginning" xml:space="preserve">
-    <value>Performing repeat write operation, resetting device</value>
+    <value>Выполняется повторная запись, сбрасываем устройство</value>
   </data>
   <data name="gui_repeat_failed_detect" xml:space="preserve">
-    <value>Error, can not detect Flash device to perform repeat operation</value>
+    <value>Ошибка, невозможно обнаружить Flash устройство для повторной записи</value>
   </data>
   <data name="gui_repeat_failed_reconnect" xml:space="preserve">
-    <value>Error, unable to reconnect to FlashcatUSB</value>
+    <value>Ошибка, невозможно подключиться к FlashcatUSB</value>
   </data>
   <data name="gui_saved_img_to_disk" xml:space="preserve">
-    <value>Saved Flash image to disk: {0}</value>
+    <value>Образ Flash сохранён на диск: {0}</value>
   </data>
   <data name="gui_save_dialog" xml:space="preserve">
-    <value>Choose location to save the console log</value>
+    <value>Выбрать место для сохранения лога консоли</value>
   </data>
   <data name="gui_script_can_not_load" xml:space="preserve">
-    <value>Can not load script, file does not exist</value>
+    <value>Невозможно загрузить скрипт, файл не существует</value>
   </data>
   <data name="gui_script_checking" xml:space="preserve">
-    <value>Checking for a device specific script to automatically load</value>
+    <value>Проверка скрипта устройства для автоматической загрузки</value>
   </data>
   <data name="gui_script_loaded" xml:space="preserve">
-    <value>Loaded script {0} successfully</value>
+    <value>Скрипт {0} успешно загружен</value>
   </data>
   <data name="gui_script_loading" xml:space="preserve">
-    <value>Loading device specific script: {0}</value>
+    <value>Загрузка скрипта устройства: {0}</value>
   </data>
   <data name="gui_script_non_available" xml:space="preserve">
-    <value>No script files available</value>
+    <value>Нет доступных скрипт-файлов</value>
   </data>
   <data name="gui_script_open" xml:space="preserve">
-    <value>Select FlashcatUSB script file to open</value>
+    <value>Выбрать скрипт FlashcatUSB для загрузки</value>
   </data>
   <data name="gui_script_reset" xml:space="preserve">
-    <value>The FlashcatUSB script engine has been reset</value>
+    <value>Обработчик скриптов FlashcatUSB был перезагружен</value>
   </data>
   <data name="gui_select_location" xml:space="preserve">
-    <value>Select location to save Flash image file</value>
+    <value>Выбрать место для сохранения образа Flash</value>
   </data>
   <data name="gui_status_welcome" xml:space="preserve">
-    <value>Welcome to FlashcatUSB (SPI / I2C / JTAG Programing Software)!</value>
+    <value>Добро пожаловать в FlashcatUSB (ПО для программирования SPI / I2C / JTAG)</value>
   </data>
   <data name="gui_tab_console" xml:space="preserve">
-    <value>Console</value>
+    <value>Консоль</value>
     <comment>Name of the console tab</comment>
   </data>
   <data name="gui_tab_multi" xml:space="preserve">
-    <value>Multi-device</value>
+    <value>Мульти-устройство</value>
     <comment>Name of the gang programming tab</comment>
   </data>
   <data name="gui_tab_status" xml:space="preserve">
-    <value>Status</value>
+    <value>Статус</value>
     <comment>Name of the status tab</comment>
   </data>
   <data name="gui_vpp_confirm" xml:space="preserve">
-    <value>Are you sure you want to enable this feature?</value>
+    <value>Вы уверены что хотите включить эту настройку?</value>
     <comment>To enable to the +12V feature</comment>
   </data>
   <data name="gui_vpp_setting" xml:space="preserve">
-    <value>Confirm +12V VPP Setting</value>
+    <value>Подтвердите настройку +12VPP</value>
   </data>
   <data name="gui_vpp_warning" xml:space="preserve">
-    <value>Warning, this setting should only be used with adapters with a +12V switch</value>
+    <value>Вниманиеб эта настройка испрользуется только на адаптерах с переключателем +12V</value>
   </data>
   <data name="gui_writing_flash" xml:space="preserve">
-    <value>Writing Flash: {0} of {1} bytes ({2}% complete)</value>
+    <value>Запись Flash: {0} из {1} байт ({2}% завершено)</value>
   </data>
   <data name="mc_badnand_block" xml:space="preserve">
-    <value>BAD NAND BLOCK AT address: 0x{0} (Mapped to 0x{1})</value>
+    <value>BAD NAND BLOCK по адресу: 0x{0} (переназначен на 0x{1})</value>
   </data>
   <data name="mc_button_alldata" xml:space="preserve">
-    <value>All Data</value>
+    <value>Все данные</value>
     <comment>The NAND memory area selection button (both main and spare areas)</comment>
   </data>
   <data name="mc_button_cancel" xml:space="preserve">
-    <value>Cancel</value>
+    <value>Отмена</value>
   </data>
   <data name="mc_button_close" xml:space="preserve">
-    <value>Close</value>
+    <value>Закрыть</value>
     <comment>The close button on the compare popup window</comment>
   </data>
   <data name="mc_button_compare" xml:space="preserve">
-    <value>Compare memory contents</value>
+    <value>Сравнить содержимое памяти</value>
     <comment>The popup text when your move your cursor over the button</comment>
   </data>
   <data name="mc_button_erase" xml:space="preserve">
-    <value>Erase all memory</value>
+    <value>Стереть всю память</value>
     <comment>The popup text when your move your cursor over the button</comment>
   </data>
   <data name="mc_button_main" xml:space="preserve">
-    <value>Main</value>
+    <value>Главная</value>
     <comment>The NAND memory area selection button (main part)</comment>
   </data>
   <data name="mc_button_ok" xml:space="preserve">
-    <value>OK</value>
+    <value>ОК</value>
   </data>
   <data name="mc_button_read" xml:space="preserve">
-    <value>Read memory to disk</value>
+    <value>Считать память на диск</value>
     <comment>The popup text when your move your cursor over the button</comment>
   </data>
   <data name="mc_button_spare" xml:space="preserve">
-    <value>Spare</value>
+    <value>Запасная</value>
     <comment>The NAND memory area selection button (the spare or OOB)</comment>
   </data>
   <data name="mc_button_write" xml:space="preserve">
-    <value>Write data to memory</value>
+    <value>Запись данных в память</value>
     <comment>The popup text when your move your cursor over the button</comment>
   </data>
   <data name="mc_compare_canceled" xml:space="preserve">
-    <value>Memory compare canceled</value>
+    <value>Сравнение памяти отменено</value>
   </data>
   <data name="mc_compare_complete_match" xml:space="preserve">
-    <value>Memory compare complete: {0}% data match</value>
+    <value>Сравнение памяти отменено: {0}% совпавших данных</value>
   </data>
   <data name="mc_compare_complete_tot" xml:space="preserve">
-    <value>Memory compare complete: {0} total mismatches ({1}% match)</value>
+    <value>Сравнение памяти отменено: {0} несовпадений ({1}% совпадений)</value>
   </data>
   <data name="mc_compare_filename" xml:space="preserve">
-    <value>Filename</value>
+    <value>Имя файла</value>
   </data>
   <data name="mc_compare_flash_addr" xml:space="preserve">
-    <value>Flash address</value>
+    <value>Адрес Flash</value>
   </data>
   <data name="mc_compare_info" xml:space="preserve">
-    <value>Flash address: 0x{0}, size: {1} bytes</value>
+    <value>Адрес Flash: 0x{0}, размер {1} байт</value>
   </data>
   <data name="mc_compare_mismatch" xml:space="preserve">
-    <value>Mismatch count: {0} bytes ({1}% match)</value>
+    <value>Кол-во несовпадений: {0} байт ({1}% совпадений)</value>
   </data>
   <data name="mc_compare_results" xml:space="preserve">
-    <value>Memory Compare Results</value>
+    <value>Результат Сравнения Памяти</value>
   </data>
   <data name="mc_compare_selected" xml:space="preserve">
-    <value>File selected, comparing {0}</value>
+    <value>Файл выбран, сравниваем {0}</value>
   </data>
   <data name="mc_compare_start" xml:space="preserve">
-    <value>Beginning memory compare operation</value>
+    <value>Начать процедуру сравнения памяти</value>
   </data>
   <data name="mc_compare_total_processed" xml:space="preserve">
-    <value>Total bytes processed</value>
+    <value>Всего обработано байт</value>
   </data>
   <data name="mc_erase_command_sent" xml:space="preserve">
-    <value>Sent memory erase command to device: {0}</value>
+    <value>Отправит команду очистки на устройство: {0}</value>
   </data>
   <data name="mc_erase_confirm" xml:space="preserve">
-    <value>Confirm memory erase of {0}</value>
+    <value>Подтвердить очистку {0}</value>
   </data>
   <data name="mc_erase_warning" xml:space="preserve">
-    <value>This action will permanently delete all data</value>
+    <value>Это действие безвозвратно удалит все данные</value>
   </data>
   <data name="mc_io_destination" xml:space="preserve">
-    <value>Target Flash address: 0x{0}, bytes to write: {1} bytes</value>
+    <value>Целевой адрес Flash: 0x{0}, для записи: {1} байт</value>
   </data>
   <data name="mc_io_file_cancel_to" xml:space="preserve">
-    <value>User canceled. No data written to {0}</value>
+    <value>Отменено пользователем. Данные не были записаны на {0}</value>
   </data>
   <data name="mc_io_file_choose" xml:space="preserve">
-    <value>Choose file to write into {0}</value>
+    <value>Выбрать файл для записи на {0}</value>
   </data>
   <data name="mc_io_file_compare" xml:space="preserve">
-    <value>Select file to compare with memory</value>
+    <value>Выбрать файл для сравнения с памятью</value>
   </data>
   <data name="mc_io_file_writing" xml:space="preserve">
-    <value>File chosen, writting into {0}</value>
+    <value>Файл выбран, запись на {0}</value>
   </data>
   <data name="mc_io_open_file" xml:space="preserve">
-    <value>Opened file for writing: {0}, (size: {1} bytes)</value>
+    <value>Файл открыт для записи: {0}, (размер: {1} байт)</value>
   </data>
   <data name="mc_io_save_canceled" xml:space="preserve">
-    <value>User canceled. No data has been saved</value>
+    <value>Отменено пользователем. Данные не были сохранены</value>
   </data>
   <data name="mc_io_save_type" xml:space="preserve">
-    <value>Choose hard drive location and output data format</value>
+    <value>Выбрать место на жёстком диске и формат данных</value>
   </data>
   <data name="mc_mem_read_begin" xml:space="preserve">
-    <value>Beginning memory read from {0}</value>
+    <value>Начало чтения памяти с {0}</value>
   </data>
   <data name="mc_mem_read_canceled" xml:space="preserve">
-    <value>Read operation canceled</value>
+    <value>Операция чтения отменена</value>
   </data>
   <data name="mc_mem_read_done" xml:space="preserve">
-    <value>Read operation complete</value>
+    <value>Операция чтения завершена</value>
   </data>
   <data name="mc_mem_read_from" xml:space="preserve">
-    <value>Select range to read from {0}</value>
+    <value>Выбрать область чтения из {0}</value>
   </data>
   <data name="mc_mem_read_result" xml:space="preserve">
-    <value>Read {0} bytes in {1} seconds, {2}</value>
+    <value>Считано {0} байт за {1} секунд, {2}</value>
   </data>
   <data name="mc_mem_read_start" xml:space="preserve">
-    <value>Performing memory read operation</value>
+    <value>Выполняется чтение из памяти</value>
   </data>
   <data name="mc_mem_start_addr" xml:space="preserve">
-    <value>Start address: {0} ({1}) Length: {2}</value>
+    <value>Начальный адрес: {0} ({1}) Длинна: {2}</value>
   </data>
   <data name="mc_mem_user_cancel" xml:space="preserve">
-    <value>User canceled read operation</value>
+    <value>Операция чтения отменена пользователем</value>
   </data>
   <data name="mc_mem_write_success" xml:space="preserve">
-    <value>{0} successfully saved to disk</value>
+    <value>{0} успешно сохранён на диск</value>
   </data>
   <data name="mc_reading" xml:space="preserve">
-    <value>Reading: {0} of {1}</value>
+    <value>Чтение: {0} из {1}</value>
   </data>
   <data name="mc_rngbox_base" xml:space="preserve">
-    <value>Base address</value>
+    <value>Базовый адрес</value>
     <comment>The flash address (starting point) of the operation</comment>
   </data>
   <data name="mc_rngbox_len" xml:space="preserve">
-    <value>Length</value>
+    <value>Длинна</value>
     <comment>The number of bytes to read/write</comment>
   </data>
   <data name="mc_select_range" xml:space="preserve">
-    <value>Select range to write data to {0}</value>
+    <value>Выбрать область записи в {0}</value>
   </data>
   <data name="mc_wr_oper_complete" xml:space="preserve">
-    <value>Write operation complete, {0} bytes written</value>
+    <value>Операция записи выполнена успешно, записано {0} байт</value>
   </data>
   <data name="mc_wr_oper_failed" xml:space="preserve">
-    <value>Write operation was not successful</value>
+    <value>Операция записи не выполнена</value>
   </data>
   <data name="mc_wr_oper_file_err" xml:space="preserve">
-    <value>Error, file does not exist or does not contain data</value>
+    <value>Ошибка, файл не существует или не содержит данных</value>
   </data>
   <data name="mc_wr_oper_result" xml:space="preserve">
-    <value>{0} bytes written in {1} seconds, {2} Bytes/s</value>
+    <value>{0} байт записано за {1} секунд, {2} Байт/с</value>
   </data>
   <data name="mc_wr_oper_start" xml:space="preserve">
-    <value>Performing memory write operation</value>
+    <value>Выполняется запись в память</value>
   </data>
   <data name="mc_wr_oper_status" xml:space="preserve">
-    <value>Writing file {0} into {1} ({2} bytes to write)</value>
+    <value>Запись файла {0} в {1} ({2} байт для записи)</value>
   </data>
   <data name="mc_wr_user_canceled" xml:space="preserve">
-    <value>User cancelled write operation</value>
+    <value>Операция записи отменена пользователем</value>
   </data>
   <data name="mem_verify_data_at" xml:space="preserve">
-    <value>Verifing written data at {0}</value>
+    <value>Проверка записи данных на {0}</value>
   </data>
   <data name="settings_auto" xml:space="preserve">
-    <value>Use automatic settings</value>
+    <value>Использовать автоматические настройки</value>
     <comment>Use automatic SPI settings</comment>
   </data>
   <data name="settings_blk_disabled" xml:space="preserve">
-    <value>Disabled</value>
+    <value>Отключено</value>
   </data>
   <data name="settings_box_block" xml:space="preserve">
-    <value>Bad block manager</value>
+    <value>Менеджер повреждённых блоков</value>
     <comment>The box for the block manager settings</comment>
   </data>
   <data name="settings_box_general" xml:space="preserve">
-    <value>General</value>
+    <value>Основные</value>
     <comment>The general / common group box</comment>
   </data>
   <data name="settings_box_layout" xml:space="preserve">
-    <value>Main/spare area layout</value>
+    <value>Основная/запасная секция</value>
     <comment>The box to specify how to define the main and spare NAND areas</comment>
   </data>
   <data name="settings_mismatch" xml:space="preserve">
-    <value>On write mismatch, write data to next block</value>
+    <value>При несовпадении записать данные в следующий блок</value>
   </data>
   <data name="settings_preserve_mem" xml:space="preserve">
-    <value>Preserve memory areas</value>
+    <value>Сохранить участки памяти (скопировать в запасную секцию до записи основной)</value>
   </data>
   <data name="settings_read_cmd" xml:space="preserve">
-    <value>Read command</value>
+    <value>Команда чтения</value>
     <comment>SPI command to read data</comment>
   </data>
   <data name="settings_specify" xml:space="preserve">
-    <value>Use these settings</value>
+    <value>Использовать эти настройки</value>
     <comment>Use specific SPI command op codes</comment>
   </data>
   <data name="cfi_flash_base" xml:space="preserve">
-    <value>CFI Flash base address: 0x{0}</value>
+    <value>Базовый адрес CFI Flash: 0x{0}</value>
   </data>
   <data name="cfi_flash_detected" xml:space="preserve">
-    <value>CFI compatible Flash detected at 0x{0}</value>
+    <value>Обнаружено CFI-совместимое устройство по адресу 0x{0}</value>
   </data>
   <data name="cfi_flash_failed" xml:space="preserve">
-    <value>Failed to detect CFI compatible Flash</value>
+    <value>Не удалось обнаружить CFI-совместимое устройство</value>
   </data>
   <data name="cfi_flash_info" xml:space="preserve">
-    <value>CFI Flash description: {0} ({1} bytes)</value>
+    <value>Описание CFI Flash: {0} ({1} байт)</value>
   </data>
   <data name="nand_reading_block" xml:space="preserve">
-    <value>Reading NAND block {0} of {1} ({2}% complete)</value>
+    <value>Считывается NAND блок {0} из {1} ({2}% завершено)</value>
   </data>
   <data name="settings_combined" xml:space="preserve">
-    <value>Combined</value>
+    <value>Комбинированная</value>
     <comment>both the main and spare are combined to create a single area</comment>
   </data>
   <data name="settings_disable_ecc" xml:space="preserve">
-    <value>Disable SPI-NAND ECC generator</value>
+    <value>Отключить SPI-NAND ECC генератор</value>
   </data>
   <data name="settings_nand_readverify" xml:space="preserve">
-    <value>Use Read-Verify on 'Create Image'</value>
+    <value>Использовать чтение с проверкой для команды "Создать образ"</value>
   </data>
   <data name="settings_segmented" xml:space="preserve">
-    <value>Segmented</value>
+    <value>Сегментированная</value>
     <comment>the sections are split up (main, then spare, the main, etc.)</comment>
   </data>
   <data name="settings_seperate" xml:space="preserve">
-    <value>Seperate</value>
+    <value>Раздельная</value>
     <comment>seperage sections of the NAND page(main/spare areas)</comment>
   </data>
   <data name="nand_writing_block" xml:space="preserve">
-    <value>Writing NAND block {0} of {1} ({2}% complete)</value>
+    <value>Записывается NAND блок {0} из {1} ({2}% завершено)</value>
   </data>
   <data name="nand_completed_with_blocks_left" xml:space="preserve">
-    <value>Write image completed with {0} NAND blocks unused</value>
+    <value>Запись образа завершена, {0} блоков не исползьовано</value>
   </data>
   <data name="nand_missing_block" xml:space="preserve">
-    <value>NAND Block missing from image file: {0}</value>
+    <value>NAND блок отсутствует в файле образа: {0}</value>
   </data>
   <data name="settings_blk_1stbyte" xml:space="preserve">
-    <value>1st byte:</value>
+    <value>1й байт:</value>
   </data>
   <data name="settings_blk_1stpage" xml:space="preserve">
-    <value>First spare page</value>
+    <value>Первая страница</value>
   </data>
   <data name="settings_blk_2ndpage" xml:space="preserve">
-    <value>Second spare page</value>
+    <value>Вторая страница</value>
   </data>
   <data name="settings_blk_6thbyte" xml:space="preserve">
-    <value>6th byte:</value>
+    <value>6й байт:</value>
   </data>
   <data name="settings_blk_enabled" xml:space="preserve">
-    <value>Enabled (check for bad block markers)</value>
+    <value>Включено (проверять маркеры повреждённых блоков)</value>
   </data>
   <data name="settings_blk_lastpage" xml:space="preserve">
-    <value>Last spare page</value>
+    <value>Последняя страница</value>
   </data>
   <data name="mem_erase_failed_at" xml:space="preserve">
-    <value>Failed to erase Flash at address: 0x{0} (sector index: {1})</value>
+    <value>Ошибка очистки Flash по адресу: 0х{0} (сектор {1})</value>
   </data>
   <data name="mem_erase_failed_title" xml:space="preserve">
-    <value>Flash erase failed</value>
+    <value>Ошибка очистки Flash</value>
   </data>
   <data name="console_eeprom_not_specified" xml:space="preserve">
-    <value>The EEPROM device you specified was not found</value>
+    <value>Указанное EEPROM устройство не найдено</value>
   </data>
   <data name="console_erase_not_valid" xml:space="preserve">
-    <value>Erase option is only for -WRITE mode</value>
+    <value>Опция очистки только для режима -WRITE</value>
   </data>
   <data name="console_opt_erasechip" xml:space="preserve">
-    <value>Erases the entire memory device</value>
+    <value>Полностью очищает устройство памяти</value>
   </data>
   <data name="console_opt_not_valid" xml:space="preserve">
-    <value>Option not recognized: {0}</value>
+    <value>Неизвестная опция: {0}</value>
   </data>
   <data name="console_value_missing" xml:space="preserve">
-    <value>You must specify a value following -{0}</value>
+    <value>Укажите значение после -{0}</value>
   </data>
   <data name="console_value_numeric_hex" xml:space="preserve">
-    <value>-{0} value must be numeric or hexadecimal</value>
+    <value>-{0} значение должно быть десятичным или шестнадцатиричным</value>
   </data>
   <data name="nandmngr_analyze" xml:space="preserve">
-    <value>Analyze</value>
+    <value>Анализировать</value>
     <comment>Text for the button to check the entire flash for bad blocks</comment>
   </data>
   <data name="nandmngr_analyzed_done" xml:space="preserve">
-    <value>NAND blocks analyzed ({0} bad blocks found)</value>
+    <value>NAND блоки проверены ({0} ошибочных блоков)</value>
   </data>
   <data name="nandmngr_bad_block" xml:space="preserve">
-    <value>Bad block marker</value>
+    <value>Неправильный маркер блока</value>
     <comment>Icon used for invalid block</comment>
   </data>
   <data name="nandmngr_bad_marker" xml:space="preserve">
-    <value>bad marker</value>
+    <value>Неверный маркер</value>
   </data>
   <data name="nandmngr_block_map" xml:space="preserve">
-    <value>NAND Block Map ({0} total blocks; {1} bytes each)</value>
+    <value>Карта блоков NAND (Всего {0} блоков, {1} байт/блок)</value>
   </data>
   <data name="nandmngr_close" xml:space="preserve">
-    <value>Close</value>
+    <value>Закрыть</value>
     <comment>Close the block manager form</comment>
   </data>
   <data name="nandmngr_confim" xml:space="preserve">
-    <value>Confirm operation</value>
+    <value>Подтвердить операцию</value>
   </data>
   <data name="nandmngr_no_error" xml:space="preserve">
-    <value>No error</value>
+    <value>Без ошибок</value>
     <comment>Icon used for valid block</comment>
   </data>
   <data name="nandmngr_selected_page" xml:space="preserve">
-    <value>Selected page: {0} [block: {1}]</value>
+    <value>Выбранная страница: {0} [блок: {1}]</value>
   </data>
   <data name="nandmngr_title" xml:space="preserve">
-    <value>NAND Block Management ({0})</value>
+    <value>Управление блоками NAND</value>
   </data>
   <data name="nandmngr_user_discarded" xml:space="preserve">
-    <value>user discarded</value>
+    <value>Отброшен пользователем</value>
     <comment>The user selected this block to ignore</comment>
   </data>
   <data name="nandmngr_user_marked" xml:space="preserve">
-    <value>User marked</value>
+    <value>Отмечено пользователем</value>
     <comment>Icon used for user marked block to not use</comment>
   </data>
   <data name="nandmngr_valid" xml:space="preserve">
-    <value>valid</value>
+    <value>Верный</value>
     <comment>Indicates the block is valid</comment>
   </data>
   <data name="nandmngr_verifing_block" xml:space="preserve">
-    <value>Verifying block: {0}</value>
+    <value>Проверка блока: {0}</value>
   </data>
   <data name="nandmngr_warning" xml:space="preserve">
-    <value>Warning, this operation will erase and overwrite all blocks, continue?</value>
+    <value>Внимание, эта операция очистит и перезапишет содержимое всех блоков. Продолжить?</value>
   </data>
   <data name="nandmngr_write_error" xml:space="preserve">
-    <value>Write error</value>
+    <value>Ошибка записи</value>
     <comment>Icon used for block that failed write/read</comment>
   </data>
   <data name="nandmngr_write_marker" xml:space="preserve">
-    <value>Write BAD BLOCK markers to spare area</value>
+    <value>Записать метку BAD BLOCK в запасной сегмент</value>
     <comment>Text for checkbox to have the software write data flags</comment>
   </data>
   <data name="mc_mem_converting_format" xml:space="preserve">
-    <value>Converting binary file to {0} file format</value>
+    <value>Конвертация бинарного файла в формат {0}</value>
   </data>
   <data name="mc_mem_incorrect_format" xml:space="preserve">
-    <value>Selected file is not in {0} file format</value>
+    <value>Выбранный файл не в формате {0}</value>
   </data>
   <data name="mc_mem_open_file_write" xml:space="preserve">
-    <value>Opened file for writing: {0} ({1}), total file size: {2} bytes</value>
+    <value>Файл открыт для записи: {0}, ({1}), общий размер файла: {2} байт</value>
   </data>
   <data name="nandecc_algorithm" xml:space="preserve">
-    <value>Algorithm</value>
+    <value>Алгоритм</value>
   </data>
   <data name="nandecc_biterror" xml:space="preserve">
-    <value>Bit-error</value>
+    <value>Бит-ошибки</value>
   </data>
   <data name="nandecc_changes" xml:space="preserve">
-    <value>* Changes take effect on device detect event</value>
+    <value>* Изменения вступят в силу после переподключения устройства</value>
   </data>
   <data name="nandecc_ecclocation" xml:space="preserve">
-    <value>ECC location</value>
+    <value>Местонахождение ECC</value>
   </data>
   <data name="nandecc_enabled" xml:space="preserve">
-    <value>Enabled</value>
+    <value>Включено</value>
   </data>
   <data name="nandecc_read_operation" xml:space="preserve">
-    <value>Read operation (auto-correct)</value>
+    <value>Операция чтения (авто-исправление)</value>
   </data>
   <data name="nandecc_write_operation" xml:space="preserve">
-    <value>Write operation (write ECC)</value>
+    <value>Операция записи (запись ECC)</value>
   </data>
   <data name="nandecc_groupbox" xml:space="preserve">
-    <value>Software ECC Feature</value>
+    <value>Функция программного ECC</value>
   </data>
 </root>

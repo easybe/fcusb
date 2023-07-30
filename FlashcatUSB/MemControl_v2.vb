@@ -1,7 +1,9 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2017 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2018 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB
 'CONTACT EMAIL: contact@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
+
+Imports FlashcatUSB.ECC_LIB
 
 Public Class MemControl_v2
     Private ParentMemDevice As MemoryInterface.MemoryDeviceInstance
@@ -29,9 +31,12 @@ Public Class MemControl_v2
     Public Event GetSectorCount(ByRef count As UInt32)
     Public Event EraseMemory()
     Public Event SuccessfulWrite(ByVal mydev As USB.HostClient.FCUSB_DEVICE, ByVal x As XFER_Operation)
+    Public Event GetEccLastResult(ByRef result As decode_result)
 
     Public Property IN_OPERATION As Boolean = False
     Public Property USER_HIT_CANCEL As Boolean = False
+    Public Property ECC_READ_ENABLED As Boolean = False 'Indicates the read-back is auto correcting 
+
 
     Public ReadingParams As ReadParameters
     Public WritingParams As WriteParameters
@@ -188,6 +193,7 @@ Public Class MemControl_v2
         Me.FlashName = Name
         Me.FlashAvailable = flash_size 'Main area first
         Me.FlashBase = mem_base 'Only used for devices that share the same memory base (i.e JTAG)
+        pb_ecc.Visible = False
         ExtendedAreaVisibility(False) 'Only enable this on device that have more than one internal area to view
         gb_flash.Text = Name
         SetProgress(0)
@@ -254,7 +260,7 @@ Public Class MemControl_v2
             CurrentBase = BaseAddress
             CurrentSize = Size
             CurrentMax = MaxData
-            If InputSelectionForm.ShowDialog() = Windows.Forms.DialogResult.OK Then
+            If InputSelectionForm.ShowDialog() = DialogResult.OK Then
                 BaseAddress = CurrentBase
                 Size = CurrentSize
                 Return True
@@ -302,9 +308,9 @@ Public Class MemControl_v2
 
         Private Sub DynForm_Keydown(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyEventArgs)
             If e.KeyCode = 13 Then 'Enter pressed
-                Dim Btn As Windows.Forms.TextBox = CType(sender, TextBox)
+                Dim Btn As TextBox = CType(sender, TextBox)
                 Dim SendFrm As Form = Btn.FindForm
-                SendFrm.DialogResult = Windows.Forms.DialogResult.OK
+                SendFrm.DialogResult = DialogResult.OK
             End If
         End Sub
         'Always centers the dynamic input form on top of the original form
@@ -315,9 +321,9 @@ Public Class MemControl_v2
         End Sub
         'Handles the dynamic form for a click
         Private Sub Dyn_OkClick(ByVal sender As System.Object, ByVal e As System.EventArgs)
-            Dim Btn As Windows.Forms.Button = CType(sender, Button)
+            Dim Btn As Button = CType(sender, Button)
             Dim SendFrm As Form = Btn.FindForm
-            SendFrm.DialogResult = Windows.Forms.DialogResult.OK
+            SendFrm.DialogResult = DialogResult.OK
         End Sub
 
         Private Sub Dyn_CancelClick(ByVal sender As System.Object, ByVal e As System.EventArgs)
@@ -328,7 +334,7 @@ Public Class MemControl_v2
 
         Private Sub Dyn_MouseDown(ByVal sender As System.Object, ByVal e As System.Windows.Forms.MouseEventArgs)
             MouseDownOnForm = True
-            ClickPoint = New Point(Windows.Forms.Cursor.Position.X, Windows.Forms.Cursor.Position.Y)
+            ClickPoint = New Point(Cursor.Position.X, Cursor.Position.Y)
         End Sub
 
         Private Sub Dyn_MouseUp(ByVal sender As System.Object, ByVal e As System.Windows.Forms.MouseEventArgs)
@@ -337,7 +343,7 @@ Public Class MemControl_v2
 
         Private Sub Dyn_MouseMove(ByVal sender As System.Object, ByVal e As System.Windows.Forms.MouseEventArgs)
             If MouseDownOnForm Then
-                Dim newPoint As New Point(Windows.Forms.Cursor.Position.X, Windows.Forms.Cursor.Position.Y)
+                Dim newPoint As New Point(Cursor.Position.X, Cursor.Position.Y)
                 Dim ThisForm As Form = CType(sender, Form)
                 ThisForm.Top = ThisForm.Top + (newPoint.Y - ClickPoint.Y)
                 ThisForm.Left = ThisForm.Left + (newPoint.X - ClickPoint.X)
@@ -347,8 +353,8 @@ Public Class MemControl_v2
         'Hanldes the move if a label is being dragged
         Private Sub DynLabel_MouseMove(ByVal sender As System.Object, ByVal e As System.Windows.Forms.MouseEventArgs)
             If MouseDownOnForm Then
-                Dim newPoint As New Point(Windows.Forms.Cursor.Position.X, Windows.Forms.Cursor.Position.Y)
-                Dim Btn As Windows.Forms.Label = CType(sender, Label)
+                Dim newPoint As New Point(Cursor.Position.X, Cursor.Position.Y)
+                Dim Btn As Label = CType(sender, Label)
                 Dim Form1 As Form = Btn.FindForm
                 Form1.Top = Form1.Top + (newPoint.Y - ClickPoint.Y)
                 Form1.Left = Form1.Left + (newPoint.X - ClickPoint.X)
@@ -438,6 +444,7 @@ Public Class MemControl_v2
     Private Property EXTAREA_MAIN_PAGE As UInt32 'Number of bytes per page in the main area
     Private Property EXTAREA_EXT_PAGE As UInt32 'Number of bytes per page in the oob area
     Private Property HAS_EXTAREA As Boolean = False 'Indicates we have split memory (main/spare)
+
     'This setups the editor to use a Flash with an extended area (such as spare data)
     Private Sub AddExtendedArea(ByVal page_count As UInt32, ByVal page_size As UInt16, ByVal ext_size As UInt16, ByVal pages_per_block As UInt32)
         If Me.InvokeRequired Then
@@ -461,11 +468,14 @@ Public Class MemControl_v2
             Me.Invoke(d, area)
         Else
             AreaSelected = area
+            pb_ecc.Visible = False
             If Me.HAS_EXTAREA Then
                 Select Case area
                     Case FlashMemory.FlashArea.Main
                         cmd_area.Text = RM.GetString("mc_button_main")
                         Me.FlashAvailable = (Me.EXTAREA_PAGECOUNT * Me.EXTAREA_MAIN_PAGE)
+                        If Me.ECC_READ_ENABLED Then pb_ecc.Visible = True
+                        UpdateEccResultImg()
                     Case FlashMemory.FlashArea.OOB
                         cmd_area.Text = RM.GetString("mc_button_spare")
                         Me.FlashAvailable = (Me.EXTAREA_PAGECOUNT * Me.EXTAREA_EXT_PAGE)
@@ -549,6 +559,18 @@ Public Class MemControl_v2
             Case FlashMemory.FlashArea.OOB
                 SetSelectedArea(FlashMemory.FlashArea.Main)
         End Select
+    End Sub
+
+    Private Sub UpdateEccResultImg()
+        If Me.ECC_READ_ENABLED Then
+            Dim result As decode_result
+            RaiseEvent GetEccLastResult(result)
+            If result = decode_result.NoErrors Then
+                pb_ecc.Image = My.Resources.ecc_valid
+            Else
+                pb_ecc.Image = My.Resources.ecc_blue
+            End If
+        End If
     End Sub
 
 #End Region
@@ -725,6 +747,7 @@ Public Class MemControl_v2
                 data_buffer = m.GetBuffer
                 ReDim Preserve data_buffer(read_count - 1)
             End Using
+            UpdateEccResultImg()
         Finally
             RequestedData = False
         End Try
@@ -743,7 +766,7 @@ Public Class MemControl_v2
             Dim SrecFormat As String = "S-REC Format (*.srec)|*.srec"
             Dim AllFiles As String = "All files (*.*)|*.*"
             SaveMe.Filter = BinFile & "|" & IntelHexFormat & "|" & SrecFormat & "|" & AllFiles
-            If SaveMe.ShowDialog = Windows.Forms.DialogResult.OK Then
+            If SaveMe.ShowDialog = DialogResult.OK Then
                 Dim n As New IO.FileInfo(SaveMe.FileName)
                 If n.Exists Then n.Delete()
                 file = n
@@ -775,7 +798,7 @@ Public Class MemControl_v2
         OpenMe.Title = String.Format(RM.GetString("mc_io_file_choose"), FlashName)
         OpenMe.CheckPathExists = True
         OpenMe.Filter = BinFile & "|" & IntelHexFormat & "|" & SrecFormat & "|" & AllFiles 'Bin Files, Hex Files, SREC, All Files
-        If OpenMe.ShowDialog = Windows.Forms.DialogResult.OK Then
+        If OpenMe.ShowDialog = DialogResult.OK Then
             file = New IO.FileInfo(OpenMe.FileName)
             Select Case OpenMe.FilterIndex
                 Case 1
@@ -805,7 +828,7 @@ Public Class MemControl_v2
         OpenMe.Title = String.Format(RM.GetString("mc_compare_selected"), FlashName) '"File selected, verifying {0}"
         OpenMe.CheckPathExists = True
         OpenMe.Filter = BinFile & "|" & IHexFormat & "|" & AllFiles 'Bin Files, Hex Files, All Files
-        If OpenMe.ShowDialog = Windows.Forms.DialogResult.OK Then
+        If OpenMe.ShowDialog = DialogResult.OK Then
             file = New IO.FileInfo(OpenMe.FileName)
             RaiseEvent SetStatus(String.Format(RM.GetString("mc_compare_selected"), FlashName)) ' "File selected, verifying {0}"
             Return True
@@ -834,7 +857,7 @@ Public Class MemControl_v2
                 ReadingParams.Address = read_params.Offset
                 ReadingParams.Count = read_params.Size
                 ReadingParams.Timer = New Stopwatch
-                ReadingParams.Memory_Area = AreaSelected
+                ReadingParams.Memory_Area = Me.AreaSelected
                 ReadingParams.Status.UpdateOperation = New cbStatus_UpdateOper(AddressOf Status_UpdateOper)
                 ReadingParams.Status.UpdateBase = New cbStatus_UpdateBase(AddressOf Status_UpdateBase)
                 ReadingParams.Status.UpdateTask = New cbStatus_UpdateTask(AddressOf Status_UpdateTask)
@@ -904,6 +927,7 @@ Public Class MemControl_v2
                 WritingParams.Count = file_out.Size
                 WritingParams.Verify = MySettings.VERIFY_WRITE
                 WritingParams.EraseSector = True
+                WritingParams.Memory_Area = Me.AreaSelected
                 WritingParams.Status.UpdateOperation = New cbStatus_UpdateOper(AddressOf Status_UpdateOper)
                 WritingParams.Status.UpdateBase = New cbStatus_UpdateBase(AddressOf Status_UpdateBase)
                 WritingParams.Status.UpdateTask = New cbStatus_UpdateTask(AddressOf Status_UpdateTask)
@@ -1118,7 +1142,7 @@ Public Class MemControl_v2
                 CompareResultForm.Controls.Add(New Label With {.Width = 280, .Height = 18, .Text = RM.GetString("mc_compare_filename") & ": " & param.Local_File.Name, .Location = New Point(10, 4)})
                 CompareResultForm.Controls.Add(New Label With {.Width = 280, .Height = 18, .Text = RM.GetString("mc_compare_flash_addr") & ": 0x" & Hex(StartingAddress).PadLeft(8, "0") & " - 0x" & Hex(StartingAddress + CompareCount - 1).PadLeft(8, "0"), .Location = New Point(10, 24)})
                 CompareResultForm.Controls.Add(New Label With {.Width = 280, .Height = 18, .Text = RM.GetString("mc_compare_total_processed") & ": " & Format(CompareCount, "#,###"), .Location = New Point(10, 44)})
-                CompareResultForm.Controls.Add(New Label With {.Width = 280, .Height = 18, .Text = String.Format(RM.GetString("mc_compare_mismatcht"), TotalMismatches, percent_success), .Location = New Point(10, 64)})
+                CompareResultForm.Controls.Add(New Label With {.Width = 280, .Height = 18, .Text = String.Format(RM.GetString("mc_compare_mismatch"), TotalMismatches, percent_success), .Location = New Point(10, 64)})
                 Dim cmbClose As New Button With {.Text = RM.GetString("mc_button_close"), .Location = New Point(100, 92)}
                 AddHandler cmbClose.Click, Sub()
                                                CompareResultForm.DialogResult = DialogResult.OK

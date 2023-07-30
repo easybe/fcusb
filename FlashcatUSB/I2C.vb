@@ -62,6 +62,7 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
     End Property
 
     Private Sub Create_I2C_EEPROM_List()
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX01", 128, 1, 8))
         I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX02", 256, 1, 8))
         I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX04", 512, 1, 16))
         I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX08", 1024, 1, 16))
@@ -89,6 +90,8 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
 
     Public Function GetConfiguredDeviceName(ByVal device_size As Integer) As String
         Select Case device_size
+            Case 128
+                Return "24XX01"
             Case 256
                 Return "24XX02"
             Case 512
@@ -118,6 +121,9 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
 
     Private Sub GetAddressPageSize(ByRef addr_size As Byte, ByRef page_size As Byte)
         Select Case MySettings.I2C_SIZE
+            Case 128
+                addr_size = 1
+                page_size = 8
             Case 256
                 addr_size = 1
                 page_size = 8

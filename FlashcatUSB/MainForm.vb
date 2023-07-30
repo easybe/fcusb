@@ -23,44 +23,78 @@ Public Class MainForm
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Parallel NOR memory (x8/x16)", FlashDatabase.PartCount(MemoryType.PARALLEL_NOR)))
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "SLC NAND memory (x8)", FlashDatabase.PartCount(MemoryType.SLC_NAND)))
         mi_mode_1wire.Visible = False
-        mi_Language.Visible = False
         Language_Setup()
     End Sub
 
+#Region "Language"
+
     Private Sub Language_Setup()
-        mi_main_menu.Text = RM.GetString("gui_menu_main")
-        mi_mode_menu.Text = RM.GetString("gui_menu_mode")
-        mi_script_menu.Text = RM.GetString("gui_menu_script")
-        mi_tools_menu.Text = RM.GetString("gui_menu_tools")
-        mi_Language.Text = RM.GetString("gui_menu_language")
-        mi_detect.Text = RM.GetString("gui_menu_main_detect")
-        mi_repeat.Text = RM.GetString("gui_menu_main_repeat")
-        mi_refresh.Text = RM.GetString("gui_menu_main_refresh")
-        mi_exit.Text = RM.GetString("gui_menu_main_exit")
-        mi_mode_settings.Text = RM.GetString("gui_menu_mode_settings")
-        mi_verify.Text = RM.GetString("gui_menu_mode_verify")
-        mi_bit_swapping.Text = RM.GetString("gui_menu_mode_bitswap")
-        mi_endian.Text = RM.GetString("gui_menu_mode_endian")
-        mi_vpp.Text = RM.GetString("gui_menu_mode_vpp")
-        mi_1V8.Text = String.Format(RM.GetString("gui_menu_mode_voltage"), "1.8v")
-        mi_3V3.Text = String.Format(RM.GetString("gui_menu_mode_voltage"), "3.3v")
-        mi_5V0.Text = String.Format(RM.GetString("gui_menu_mode_voltage"), "5.0v")
-        mi_script_selected.Text = RM.GetString("gui_menu_script_select")
-        mi_script_load.Text = RM.GetString("gui_menu_script_load")
-        mi_script_unload.Text = RM.GetString("gui_menu_script_unload")
-        mi_erase_tool.Text = RM.GetString("gui_menu_tools_erase")
-        mi_create_img.Text = RM.GetString("gui_menu_tools_create")
-        mi_write_img.Text = RM.GetString("gui_menu_tools_write")
-        mi_nand_map.Text = RM.GetString("gui_menu_tools_mem_map")
-        mi_device_features.Text = RM.GetString("gui_menu_tools_vendor")
-        TabStatus.Text = "  " & RM.GetString("gui_tab_status") & "  "
-        TabConsole.Text = "  " & RM.GetString("gui_tab_console") & "  "
-        TabMultiDevice.Text = "  " & RM.GetString("gui_tab_multi") & "  "
-        FlashStatusLabel.Text = RM.GetString("gui_status_welcome")
-        cmd_gang_erase.Text = RM.GetString("gui_gang_erase")
-        cmd_gang_write.Text = RM.GetString("gui_gane_write")
-        lbl_gang_info.Text = RM.GetString("gui_gang_info")
+        Me.mi_main_menu.Text = RM.GetString("gui_menu_main")
+        Me.mi_mode_menu.Text = RM.GetString("gui_menu_mode")
+        Me.mi_script_menu.Text = RM.GetString("gui_menu_script")
+        Me.mi_tools_menu.Text = RM.GetString("gui_menu_tools")
+        Me.mi_Language.Text = RM.GetString("gui_menu_language")
+        Me.mi_detect.Text = RM.GetString("gui_menu_main_detect")
+        Me.mi_repeat.Text = RM.GetString("gui_menu_main_repeat")
+        Me.mi_refresh.Text = RM.GetString("gui_menu_main_refresh")
+        Me.mi_exit.Text = RM.GetString("gui_menu_main_exit")
+        Me.mi_mode_settings.Text = RM.GetString("gui_menu_mode_settings")
+        Me.mi_verify.Text = RM.GetString("gui_menu_mode_verify")
+        Me.mi_bit_swapping.Text = RM.GetString("gui_menu_mode_bitswap")
+        Me.mi_endian.Text = RM.GetString("gui_menu_mode_endian")
+        Me.mi_vpp.Text = RM.GetString("gui_menu_mode_vpp")
+        Me.mi_1V8.Text = String.Format(RM.GetString("gui_menu_mode_voltage"), "1.8v")
+        Me.mi_3V3.Text = String.Format(RM.GetString("gui_menu_mode_voltage"), "3.3v")
+        Me.mi_5V0.Text = String.Format(RM.GetString("gui_menu_mode_voltage"), "5.0v")
+        Me.mi_script_selected.Text = RM.GetString("gui_menu_script_select")
+        Me.mi_script_load.Text = RM.GetString("gui_menu_script_load")
+        Me.mi_script_unload.Text = RM.GetString("gui_menu_script_unload")
+        Me.mi_erase_tool.Text = RM.GetString("gui_menu_tools_erase")
+        Me.mi_create_img.Text = RM.GetString("gui_menu_tools_create")
+        Me.mi_write_img.Text = RM.GetString("gui_menu_tools_write")
+        Me.mi_nand_map.Text = RM.GetString("gui_menu_tools_mem_map")
+        Me.mi_device_features.Text = RM.GetString("gui_menu_tools_vendor")
+        Me.TabStatus.Text = "  " & RM.GetString("gui_tab_status") & "  "
+        Me.TabConsole.Text = "  " & RM.GetString("gui_tab_console") & "  "
+        Me.TabMultiDevice.Text = "  " & RM.GetString("gui_tab_multi") & "  "
+        Me.FlashStatusLabel.Text = RM.GetString("gui_status_welcome")
+        Me.cmd_gang_erase.Text = RM.GetString("gui_gang_erase")
+        Me.cmd_gang_write.Text = RM.GetString("gui_gane_write")
+        Me.lbl_gang_info.Text = RM.GetString("gui_gang_info")
+        Me.lblStatus.Text = RM.GetString("gui_fcusb_disconnected")
     End Sub
+
+    Private Sub mi_language_english_Click(sender As Object, e As EventArgs) Handles mi_language_english.Click
+        RM = My.Resources.english.ResourceManager : MySettings.LanguageName = "English"
+        Language_Setup()
+        detect_event()
+    End Sub
+
+    Private Sub mi_language_spanish_Click(sender As Object, e As EventArgs) Handles mi_language_spanish.Click
+        RM = My.Resources.spanish.ResourceManager : MySettings.LanguageName = "Spanish"
+        Language_Setup()
+        detect_event()
+    End Sub
+
+    Private Sub mi_language_french_Click(sender As Object, e As EventArgs) Handles mi_language_french.Click
+        RM = My.Resources.french.ResourceManager : MySettings.LanguageName = "French"
+        Language_Setup()
+        detect_event()
+    End Sub
+
+    Private Sub mi_language_portuguese_Click(sender As Object, e As EventArgs) Handles mi_language_portuguese.Click
+        RM = My.Resources.portuguese.ResourceManager : MySettings.LanguageName = "Portuguese"
+        Language_Setup()
+        detect_event()
+    End Sub
+
+    Private Sub mi_language_russian_Click(sender As Object, e As EventArgs) Handles mi_language_russian.Click
+        RM = My.Resources.russian.ResourceManager : MySettings.LanguageName = "Russian"
+        Language_Setup()
+        detect_event()
+    End Sub
+
+#End Region
 
 #Region "Status System"
     Delegate Sub cbSetConnectionStatus(ByVal usb_dev As FCUSB_DEVICE)
@@ -199,7 +233,7 @@ Public Class MainForm
         fDiag.Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*"
         fDiag.Title = RM.GetString("gui_save_dialog")
         fDiag.FileName = "FCUSB.console.log.txt"
-        If fDiag.ShowDialog = Windows.Forms.DialogResult.OK Then
+        If fDiag.ShowDialog = DialogResult.OK Then
             Dim logfile(ConsoleBox.Items.Count - 1) As String
             Dim i As Integer
             For i = 0 To logfile.Length - 1
@@ -680,12 +714,15 @@ Public Class MainForm
             Case BitSwapMode.Bits_32
                 mi_bitswap_32bit.Checked = True
         End Select
-        mi_bitendian_big.Checked = False
+        mi_bitendian_big_32.Checked = False
+        mi_bitendian_big_16.Checked = False
         mi_bitendian_little_16.Checked = False
         mi_bitendian_little_8.Checked = False
         Select Case MySettings.BIT_ENDIAN
             Case BitEndianMode.BigEndian32
-                mi_bitendian_big.Checked = True
+                mi_bitendian_big_32.Checked = True
+            Case BitEndianMode.BigEndian16
+                mi_bitendian_big_16.Checked = True
             Case BitEndianMode.LittleEndian32_16bit
                 mi_bitendian_little_16.Checked = True
             Case BitEndianMode.LittleEndian32_8bit
@@ -919,7 +956,9 @@ Public Class MainForm
         End Select
         Select Case MySettings.BIT_ENDIAN
             Case BitEndianMode.BigEndian32
-                mi_bitendian_big.Checked = True
+                mi_bitendian_big_32.Checked = True
+            Case BitEndianMode.BigEndian16
+                mi_bitendian_big_16.Checked = True
             Case BitEndianMode.LittleEndian32_16bit
                 mi_bitendian_little_16.Checked = True
             Case BitEndianMode.LittleEndian32_8bit
@@ -977,7 +1016,8 @@ Public Class MainForm
                 If dev.IS_CONNECTED Then
                     If dev.SPI_NOR_IF.PORT_SELECT = SPI.SPI_Programmer.SPIBUS_PORT.Port_A Then
                         Dim clock_mhz As UInt32 = GetCurrentSpiClock(dev)
-                        GUI.PrintConsole(String.Format(RM.GetString("spi_set_clock"), clock_mhz)) 'Now set clock to user selected value
+                        Dim clock_str As String = (clock_mhz / 1000000).ToString & " MHz"
+                        GUI.PrintConsole(String.Format(RM.GetString("spi_set_clock"), clock_str)) 'Now set clock to user selected value
                         dev.USB_SPI_SETSPEED(SPI.SPI_Programmer.SPIBUS_PORT.Port_A, clock_mhz)
                     End If
                 End If
@@ -1091,8 +1131,13 @@ Public Class MainForm
         MEM_IF.RefreshAll()
     End Sub
 
-    Private Sub mi_endian_big_Click(sender As Object, e As EventArgs) Handles mi_bitendian_big.Click
+    Private Sub mi_endian_big_Click(sender As Object, e As EventArgs) Handles mi_bitendian_big_32.Click
         MySettings.BIT_ENDIAN = BitEndianMode.BigEndian32
+        MEM_IF.RefreshAll()
+    End Sub
+
+    Private Sub mi_bitendian_big_16_Click(sender As Object, e As EventArgs) Handles mi_bitendian_big_16.Click
+        MySettings.BIT_ENDIAN = BitEndianMode.BigEndian16
         MEM_IF.RefreshAll()
     End Sub
 
@@ -1137,6 +1182,10 @@ Public Class MainForm
     End Sub
 
     Private Sub mi_detect_Click(sender As Object, e As EventArgs) Handles mi_detect.Click
+        detect_event()
+    End Sub
+
+    Private Sub detect_event()
         ClearStatusMessage()
         ScriptEngine.Unload() 'Unloads the device script and any objects/tabs
         RemoveStatusMessage(RM.GetString("gui_active_script"))
@@ -1191,7 +1240,7 @@ Public Class MainForm
         Dim FcFname As String = RM.GetString("gui_compressed_img") & " (*.zip)|*.zip"
         Dim AllF As String = "All files (*.*)|*.*"
         OpenMe.Filter = FcFname & "|" & AllF
-        If (OpenMe.ShowDialog = Windows.Forms.DialogResult.OK) Then
+        If (OpenMe.ShowDialog = DialogResult.OK) Then
             BACKUP_FILE = OpenMe.FileName
             Dim t As New Threading.Thread(AddressOf LoadFlashImgThread)
             t.Name = "ImgLoaderTd"
@@ -1355,7 +1404,7 @@ Public Class MainForm
             Dim FcFname As String = RM.GetString("gui_compressed_img") & " (*.zip)|*.zip"
             Dim AllF As String = "All files (*.*)|*.*"
             SaveMe.Filter = FcFname & "|" & AllF
-            If SaveMe.ShowDialog = Windows.Forms.DialogResult.OK Then
+            If SaveMe.ShowDialog = DialogResult.OK Then
                 BACKUP_FILE = SaveMe.FileName
             Else
                 BACKUP_FILE = ""
@@ -1805,7 +1854,7 @@ Public Class MainForm
             Dim FcFname As String = "FlachcatUSB Scripts (*.fcs)|*.fcs"
             Dim AllF As String = "All files (*.*)|*.*"
             OpenMe.Filter = FcFname & "|" & AllF
-            If OpenMe.ShowDialog = Windows.Forms.DialogResult.OK Then
+            If OpenMe.ShowDialog = DialogResult.OK Then
                 LoadScriptFile(OpenMe.FileName)
             End If
         Catch ex As Exception
@@ -1947,7 +1996,7 @@ Public Class MainForm
     End Sub
 
     Private Function OpenFileForMultiProg(ByRef file As IO.FileInfo) As Boolean
-        Dim BinFile As String = "Binary Files (*.bin)|*.bin"
+        Dim BinFile As String = "Binary files (*.bin)|*.bin"
         Dim AllFiles As String = "All files (*.*)|*.*"
         Dim OpenMe As New OpenFileDialog
         OpenMe.AddExtension = True
@@ -1955,7 +2004,7 @@ Public Class MainForm
         OpenMe.Title = RM.GetString("gui_gang_choose_binary")
         OpenMe.CheckPathExists = True
         OpenMe.Filter = BinFile & "|" & AllFiles 'Bin Files, All Files
-        If OpenMe.ShowDialog = Windows.Forms.DialogResult.OK Then
+        If OpenMe.ShowDialog = DialogResult.OK Then
             file = New IO.FileInfo(OpenMe.FileName)
             Return True
         Else
@@ -2109,5 +2158,7 @@ Public Class MainForm
         n.StartPosition = FormStartPosition.CenterParent
         n.ShowDialog()
     End Sub
+
+
 
 End Class

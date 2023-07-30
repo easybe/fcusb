@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2017 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDEDCOMPUTERS.NET 2018 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB PRODUCTS
 'CONTACT EMAIL: contact@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
@@ -16,8 +16,8 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 512
-    Public PRO_CURRENT_FW As Single = 1.2 'This is the embedded firmware version for pro
+    Public Const Build As Integer = 514
+    Public PRO_CURRENT_FW As Single = 1.21 'This is the embedded firmware version for pro
     Public CLASSIC_CURRENT_FW As Single = 4.33 'Min revision allowed for classic, xport
     Public AppIsClosing As Boolean = False
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
@@ -28,6 +28,7 @@ Public Module MainApp
     Public Platform As String
     Public CUSTOM_SPI_DEV As SPI_NOR_FLASH
     Private FcMutex As Mutex
+    Public NAND_ECC_ENG As ECC_LIB.Engine
 
     Sub Main(ByVal Args() As String)
         Try 'This makes it only allow one instance
@@ -104,14 +105,16 @@ Public Module MainApp
     End Enum
 
     Public Enum BitEndianMode
-        'big endian / little endian
-        BigEndian32 = 0 'All data is MSB
-        LittleEndian32_8bit = 1 '0x01020304 = 0x03040102
-        LittleEndian32_16bit = 2 '0x01020304 = 0x02010403
+        BigEndian32 = 0 '0x01020304 = 0x01020304 (default)
+        BigEndian16 = 1 '0x01020304 = 0x02010403
+        LittleEndian32_8bit = 2 '0x01020304 = 0x03040102
+        LittleEndian32_16bit = 3 '0x01020304 = 0x02010403
     End Enum
     'FILE-->MEMORY
     Public Sub BitSwap_Forward(ByRef data() As Byte)
         Select Case MySettings.BIT_ENDIAN
+            Case BitEndianMode.BigEndian16
+                Utilities.ChangeEndian16_MSB(data)
             Case BitEndianMode.LittleEndian32_8bit
                 Utilities.ChangeEndian32_LSB8(data)
             Case BitEndianMode.LittleEndian32_16bit
@@ -137,6 +140,8 @@ Public Module MainApp
                 Utilities.ReverseBits_Word(data)
         End Select
         Select Case MySettings.BIT_ENDIAN
+            Case BitEndianMode.BigEndian16
+                Utilities.ChangeEndian16_MSB(data)
             Case BitEndianMode.LittleEndian32_8bit
                 Utilities.ChangeEndian32_LSB8(data)
             Case BitEndianMode.LittleEndian32_16bit
@@ -153,6 +158,8 @@ Public Module MainApp
                 bits_needed = 4
         End Select
         Select Case MySettings.BIT_ENDIAN
+            Case BitEndianMode.BigEndian16
+                bits_needed = 4
             Case BitEndianMode.LittleEndian32_16bit
                 bits_needed = 4
             Case BitEndianMode.LittleEndian32_8bit
@@ -368,17 +375,23 @@ Public Module MainApp
             Case SPI_EEPROM.nRF24LE1  '16384 bytes
                 usb_dev.USB_VCC_3V()
                 Utilities.Sleep(100)
-                usb_dev.USB_CONTROL_MSG_OUT(USB.USBREQ.SPI_PROG)
+                usb_dev.SPI_NOR_IF.SetProgPin(True) 'Sets PROG.PIN to HIGH
+                usb_dev.SPI_NOR_IF.SetProgPin(False) 'Sets PROG.PIN to LOW
+                usb_dev.SPI_NOR_IF.SetProgPin(True) 'Sets PROG.PIN to HIGH
                 Utilities.Sleep(10)
             Case SPI_EEPROM.nRF24LUIP_16KB   '16384 bytes
                 usb_dev.USB_VCC_3V()
                 Utilities.Sleep(100)
-                usb_dev.USB_CONTROL_MSG_OUT(USB.USBREQ.SPI_PROG)
+                usb_dev.SPI_NOR_IF.SetProgPin(True) 'Sets PROG.PIN to HIGH
+                usb_dev.SPI_NOR_IF.SetProgPin(False) 'Sets PROG.PIN to LOW
+                usb_dev.SPI_NOR_IF.SetProgPin(True) 'Sets PROG.PIN to HIGH
                 Utilities.Sleep(10)
             Case SPI_EEPROM.nRF24LUIP_32KB   '32768 bytes
                 usb_dev.USB_VCC_3V()
                 Utilities.Sleep(100)
-                usb_dev.USB_CONTROL_MSG_OUT(USB.USBREQ.SPI_PROG)
+                usb_dev.SPI_NOR_IF.SetProgPin(True) 'Sets PROG.PIN to HIGH
+                usb_dev.SPI_NOR_IF.SetProgPin(False) 'Sets PROG.PIN to LOW
+                usb_dev.SPI_NOR_IF.SetProgPin(True) 'Sets PROG.PIN to HIGH
                 Utilities.Sleep(10)
         End Select
         usb_dev.SPI_NOR_IF.MyFlashDevice = Get_SPI_EEPROM(MySettings.SPI_EEPROM)
@@ -1067,6 +1080,13 @@ Public Module MainApp
         Public Property NAND_Layout As NandMemLayout = NandMemLayout.Seperated
         'Ext IO Settings
         Public Property VPP_VCC As VPP_SETTING = VPP_SETTING.Disabled 'Enables the SO-44 Adapter's 12v VPP feature
+        'NAND ECC Settings
+        Public Property ECC_READ_ENABLED As Boolean
+        Public Property ECC_WRITE_ENABLED As Boolean
+        Public Property ECC_Algorithum As Integer '0=Hamming,1=Reed-Solomon,2=BHC
+        Public Property ECC_BitError As Integer 'Number of bits to correct (1,2,4,8,10,14)
+        Public Property ECC_Location As ECC_LIB.ecc_location_opt
+        Public Property ECC_SymWidth As Integer '8/9/10
 
         Sub New()
             LoadLanguageSettings()
@@ -1095,6 +1115,12 @@ Public Module MainApp
             NAND_MismatchSkip = GetRegistryValue("NAND_Mismatch", True)
             NAND_Layout = GetRegistryValue("NAND_Layout", NandMemLayout.Seperated)
             VPP_VCC = CInt(GetRegistryValue("VPP", "1"))
+            Me.ECC_READ_ENABLED = GetRegistryValue("ECC_READ", False)
+            Me.ECC_WRITE_ENABLED = GetRegistryValue("ECC_WRITE", False)
+            Me.ECC_Algorithum = GetRegistryValue("ECC_ALG", 0)
+            Me.ECC_BitError = GetRegistryValue("ECC_BITERR", 1)
+            Me.ECC_Location = GetRegistryValue("ECC_LOCATION", 1)
+            Me.ECC_SymWidth = GetRegistryValue("ECC_SYMWIDTH", 9)
             LoadCustomSPI()
         End Sub
 
@@ -1124,6 +1150,12 @@ Public Module MainApp
             SetRegistryValue("NAND_Layout", NAND_Layout)
             SetRegistryValue("VPP", VPP_VCC)
             SetRegistryValue("Language", LanguageName)
+            SetRegistryValue("ECC_READ", Me.ECC_READ_ENABLED)
+            SetRegistryValue("ECC_WRITE", Me.ECC_WRITE_ENABLED)
+            SetRegistryValue("ECC_ALG", Me.ECC_Algorithum)
+            SetRegistryValue("ECC_BITERR", Me.ECC_BitError)
+            SetRegistryValue("ECC_LOCATION", Me.ECC_Location)
+            SetRegistryValue("ECC_SYMWIDTH", Me.ECC_SymWidth)
             SaveCustomSPI()
         End Sub
 
@@ -1197,22 +1229,22 @@ Public Module MainApp
         Private Sub LoadLanguageSettings()
             Me.LanguageName = GetRegistryValue("Language", "English")
             Select Case Me.LanguageName.ToUpper
-                'Select Case SelLangauge.ToUpper
-                '    Case "ENGLISH"
-                '        RM = My.Resources.English.ResourceManager : LanguageName = "English"
-                '    Case "SPANISH"
-                '        RM = My.Resources.Spanish.ResourceManager : LanguageName = "Spanish"
-                '    Case "FRENCH"
-                '        RM = My.Resources.French.ResourceManager : LanguageName = "French"
-                '    Case "GERMAN"
-                '        RM = My.Resources.German.ResourceManager : LanguageName = "German"
-                '    Case "PORTUGUESE"
-                '        RM = My.Resources.Portuguese.ResourceManager : LanguageName = "Portuguese"
-                '    Case "CHINESE"
-                '        RM = My.Resources.Chinese.ResourceManager : LanguageName = "Chinese"
-                '    Case Else
-                '        RM = My.Resources.English.ResourceManager : LanguageName = "English"
-                'End Select
+                Case "ENGLISH"
+                    RM = My.Resources.english.ResourceManager : LanguageName = "English"
+                Case "SPANISH"
+                    RM = My.Resources.spanish.ResourceManager : LanguageName = "Spanish"
+                Case "FRENCH"
+                    RM = My.Resources.french.ResourceManager : LanguageName = "French"
+                Case "PORTUGUESE"
+                    RM = My.Resources.portuguese.ResourceManager : LanguageName = "Portuguese"
+                Case "RUSSIAN"
+                    RM = My.Resources.russian.ResourceManager : LanguageName = "Russian"
+                    'Case "GERMAN"
+                    '    RM = My.Resources.German.ResourceManager : LanguageName = "German"
+                    'Case "CHINESE"
+                    '    RM = My.Resources.Chinese.ResourceManager : LanguageName = "Chinese"
+                Case Else
+                    RM = My.Resources.english.ResourceManager : LanguageName = "English"
             End Select
         End Sub
 
@@ -1866,6 +1898,7 @@ Public Module MainApp
 
     Private Function Connected_Event(usb_dev As FCUSB_DEVICE, mem_type As MemoryType, tab_name As String, block_size As UInt32) As MemoryDeviceInstance
         Try
+            NAND_ECC_ENG = Nothing
             Utilities.Sleep(150) 'Some devices (such as Spansion 128mbit devices) need a delay here
             Dim mem_dev As MemoryDeviceUSB = Nothing
             Select Case mem_type
@@ -1877,6 +1910,17 @@ Public Module MainApp
                     mem_dev = usb_dev.EXT_IF
                 Case MemoryType.SLC_NAND
                     mem_dev = usb_dev.EXT_IF
+                    If MySettings.ECC_READ_ENABLED Or MySettings.ECC_WRITE_ENABLED Then
+                        NAND_ECC_ENG = New ECC_LIB.Engine(MySettings.ECC_Algorithum, MySettings.ECC_BitError)
+                        NAND_ECC_ENG.ECC_DATA_LOCATION = MySettings.ECC_Location
+                        NAND_ECC_ENG.SetSymbolWidth(MySettings.ECC_SymWidth)
+                        usb_dev.EXT_IF.ECC_READ_ENABLED = MySettings.ECC_READ_ENABLED
+                        usb_dev.EXT_IF.ECC_WRITE_ENABLED = MySettings.ECC_WRITE_ENABLED
+                    Else
+                        NAND_ECC_ENG = Nothing
+                        usb_dev.EXT_IF.ECC_READ_ENABLED = False
+                        usb_dev.EXT_IF.ECC_READ_ENABLED = False
+                    End If
                 Case MemoryType.SERIAL_I2C
                     mem_dev = usb_dev.I2C_IF
             End Select
@@ -1889,6 +1933,9 @@ Public Module MainApp
                 AddHandler mem_dev.SetProgress, AddressOf dev_inst.GuiControl.SetProgress
                 Dim newTab As New TabPage("  " & tab_name & "  ")
                 newTab.Tag = dev_inst
+                If mem_type = MemoryType.SLC_NAND AndAlso MySettings.ECC_READ_ENABLED Then
+                    dev_inst.GuiControl.ECC_READ_ENABLED = True
+                End If
                 dev_inst.GuiControl.Width = newTab.Width
                 dev_inst.GuiControl.Height = newTab.Height
                 dev_inst.GuiControl.Anchor = AnchorStyles.Left Or AnchorStyles.Right Or AnchorStyles.Top Or AnchorStyles.Bottom
