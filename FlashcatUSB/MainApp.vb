@@ -16,9 +16,9 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 506
-    Public PRO_CURRENT_FW As Single = 1.19 'This is the embedded firmware version for pro
-    Public CLASSIC_CURRENT_FW As Single = 4.31 'Min revision allowed for classic, xport
+    Public Const Build As Integer = 507
+    Public PRO_CURRENT_FW As Single = 1.2 'This is the embedded firmware version for pro
+    Public CLASSIC_CURRENT_FW As Single = 4.32 'Min revision allowed for classic, xport
     Public AppIsClosing As Boolean = False
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
     Public WithEvents ScriptEngine As New FcScriptEngine

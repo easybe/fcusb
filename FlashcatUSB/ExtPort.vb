@@ -111,20 +111,6 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                     FCUSB.NAND_IF.CreateMap(nand_mem.FLASH_SIZE, nand_mem.PAGE_SIZE, nand_mem.EXT_PAGE_SIZE, nand_mem.BLOCK_SIZE)
                     FCUSB.NAND_IF.EnableBlockManager() 'If enabled
                     FCUSB.NAND_IF.ProcessMap()
-
-
-
-                    ReadData(&H4DBFFF0, 32, FlashArea.Main)
-
-                    'Beep()
-
-                    'FCUSB.NAND_IF.READPAGE()
-
-                    'ReadData
-
-
-
-
                 End If
                 EXPIO_PrintCurrentWriteMode()
                 Utilities.Sleep(10) 'We need to wait here (device is being configured)

@@ -1110,7 +1110,11 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Cypress S29GL128N", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2101) With {.PAGE_SIZE = 32})
             FlashDB.Add(New MFP_Flash("Cypress S29GL256N", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.PAGE_SIZE = 32}) '(CHIP-VAULT)
             FlashDB.Add(New MFP_Flash("Cypress S29GL512N", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2301) With {.PAGE_SIZE = 32})
+
+
             FlashDB.Add(New MFP_Flash("Cypress S29GL128P", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2101) With {.PAGE_SIZE = 64}) '(CHIP-VAULT)
+
+
             FlashDB.Add(New MFP_Flash("Cypress S29GL256P", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.PAGE_SIZE = 64})
             FlashDB.Add(New MFP_Flash("Cypress S29GL512P", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2301) With {.PAGE_SIZE = 64})
             FlashDB.Add(New MFP_Flash("Cypress S29GL01GP", &H1, &H227E, Gb001, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2801) With {.PAGE_SIZE = 64})
@@ -1393,7 +1397,7 @@ Namespace FlashMemory
                         If flash.ID1 = ID1 Then
                             If ID2 = 0 OrElse ID2 = flash.ID2 Then
                                 devices.Add(flash)
-                            Else
+                            ElseIf flash.FLASH_TYPE = MemoryType.SLC_NAND Then 'SLC NAND we may only want to check byte #3
                                 If (flash.ID2 And &HFF) = 0 Then
                                     If (ID2 >> 8) = (flash.ID2 >> 8) Then devices.Add(flash)
                                 End If

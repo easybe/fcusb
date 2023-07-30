@@ -62,8 +62,7 @@ Public Class DfuControl
             GoTo ExitAvrProg
         End If
         UpdateDfuStatusBar(0)
-        SetStatus("Please upgrade AVR firmware to {0} or newer")
-        WriteConsole("FlashcatUSB board has outdated firmware")
+        SetStatus("Programming new AVR firmware over USB")
         Res = FCUSB.DFU_IF.EraseFlash()
         If Not Res Then
             SetStatus("FlashcatUSB failed to connect to target board using JTAG")
@@ -73,7 +72,6 @@ Public Class DfuControl
         End If
         Application.DoEvents()
         Threading.Thread.Sleep(250)
-        SetStatus("Programming new AVR firmware")
         WriteConsole(String.Format("Beginning AVR flash write ({0} bytes)", FwHexBin.Length)) 'Beginning AVR flash write ({0} bytes)
         Application.DoEvents()
         Threading.Thread.Sleep(250)
