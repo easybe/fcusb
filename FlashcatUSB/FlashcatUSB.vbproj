@@ -56,8 +56,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Binaries\ECC.dll</HintPath>
     </Reference>
-    <Reference Include="LibUsbDotNet">
-      <HintPath>.\LibUsbDotNet.dll</HintPath>
+    <Reference Include="LibUsbDotNet, Version=2.2.8.104, Culture=neutral, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Binaries\LibUsbDotNet.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -121,6 +122,11 @@
     <Compile Include="JTAG.vb" />
     <Compile Include="JTAG_SVF_Player.vb" />
     <Compile Include="JTAG_TAP.vb" />
+    <Compile Include="languages\chinese.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>chinese.resx</DependentUpon>
+    </Compile>
     <Compile Include="languages\english.Designer.vb">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -130,6 +136,11 @@
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>french.resx</DependentUpon>
+    </Compile>
+    <Compile Include="languages\italian.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>italian.resx</DependentUpon>
     </Compile>
     <Compile Include="languages\portuguese.Designer.vb">
       <AutoGen>True</AutoGen>
@@ -221,6 +232,12 @@
     <EmbeddedResource Include="HexEditor_v2.resx">
       <DependentUpon>HexEditor_v2.vb</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="languages\chinese.resx">
+      <CustomToolNamespace>My.Resources</CustomToolNamespace>
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>chinese.Designer.vb</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
     <EmbeddedResource Include="languages\english.resx">
       <CustomToolNamespace>My.Resources</CustomToolNamespace>
       <SubType>Designer</SubType>
@@ -231,6 +248,11 @@
       <CustomToolNamespace>My.Resources</CustomToolNamespace>
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>french.Designer.vb</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="languages\italian.resx">
+      <CustomToolNamespace>My.Resources</CustomToolNamespace>
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>italian.Designer.vb</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="languages\portuguese.resx">
       <CustomToolNamespace>My.Resources</CustomToolNamespace>
@@ -275,6 +297,8 @@
   <ItemGroup>
     <None Include="app.config" />
     <EmbeddedResource Include="FCUSB_V3.bin" />
+    <EmbeddedResource Include="FCUSB_BOOT_v2.bin" />
+    <EmbeddedResource Include="FCUSB_BLUPDATE.bin" />
     <None Include="My Project\Application.myapp">
       <Generator>MyApplicationCodeGenerator</Generator>
       <LastGenOutput>Application.Designer.vb</LastGenOutput>
@@ -382,6 +406,7 @@
     <None Include="images\portugal.png" />
     <None Include="images\spain.png" />
     <None Include="images\russia.png" />
+    <None Include="images\Italy.png" />
     <Content Include="Main.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />

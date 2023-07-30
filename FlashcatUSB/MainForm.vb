@@ -42,7 +42,6 @@ Public Class MainForm
         Me.mi_verify.Text = RM.GetString("gui_menu_mode_verify")
         Me.mi_bit_swapping.Text = RM.GetString("gui_menu_mode_bitswap")
         Me.mi_endian.Text = RM.GetString("gui_menu_mode_endian")
-        Me.mi_vpp.Text = RM.GetString("gui_menu_mode_vpp")
         Me.mi_1V8.Text = String.Format(RM.GetString("gui_menu_mode_voltage"), "1.8v")
         Me.mi_3V3.Text = String.Format(RM.GetString("gui_menu_mode_voltage"), "3.3v")
         Me.mi_5V0.Text = String.Format(RM.GetString("gui_menu_mode_voltage"), "5.0v")
@@ -93,6 +92,19 @@ Public Class MainForm
         Language_Setup()
         detect_event()
     End Sub
+
+    Private Sub mi_language_chinese_Click(sender As Object, e As EventArgs) Handles mi_language_chinese.Click
+        RM = My.Resources.chinese.ResourceManager : MySettings.LanguageName = "Chinese"
+        Language_Setup()
+        detect_event()
+    End Sub
+
+    Private Sub mi_language_italian_Click(sender As Object, e As EventArgs) Handles mi_language_italian.Click
+        RM = My.Resources.italian.ResourceManager : MySettings.LanguageName = "Italian"
+        Language_Setup()
+        detect_event()
+    End Sub
+
 
 #End Region
 
@@ -400,6 +412,7 @@ Public Class MainForm
     End Sub
     'This refreshes all of the memory devices currently connected
     Private Sub StatusMessages_LoadMemoryDevices()
+
         GUI.RemoveStatusMessageStartsWith(RM.GetString("gui_memory_device"))
         Dim current_devices() As MemoryDeviceInstance = MyTabs_GetDeviceInstances()
         If current_devices Is Nothing OrElse current_devices.Count = 0 Then Exit Sub
@@ -407,8 +420,10 @@ Public Class MainForm
             If MyTabs.TabPages.Contains(TabMultiDevice) Then MyTabs.TabPages.Remove(TabMultiDevice)
         Else
             If (current_devices.Count > 1) Then
-                If Not MyTabs.TabPages.Contains(TabMultiDevice) Then
-                    MyTabs.TabPages.Insert(2, TabMultiDevice)
+                If (Not current_devices(0).FCUSB.SPI_NOR_IF.W25M121AV_Mode) Then
+                    If (Not MyTabs.TabPages.Contains(TabMultiDevice)) AndAlso (USBCLIENT.Count > 1) Then
+                        MyTabs.TabPages.Insert(2, TabMultiDevice)
+                    End If
                 End If
             Else 'Not in multi mode
                 If MyTabs.TabPages.Contains(TabMultiDevice) Then
@@ -427,8 +442,12 @@ Public Class MainForm
             If mem_device.GuiControl Is Nothing Then Continue For
             Dim flash_desc As String = mem_device.Name & " (" & Format(mem_device.Size, "#,###") & " bytes)"
             GUI.UpdateStatusMessage(RM.GetString("gui_memory_device") & " " & counter, flash_desc)
-            If Not MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.JTAG Then
-                mem_device.GuiControl.ShowIdentButton(CBool(Not (current_devices.Count < 2)))
+            If (Not MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.JTAG) Then
+                If (USBCLIENT.Count > 1) Then
+                    mem_device.GuiControl.ShowIdentButton(True)
+                Else
+                    mem_device.GuiControl.ShowIdentButton(False)
+                End If
             End If
             Select Case counter
                 Case 1
@@ -675,7 +694,6 @@ Public Class MainForm
             mi_verify.Enabled = False
             mi_bit_swapping.Enabled = False
             mi_endian.Enabled = False
-            mi_vpp.Enabled = False
             mi_1V8.Enabled = False
             mi_3V3.Enabled = False
             mi_5V0.Enabled = False
@@ -684,6 +702,7 @@ Public Class MainForm
             mi_mode_spi_nand.Enabled = False
             mi_mode_i2c.Enabled = False
             mi_mode_extio.Enabled = False
+            mi_mode_eprom_otp.Enabled = False
             mi_mode_jtag.Enabled = False
             Exit Sub
         Else
@@ -697,12 +716,12 @@ Public Class MainForm
         mi_mode_spi_nand.Checked = False
         mi_mode_i2c.Checked = False
         mi_mode_extio.Checked = False
+        mi_mode_eprom_otp.Checked = False
         mi_mode_jtag.Checked = False
         mi_bitswap_none.Checked = False
         mi_bitswap_8bit.Checked = False
         mi_bitswap_16bit.Checked = False
         mi_bitswap_32bit.Checked = False
-        mi_vpp.Enabled = False
         Enable_VCC_Menu(False)
         Select Case MySettings.BIT_SWAP
             Case BitSwapMode.None
@@ -733,6 +752,11 @@ Public Class MainForm
         Else
             mi_mode_i2c.Enabled = True
         End If
+        If MySettings.OTP_MFG = 0 Then
+            mi_mode_eprom_otp.Enabled = False
+        Else
+            mi_mode_eprom_otp.Enabled = True
+        End If
         If MySettings.SPI_EEPROM = SPI_EEPROM.None Then
             mi_mode_spieeprom.Enabled = False
         Else
@@ -744,13 +768,16 @@ Public Class MainForm
             mi_mode_spieeprom.Enabled = True
             mi_mode_spi_nand.Enabled = True
             mi_mode_i2c.Enabled = True
+            mi_mode_eprom_otp.Enabled = True
             mi_mode_extio.Enabled = True
+            mi_mode_jtag.Enabled = True 'We now support JTAG!
             Enable_VCC_Menu(True)
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Classic_XPORT Then
             mi_mode_spi.Enabled = True
             mi_mode_spieeprom.Enabled = True
             mi_mode_spi_nand.Enabled = True
             mi_mode_i2c.Enabled = True
+            mi_mode_eprom_otp.Enabled = True
             mi_mode_extio.Enabled = True
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Classic_JTAG Then
             mi_mode_jtag.Enabled = True
@@ -759,6 +786,7 @@ Public Class MainForm
             mi_mode_spieeprom.Enabled = True
             mi_mode_spi_nand.Enabled = True
             mi_mode_i2c.Enabled = True
+            mi_mode_eprom_otp.Enabled = True
             mi_mode_extio.Enabled = True
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Classic_BL Then
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.NotConnected Then
@@ -774,9 +802,10 @@ Public Class MainForm
                 mi_mode_spi_nand.Checked = True
             Case FlashcatSettings.DeviceMode.I2C_EEPROM
                 mi_mode_i2c.Checked = True
-            Case FlashcatSettings.DeviceMode.EXTIO
+            Case FlashcatSettings.DeviceMode.NOR_NAND
                 mi_mode_extio.Checked = True
-                mi_vpp.Enabled = True
+            Case FlashcatSettings.DeviceMode.EPROM_OTP
+                mi_mode_eprom_otp.Checked = True
             Case FlashcatSettings.DeviceMode.JTAG
                 mi_mode_jtag.Checked = True
         End Select
@@ -815,17 +844,42 @@ Public Class MainForm
     Private Sub mi_script_menu_DropDownOpening(sender As Object, e As EventArgs) Handles mi_script_menu.DropDownOpening
         Try
             If IsAnyDeviceBusy() Then
-                mi_script_selected.Enabled = False
-                mi_script_load.Enabled = False
-                mi_script_unload.Enabled = False
+                For Each item In DirectCast(sender, ToolStripMenuItem).DropDownItems
+                    If item.GetType Is GetType(ToolStripMenuItem) Then
+                        DirectCast(item, ToolStripMenuItem).Enabled = False
+                    End If
+                Next
             Else
-                mi_script_selected.Enabled = True
-                mi_script_load.Enabled = True
-                mi_script_unload.Enabled = True
+                For Each item In DirectCast(sender, ToolStripMenuItem).DropDownItems
+                    If item.GetType Is GetType(ToolStripMenuItem) Then
+                        DirectCast(item, ToolStripMenuItem).Enabled = True
+                    End If
+                Next
             End If
         Catch ex As Exception
         End Try
     End Sub
+
+    Private Sub mi_Language_DropDownOpening(sender As Object, e As EventArgs) Handles mi_Language.DropDownOpening
+        Try
+            If IsAnyDeviceBusy() Then
+                For Each item In DirectCast(sender, ToolStripMenuItem).DropDownItems
+                    If item.GetType Is GetType(ToolStripMenuItem) Then
+                        DirectCast(item, ToolStripMenuItem).Enabled = False
+                    End If
+                Next
+            Else
+                For Each item In DirectCast(sender, ToolStripMenuItem).DropDownItems
+                    If item.GetType Is GetType(ToolStripMenuItem) Then
+                        DirectCast(item, ToolStripMenuItem).Enabled = True
+                    End If
+                Next
+            End If
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    'mi_Language
 
     Private Sub mi_tools_menu_DropDownOpening(sender As Object, e As EventArgs) Handles mi_tools_menu.DropDownOpening
         If (MyTabs.SelectedTab.Tag IsNot Nothing) AndAlso (MyTabs.SelectedTab.Tag IsNot Nothing) Then
@@ -928,12 +982,12 @@ Public Class MainForm
             mem_dev.FCUSB.NAND_IF.ProcessMap()
             If mem_dev.FlashType = MemoryType.SERIAL_NAND Then
                 Dim flash_available As UInt32 = mem_dev.FCUSB.SPI_NAND_IF.DeviceSize()
-                mem_dev.GuiControl.InitMemoryDevice(mem_dev.FCUSB, mem_dev.Name, mem_dev.Size, MemControl_v2.access_mode.ReadWrite)
+                mem_dev.GuiControl.InitMemoryDevice(mem_dev.FCUSB, mem_dev.Name, mem_dev.Size, MemControl_v2.access_mode.Writable)
                 mem_dev.GuiControl.SetupLayout()
                 StatusMessages_LoadMemoryDevices()
             ElseIf mem_dev.FlashType = MemoryType.SLC_NAND Then
                 Dim flash_available As UInt32 = mem_dev.FCUSB.EXT_IF.DeviceSize()
-                mem_dev.GuiControl.InitMemoryDevice(mem_dev.FCUSB, mem_dev.Name, mem_dev.Size, MemControl_v2.access_mode.ReadWrite)
+                mem_dev.GuiControl.InitMemoryDevice(mem_dev.FCUSB, mem_dev.Name, mem_dev.Size, MemControl_v2.access_mode.Writable)
                 mem_dev.GuiControl.SetupLayout()
                 StatusMessages_LoadMemoryDevices()
             End If
@@ -983,14 +1037,10 @@ Public Class MainForm
                 mi_mode_jtag.Checked = True
             Case FlashcatSettings.DeviceMode.I2C_EEPROM
                 mi_mode_i2c.Checked = True
-            Case FlashcatSettings.DeviceMode.EXTIO
+            Case FlashcatSettings.DeviceMode.NOR_NAND
                 mi_mode_extio.Checked = True
-        End Select
-        Select Case MySettings.VPP_VCC
-            Case FlashcatSettings.VPP_SETTING.Disabled
-                mi_so44_normal.Checked = True
-            Case FlashcatSettings.VPP_SETTING.Write_12v
-                mi_so44_12v_write.Checked = True
+            Case FlashcatSettings.DeviceMode.EPROM_OTP
+                mi_mode_eprom_otp.Checked = True
         End Select
         If MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_EEPROM Then
             If MySettings.SPI_EEPROM = SPI_EEPROM.None Then
@@ -1037,7 +1087,7 @@ Public Class MainForm
                     End If
                 End If
             Next
-        ElseIf MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.EXTIO Then
+        ElseIf MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND Then
             For i = 0 To MEM_IF.DeviceCount - 1
                 Dim dv As MemoryDeviceInstance = MEM_IF.GetDevice(i)
                 If dv IsNot Nothing Then
@@ -1058,6 +1108,7 @@ Public Class MainForm
             mi_mode_i2c.Checked = False
             mi_mode_extio.Checked = False
             mi_mode_1wire.Checked = False
+            mi_mode_eprom_otp.Checked = False
             mi_mode_jtag.Checked = False
             mi_mode_spi_nand.Checked = False
         Catch ex As Exception
@@ -1068,42 +1119,56 @@ Public Class MainForm
         Menu_Mode_UncheckAll()
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI
+        MySettings.Save()
     End Sub
 
     Private Sub mi_mode_spi_eeprom_Click(sender As Object, e As EventArgs) Handles mi_mode_spieeprom.Click
         Menu_Mode_UncheckAll()
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_EEPROM
+        MySettings.Save()
     End Sub
 
     Private Sub mi_mode_i2c_Click(sender As Object, e As EventArgs) Handles mi_mode_i2c.Click
         Menu_Mode_UncheckAll()
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.I2C_EEPROM
+        MySettings.Save()
     End Sub
 
     Private Sub mi_mode_1wire_Click(sender As Object, e As EventArgs) Handles mi_mode_1wire.Click
         Menu_Mode_UncheckAll()
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.DOW
+        MySettings.Save()
     End Sub
 
     Private Sub mi_mode_jtag_Click(sender As Object, e As EventArgs) Handles mi_mode_jtag.Click
         Menu_Mode_UncheckAll()
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.JTAG
+        MySettings.Save()
     End Sub
 
     Private Sub mi_mode_extio_Click(sender As Object, e As EventArgs) Handles mi_mode_extio.Click
         Menu_Mode_UncheckAll()
         DirectCast(sender, ToolStripMenuItem).Checked = True
-        MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.EXTIO
+        MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND
+        MySettings.Save()
+    End Sub
+
+    Private Sub mi_mode_eprom_otp_Click(sender As Object, e As EventArgs) Handles mi_mode_eprom_otp.Click
+        Menu_Mode_UncheckAll()
+        DirectCast(sender, ToolStripMenuItem).Checked = True
+        MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.EPROM_OTP
+        MySettings.Save()
     End Sub
 
     Private Sub mi_mode_spi_nand_Click(sender As Object, e As EventArgs) Handles mi_mode_spi_nand.Click
         Menu_Mode_UncheckAll()
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_NAND
+        MySettings.Save()
     End Sub
 
     Private Sub mi_verify_Click(sender As Object, e As EventArgs) Handles mi_verify.Click
@@ -1157,6 +1222,7 @@ Public Class MainForm
         mi_5V0.Checked = False
         MySettings.VOLT_SELECT = USB.Voltage.V1_8
         USBCLIENT.USB_VCC_1V8()
+        VCC_OPTION = USB.Voltage.V1_8
         MySettings.Save()
         PrintConsole(String.Format(RM.GetString("voltage_set_to"), "1.8v"))
     End Sub
@@ -1167,6 +1233,7 @@ Public Class MainForm
         mi_5V0.Checked = False
         MySettings.VOLT_SELECT = USB.Voltage.V3_3
         USBCLIENT.USB_VCC_3V()
+        VCC_OPTION = USB.Voltage.V3_3
         MySettings.Save()
         PrintConsole(String.Format(RM.GetString("voltage_set_to"), "3.3v"))
     End Sub
@@ -1177,6 +1244,7 @@ Public Class MainForm
         mi_5V0.Checked = True
         MySettings.VOLT_SELECT = USB.Voltage.V5_0
         USBCLIENT.USB_VCC_5V()
+        VCC_OPTION = USB.Voltage.V5_0
         MySettings.Save()
         PrintConsole(String.Format(RM.GetString("voltage_set_to"), "5.0v"))
     End Sub
@@ -1199,22 +1267,6 @@ Public Class MainForm
 
     Private Sub mi_refresh_Click(sender As Object, e As EventArgs) Handles mi_refresh.Click
         MEM_IF.RefreshAll()
-    End Sub
-
-    Private Sub mi_so44_normal_Click(sender As Object, e As EventArgs) Handles mi_so44_normal.Click
-        MySettings.VPP_VCC = FlashcatSettings.VPP_SETTING.Disabled
-        mi_so44_normal.Checked = True
-        mi_so44_12v_write.Checked = False
-    End Sub
-
-    Private Sub mi_so44_12v_write_Click(sender As Object, e As EventArgs) Handles mi_so44_12v_write.Click
-        Dim confirm_msg As String = RM.GetString("gui_vpp_warning")
-        confirm_msg &= vbCrLf & vbCrLf & RM.GetString("gui_vpp_confirm")
-        If MsgBox(confirm_msg, MsgBoxStyle.OkCancel, RM.GetString("gui_vpp_setting")) = MsgBoxResult.Ok Then
-            MySettings.VPP_VCC = FlashcatSettings.VPP_SETTING.Write_12v
-            mi_so44_normal.Checked = False
-            mi_so44_12v_write.Checked = True
-        End If
     End Sub
 
 #End Region
@@ -1254,7 +1306,7 @@ Public Class MainForm
         Try
             memDev.FCUSB.USB_LEDBlink()
             Backup_Start()
-            If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.EXTIO) AndAlso (memDev.FCUSB.EXT_IF.MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND) Then
+            If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND) AndAlso (memDev.FCUSB.EXT_IF.MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND) Then
                 PrintNandFlashDetails(memDev)
                 NANDBACKUP_CreateBackup(memDev)
             ElseIf (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_NAND) Then
@@ -1299,7 +1351,7 @@ Public Class MainForm
         Try
             mem_dev.FCUSB.USB_LEDBlink()
             Backup_Start()
-            If MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.EXTIO AndAlso mem_dev.FCUSB.EXT_IF.MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND Then
+            If MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND AndAlso mem_dev.FCUSB.EXT_IF.MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND Then
                 NANDBACKUP_LoadBackup(mem_dev)
             ElseIf MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_NAND Then
                 NANDBACKUP_LoadBackup(mem_dev)
@@ -1423,7 +1475,7 @@ Public Class MainForm
             Dim block_count As UInt32
             Dim block_size As UInt32
             Dim chipid As String
-            If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.EXTIO) Then
+            If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND) Then
                 Dim m As NAND_Flash = DirectCast(mem_dev.FCUSB.EXT_IF.MyFlashDevice, NAND_Flash)
                 flash_name = m.NAME
                 chipid = Hex(m.MFG_CODE).PadLeft(2, "0") & Hex(m.ID1).PadLeft(4, "0") & Hex(m.ID2).PadLeft(4, "0")
@@ -1472,7 +1524,7 @@ Public Class MainForm
                 SetStatus(String.Format(RM.GetString("nand_reading_block"), Format((i + 1), "#,###"), Format(block_count, "#,###"), Percent))
                 Dim block_data_1(block_total - 1) As Byte
                 Dim block_data_2(block_total - 1) As Byte
-                If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.EXTIO) Then
+                If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND) Then
                     mem_dev.FCUSB.EXT_IF.NAND_ReadPages(page_addr, 0, block_data_1.Length, FlashArea.All, block_data_1)
                     If double_read Then mem_dev.FCUSB.EXT_IF.NAND_ReadPages(page_addr, 0, block_data_2.Length, FlashArea.All, block_data_2)
                 ElseIf (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_NAND) Then
@@ -2158,7 +2210,6 @@ Public Class MainForm
         n.StartPosition = FormStartPosition.CenterParent
         n.ShowDialog()
     End Sub
-
 
 
 End Class

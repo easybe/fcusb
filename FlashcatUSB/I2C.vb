@@ -196,7 +196,7 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         Return Nothing
     End Function
 
-    Public Function WriteData(flash_offset As UInteger, data_to_write() As Byte, Optional area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.WriteData
+    Public Function WriteData(flash_offset As UInteger, data_to_write() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
         Try
             Dim setup_data(6) As Byte
             Dim count As UInt32 = data_to_write.Length
@@ -237,7 +237,7 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         Return 1
     End Function
 
-    Public Function Sector_Write(SectorIndex As UInteger, data() As Byte, Optional area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.Sector_Write
+    Public Function Sector_Write(SectorIndex As UInteger, data() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.Sector_Write
         Return False 'Not supported
     End Function
 

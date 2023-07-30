@@ -119,6 +119,10 @@ Partial Class FrmSettings
         Me.lbl_nandecc_enabled = New System.Windows.Forms.Label()
         Me.cb_ECC_BITERR = New System.Windows.Forms.ComboBox()
         Me.lbl_nandecc_biterror = New System.Windows.Forms.Label()
+        Me.TP_GEN = New System.Windows.Forms.TabPage()
+        Me.GroupBox2 = New System.Windows.Forms.GroupBox()
+        Me.Label2 = New System.Windows.Forms.Label()
+        Me.cb_otp_device_list = New System.Windows.Forms.ComboBox()
         Me.MyTabs.SuspendLayout()
         Me.TP_SPI.SuspendLayout()
         Me.group_custom.SuspendLayout()
@@ -134,6 +138,8 @@ Partial Class FrmSettings
         Me.gb_nand_general.SuspendLayout()
         Me.TP_NAND2.SuspendLayout()
         Me.gb_nandecc_title.SuspendLayout()
+        Me.TP_GEN.SuspendLayout()
+        Me.GroupBox2.SuspendLayout()
         Me.SuspendLayout()
         '
         'MyTabs
@@ -146,6 +152,7 @@ Partial Class FrmSettings
         Me.MyTabs.Controls.Add(Me.TP_I2C)
         Me.MyTabs.Controls.Add(Me.TP_NAND1)
         Me.MyTabs.Controls.Add(Me.TP_NAND2)
+        Me.MyTabs.Controls.Add(Me.TP_GEN)
         Me.MyTabs.Location = New System.Drawing.Point(6, 6)
         Me.MyTabs.Name = "MyTabs"
         Me.MyTabs.SelectedIndex = 0
@@ -1176,6 +1183,46 @@ Partial Class FrmSettings
         Me.lbl_nandecc_biterror.TabIndex = 7
         Me.lbl_nandecc_biterror.Text = "Bit-error"
         '
+        'TP_GEN
+        '
+        Me.TP_GEN.BackColor = System.Drawing.SystemColors.Control
+        Me.TP_GEN.Controls.Add(Me.GroupBox2)
+        Me.TP_GEN.Location = New System.Drawing.Point(4, 22)
+        Me.TP_GEN.Name = "TP_GEN"
+        Me.TP_GEN.Padding = New System.Windows.Forms.Padding(3)
+        Me.TP_GEN.Size = New System.Drawing.Size(524, 328)
+        Me.TP_GEN.TabIndex = 5
+        Me.TP_GEN.Text = "  OTHER  "
+        '
+        'GroupBox2
+        '
+        Me.GroupBox2.Controls.Add(Me.Label2)
+        Me.GroupBox2.Controls.Add(Me.cb_otp_device_list)
+        Me.GroupBox2.Location = New System.Drawing.Point(6, 6)
+        Me.GroupBox2.Name = "GroupBox2"
+        Me.GroupBox2.Size = New System.Drawing.Size(512, 91)
+        Me.GroupBox2.TabIndex = 0
+        Me.GroupBox2.TabStop = False
+        Me.GroupBox2.Text = "EPROM (OTP)"
+        '
+        'Label2
+        '
+        Me.Label2.AutoSize = True
+        Me.Label2.Location = New System.Drawing.Point(16, 29)
+        Me.Label2.Name = "Label2"
+        Me.Label2.Size = New System.Drawing.Size(41, 13)
+        Me.Label2.TabIndex = 38
+        Me.Label2.Text = "Device"
+        '
+        'cb_otp_device_list
+        '
+        Me.cb_otp_device_list.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_otp_device_list.FormattingEnabled = True
+        Me.cb_otp_device_list.Location = New System.Drawing.Point(16, 47)
+        Me.cb_otp_device_list.Name = "cb_otp_device_list"
+        Me.cb_otp_device_list.Size = New System.Drawing.Size(187, 21)
+        Me.cb_otp_device_list.TabIndex = 37
+        '
         'FrmSettings
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -1214,6 +1261,9 @@ Partial Class FrmSettings
         Me.TP_NAND2.ResumeLayout(False)
         Me.gb_nandecc_title.ResumeLayout(False)
         Me.gb_nandecc_title.PerformLayout()
+        Me.TP_GEN.ResumeLayout(False)
+        Me.GroupBox2.ResumeLayout(False)
+        Me.GroupBox2.PerformLayout()
         Me.ResumeLayout(False)
 
     End Sub
@@ -1315,4 +1365,8 @@ Partial Class FrmSettings
     Friend WithEvents cb_rs_reverse_data As CheckBox
     Friend WithEvents cb_sym_width As ComboBox
     Friend WithEvents lbl_sym_width As Label
+    Friend WithEvents TP_GEN As TabPage
+    Friend WithEvents GroupBox2 As GroupBox
+    Friend WithEvents Label2 As Label
+    Friend WithEvents cb_otp_device_list As ComboBox
 End Class

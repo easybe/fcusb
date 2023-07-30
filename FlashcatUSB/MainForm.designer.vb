@@ -46,10 +46,6 @@ Partial Class MainForm
         Me.mi_bitendian_little_16 = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_bitendian_little_8 = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator9 = New System.Windows.Forms.ToolStripSeparator()
-        Me.mi_vpp = New System.Windows.Forms.ToolStripMenuItem()
-        Me.mi_so44_normal = New System.Windows.Forms.ToolStripMenuItem()
-        Me.mi_so44_12v_write = New System.Windows.Forms.ToolStripMenuItem()
-        Me.ToolStripSeparator8 = New System.Windows.Forms.ToolStripSeparator()
         Me.mi_1V8 = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_3V3 = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_5V0 = New System.Windows.Forms.ToolStripMenuItem()
@@ -60,6 +56,7 @@ Partial Class MainForm
         Me.mi_mode_i2c = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_1wire = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_extio = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_mode_eprom_otp = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_jtag = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_script_menu = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_script_selected = New System.Windows.Forms.ToolStripMenuItem()
@@ -80,6 +77,8 @@ Partial Class MainForm
         Me.mi_language_french = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_language_portuguese = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_language_russian = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_language_chinese = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_language_italian = New System.Windows.Forms.ToolStripMenuItem()
         Me.FlashStatus = New System.Windows.Forms.StatusStrip()
         Me.FlashStatusLabel = New System.Windows.Forms.ToolStripStatusLabel()
         Me.MyTabs = New System.Windows.Forms.TabControl()
@@ -185,7 +184,7 @@ Partial Class MainForm
         '
         'mi_mode_menu
         '
-        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.ToolStripSeparator9, Me.mi_vpp, Me.ToolStripSeparator8, Me.mi_1V8, Me.mi_3V3, Me.mi_5V0, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_extio, Me.mi_mode_jtag})
+        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.ToolStripSeparator9, Me.mi_1V8, Me.mi_3V3, Me.mi_5V0, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_extio, Me.mi_mode_eprom_otp, Me.mi_mode_jtag})
         Me.mi_mode_menu.Name = "mi_mode_menu"
         Me.mi_mode_menu.Size = New System.Drawing.Size(50, 20)
         Me.mi_mode_menu.Text = "Mode"
@@ -194,18 +193,18 @@ Partial Class MainForm
         '
         Me.mi_mode_settings.Image = Global.FlashcatUSB.My.Resources.Resources.config
         Me.mi_mode_settings.Name = "mi_mode_settings"
-        Me.mi_mode_settings.Size = New System.Drawing.Size(180, 22)
+        Me.mi_mode_settings.Size = New System.Drawing.Size(182, 22)
         Me.mi_mode_settings.Text = "Protocol settings"
         '
         'ToolStripSeparator3
         '
         Me.ToolStripSeparator3.Name = "ToolStripSeparator3"
-        Me.ToolStripSeparator3.Size = New System.Drawing.Size(177, 6)
+        Me.ToolStripSeparator3.Size = New System.Drawing.Size(179, 6)
         '
         'mi_verify
         '
         Me.mi_verify.Name = "mi_verify"
-        Me.mi_verify.Size = New System.Drawing.Size(180, 22)
+        Me.mi_verify.Size = New System.Drawing.Size(182, 22)
         Me.mi_verify.Text = "Verify programming"
         '
         'mi_bit_swapping
@@ -213,7 +212,7 @@ Partial Class MainForm
         Me.mi_bit_swapping.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_bitswap_none, Me.mi_bitswap_8bit, Me.mi_bitswap_16bit, Me.mi_bitswap_32bit})
         Me.mi_bit_swapping.Image = Global.FlashcatUSB.My.Resources.Resources.binary
         Me.mi_bit_swapping.Name = "mi_bit_swapping"
-        Me.mi_bit_swapping.Size = New System.Drawing.Size(180, 22)
+        Me.mi_bit_swapping.Size = New System.Drawing.Size(182, 22)
         Me.mi_bit_swapping.Text = "Bit Swapping"
         '
         'mi_bitswap_none
@@ -245,7 +244,7 @@ Partial Class MainForm
         Me.mi_endian.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_bitendian_big_32, Me.mi_bitendian_big_16, Me.mi_bitendian_little_16, Me.mi_bitendian_little_8})
         Me.mi_endian.Image = Global.FlashcatUSB.My.Resources.Resources.binary
         Me.mi_endian.Name = "mi_endian"
-        Me.mi_endian.Size = New System.Drawing.Size(180, 22)
+        Me.mi_endian.Size = New System.Drawing.Size(182, 22)
         Me.mi_endian.Text = "Endian mode"
         '
         'mi_bitendian_big_32
@@ -275,95 +274,77 @@ Partial Class MainForm
         'ToolStripSeparator9
         '
         Me.ToolStripSeparator9.Name = "ToolStripSeparator9"
-        Me.ToolStripSeparator9.Size = New System.Drawing.Size(177, 6)
-        '
-        'mi_vpp
-        '
-        Me.mi_vpp.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_so44_normal, Me.mi_so44_12v_write})
-        Me.mi_vpp.Name = "mi_vpp"
-        Me.mi_vpp.Size = New System.Drawing.Size(180, 22)
-        Me.mi_vpp.Text = "VPP Setting"
-        '
-        'mi_so44_normal
-        '
-        Me.mi_so44_normal.Name = "mi_so44_normal"
-        Me.mi_so44_normal.Size = New System.Drawing.Size(155, 22)
-        Me.mi_so44_normal.Text = "Disabled"
-        '
-        'mi_so44_12v_write
-        '
-        Me.mi_so44_12v_write.Name = "mi_so44_12v_write"
-        Me.mi_so44_12v_write.Size = New System.Drawing.Size(155, 22)
-        Me.mi_so44_12v_write.Text = "12v Erase/Write"
-        '
-        'ToolStripSeparator8
-        '
-        Me.ToolStripSeparator8.Name = "ToolStripSeparator8"
-        Me.ToolStripSeparator8.Size = New System.Drawing.Size(177, 6)
+        Me.ToolStripSeparator9.Size = New System.Drawing.Size(179, 6)
         '
         'mi_1V8
         '
         Me.mi_1V8.Name = "mi_1V8"
-        Me.mi_1V8.Size = New System.Drawing.Size(180, 22)
+        Me.mi_1V8.Size = New System.Drawing.Size(182, 22)
         Me.mi_1V8.Text = "Voltage (1.8v)"
         '
         'mi_3V3
         '
         Me.mi_3V3.Name = "mi_3V3"
-        Me.mi_3V3.Size = New System.Drawing.Size(180, 22)
+        Me.mi_3V3.Size = New System.Drawing.Size(182, 22)
         Me.mi_3V3.Text = "Voltage (3.3v)"
         '
         'mi_5V0
         '
         Me.mi_5V0.Name = "mi_5V0"
-        Me.mi_5V0.Size = New System.Drawing.Size(180, 22)
+        Me.mi_5V0.Size = New System.Drawing.Size(182, 22)
         Me.mi_5V0.Text = "Voltage (5.0v)"
         '
         'ToolStripSeparator7
         '
         Me.ToolStripSeparator7.Name = "ToolStripSeparator7"
-        Me.ToolStripSeparator7.Size = New System.Drawing.Size(177, 6)
+        Me.ToolStripSeparator7.Size = New System.Drawing.Size(179, 6)
         '
         'mi_mode_spi
         '
         Me.mi_mode_spi.Name = "mi_mode_spi"
-        Me.mi_mode_spi.Size = New System.Drawing.Size(180, 22)
+        Me.mi_mode_spi.Size = New System.Drawing.Size(182, 22)
         Me.mi_mode_spi.Text = "SPI NOR FLASH"
         '
         'mi_mode_spi_nand
         '
         Me.mi_mode_spi_nand.Name = "mi_mode_spi_nand"
-        Me.mi_mode_spi_nand.Size = New System.Drawing.Size(180, 22)
+        Me.mi_mode_spi_nand.Size = New System.Drawing.Size(182, 22)
         Me.mi_mode_spi_nand.Text = "SPI NAND FLASH"
         '
         'mi_mode_spieeprom
         '
         Me.mi_mode_spieeprom.Name = "mi_mode_spieeprom"
-        Me.mi_mode_spieeprom.Size = New System.Drawing.Size(180, 22)
-        Me.mi_mode_spieeprom.Text = "SPI EEPROM"
+        Me.mi_mode_spieeprom.Size = New System.Drawing.Size(182, 22)
+        Me.mi_mode_spieeprom.Text = "Serial EEPROM"
         '
         'mi_mode_i2c
         '
         Me.mi_mode_i2c.Name = "mi_mode_i2c"
-        Me.mi_mode_i2c.Size = New System.Drawing.Size(180, 22)
+        Me.mi_mode_i2c.Size = New System.Drawing.Size(182, 22)
         Me.mi_mode_i2c.Text = "I2C EEPROM"
         '
         'mi_mode_1wire
         '
         Me.mi_mode_1wire.Name = "mi_mode_1wire"
-        Me.mi_mode_1wire.Size = New System.Drawing.Size(180, 22)
+        Me.mi_mode_1wire.Size = New System.Drawing.Size(182, 22)
         Me.mi_mode_1wire.Text = "1-Wire EEPROM"
         '
         'mi_mode_extio
         '
         Me.mi_mode_extio.Name = "mi_mode_extio"
-        Me.mi_mode_extio.Size = New System.Drawing.Size(180, 22)
-        Me.mi_mode_extio.Text = "EXTENSION I/O"
+        Me.mi_mode_extio.Size = New System.Drawing.Size(182, 22)
+        Me.mi_mode_extio.Text = "NOR / NAND FLASH"
+        '
+        'mi_mode_eprom_otp
+        '
+        Me.mi_mode_eprom_otp.Name = "mi_mode_eprom_otp"
+        Me.mi_mode_eprom_otp.Size = New System.Drawing.Size(182, 22)
+        Me.mi_mode_eprom_otp.Text = "EPROM OTP"
         '
         'mi_mode_jtag
         '
         Me.mi_mode_jtag.Name = "mi_mode_jtag"
-        Me.mi_mode_jtag.Size = New System.Drawing.Size(180, 22)
+        Me.mi_mode_jtag.Size = New System.Drawing.Size(182, 22)
         Me.mi_mode_jtag.Text = "JTAG Mode"
         '
         'mi_script_menu
@@ -453,7 +434,7 @@ Partial Class MainForm
         '
         'mi_Language
         '
-        Me.mi_Language.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_language_english, Me.mi_language_spanish, Me.mi_language_french, Me.mi_language_portuguese, Me.mi_language_russian})
+        Me.mi_Language.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_language_english, Me.mi_language_spanish, Me.mi_language_french, Me.mi_language_portuguese, Me.mi_language_russian, Me.mi_language_chinese, Me.mi_language_italian})
         Me.mi_Language.Name = "mi_Language"
         Me.mi_Language.Size = New System.Drawing.Size(71, 20)
         Me.mi_Language.Text = "Language"
@@ -462,36 +443,50 @@ Partial Class MainForm
         '
         Me.mi_language_english.Image = Global.FlashcatUSB.My.Resources.Resources.English
         Me.mi_language_english.Name = "mi_language_english"
-        Me.mi_language_english.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_english.Size = New System.Drawing.Size(134, 22)
         Me.mi_language_english.Text = "English"
         '
         'mi_language_spanish
         '
         Me.mi_language_spanish.Image = Global.FlashcatUSB.My.Resources.Resources.spain
         Me.mi_language_spanish.Name = "mi_language_spanish"
-        Me.mi_language_spanish.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_spanish.Size = New System.Drawing.Size(134, 22)
         Me.mi_language_spanish.Text = "Spanish"
         '
         'mi_language_french
         '
         Me.mi_language_french.Image = Global.FlashcatUSB.My.Resources.Resources.france
         Me.mi_language_french.Name = "mi_language_french"
-        Me.mi_language_french.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_french.Size = New System.Drawing.Size(134, 22)
         Me.mi_language_french.Text = "French"
         '
         'mi_language_portuguese
         '
         Me.mi_language_portuguese.Image = Global.FlashcatUSB.My.Resources.Resources.portugal
         Me.mi_language_portuguese.Name = "mi_language_portuguese"
-        Me.mi_language_portuguese.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_portuguese.Size = New System.Drawing.Size(134, 22)
         Me.mi_language_portuguese.Text = "Portuguese"
         '
         'mi_language_russian
         '
         Me.mi_language_russian.Image = Global.FlashcatUSB.My.Resources.Resources.russia
         Me.mi_language_russian.Name = "mi_language_russian"
-        Me.mi_language_russian.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_russian.Size = New System.Drawing.Size(134, 22)
         Me.mi_language_russian.Text = "Russian"
+        '
+        'mi_language_chinese
+        '
+        Me.mi_language_chinese.Image = Global.FlashcatUSB.My.Resources.Resources.china
+        Me.mi_language_chinese.Name = "mi_language_chinese"
+        Me.mi_language_chinese.Size = New System.Drawing.Size(134, 22)
+        Me.mi_language_chinese.Text = "Chinese"
+        '
+        'mi_language_italian
+        '
+        Me.mi_language_italian.Image = Global.FlashcatUSB.My.Resources.Resources.Italy
+        Me.mi_language_italian.Name = "mi_language_italian"
+        Me.mi_language_italian.Size = New System.Drawing.Size(134, 22)
+        Me.mi_language_italian.Text = "Italian"
         '
         'FlashStatus
         '
@@ -932,11 +927,7 @@ Partial Class MainForm
     Friend WithEvents mi_bitendian_big_32 As ToolStripMenuItem
     Friend WithEvents mi_bitendian_little_8 As ToolStripMenuItem
     Friend WithEvents mi_bitendian_little_16 As ToolStripMenuItem
-    Friend WithEvents ToolStripSeparator8 As ToolStripSeparator
     Friend WithEvents ToolStripSeparator9 As ToolStripSeparator
-    Friend WithEvents mi_vpp As ToolStripMenuItem
-    Friend WithEvents mi_so44_normal As ToolStripMenuItem
-    Friend WithEvents mi_so44_12v_write As ToolStripMenuItem
     Friend WithEvents mi_mode_1wire As ToolStripMenuItem
     Friend WithEvents mi_tools_menu As ToolStripMenuItem
     Friend WithEvents mi_create_img As ToolStripMenuItem
@@ -970,4 +961,7 @@ Partial Class MainForm
     Friend WithEvents mi_language_french As ToolStripMenuItem
     Friend WithEvents mi_language_portuguese As ToolStripMenuItem
     Friend WithEvents mi_language_russian As ToolStripMenuItem
+    Friend WithEvents mi_mode_eprom_otp As ToolStripMenuItem
+    Friend WithEvents mi_language_chinese As ToolStripMenuItem
+    Friend WithEvents mi_language_italian As ToolStripMenuItem
 End Class

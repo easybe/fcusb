@@ -2,6 +2,7 @@
 Imports FlashcatUSB.ECC_LIB
 
 Public Class FrmSettings
+    Private otp_devices As New List(Of FlashMemory.OTP_EPROM)
 
     Sub New()
         ' This call is required by the designer.
@@ -169,6 +170,31 @@ Public Class FrmSettings
                 cb_sym_width.SelectedIndex = 2
         End Select
         ECC_CheckIfEnabled()
+
+        Dim otp_index As Integer = 0
+        Dim otp_counter As Integer = 1
+        cb_otp_device_list.Items.Add("(Not Selected)")
+        Dim d() As FlashMemory.Device = FlashDatabase.GetFlashDevices(FlashMemory.MemoryType.PARALLEL_NOR)
+        For Each mem In d
+            If mem.GetType Is GetType(FlashMemory.OTP_EPROM) Then
+                Dim o As FlashMemory.OTP_EPROM = DirectCast(mem, FlashMemory.OTP_EPROM)
+                otp_devices.Add(o)
+                Dim size_str As String
+                If (o.FLASH_SIZE < 131072) Then
+                    size_str = (o.FLASH_SIZE / 128).ToString & "Kbit"
+                Else
+                    size_str = (o.FLASH_SIZE / 131072).ToString & "Mbit"
+                End If
+                Dim list_str As String = o.NAME & " (" & size_str & ")"
+                cb_otp_device_list.Items.Add(list_str)
+                If o.MFG_CODE = MySettings.OTP_MFG AndAlso o.ID1 = MySettings.OTP_ID Then
+                    otp_index = otp_counter
+                End If
+                otp_counter += 1
+            End If
+        Next
+        cb_otp_device_list.SelectedIndex = otp_index
+
         'BETA VERSION ONLY - DISABLE THESE
         MyTabs.TabPages.Remove(TP_JTAG)
     End Sub
@@ -206,6 +232,20 @@ Public Class FrmSettings
         gb_nandecc_title.Text = RM.GetString("nandecc_groupbox") '"Software ECC Feature"
         cb_rs_reverse_data.Text = RM.GetString("nandecc_revbyteorder") '"Reverse byte order"
         lbl_sym_width.Text = RM.GetString("nandecc_symwidth") '"Symbol width"
+
+
+
+
+        If MySettings.LanguageName = "Spanish" Then
+            cb_badmarker_1st_page1.Location = New Point(64, 45)
+            cb_badmarker_6th_page1.Location = New Point(64, 66)
+
+            cb_badmarker_1st_lastpage.Location = New Point(362, 45)
+
+        End If
+
+
+
     End Sub
 
     Private Sub FrmSettings_Closing(sender As Object, e As CancelEventArgs) Handles Me.Closing
@@ -247,6 +287,7 @@ Public Class FrmSettings
         If cb_badblock_enabled.Checked Then
             MySettings.NAND_BadBlockManager = FlashcatSettings.BadBlockMode.Enabled
         End If
+        MySettings.NAND_BadBlockMarkers = 0
         If cb_badmarker_1st_page1.Checked Then
             MySettings.NAND_BadBlockMarkers = MySettings.NAND_BadBlockMarkers Or (FlashcatSettings.BadBlockMarker._1stByte_FirstPage)
         End If
@@ -352,6 +393,15 @@ Public Class FrmSettings
                 MySettings.ECC_SymWidth = 9
             Case 2
                 MySettings.ECC_SymWidth = 10
+        End Select
+        Select Case cb_otp_device_list.SelectedIndex
+            Case 0
+                MySettings.OTP_MFG = 0
+                MySettings.OTP_ID = 0
+            Case Else
+                Dim o As FlashMemory.OTP_EPROM = otp_devices(cb_otp_device_list.SelectedIndex - 1)
+                MySettings.OTP_MFG = o.MFG_CODE
+                MySettings.OTP_ID = o.ID1
         End Select
     End Sub
 
@@ -825,6 +875,9 @@ Public Class FrmSettings
             cb_rs_reverse_data.Enabled = False
         End If
     End Sub
+
+
+
 
 #End Region
 

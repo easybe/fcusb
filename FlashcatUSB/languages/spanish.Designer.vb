@@ -2693,7 +2693,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Primera página de reserva.
+        '''  Looks up a localized string similar to Primera pág. de reserva.
         '''</summary>
         Friend Shared ReadOnly Property settings_blk_1stpage() As String
             Get
@@ -2702,7 +2702,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Segunda página de reserva.
+        '''  Looks up a localized string similar to Segunda pág. de reserva.
         '''</summary>
         Friend Shared ReadOnly Property settings_blk_2ndpage() As String
             Get
@@ -2729,7 +2729,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Habilitado (verificar si hay marcadores de bloque malos).
+        '''  Looks up a localized string similar to Habilitado (verificar si hay huellas de bloques malos).
         '''</summary>
         Friend Shared ReadOnly Property settings_blk_enabled() As String
             Get
@@ -2738,7 +2738,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Última página de reserva.
+        '''  Looks up a localized string similar to Última pág. de reserva.
         '''</summary>
         Friend Shared ReadOnly Property settings_blk_lastpage() As String
             Get

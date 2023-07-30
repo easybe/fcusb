@@ -64,7 +64,7 @@ Public Class DfuControl
         UpdateDfuStatusBar(0)
         SetStatus("Programming new AVR firmware over USB")
         Res = FCUSB.DFU_IF.EraseFlash()
-        If Not Res Then
+        If (Not Res) Then
             SetStatus("FlashcatUSB failed to connect to target board using JTAG")
             GoTo ExitAvrProg
         Else

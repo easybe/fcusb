@@ -36,7 +36,7 @@ Public Class MemControl_v2
     Public Property IN_OPERATION As Boolean = False
     Public Property USER_HIT_CANCEL As Boolean = False
     Public Property ECC_READ_ENABLED As Boolean = False 'Indicates the read-back is auto correcting 
-
+    Public Property MY_ACCESS As access_mode = access_mode.Writable
 
     Public ReadingParams As ReadParameters
     Public WritingParams As WriteParameters
@@ -199,12 +199,24 @@ Public Class MemControl_v2
         SetProgress(0)
         Editor.CreateHexViewer(Me.FlashBase, Me.FlashAvailable)
         txtAddress.Text = "0x0"
+        If access = access_mode.Writable Then
+            cmd_erase.Enabled = True
+            cmd_write.Enabled = True
+        ElseIf access = access_mode.WriteOnce Then
+            cmd_erase.Enabled = False
+            cmd_write.Enabled = True
+        ElseIf access = access_mode.ReadOnly Then
+            cmd_erase.Enabled = False
+            cmd_write.Enabled = False
+        End If
+        Me.MY_ACCESS = access
         RefreshView()
     End Sub
 
     Public Enum access_mode
         [ReadOnly] 'We can read but can not write
-        [ReadWrite]
+        [Writable]
+        [WriteOnce]
     End Enum
 
     Friend Class DynamicRangeBox
@@ -612,7 +624,7 @@ Public Class MemControl_v2
             Me.Invoke(d)
         Else
             If Me.EnableChipErase Then
-                cmd_erase.Enabled = True
+                If Me.MY_ACCESS = access_mode.Writable Then cmd_erase.Enabled = True
             Else
                 cmd_erase.Enabled = False
             End If
@@ -625,7 +637,11 @@ Public Class MemControl_v2
             Me.Invoke(d)
         Else
             cmd_read.Enabled = True
-            cmd_write.Enabled = True
+            If Me.MY_ACCESS = access_mode.Writable Then
+                cmd_write.Enabled = True
+            ElseIf Me.MY_ACCESS = access_mode.WriteOnce Then
+                cmd_write.Enabled = True
+            End If
             SetChipEraseButton()
             cmd_compare.Enabled = True
             cmd_read.Visible = True
@@ -924,7 +940,7 @@ Public Class MemControl_v2
                 Dim write_success As Boolean = False
                 WritingParams = New WriteParameters
                 WritingParams.Address = file_out.Offset
-                WritingParams.Count = file_out.Size
+                WritingParams.BytesLeft = file_out.Size
                 WritingParams.Verify = MySettings.VERIFY_WRITE
                 WritingParams.EraseSector = True
                 WritingParams.Memory_Area = Me.AreaSelected
@@ -1181,7 +1197,7 @@ Public Class MemControl_v2
             Dim fn As IO.FileInfo = Nothing
             Dim open_file_type As FileFilterIndex
             If Not OpenFileForWrite(fn, open_file_type) Then Exit Sub
-            If Not fn.Exists OrElse fn.Length = 0 Then
+            If (Not fn.Exists) OrElse (fn.Length = 0) Then
                 RaiseEvent SetStatus(RM.GetString("mc_wr_oper_file_err")) : Exit Sub
             End If
             RaiseEvent SetStatus(RM.GetString("mc_wr_oper_start"))
@@ -1216,6 +1232,8 @@ Public Class MemControl_v2
             FCUSB.USB_LEDBlink()
             Status_UpdateOper(4)
             Status_UpdateBase(0)
+            Status_UpdatePercent(0)
+            Status_UpdateSpeed("")
             Status_UpdateTask(RM.GetString("mem_erase_device"))
             RaiseEvent EraseMemory()
             RaiseEvent SetStatus(RM.GetString("mem_erase_device_success"))
@@ -1254,17 +1272,28 @@ Public Class MemControl_v2
             x.DataStream = x.FileName.OpenRead
         End If
         Dim BaseAddress As UInt32 = 0 'The starting address to write the data
-        If (x.Size = 0) Then
-            RaiseEvent SetStatus(String.Format(RM.GetString("mc_select_range"), FlashName))
-            Dim dbox As New DynamicRangeBox
-            Dim NumberToWrite As UInt32 = x.DataStream.Length 'The total number of bytes to write
-            If Not dbox.ShowRangeBox(BaseAddress, NumberToWrite, FlashAvailable) Then
-                RaiseEvent SetStatus(RM.GetString("mc_wr_user_canceled"))
+        If (Me.MY_ACCESS = access_mode.WriteOnce) Then 'We must write the whole file
+            Dim file_data_len As UInt32 = x.DataStream.Length
+            If (Not file_data_len = FlashAvailable) Then
+                MsgBox("The file selected must be the same size as the destination EPROM device (" & Format(FlashAvailable, "#,###") & " bytes).", MsgBoxStyle.Critical, "Invalid file")
+                RaiseEvent SetStatus("Invalid file selected for write operation")
                 Exit Sub
             End If
-            If NumberToWrite = 0 Then Exit Sub
-            x.Offset = BaseAddress
-            x.Size = NumberToWrite
+            x.Offset = 0
+            x.Size = file_data_len
+        Else
+            If (x.Size = 0) Then
+                RaiseEvent SetStatus(String.Format(RM.GetString("mc_select_range"), FlashName))
+                Dim dbox As New DynamicRangeBox
+                Dim NumberToWrite As UInt32 = x.DataStream.Length 'The total number of bytes to write
+                If Not dbox.ShowRangeBox(BaseAddress, NumberToWrite, FlashAvailable) Then
+                    RaiseEvent SetStatus(RM.GetString("mc_wr_user_canceled"))
+                    Exit Sub
+                End If
+                If NumberToWrite = 0 Then Exit Sub
+                x.Offset = BaseAddress
+                x.Size = NumberToWrite
+            End If
         End If
         RaiseEvent SetStatus(String.Format(RM.GetString("mc_wr_oper_status"), x.FileName.Name, FlashName, Format(x.Size, "#,###")))
         x.DataStream.Position = 0

@@ -276,7 +276,7 @@ Public Class MemoryInterface
                 Me.NoErrors = True
                 Dim f_params As New WriteParameters
                 f_params.Address = Address
-                f_params.Count = Data.Length
+                f_params.BytesLeft = Data.Length
                 f_params.Memory_Area = memory_area
                 f_params.Verify = MySettings.VERIFY_WRITE
                 If callback IsNot Nothing Then
@@ -385,6 +385,7 @@ Public Class MemoryInterface
         End Function
 
         Private Function WriteBytes_Volatile(ByVal data_stream As IO.Stream, ByVal Params As WriteParameters) As Boolean
+            Params.Timer.Start()
             Dim BlockSize As Integer = 4096
             If Not FCUSB.EJ_IF.TargetDevice.DMA_SUPPORTED Then BlockSize = 1024
             Dim BytesLeft As Integer = data_stream.Length
@@ -401,7 +402,7 @@ Public Class MemoryInterface
                     Params.Status.UpdateSpeed.DynamicInvoke(Format(Math.Round(BytesTransfered / (Params.Timer.ElapsedMilliseconds / 1000)), "#,###") & " Bytes/s")
                 End If
                 If Params.Status.UpdatePercent IsNot Nothing Then
-                    Dim percent_done As Single = CSng((BytesTransfered / Params.Count) * 100)
+                    Dim percent_done As Single = CSng((BytesTransfered / Params.BytesLeft) * 100)
                     Params.Status.UpdatePercent.DynamicInvoke(CInt(percent_done))
                 End If
                 BytesTransfered += BytesThisPacket
@@ -412,9 +413,8 @@ Public Class MemoryInterface
 
         Private Function WriteBytes_NonVolatile(ByVal data_stream As IO.Stream, ByRef Params As WriteParameters) As Boolean
             Me.WaitUntilReady() 'Some flash devices requires us to wait before sending data
-            Dim BytesTransfered As UInt32 = 0
             Dim TotalSectors As UInt32 = GetSectorCount()
-            Dim TotalSize As UInt32 = Params.Count 'Total size of the data we are writing
+            Params.BytesTotal = Params.BytesLeft 'Total size of the data we are writing
             Dim percent_done As Single = 0
             For i As UInt32 = 0 To (TotalSectors - 1)
                 Dim sector As SectorInfo = GetSectorInfo(i, Params.Memory_Area)
@@ -423,7 +423,7 @@ Public Class MemoryInterface
                 If (Params.Address >= sector_start) And (Params.Address <= sector_end) Then 'This sector contains data we want to change
                     Dim SectorData(sector.Size - 1) As Byte 'The array that will contain the sector data to write
                     Dim SectorStart As UInt32 = Params.Address - sector.BaseAddress 'This is where in the sector we are going to fill from stream
-                    Dim SectorEnd As UInt32 = Math.Min(sector.Size, (SectorStart + Params.Count)) - 1  'This is where we will stop filling from stream
+                    Dim SectorEnd As UInt32 = Math.Min(sector.Size, (SectorStart + Params.BytesLeft)) - 1  'This is where we will stop filling from stream
                     Dim StreamCount As UInt32 = (SectorEnd - SectorStart) + 1 'This is the number of bytes we are going to read for this sector
                     If (SectorStart > 0) Then 'We need to fill beginning
                         Dim data_segment() As Byte = ReadFlash(sector.BaseAddress, SectorStart, Params.Memory_Area)
@@ -442,12 +442,12 @@ Public Class MemoryInterface
                     If Not Me.NoErrors Then Return False
                     Threading.Thread.CurrentThread.Join(10) 'Pump a message
                     If WriteResult Then
-                        BytesTransfered += SectorData.Length
-                        Params.Count -= StreamCount
+                        Params.BytesWritten += SectorData.Length
+                        Params.BytesLeft -= StreamCount
                         Params.Address = sector.BaseAddress + sector.Size
-                        percent_done = CSng(CSng((BytesTransfered) / CSng(TotalSize)) * 100)
+                        percent_done = CSng(CSng((Params.BytesWritten) / CSng(Params.BytesTotal)) * 100)
                         If Params.Status.UpdateSpeed IsNot Nothing Then
-                            Dim speed_str As String = Format(Math.Round(BytesTransfered / (Params.Timer.ElapsedMilliseconds / 1000)), "#,###") & " Bytes/s"
+                            Dim speed_str As String = Format(Math.Round(Params.BytesWritten / (Params.Timer.ElapsedMilliseconds / 1000)), "#,###") & " Bytes/s"
                             Params.Status.UpdateSpeed.DynamicInvoke(speed_str)
                         End If
                         If Params.Status.UpdatePercent IsNot Nothing Then
@@ -466,7 +466,7 @@ Public Class MemoryInterface
                             Return False
                         End If
                     End If
-                    If Params.Count = 0 Then data_stream.Dispose() : Exit For
+                    If Params.BytesLeft = 0 Then data_stream.Dispose() : Exit For
                 End If
             Next
             Return True 'Operation was successful
@@ -474,14 +474,14 @@ Public Class MemoryInterface
 
         Private Function WriteBytes_I2C(ByVal data_stream As IO.Stream, ByRef Params As WriteParameters) As Boolean
             Try
-                Dim TotalSize As UInt32 = Params.Count
+                Dim TotalSize As UInt32 = Params.BytesLeft
                 Dim BytesPerPacket As UInt32 = PreferredBlockSize
                 Dim percent_done As Single = 0
                 Dim BytesTransfered As UInt32 = 0
-                Do While Params.Count > 0
+                Do While Params.BytesLeft > 0
                     If Params.AbortOperation Then Return False
                     Threading.Thread.CurrentThread.Join(10)
-                    Dim PacketSize As UInt16 = Math.Min(Params.Count, BytesPerPacket)
+                    Dim PacketSize As UInt16 = Math.Min(Params.BytesLeft, BytesPerPacket)
                     Dim packet_data(PacketSize - 1) As Byte
                     data_stream.Read(packet_data, 0, PacketSize) 'Reads data from the stream
                     If Params.Status.UpdateTask IsNot Nothing Then
@@ -532,7 +532,7 @@ Public Class MemoryInterface
                     End If
                     If write_result Then
                         BytesTransfered += PacketSize
-                        Params.Count -= PacketSize
+                        Params.BytesLeft -= PacketSize
                         Params.Address += PacketSize
                         percent_done = CSng(CSng((BytesTransfered) / CSng(TotalSize)) * 100)
                         If Params.Status.UpdateSpeed IsNot Nothing Then
@@ -594,7 +594,7 @@ Public Class MemoryInterface
                         Dim wr_label As String = String.Format(RM.GetString("mem_writing_memory"), Format(data.Length, "#,###"))
                         Params.Status.UpdateTask.DynamicInvoke(wr_label)
                     End If
-                    WriteSector(sector, data, Params.Memory_Area, Params.Timer)
+                    WriteSector(sector, data, Params)
                     If Params.AbortOperation Then Return False
                     If Not Me.NoErrors Then Return False
                     If Params.Verify Then 'Verify is enabled and we are monitoring this
@@ -603,6 +603,10 @@ Public Class MemoryInterface
                         End If
                         If Params.Status.UpdateTask IsNot Nothing Then
                             Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_data"))
+                        End If
+                        Application.DoEvents()
+                        If (Me.FlashType = MemoryType.PARALLEL_NOR) Then
+                            Utilities.Sleep(200) 'Some older devices need a delay here after writing data (such as AM29F040B)
                         End If
                         ReadResult = VerifyDataSub(Params.Address, data, Params.Memory_Area)
                         If Params.AbortOperation Then Return False
@@ -628,6 +632,16 @@ Public Class MemoryInterface
                                     Dim page_addr As UInt32 = GetNandPageAddress(n_dev, Params.Address, Params.Memory_Area)
                                     Dim block_addr As UInt32 = Math.Floor(page_addr / pages_per_block)
                                     RaiseEvent PrintConsole(String.Format(RM.GetString("mem_bad_nand_block"), Hex(page_addr).PadLeft(6, "0"), block_addr))
+                                    Return False
+                                ElseIf (flashtype = FlashMemory.MemoryType.PARALLEL_NOR) AndAlso (FCUSB.EXT_IF.MyFlashDevice.GetType Is GetType(OTP_EPROM)) Then
+                                    RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(Params.Address)))
+                                    If Params.Status.UpdateOperation IsNot Nothing Then
+                                        Params.Status.UpdateOperation.DynamicInvoke(5) 'ERROR IMG
+                                    End If
+                                    If Params.Status.UpdateTask IsNot Nothing Then
+                                        Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_failed"))
+                                        Utilities.Sleep(1000)
+                                    End If
                                     Return False
                                 Else
                                     RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(Params.Address)))
@@ -842,29 +856,29 @@ Public Class MemoryInterface
             End Try
         End Sub
 
-        Public Sub WriteSector(ByVal sector_index As Integer, ByVal Data() As Byte, ByVal area As FlashArea, ByRef SW As Stopwatch)
+        Public Sub WriteSector(ByVal sector_index As Integer, ByVal Data() As Byte, ByRef Params As WriteParameters)
             If Not WaitForNotBusy() Then Exit Sub
             Try : Me.IsWriting = True
                 Threading.Monitor.Enter(InterfaceLock)
                 Dim DataToWrite(Data.Length - 1) As Byte
                 Array.Copy(Data, DataToWrite, Data.Length)
                 BitSwap_Forward(DataToWrite)
-                SW.Start()
+                If Params IsNot Nothing Then Params.Timer.Start()
                 Select Case Me.FlashType
                     Case MemoryType.SERIAL_NOR 'SPI
-                        Me.NoErrors = FCUSB.SPI_NOR_IF.Sector_Write(sector_index, DataToWrite, area)
+                        Me.NoErrors = FCUSB.SPI_NOR_IF.Sector_Write(sector_index, DataToWrite, Params)
                     Case MemoryType.SERIAL_NAND
-                        Me.NoErrors = FCUSB.SPI_NAND_IF.Sector_Write(sector_index, DataToWrite, area)
+                        Me.NoErrors = FCUSB.SPI_NAND_IF.Sector_Write(sector_index, DataToWrite, Params)
                     Case MemoryType.PARALLEL_NOR
-                        Me.NoErrors = FCUSB.EXT_IF.Sector_Write(sector_index, DataToWrite, area)
+                        Me.NoErrors = FCUSB.EXT_IF.Sector_Write(sector_index, DataToWrite, Params)
                     Case MemoryType.SLC_NAND
-                        Me.NoErrors = FCUSB.EXT_IF.Sector_Write(sector_index, DataToWrite, area)
+                        Me.NoErrors = FCUSB.EXT_IF.Sector_Write(sector_index, DataToWrite, Params)
                     Case MemoryType.JTAG_DMA_CFI
                         Me.NoErrors = FCUSB.EJ_IF.CFI_Sector_Write(sector_index, DataToWrite)
                     Case MemoryType.JTAG_SPI
                         Me.NoErrors = FCUSB.EJ_IF.SPI_WriteSector(sector_index, DataToWrite)
                 End Select
-                SW.Stop()
+                If Params IsNot Nothing Then Params.Timer.Stop()
             Finally
                 Threading.Monitor.Exit(InterfaceLock)
                 Me.IsWriting = False

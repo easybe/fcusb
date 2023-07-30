@@ -1074,19 +1074,19 @@
     <value>1er byte:</value>
   </data>
   <data name="settings_blk_1stpage" xml:space="preserve">
-    <value>Primera página de reserva</value>
+    <value>Primera pág. de reserva</value>
   </data>
   <data name="settings_blk_2ndpage" xml:space="preserve">
-    <value>Segunda página de reserva</value>
+    <value>Segunda pág. de reserva</value>
   </data>
   <data name="settings_blk_6thbyte" xml:space="preserve">
     <value>6to byte:</value>
   </data>
   <data name="settings_blk_enabled" xml:space="preserve">
-    <value>Habilitado (verificar si hay marcadores de bloque malos)</value>
+    <value>Habilitado (verificar si hay huellas de bloques malos)</value>
   </data>
   <data name="settings_blk_lastpage" xml:space="preserve">
-    <value>Última página de reserva</value>
+    <value>Última pág. de reserva</value>
   </data>
   <data name="mem_erase_failed_at" xml:space="preserve">
     <value>Error al borrar Flash en la dirección: 0x{0} (índice del sector: {1})</value>

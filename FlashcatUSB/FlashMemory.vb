@@ -22,6 +22,7 @@ Namespace FlashMemory
         Public Const Gb002 As UInt32 = 268435456
         Public Const Gb004 As UInt32 = 536870912
         Public Const Gb008 As UInt32 = 1073741824
+        Public Const Gb016 As UInt32 = 2147483648
     End Module
 
     Public Enum MemoryType
@@ -69,8 +70,10 @@ Namespace FlashMemory
         UNKNOWN
         X8_3V
         X8_5V
+        X8_5V_12V 'Requires 12V ERASE/PROGRAM
         X16_3V
         X16_5V
+        X16_5V_12V 'Requires 12V ERASE/PROGRAM
     End Enum
 
     Public Enum MFP_BLKLAYOUT
@@ -169,6 +172,32 @@ Namespace FlashMemory
 
     End Interface
 
+    Public Class OTP_EPROM
+        Implements Device
+
+        Public ReadOnly Property NAME As String Implements Device.NAME
+        Public ReadOnly Property MFG_CODE As Byte Implements Device.MFG_CODE
+        Public ReadOnly Property ID1 As UInt16 Implements Device.ID1
+        Public Property ID2 As UInt16 = 0 Implements Device.ID2 'Not used
+        Public ReadOnly Property FLASH_TYPE As MemoryType = MemoryType.PARALLEL_NOR Implements Device.FLASH_TYPE
+        Public ReadOnly Property FLASH_SIZE As UInt32 Implements Device.FLASH_SIZE
+        Public ReadOnly Property Sector_Count As UInt32 = 1 Implements Device.Sector_Count 'We will have to write the entire array
+        Public Property PAGE_SIZE As UInt32 = 0 Implements Device.PAGE_SIZE 'Not used
+        Public Property ERASE_REQUIRED As Boolean = False Implements Device.ERASE_REQUIRED
+        Public Property IS_BLANK As Boolean = False 'On init, do blank check
+        Public Property HARDWARE_DELAY As UInt16 = 100 'uS wait after each word program
+        Public Property IFACE As MFP_IF = MFP_IF.UNKNOWN
+
+        Sub New(f_name As String, MFG As Byte, ID1 As UInt16, f_size As UInt32, f_if As MFP_IF)
+            Me.NAME = f_name
+            Me.MFG_CODE = MFG
+            Me.ID1 = ID1
+            Me.FLASH_SIZE = f_size
+            Me.IFACE = f_if
+        End Sub
+
+    End Class
+
     Public Class MFP_Flash
         Implements Device
         Public ReadOnly Property NAME As String Implements Device.NAME
@@ -180,6 +209,7 @@ Namespace FlashMemory
         Public Property PAGE_SIZE As UInt32 = 32 Implements Device.PAGE_SIZE 'Only used for WRITE_PAGE mode of certain flash devices
         Public Property ERASE_REQUIRED As Boolean = True Implements Device.ERASE_REQUIRED
         Public Property WriteMode As MFP_PROG = MFP_PROG.Standard 'This indicates the perfered programing method
+        Public Property RESET_ENABLED As Boolean = True 'Indicates if we will call reset/read mode op code
         Public Property HARDWARE_DELAY As UInt16 = 10 'Number of hardware uS to wait between write operations
         Public Property SOFTWARE_DELAY As UInt16 = 100 'Number of software ms to wait between write operations
         Public Property ERASE_DELAY As UInt16 = 250 'Number of ms to wait after an erase operation
@@ -331,7 +361,7 @@ Namespace FlashMemory
         Public Property QUAD As SPI_QUADMODE = SPI_QUADMODE.NotSupported 'SQI mode
         Public Property ProgramMode As SPI_ProgramMode
         Public Property STACKED_DIES As UInt32 = 1 'If device has more than one die, set this value
-        Public Property SEND_EN4B As Boolean = False 'Set to True to send the EN4B
+        Public Property SEND_EN4B As Boolean = False 'Set to True to send the EN4BSP
         Public Property SEND_RDFS As Boolean = False 'Set to True to read the flag status register
         Public Property ERASE_SIZE As UInt32 = &H10000 'Number of bytes per page that are erased(typically 64KB)
         Public Property VENDOR_SPECIFIC As VENDOR_FEATURE = VENDOR_FEATURE.NotSupported 'Indicates we can load a unique vendor specific tab
@@ -530,11 +560,13 @@ Namespace FlashMemory
             Me.PAGE_SIZE = PageSize 'Does not include extended / spare pages
             Me.EXT_PAGE_SIZE = SpareSize
             Me.MFG_CODE = MFG
-            While ((ID And &HFF000000UI) = 0)
-                ID = (ID << 8)
-            End While
-            Me.ID1 = (ID >> 16)
-            Me.ID2 = (ID And &HFFFF)
+            If Not ID = 0 Then
+                While ((ID And &HFF000000UI) = 0)
+                    ID = (ID << 8)
+                End While
+                Me.ID1 = (ID >> 16)
+                Me.ID2 = (ID And &HFFFF)
+            End If
             Me.FLASH_SIZE = m_size 'Does not include extended /spare areas
             Me.BLOCK_SIZE = BlockSize
             Me.ERASE_REQUIRED = True
@@ -550,6 +582,7 @@ Namespace FlashMemory
             SPINAND_Database() 'Adds all of the SPI NAND devices
             MFP_Database() 'Adds all of the TSOP/PLCC etc. devices
             NAND_Database() 'Adds all of the SLC NAND (x8) compatible devices
+            OTP_Database() 'Adds all of the OTP EPROM devices
             'Add device specific features
             Dim MT25QL02GC As SPI_NOR_FLASH = FindDevice(&H20, &HBA22, 0, MemoryType.SERIAL_NOR)
             MT25QL02GC.QUAD = SPI_QUADMODE.all_quadio
@@ -720,6 +753,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q40", Mb004, &HEF, &H4013))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q128FW", Mb128, &HEF, &H6018))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q64FW", Mb064, &HEF, &H6017))
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q64JV", Mb064, &HEF, &H7017))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q32FW", Mb032, &HEF, &H6016))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q16FW", Mb016, &HEF, &H6015))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q08EW", Mb008, &HEF, &H6014))
@@ -732,6 +766,8 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25X20", Mb002, &HEF, &H3012))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25X10", Mb002, &HEF, &H3011))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25X05", Mb001, &HEF, &H3010))
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25M121AV", 0, 0)) 'Contains a NOR die and NAND die
+
             'MXIC
             FlashDB.Add(New SPI_NOR_FLASH("MXIC MX25L51245G", Mb512, &HC2, &H201A) With {.SEND_EN4B = True}) 'Added (Build 372)
             FlashDB.Add(New SPI_NOR_FLASH("MXIC MX25L25655E", Mb256, &HC2, &H2619) With {.SEND_EN4B = True}) 'Added (Build 371)
@@ -790,6 +826,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("EON EN25T80", Mb008, &H1C, &H5114))
             FlashDB.Add(New SPI_NOR_FLASH("EON EN25T40", Mb004, &H1C, &H5113))
             FlashDB.Add(New SPI_NOR_FLASH("EON EN25T20", Mb002, &H1C, &H5112))
+            FlashDB.Add(New SPI_NOR_FLASH("EON EN25F10", Mb001, &H1C, &H3111))
             'Microchip / Silicon Storage Technology (SST) / PCT Group (Rebranded)
             'http://www.microchip.com/pagehandler/en-us/products/memory/flashmemory/sfhome.html
             FlashDB.Add(New SPI_NOR_FLASH("Microchip SST26VF064B", Mb064, &HBF, &H2643)) 'SST26VF064BA
@@ -992,6 +1029,8 @@ Namespace FlashMemory
         Private Sub MFP_Database()
             'https://github.com/jhcloos/flashrom/blob/master/flashchips.h
             'Intel
+            FlashDB.Add(New MFP_Flash("Intel A28F512", &H89, &HB8, Kb512, MFP_IF.X8_5V_12V, MFP_BLKLAYOUT.EntireDevice, MFP_PROG.Standard, MFP_DELAY.uS))
+
             FlashDB.Add(New MFP_Flash("Intel 28F320J3", &H89, &H16, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer1, MFP_DELAY.SR1)) '32 byte buffers
             FlashDB.Add(New MFP_Flash("Intel 28F640J3", &H89, &H17, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer1, MFP_DELAY.SR1))
             FlashDB.Add(New MFP_Flash("Intel 28F128J3", &H89, &H18, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer1, MFP_DELAY.SR1)) 'TESTING
@@ -1017,10 +1056,11 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Intel 28F640B3(T)", &H89, &H8898, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.IntelSharp, MFP_DELAY.SR1))
             FlashDB.Add(New MFP_Flash("Intel 28F640B3(B)", &H89, &H8899, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.IntelSharp, MFP_DELAY.SR1))
             'AMD
-            FlashDB.Add(New MFP_Flash("AMD AM29F010B", &H1, &H20, Mb001, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb128_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
-            FlashDB.Add(New MFP_Flash("AMD AM29F040B", &H20, &HE2, Mb004, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.uS)) 'Why is this not: 01 A4? (PLCC32 and DIP32 tested)
-            FlashDB.Add(New MFP_Flash("AMD AM29F080B", &H1, &HD5, Mb008, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.uS)) 'TSOP40
+            FlashDB.Add(New MFP_Flash("AMD AM29F010B", &H1, &H20, Mb001, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb128_Uni, MFP_PROG.Standard, MFP_DELAY.uS) With {.ERASE_DELAY = 500, .RESET_ENABLED = False})
+            FlashDB.Add(New MFP_Flash("AMD AM29F040B", &H20, &HE2, Mb004, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.uS) With {.ERASE_DELAY = 500, .RESET_ENABLED = False}) 'Why is this not: 01 A4? (PLCC32 and DIP32 tested)
+            FlashDB.Add(New MFP_Flash("AMD AM29F080B", &H1, &HD5, Mb008, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.uS) With {.ERASE_DELAY = 500, .RESET_ENABLED = False}) 'TSOP40
             FlashDB.Add(New MFP_Flash("AMD AM29F016D", &H1, &HAD, Mb016, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.BypassMode, MFP_DELAY.uS)) 'TSOP40 CV
+            FlashDB.Add(New MFP_Flash("AMD AM29F032B", &H4, &HD4, Mb032, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.uS)) 'TSOP40 CV (wrong MFG ID?)
             FlashDB.Add(New MFP_Flash("AMD AM29LV200(T)", &H1, &H223B, Mb002, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("AMD AM29LV200(B)", &H1, &H22BF, Mb002, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("AMD AM29F200(T)", &H1, &H2251, Mb002, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS))
@@ -1047,7 +1087,7 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("AMD AM29LV320M(B)", &H1, &H2200, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.BypassMode, MFP_DELAY.uS))
             'Winbond
             FlashDB.Add(New MFP_Flash("Winbond W49F002U", &HDA, &HB, Mb002, MFP_IF.X8_5V, MFP_BLKLAYOUT.Mb002_NonUni, MFP_PROG.Standard, MFP_DELAY.uS) With {.PAGE_SIZE = 128, .HARDWARE_DELAY = 18})
-            FlashDB.Add(New MFP_Flash("Winbond W29EE512", &HDA, &HC8, Kb512, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb256_Uni, MFP_PROG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 128, .HARDWARE_DELAY = 20, .ERASE_REQUIRED = False})
+            FlashDB.Add(New MFP_Flash("Winbond W29EE512", &HDA, &HC8, Kb512, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb256_Uni, MFP_PROG.PageMode, MFP_DELAY.DQ7) With {.PAGE_SIZE = 128, .ERASE_REQUIRED = False, .RESET_ENABLED = False})
             FlashDB.Add(New MFP_Flash("Winbond W29C010", &HDA, &HC1, Mb001, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb256_Uni, MFP_PROG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 128, .ERASE_REQUIRED = False})
             FlashDB.Add(New MFP_Flash("Winbond W29C020", &HDA, &H45, Mb002, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb256_Uni, MFP_PROG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 128, .ERASE_REQUIRED = False})
             FlashDB.Add(New MFP_Flash("Winbond W29C040", &HDA, &H46, Mb004, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb256_Uni, MFP_PROG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 256, .ERASE_REQUIRED = False})
@@ -1062,8 +1102,8 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("SST 39LF040", &HBF, &HD7, Mb004, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb032_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("SST 39VF800", &HBF, &H2781, Mb008, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb032_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("SST 39VF160", &HBF, &H2782, Mb016, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb032_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
-            FlashDB.Add(New MFP_Flash("SST 39VF1681", &HBF, &HC8, Mb016, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb032_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
-            FlashDB.Add(New MFP_Flash("SST 39VF1682", &HBF, &HC9, Mb016, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb032_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
+            FlashDB.Add(New MFP_Flash("SST 39VF1681", &HBF, &HC8, Mb016, MFP_IF.X8_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.uS)) 'Verified 520
+            FlashDB.Add(New MFP_Flash("SST 39VF1682", &HBF, &HC9, Mb016, MFP_IF.X8_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("SST 39VF1601", &HBF, &H234B, Mb016, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb032_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("SST 39VF1602", &HBF, &H234A, Mb016, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb032_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("SST 39VF1602C", &HBF, &H234E, Mb016, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb032_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
@@ -1072,7 +1112,7 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("SST 39VF6401", &HBF, &H236B, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb032_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("SST 39VF6402", &HBF, &H236A, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb032_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
             'Atmel
-            FlashDB.Add(New MFP_Flash("Atmel AT29C010A", &H1F, &HD5, Mb001, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb256_Uni, MFP_PROG.PageMode, MFP_DELAY.mS) With {.ERASE_REQUIRED = False, .PAGE_SIZE = 128})
+            FlashDB.Add(New MFP_Flash("Atmel AT29C010A", &H1F, &HD5, Mb001, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb256_Uni, MFP_PROG.PageMode, MFP_DELAY.DQ7) With {.ERASE_REQUIRED = False, .PAGE_SIZE = 128, .RESET_ENABLED = False})
             FlashDB.Add(New MFP_Flash("Atmel AT49F512", &H1F, &H3, Kb512, MFP_IF.X8_5V, MFP_BLKLAYOUT.EntireDevice, MFP_PROG.Standard, MFP_DELAY.uS)) 'No SE, only BE
             FlashDB.Add(New MFP_Flash("Atmel AT49F010", &H1F, &H17, Mb001, MFP_IF.X8_5V, MFP_BLKLAYOUT.EntireDevice, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("Atmel AT49F020", &H1F, &HB, Mb002, MFP_IF.X8_5V, MFP_BLKLAYOUT.EntireDevice, MFP_PROG.Standard, MFP_DELAY.uS))
@@ -1161,6 +1201,8 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("ST M28W320BB", &H20, &H88BD, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.IntelSharp, MFP_DELAY.SR1))
             FlashDB.Add(New MFP_Flash("ST M29W320DT", &H20, &H22CA, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.IntelSharp, MFP_DELAY.SR1))
             FlashDB.Add(New MFP_Flash("ST M29W320DB", &H20, &H22CB, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.IntelSharp, MFP_DELAY.SR1))
+            FlashDB.Add(New MFP_Flash("ST M29W320ET", &H20, &H2256, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.IntelSharp, MFP_DELAY.SR1))
+            FlashDB.Add(New MFP_Flash("ST M29W320EB", &H20, &H2257, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.IntelSharp, MFP_DELAY.SR1))
             FlashDB.Add(New MFP_Flash("ST M28W640ECT", &H20, &H8848, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.IntelSharp, MFP_DELAY.SR1))
             FlashDB.Add(New MFP_Flash("ST M28W640ECB", &H20, &H8849, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.IntelSharp, MFP_DELAY.SR1))
             FlashDB.Add(New MFP_Flash("ST M58LW064D", &H20, &H17, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.IntelSharp, MFP_DELAY.SR1))
@@ -1265,27 +1307,42 @@ Namespace FlashMemory
             FlashDB.Add(New NAND_Flash("Micron NAND01GR3A", &H20, &H392039, Gb001, 512, 16, Kb128))
             FlashDB.Add(New NAND_Flash("Micron NAND01GW3A", &H20, &H792079, Gb001, 512, 16, Kb128))
             FlashDB.Add(New NAND_Flash("Micron NAND04GW3B", &H20, &HDC1095, Gb004, 2048, 64, Mb001))
+            FlashDB.Add(New NAND_Flash("Micron NAND04GW3B", &H20, &HDC1095, Gb004, 2048, 64, Mb001))
+            FlashDB.Add(New NAND_Flash("Micron NAND04GW3B", &H20, &HDC1095, Gb004, 2048, 64, Mb001))
+            FlashDB.Add(New NAND_Flash("Micron NAND04GW3B", &H20, &HDC1095, Gb004, 2048, 64, Mb001))
+            FlashDB.Add(New NAND_Flash("Micron NAND04GW3B", &H20, &HDC1095, Gb004, 2048, 64, Mb001))
+            FlashDB.Add(New NAND_Flash("Micron NAND04GW3B", &H20, &HDC1095, Gb004, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Micron MT29F2G08AAB", &H2C, &HDA0015, Gb002, 2048, 64, Mb001))
-            FlashDB.Add(New NAND_Flash("Micron MT29F4G08BAB", &H2C, &HDC0015, Gb004, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Micron MT29F1G08ABAEA", &H2C, &HF1809504UI, Gb001, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Micron MT29F1G08ABBEA", &H2C, &HA1801504UI, Gb001, 2048, 64, Mb001))
-            FlashDB.Add(New NAND_Flash("Micron MT29F1G08ABADAWP", &H2C, &HF1009582UI, Gb001, 2048, 64, Mb001)) 'Verify here
+            FlashDB.Add(New NAND_Flash("Micron MT29F1G08ABADAWP", &H2C, &HF1009582UI, Gb001, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Micron MT29F2G08ABBFA", &H2C, &HAA901504UI, Gb002, 2048, 224, Mb001))
             FlashDB.Add(New NAND_Flash("Micron MT29F2G08ABAFA", &H2C, &HDA909504UI, Gb002, 2048, 224, Mb001))
-            FlashDB.Add(New NAND_Flash("Micron MT29F4G08AAA", &H2C, &HDC909554UI, Gb004, 2048, 64, Mb001)) '3v
-            FlashDB.Add(New NAND_Flash("Micron MT29F8G08BAA", &H2C, &HD3D19558UI, Gb008, 2048, 64, Mb001)) '3v
             FlashDB.Add(New NAND_Flash("Micron MT29F2G08ABBEA", &H2C, &HAA901560UI, Gb002, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Micron MT29F2G08ABAEA", &H2C, &HDA909560UI, Gb002, 2048, 64, Mb001))
+            FlashDB.Add(New NAND_Flash("Micron MT29F4G08BAB", &H2C, &HDC0015, Gb004, 2048, 64, Mb001))
+            FlashDB.Add(New NAND_Flash("Micron MT29F4G08AAA", &H2C, &HDC909554UI, Gb004, 2048, 64, Mb001)) '3v
+            FlashDB.Add(New NAND_Flash("Micron MT29F4G08ABA", &H2C, &HDC909556UI, Gb004, 2048, 64, Mb001))
+            FlashDB.Add(New NAND_Flash("Micron MT29F8G08BAA", &H2C, &HD3D19558UI, Gb008, 2048, 64, Mb001)) '3v
+
+            'FlashDB.Add(New NAND_Flash("Micron MT29F4G08ABA", &H2C, &HDC0095D6UI, Gb004, 2048, 64, Mb001))
+            'FlashDB.Add(New NAND_Flash("Micron MT29F4G08ABADAWP", &H2C, &HF1809502UI, Gb004, 2048, 64, Mb001))
+            'FlashDB.Add(New NAND_Flash("Micron MT29F4G08ABADA", &H2C, &H90A0B0CUI, Gb002, 2048, 64, Mb001)) 'Verifying?
+
+
             'Toshiba SLC 8x NAND devices
             FlashDB.Add(New NAND_Flash("Toshiba TC58DVM92A5TA10", &H98, &H76A5C029UI, Mb512, 512, 16, Kb128))
+            FlashDB.Add(New NAND_Flash("Toshiba TC58BVG0S3HTA00", &H98, &HF08014F2UI, Gb001, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Toshiba TC58NVG0S3HTA00", &H98, &HF1801572UI, Gb001, 2048, 128, Mb001))
             FlashDB.Add(New NAND_Flash("Toshiba TC58NVG0S3HTAI0", &H98, &HF1801572UI, Gb001, 2048, 128, Mb001))
             FlashDB.Add(New NAND_Flash("Toshiba TC58NVG1S3HTA00", &H98, &HDA901576UI, Gb002, 2048, 128, Mb001))
             FlashDB.Add(New NAND_Flash("Toshiba TC58NVG1S3HTAI0", &H98, &HDA901576UI, Gb002, 2048, 128, Mb001))
             FlashDB.Add(New NAND_Flash("Toshiba TC58NVG2S0HTA00", &H98, &HDC902676UI, Gb004, 4096, 256, Mb001)) 'CHECK
             FlashDB.Add(New NAND_Flash("Toshiba TC58NVG2S0HTAI0", &H98, &HDC902676UI, Gb004, 4096, 256, Mb001))
+            FlashDB.Add(New NAND_Flash("Toshiba TC58BVG2S0HTAI0", &H98, &HDC9026F6UI, Gb004, 4096, 128, Mb002)) 'CV (ECC INTERNAL)
             FlashDB.Add(New NAND_Flash("Toshiba TH58NVG3S0HTA00", &H98, &HD3912676UI, Gb008, 4096, 256, Mb001))
             FlashDB.Add(New NAND_Flash("Toshiba TH58NVG3S0HTAI0", &H98, &HD3912676UI, Gb008, 2048, 128, Mb001))
+
             'Winbond SLC 8x NAND devices
             FlashDB.Add(New NAND_Flash("Winbond W29N01GV", &HEF, &HF1809500UI, Gb001, 2048, 64, Mb001)) '3v
             FlashDB.Add(New NAND_Flash("Winbond W29N02GV", &HEF, &HDA909504UI, Gb002, 2048, 64, Mb001)) '3v <-- verified
@@ -1310,7 +1367,7 @@ Namespace FlashMemory
             FlashDB.Add(New NAND_Flash("MXIC MX60LF8G28AB", &HC2, &HD3D1955BUI, Gb008, 2048, 64, Mb001))
             'Samsung SLC x8 NAND devices
             FlashDB.Add(New NAND_Flash("Samsung K9F5608U0D", &HEC, &H75A5BDECUI, Mb256, 512, 16, Kb128))
-            FlashDB.Add(New NAND_Flash("Samsung K9GAG08U0E", &HEC, &HD5847250UI, Gb001 * 16, 8192, 436, Mb001 * 8)) 'MLC 2-bit
+            FlashDB.Add(New NAND_Flash("Samsung K9F1208U0C", &HEC, &H765A3F74UI, Mb512, 512, 16, Kb128))
             FlashDB.Add(New NAND_Flash("Samsung K9F1G08U0D", &HEC, &HF1001540UI, Gb001, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Samsung K9F1G08U0B", &HEC, &HF1009540UI, Gb001, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Samsung K9F1G08X0", &HEC, &HF1009540UI, Gb001, 2048, 64, Mb001)) 'K9F1G08U0C K9F1G08B0C K9F1G08U0B
@@ -1318,12 +1375,19 @@ Namespace FlashMemory
             FlashDB.Add(New NAND_Flash("Samsung K9F2G08X0", &HEC, &HDA101544UI, Gb002, 2048, 64, Mb001)) 'K9F2G08B0B K9F2G08U0B K9F2G08U0A K9F2G08U0C
             FlashDB.Add(New NAND_Flash("Samsung K9F2G08U0C", &HEC, &HDA109544UI, Gb002, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Samsung K9F2G08U0M", &HEC, &HDA8015UI, Gb004, 2048, 64, Mb001)) 'K9K4G08U1M = 2X DIE
+            FlashDB.Add(New NAND_Flash("Samsung K9G8G08U0B", &HEC, &HD314A564UI, Gb001, 2048, 64, Mb002)) '2-bit/cell
+            FlashDB.Add(New NAND_Flash("Samsung K9W8G08U1M", &HEC, &HDCC11554UI, Gb004, 2048, 64, Mb001)) 'CV
+            FlashDB.Add(New NAND_Flash("Samsung K9F4G08U0B", &HEC, &HDC109554UI, Gb004, 2048, 64, Mb001))
+            FlashDB.Add(New NAND_Flash("Samsung K9GAG08U0E", &HEC, &HD5847250UI, Gb016, 8192, 436, Mb008)) 'MLC 2-bit
+            FlashDB.Add(New NAND_Flash("Samsung K9GAG08U0M", &HEC, &HD514B674UI, Gb016, 4096, 128, Mb004))
             'Hynix SLC x8 devices
-            FlashDB.Add(New NAND_Flash("Hynix HY27SS08561A", &HAD, &H35UI, Mb256, 512, 16, Mb001))
-            FlashDB.Add(New NAND_Flash("Hynix HY27US08561A", &HAD, &H75UI, Mb256, 512, 16, Mb001))
+            FlashDB.Add(New NAND_Flash("Hynix HY27US08121B", &HAD, &H76AD76ADUI, Mb512, 512, 16, Kb128))
+            FlashDB.Add(New NAND_Flash("Hynix HY27US08561A", &HAD, &H75AD75ADUI, Mb256, 512, 16, Kb128))
+            FlashDB.Add(New NAND_Flash("Hynix HY27SS08561A", &HAD, &H35AD35ADUI, Mb256, 512, 16, Mb001))
             FlashDB.Add(New NAND_Flash("Hynix HY27US0812(1/2)B", &HAD, &H76UI, Mb512, 512, 16, Mb001))
             FlashDB.Add(New NAND_Flash("Hynix H27U1G8F2B", &HAD, &HF1001D, Gb001, 2048, 64, Mb001))
-            FlashDB.Add(New NAND_Flash("Hynix HY27UF081G2M", &HAD, &HADF10015UI, Gb001, 2048, 64, Mb001)) '0xADF1XX15
+            FlashDB.Add(New NAND_Flash("Hynix H27U1G8F2CTR", &HAD, &HF1801DADUI, Gb001, 2048, 64, Mb001))
+            FlashDB.Add(New NAND_Flash("Hynix HY27UF081G2M", &HAD, &HF10015ADUI, Gb001, 2048, 64, Mb001)) '0xADF1XX15
             FlashDB.Add(New NAND_Flash("Hynix HY27US081G1M", &HAD, &H79A500UI, Gb001, 512, 16, Mb001))
             FlashDB.Add(New NAND_Flash("Hynix HY27SF081G2M", &HAD, &HA10015UI, Gb001, 2048, 64, Mb001)) 'ADA1XX15
             FlashDB.Add(New NAND_Flash("Hynix HY27UF082G2B", &HAD, &HDA109544UI, Gb002, 2048, 64, Mb001))
@@ -1332,7 +1396,6 @@ Namespace FlashMemory
             'FlashDB.Add(New NAND_Flash("Hynix H27U2G6F2C", &HAD, &HCA90D544UI, Gb002, 2048, 64, Mb001)) 'X16 3.0V
             FlashDB.Add(New NAND_Flash("Hynix H27S2G8F2C", &HAD, &HAA901544UI, Gb002, 2048, 64, Mb001)) 'X8  1.8V
             'FlashDB.Add(New NAND_Flash("Hynix H27S2G6F2C", &HAD, &HBA905544UI, Gb002, 2048, 64, Mb001)) 'X16 1.8V
-
             'Spansion SLC 34 series
             FlashDB.Add(New NAND_Flash("Cypress S34ML01G1", &H1, &HF1001DUI, Gb001, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Cypress S34ML02G1", &H1, &HDA9095UI, Gb002, 2048, 64, Mb001))
@@ -1354,6 +1417,22 @@ Namespace FlashMemory
             'Dim test As New NAND_Flash("Toshiba TC58NVG3D4CTGI0", &H98, &H8095D6, Gb008, 2048, 64, Mb002)
             'FlashDB.Add(test)
 
+        End Sub
+
+        Private Sub OTP_Database()
+            FlashDB.Add(New OTP_EPROM("ST M27C1024", &H20, &H8C, Mb001, MFP_IF.X16_5V_12V))
+            FlashDB.Add(New OTP_EPROM("ST M27C256B", &H20, &H8D, Kb256, MFP_IF.X8_5V_12V))
+            FlashDB.Add(New OTP_EPROM("ST M27C512", &H20, &H3D, Kb512, MFP_IF.X8_5V_12V))
+            FlashDB.Add(New OTP_EPROM("ST M27C1001", &H20, &H5, Mb001, MFP_IF.X8_5V_12V))
+            FlashDB.Add(New OTP_EPROM("ST M27C2001", &H20, &H61, Mb002, MFP_IF.X8_5V_12V))
+            FlashDB.Add(New OTP_EPROM("ST M27C4001", &H20, &H41, Mb004, MFP_IF.X8_5V_12V))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C010", &H1E, &H5, Mb001, MFP_IF.X8_5V_12V))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C020", &H1E, &H86, Mb002, MFP_IF.X8_5V_12V))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C040", &H1E, &HB, Mb004, MFP_IF.X8_5V_12V))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C516", &H1E, &HF2, Kb512, MFP_IF.X16_5V_12V))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C1024", &H1E, &HF1, Mb001, MFP_IF.X16_5V_12V))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C2048", &H1E, &HF7, Mb002, MFP_IF.X16_5V_12V))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C4096", &H1E, &HF4, Mb004, MFP_IF.X16_5V_12V))
         End Sub
 
         'Helper function to create the proper definition for Atmel/Adesto Series 45 SPI devices
@@ -1410,7 +1489,10 @@ Namespace FlashMemory
                         If flash.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
                             If flash.MFG_CODE = MFG Then
                                 If ID2 = 0 Then 'Only checks the LSB of ID1 (and ignore ID2)
-                                    If ID1 = (flash.ID1 And 255) Then Return flash
+                                    If (flash.ID1 = ID1) Then Return flash
+                                    If ((ID1 >> 8) = 0) OrElse ((ID1 >> 8) = 255) Then
+                                        If (ID1 And 255) = (flash.ID1 And 255) Then Return flash
+                                    End If
                                 Else
                                     If (flash.ID1 = ID1) Then
                                         If flash.ID2 = 0 OrElse flash.ID2 = ID2 Then Return flash
@@ -1596,7 +1678,7 @@ Namespace FlashMemory
             Return str_out
         End Function
         'Returns all of the devices that match the device type
-        Private Function GetFlashDevices(ByVal type As MemoryType) As Device()
+        Public Function GetFlashDevices(ByVal type As MemoryType) As Device()
             Dim dev As New List(Of Device)
             If type = MemoryType.PARALLEL_NOR Then 'Search only CFI devices
                 For Each flash In FlashDB
@@ -1675,15 +1757,19 @@ Namespace FlashMemory
             For i = 0 To part_numbers.Length - 1
                 Dim part_name As String = input.Parts(i).NAME
                 part_name = part_name.Substring(input.Name.Length + 1)
-                Dim size_str As String = ""
-                If (input.Parts(i).FLASH_SIZE < Mb001) Then
-                    size_str = (input.Parts(i).FLASH_SIZE / 1024).ToString & "Kbit"
-                ElseIf (input.Parts(i).FLASH_SIZE < Gb001) Then
-                    size_str = (input.Parts(i).FLASH_SIZE / Mb001).ToString & "Mbit"
+                If part_name = "W25M121AV" Then
+                    part_numbers(i) = part_name & " (128Mbit/1Gbit)"
                 Else
-                    size_str = (input.Parts(i).FLASH_SIZE / Gb001).ToString & "Gbit"
+                    Dim size_str As String = ""
+                    If (input.Parts(i).FLASH_SIZE < Mb001) Then
+                        size_str = (input.Parts(i).FLASH_SIZE / 128).ToString & "Kbit"
+                    ElseIf (input.Parts(i).FLASH_SIZE < Gb001) Then
+                        size_str = (input.Parts(i).FLASH_SIZE / Mb001).ToString & "Mbit"
+                    Else
+                        size_str = (input.Parts(i).FLASH_SIZE / Gb001).ToString & "Gbit"
+                    End If
+                    part_numbers(i) = part_name & " (" & size_str & ")"
                 End If
-                part_numbers(i) = part_name & " (" & size_str & ")"
             Next
         End Sub
 

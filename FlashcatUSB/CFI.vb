@@ -7,8 +7,8 @@
 
 Public Class CFI_FLASH_INTERFACE
     Private MyParent As JTAG_IF
-    Public Property FlashSize() As UInt32 'Size in number of bytes
-    Public Property FlashName() As String 'Contains the ascii name of the flash IC
+    Public Property FlashSize As UInt32 'Size in number of bytes
+    Public Property FlashName As String 'Contains the ascii name of the flash IC
 
 #Region "Sector / Addresses"
     Private Flash_BlockCount As UShort 'Number of blocks
@@ -86,7 +86,7 @@ Public Class CFI_FLASH_INTERFACE
                 write_command(SA, &H50) 'clear register
                 write_command(SA, &H60) 'Unlock block (just in case)
                 write_command(SA, &HD0) 'Confirm Command
-                Threading.Thread.Sleep(50)
+                Utilities.Sleep(50)
                 write_command(SA, &H20)
                 write_command(SA, &HD0)
                 WaitUntilReady()
@@ -145,7 +145,6 @@ Public Class CFI_FLASH_INTERFACE
 
 #End Region
 
-
     Public UseBulkRead As Boolean = True  'Set to false to manually read each word
     Public MyDeviceID As ChipID
 
@@ -163,7 +162,7 @@ Public Class CFI_FLASH_INTERFACE
         Me.MyDeviceBase = BaseAddress
         Read_Mode()
         If Enable_CFI_Mode(DeviceBus.X8) OrElse Enable_CFI_Mode(DeviceBus.X16) OrElse Enable_CFI_Mode(DeviceBus.X32) Then
-            Load_CFI_Data()
+            Load_CFI_Data() 'HERE
         ElseIf Enable_CFI_Mode_ForSST() Then
             Load_CFI_Data()
         End If
@@ -178,11 +177,11 @@ Public Class CFI_FLASH_INTERFACE
                 If Not Detect_NonCFI_Device(MyDeviceID.MFG, MyDeviceID.ID1) Then Return False
                 MyParent.FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_SETPARAM, BitConverter.GetBytes(BaseAddress), 5)
             Else
-                MyDeviceID.MFG = CByte(MyParent.FCUSB.EJ_IF.Memory_Read_H(MyDeviceBase) And &HFF)
+                MyDeviceID.MFG = CByte(MyParent.FCUSB.EJ_IF.Memory_Read_H(MyDeviceBase) And &HFF) '0x00F0 0x00C2
                 If MyDeviceMode = DeviceAlgorithm.Intel Or MyDeviceMode = DeviceAlgorithm.Intel_Sharp Then
                     MyDeviceID.ID1 = MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H2))
                 ElseIf MyDeviceMode = DeviceAlgorithm.AMD_Fujitsu Or MyDeviceMode = DeviceAlgorithm.AMD_Fujitsu_Extended Then
-                    MyDeviceID.ID1 = MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H22))
+                    MyDeviceID.ID1 = MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H22)) '0x00E8 should be 0x2249
                 ElseIf MyDeviceMode = DeviceAlgorithm.SST Then
                     MyDeviceID.ID1 = MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H2))
                     MyParent.FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_SETPARAM, BitConverter.GetBytes(BaseAddress), 5)
@@ -324,12 +323,16 @@ Public Class CFI_FLASH_INTERFACE
     End Property
     'Loads the device name (if we have it in our database)
     Private Sub LoadFlashName()
-        Dim flash As FlashMemory.Device = FlashDatabase.FindDevice(MyDeviceID.MFG, MyDeviceID.ID1, MyDeviceID.ID2, False, FlashMemory.MemoryType.PARALLEL_NOR)
-        If flash IsNot Nothing Then
-            Me.FlashName = flash.NAME
-        Else
-            Me.FlashName = "(Unknown Name)"
-        End If
+        Try
+            Dim flash As FlashMemory.Device = FlashDatabase.FindDevice(MyDeviceID.MFG, MyDeviceID.ID1, MyDeviceID.ID2, FlashMemory.MemoryType.PARALLEL_NOR)
+            If flash IsNot Nothing Then
+                Me.FlashName = flash.NAME
+            Else
+                Me.FlashName = "(Unknown Name)"
+            End If
+        Catch ex As Exception
+            Me.FlashName = "Erorr loading Flash name"
+        End Try
     End Sub
 
     Private Sub PrintProgrammingMode()
@@ -393,11 +396,12 @@ Public Class CFI_FLASH_INTERFACE
             Case DeviceBus.X32
                 MyParent.FCUSB.EJ_IF.Memory_Write_W(CUInt(MyDeviceBase + &HAA), &H98) 'CFI Mode Command 
         End Select
+        'Pro returns &H9FC187C0
         Utilities.Sleep(50) 'If the command succeded, we need to wait for the device to switch modes
         Dim ReadBack As UInt32 = CUInt(MyParent.FCUSB.EJ_IF.Memory_Read_H(MyDeviceBase + &H20UI))
         ReadBack = CUInt((ReadBack << 8) + MyParent.FCUSB.EJ_IF.Memory_Read_H(MyDeviceBase + &H22UI))
         ReadBack = CUInt((ReadBack << 8) + MyParent.FCUSB.EJ_IF.Memory_Read_H(MyDeviceBase + &H24UI))
-        If ReadBack = &H515259 Then '"QRY"
+        If (ReadBack = &H515259) Then '"QRY" NO
             'Flash Device Interface description (refer to CFI publication 100)
             MyDeviceBus = BusMode
             Return True
@@ -415,7 +419,7 @@ Public Class CFI_FLASH_INTERFACE
             'write_command(&H555, &H90)
             write_command(0, &H90)
         ElseIf MyDeviceMode = DeviceAlgorithm.AMD_Fujitsu Or MyDeviceMode = DeviceAlgorithm.AMD_Fujitsu_Extended Then
-            write_command(&HAAA, &HAA)
+            write_command(&HAAA, &HAA) 'HERE
             write_command(&H555, &H55)
             write_command(&HAAA, &H90)
         ElseIf MyDeviceMode = DeviceAlgorithm.AMD_NoBypass Then
@@ -449,28 +453,33 @@ Public Class CFI_FLASH_INTERFACE
         Return False
     End Function
 
-    Private Sub Load_CFI_Data()
-        Me.FlashSize = CInt(2 ^ MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H4E)))
-        Dim DeviceCommandSet As UShort = CUShort(&HFF And MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H26))) << 8
-        DeviceCommandSet += CByte(&HFF And MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H28)))
-        MyDeviceMode = DeviceCommandSet
-        MyDeviceInterface = CInt(MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H50)))
-        Flash_BlockCount = MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H58))
-        Dim BootFlag As UInt32 = MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H9E))
-        ReDim Flash_EraseBlock(Flash_BlockCount - 1)
-        ReDim Flash_EraseSize(Flash_BlockCount - 1)
-        Dim BlockAddress As UInt32 = &H5A 'Start address of block 1 information
-        For i = 1 To Flash_BlockCount
-            Flash_EraseBlock(i - 1) = ((MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + BlockAddress + 2)) << 8) + MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + BlockAddress))) + 1
-            Flash_EraseSize(i - 1) = ((MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + BlockAddress + 6)) << 8) + MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + BlockAddress + 4))) * 256
-            BlockAddress += 8 'Increase address by 8
-        Next
-        If BootFlag = 3 Then 'warning: might only be designed for TC58FVT160
-            Array.Reverse(Flash_EraseBlock)
-            Array.Reverse(Flash_EraseSize)
-        End If
-        InitSectorAddresses() 'Creates the map of the addresses of all sectors
-    End Sub
+    Private Function Load_CFI_Data()
+        Try
+            Me.FlashSize = CInt(2 ^ MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H4E))) '&H00200000
+            Dim DeviceCommandSet As UShort = CUShort(&HFF And MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H26))) << 8 '&H0200
+            DeviceCommandSet += CByte(&HFF And MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H28)))
+            MyDeviceMode = DeviceCommandSet
+            MyDeviceInterface = CInt(MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H50))) '0x02
+            Flash_BlockCount = MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H58)) '0x04
+            Dim BootFlag As UInt32 = MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + &H9E)) '&H0000FFFF
+            ReDim Flash_EraseBlock(Flash_BlockCount - 1)
+            ReDim Flash_EraseSize(Flash_BlockCount - 1)
+            Dim BlockAddress As UInt32 = &H5A 'Start address of block 1 information
+            For i = 1 To Flash_BlockCount
+                Flash_EraseBlock(i - 1) = ((MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + BlockAddress + 2)) << 8) + MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + BlockAddress))) + 1
+                Flash_EraseSize(i - 1) = ((MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + BlockAddress + 6)) << 8) + MyParent.FCUSB.EJ_IF.Memory_Read_H(CUInt(MyDeviceBase + BlockAddress + 4))) * 256
+                BlockAddress += 8 'Increase address by 8
+            Next
+            If BootFlag = 3 Then 'warning: might only be designed for TC58FVT160
+                Array.Reverse(Flash_EraseBlock)
+                Array.Reverse(Flash_EraseSize)
+            End If
+            InitSectorAddresses() 'Creates the map of the addresses of all sectors
+            Return True
+        Catch ex As Exception
+        End Try
+        Return False
+    End Function
 
     Public Sub Read_Mode()
         If MyDeviceMode = DeviceAlgorithm.NotDefined Then
@@ -486,7 +495,7 @@ Public Class CFI_FLASH_INTERFACE
             write_command(0, &HFF)
             write_command(0, &H50)
         ElseIf MyDeviceMode = DeviceAlgorithm.AMD_Fujitsu Or MyDeviceMode = DeviceAlgorithm.AMD_Fujitsu_Extended Then
-            write_command(&HAAA, &HAA)
+            write_command(&HAAA, &HAA) 'second time here
             write_command(&H555, &H55)
             write_command(0, &HF0)
         ElseIf MyDeviceMode = DeviceAlgorithm.AMD_NoBypass Then
@@ -581,7 +590,6 @@ Public Class CFI_FLASH_INTERFACE
     Private Sub WriteData(ByVal Offset As UInt32, ByVal data_to_write() As Byte)
         Try
             Utilities.ChangeEndian32_LSB16(data_to_write) 'Might be DeviceAlgorithm specific
-            'Utilities.ReverseByteEndian_16bit(data_to_write) 'This is done here to swap the pairs of data (might be DeviceAlgorithm specific)
             If MyDeviceMode = DeviceAlgorithm.Intel Or MyDeviceMode = DeviceAlgorithm.Intel_Sharp Then
                 If (MyParent.FCUSB.EJ_IF.TargetDevice.DMA_SUPPORTED) Then 'Our fast method only works for DMA enabled targets
                     MyParent.FCUSB.EJ_IF.DMA_WriteFlash(MyDeviceBase + Offset, data_to_write, JTAG_IF.cfi_mode.Intel_16)

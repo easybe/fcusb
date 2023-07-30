@@ -784,6 +784,13 @@ Namespace Utilities
             Next
         End Sub
 
+        Public Function IsByteArrayFilled(ByRef data() As Byte, ByVal value As Byte) As Boolean
+            For Each d In data
+                If Not d = value Then Return False
+            Next
+            Return True
+        End Function
+
         Public Function RemoveQuotes(ByVal input As String) As String
             If input.StartsWith("""") AndAlso input.EndsWith("""") Then
                 Return Mid(input, 2, input.Length - 2)

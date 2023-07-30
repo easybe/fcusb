@@ -19,12 +19,14 @@ Namespace SPI
         Public Property DIE_SELECTED As Integer = 0
         Public Property SPI_PORTS As Integer = 1 'Number of SPI ports this device supports
         Public Property PORT_SELECT As SPIBUS_PORT = SPIBUS_PORT.Unselected
+        Public Property W25M121AV_Mode As Boolean = False
 
         Sub New(ByVal parent_if As FCUSB_DEVICE)
             FCUSB = parent_if
         End Sub
 
         Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
+            Me.W25M121AV_Mode = False
             MyFlashStatus = USB.DeviceStatus.NotDetected
             Dim spi_connected As Boolean = False
             If Not spi_connected Then
@@ -45,6 +47,7 @@ Namespace SPI
 
         Private Function SPI_InitDevice() As Boolean
             SPIBUS_Setup()
+            SPIBUS_WriteRead({&HC2, 0}) 'always select die 0
             Dim ReadSuccess As Boolean = False
             Dim MFG As Byte
             Dim ID1 As UInt16
@@ -185,6 +188,7 @@ Namespace SPI
         End Function
 
         Friend Function ReadData(ByVal flash_offset As UInt32, ByVal data_count As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
+            If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             Dim data_to_read(data_count - 1) As Byte
             Dim bytes_left As UInt32 = data_count
             Dim buffer_size As UInt32 = 0
@@ -251,7 +255,8 @@ Namespace SPI
             Return data_to_read
         End Function
 
-        Friend Function WriteData(ByVal flash_offset As UInt32, ByVal data_to_write() As Byte, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.WriteData
+        Friend Function WriteData(ByVal flash_offset As UInt32, ByVal data_to_write() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
+            If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             Dim bytes_left As UInt32 = data_to_write.Length
             Dim buffer_size As UInt32 = 0
             Dim array_ptr As UInt32 = 0
@@ -300,16 +305,27 @@ Namespace SPI
                     Case SPI_ProgramMode.Atmel45Series
                         Return WriteData_AT45(flash_offset, data_to_write)
                     Case SPI_ProgramMode.Nordic
-                        Dim setup_packet As New WriteSetupPacket(MyFlashDevice, flash_offset, data_to_write.Length)
-                        Dim write_result As Boolean = WriteData_Flash(setup_packet, data_to_write)
-                        Utilities.Sleep(50)
-                        Return write_result
+                        Dim data_left As Integer = data_to_write.Length
+                        Dim ptr As Integer = 0
+                        Do While (data_left > 0)
+                            SPIBUS_WriteEnable()
+                            Dim packet_data(MyFlashDevice.PAGE_SIZE - 1) As Byte
+                            Array.Copy(data_to_write, ptr, packet_data, 0, packet_data.Length)
+                            Dim setup_packet As New WriteSetupPacket(MyFlashDevice, flash_offset + ptr, packet_data.Length)
+                            Dim write_result As Boolean = WriteData_Flash(setup_packet, packet_data)
+                            If Not write_result Then Return False
+                            WaitUntilReady()
+                            ptr += packet_data.Length
+                            data_left -= packet_data.Length
+                        Loop
+                        Return True
                 End Select
             End If
             Return False
         End Function
 
         Friend Function Sector_Erase(ByVal sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.Sector_Erase
+            If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             If (Not MyFlashDevice.ERASE_REQUIRED) Then Return True 'Erase not needed
             Dim flash_offset As UInt32 = Me.SectorFind(sector_index, memory_area)
             If MyFlashDevice.ProgramMode = SPI_ProgramMode.Atmel45Series Then
@@ -321,8 +337,8 @@ Namespace SPI
                 Dim addrbytes() As Byte = Utilities.Bytes.FromUInt24(blocknum << (AddrOffset + 3), False)
                 SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.SE, addrbytes(0), addrbytes(1), addrbytes(2)}, Nothing)
             ElseIf MyFlashDevice.ProgramMode = SPI_ProgramMode.Nordic Then
-                SPIBUS_WriteEnable() : Utilities.Sleep(50)
-                Dim PageNum As Byte = Math.Floor(flash_offset / 512)
+                SPIBUS_WriteEnable() ': Utilities.Sleep(50)
+                Dim PageNum As Byte = Math.Floor(flash_offset / MyFlashDevice.ERASE_SIZE)
                 SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.SE, PageNum}, Nothing)
             Else
                 SPIBUS_WriteEnable()
@@ -341,20 +357,20 @@ Namespace SPI
             Return True
         End Function
 
-        Friend Function Sector_Write(ByVal sector_index As UInt32, ByVal data() As Byte, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.Sector_Write
-            Dim Addr32 As UInteger = Me.SectorFind(sector_index, memory_area)
-            Return WriteData(Addr32, data, memory_area)
+        Friend Function Sector_Write(ByVal sector_index As UInt32, ByVal data() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.Sector_Write
+            If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
+            Dim Addr32 As UInteger = Me.SectorFind(sector_index, Params.Memory_Area)
+            Return WriteData(Addr32, data, Params)
         End Function
 
         Friend Function EraseDevice() As Boolean Implements MemoryDeviceUSB.EraseDevice
+            If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             If MyFlashDevice.ProgramMode = FlashMemory.SPI_ProgramMode.Atmel45Series Then
                 SPIBUS_WriteRead({&HC7, &H94, &H80, &H9A}, Nothing)
             ElseIf MyFlashDevice.ProgramMode = SPI_ProgramMode.SPI_EEPROM Then
                 Dim data(MyFlashDevice.FLASH_SIZE - 1) As Byte
-                For i = 0 To data.Length - 1
-                    data(i) = 255
-                Next
-                WriteData(0, data, FlashArea.Main)
+                Utilities.FillByteArray(data, 255)
+                WriteData(0, data)
             ElseIf MyFlashDevice.ProgramMode = SPI_ProgramMode.Nordic Then
                 'This device does support chip-erase, but it will also erase the InfoPage content
                 Dim nord_timer As New Stopwatch : nord_timer.Start()
@@ -607,6 +623,11 @@ Namespace SPI
                         SPIBUS_Setup()
                     End If
                 End If
+            End If
+            If (MyFlashDevice.MFG_CODE = &HEF) AndAlso (MyFlashDevice.ID1 = &H4018) Then
+                SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady() 'Check to see if this device has two dies
+                Dim id As SPI_IDENT = ReadDeviceID()
+                If (id.RDID = &HEFAB2100UI) Then Me.W25M121AV_Mode = True
             End If
         End Sub
 

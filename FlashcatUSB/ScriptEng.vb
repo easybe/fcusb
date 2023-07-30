@@ -8,6 +8,7 @@ Imports FlashcatUSB.MemoryInterface
 
 Public Class FcScriptEngine
     Private Const Build As Integer = 300
+    Private script_is_running As Boolean = False
     Private CmdFunctions As New ScriptCmd
     Private CurrentScript As New ScriptFile
     Private CurrentVars As New ScriptVariableManager
@@ -17,6 +18,12 @@ Public Class FcScriptEngine
     Public Event SetStatus(ByVal msg As String)
 
     Private ABORT_SCRIPT As Boolean = False
+
+    Public ReadOnly Property IsRunning As Boolean
+        Get
+            Return script_is_running
+        End Get
+    End Property
 
     Sub New()
         Dim STR_CMD As New ScriptCmd("STRING")
@@ -140,30 +147,27 @@ Public Class FcScriptEngine
     End Function
 
     Private Function c_debug(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
-        Dim J As JTAG_IF = USBCLIENT.FCUSB(Index).EJ_IF
-        Dim id_code As UInt32 = J.TargetDevice.IDCODE
-        Dim addr_data(0) As Byte
-        Dim block_size As UInt32 = 274
-        Dim block_num As UInt32 = 96
-        Dim post As UInt32 = 7
-        Dim dummy(block_size - 1) As Byte
-
-        J.TAP.ShiftIR({JTAG_IF.JTAG_OPCODE.BYPASS}, Nothing, 8)
-        J.TAP.ShiftIR({JTAG_IF.JTAG_OPCODE.ISC_ENABLE_OTF}, Nothing, 8)
-        J.TAP.ShiftIR({JTAG_IF.JTAG_OPCODE.ISC_READ}, Nothing, 8)
-        addr_data(0) = gray_code_table_reverse(0) >> (8 - post)
-        J.TAP.ShiftDR(addr_data, Nothing, 8)
-        Utilities.Sleep(20)
-
-        For i As UInt32 = 1 To block_num
-            addr_data(0) = gray_code_table_reverse(i) >> (8 - post)
-            Dim o_data() As Byte = Nothing
-            J.TAP.ShiftDR(dummy, o_data, block_size, False)
-            J.TAP.ShiftDR(addr_data, Nothing, block_size, True)
-            Utilities.Sleep(20)
-
-        Next
-        J.TAP.ShiftIR({JTAG_IF.JTAG_OPCODE.ISC_DISABLE}, Nothing, 8)
+        'Dim J As JTAG_IF = USBCLIENT.FCUSB(Index).EJ_IF
+        'Dim id_code As UInt32 = J.TargetDevice.IDCODE
+        'Dim addr_data(0) As Byte
+        'Dim block_size As UInt32 = 274
+        'Dim block_num As UInt32 = 96
+        'Dim post As UInt32 = 7
+        'Dim dummy(block_size - 1) As Byte
+        'J.TAP.ShiftIR({JTAG_IF.MCU_OPCODE.BYPASS}, Nothing, 8)
+        'J.TAP.ShiftIR({JTAG_IF.MCU_OPCODE.ENABLE_OTF}, Nothing, 8)
+        'J.TAP.ShiftIR({JTAG_IF.MCU_OPCODE.ISC_READ}, Nothing, 8)
+        'addr_data(0) = gray_code_table_reverse(0) >> (8 - post)
+        'J.TAP.ShiftDR(addr_data, Nothing, 8)
+        'Utilities.Sleep(20)
+        'For i As UInt32 = 1 To block_num
+        '    addr_data(0) = gray_code_table_reverse(i) >> (8 - post)
+        '    Dim o_data() As Byte = Nothing
+        '    J.TAP.ShiftDR(dummy, o_data, block_size, False)
+        '    J.TAP.ShiftDR(addr_data, Nothing, block_size, True)
+        '    Utilities.Sleep(20)
+        'Next
+        'J.TAP.ShiftIR({JTAG_IF.MCU_OPCODE.ISC_DISABLE}, Nothing, 8)
         Return Nothing
     End Function
 
@@ -208,6 +212,7 @@ Public Class FcScriptEngine
         Dim line_err As UInt32 = 0 'The line within the file that has the error
         If CurrentScript.LoadFile(Me, f, line_err, err_str) Then
             RaiseEvent WriteConsole("Script successfully loaded")
+            Me.script_is_running = True
             Dim td As New Threading.Thread(AddressOf RunScript)
             td.SetApartmentState(Threading.ApartmentState.STA)
             td.IsBackground = True
@@ -240,19 +245,24 @@ Public Class FcScriptEngine
     End Function
 
     Public Function RunScript() As Boolean
-        Me.ABORT_SCRIPT = False
-        Dim main_param As New ExecuteParam
-        Dim result As Boolean = ExecuteElements(CurrentScript.TheScript.ToArray, main_param)
-        If Not result Then
-            If Not main_param.err_reason = "" Then
-                RaiseEvent WriteConsole("Error in script: " & main_param.err_reason & " (line " & (main_param.err_line + 1) & ")")
+        Try
+            Me.ABORT_SCRIPT = False
+            Dim main_param As New ExecuteParam
+            Dim result As Boolean = ExecuteElements(CurrentScript.TheScript.ToArray, main_param)
+            If Not result Then
+                If Not main_param.err_reason = "" Then
+                    RaiseEvent WriteConsole("Error in script: " & main_param.err_reason & " (line " & (main_param.err_line + 1) & ")")
+                End If
+                Return False
             End If
-            Return False
-        End If
-        If main_param.exit_task = ExitMode.GotoLabel Then
-            RaiseEvent WriteConsole("Error in script, unable to find label: " & main_param.goto_label)
-            Return Nothing
-        End If
+            If main_param.exit_task = ExitMode.GotoLabel Then
+                RaiseEvent WriteConsole("Error in script, unable to find label: " & main_param.goto_label)
+                Return False
+            End If
+        Catch ex As Exception
+        Finally
+            Me.script_is_running = False
+        End Try
         Return True
     End Function
 
@@ -2478,7 +2488,7 @@ Public Class FcScriptEngine
                     rv.Value = "JTAG"
                 Case FlashcatSettings.DeviceMode.I2C_EEPROM
                     rv.Value = "I2C"
-                Case FlashcatSettings.DeviceMode.EXTIO
+                Case FlashcatSettings.DeviceMode.NOR_NAND
                     rv.Value = "EXTIO"
                 Case FlashcatSettings.DeviceMode.DOW
                     rv.Value = "Dallas 1-Wire"
@@ -2595,7 +2605,11 @@ Public Class FcScriptEngine
         Try
             Dim input As String = arguments(0).Value
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
-            sv.Value = CUInt(input)
+            If input.Trim = "" Then
+                sv.Value = 0
+            Else
+                sv.Value = CUInt(input)
+            End If
             Return sv
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "String.ToInt function exception"}
@@ -3009,7 +3023,7 @@ Public Class FcScriptEngine
         Try
             Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
             If mem_device Is Nothing Then
-                Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Error in Memory.EraseBulk: device not connected"}
+                Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Error in Memory.SectorCount: device not connected"}
                 Return Nothing
             End If
             Dim sector_count As UInt32 = mem_device.GetSectorCount
@@ -3294,11 +3308,11 @@ Public Class FcScriptEngine
         End Try
         Return Nothing
     End Function
-
+    'EJTAG only
     Private Function c_jtag_control(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
             Dim control_value As UInt32 = arguments(0).Value
-            Dim result As UInt32 = USBCLIENT.FCUSB(Index).EJ_IF.ReadWriteData(JTAG_IF.JTAG_OPCODE.CONTROL_IR, control_value)
+            Dim result As UInt32 = USBCLIENT.FCUSB(Index).EJ_IF.ReadWriteData(JTAG_IF.EJTAG_OPCODE.CONTROL_IR, control_value)
             RaiseEvent WriteConsole("JTAT CONTROL command issued: 0x" & Hex(control_value) & " result: 0x" & Hex(result))
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
             sv.Value = result
@@ -3344,9 +3358,9 @@ Public Class FcScriptEngine
         Try
             Dim enable As Boolean = arguments(0).Value
             If enable Then
-                USBCLIENT.FCUSB(Index).EJ_IF.DebugMode_Enable()
+                USBCLIENT.FCUSB(Index).EJ_IF.EJTAG_Debug_Enable()
             Else
-                USBCLIENT.FCUSB(Index).EJ_IF.DebugMode_Disable()
+                USBCLIENT.FCUSB(Index).EJ_IF.EJTAG_Debug_Disable()
             End If
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.Debug function exception"}
@@ -3356,7 +3370,7 @@ Public Class FcScriptEngine
 
     Private Function c_jtag_cpureset(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
-            USBCLIENT.FCUSB(Index).EJ_IF.ProcessorReset()
+            USBCLIENT.FCUSB(Index).EJ_IF.EJTAG_Reset()
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.CpuReset function exception"}
         End Try
