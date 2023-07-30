@@ -163,7 +163,7 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
 
     Enum DFU_STATE_CODE
         appIDLE = 0 'Device is running its normal application
-        appDETACH = 1 'Device is running its normal application, has received the DFU_DETACH request, and is waiting for a USB reset 
+        appDETACH = 1 'Device is running its normal application, has received the DFU_DETACH request, and is waiting for a USB reset
         dfuIDLE = 2 'Device is operating in the DFU mode and is waiting for requests
         dfuDNLOAD_SYNC = 3 'Device has received a block and is waiting for the Host to solicit the status via DFU_GETSTATUS
         dfuDNBUSY = 4 'Device is programming a control-write block into its non volatile memories
