@@ -100,9 +100,9 @@ Public Class FrmSettings
                 rb_mainspare_segmented.Checked = True
         End Select
         SetupSpiEeprom()
-        Setup_i2C()
+        Setup_I2C_SWI_tab()
         If USBCLIENT.HW_MODE = FCUSB_BOARD.NotConnected Then
-        ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Pro_PCB3) OrElse (USBCLIENT.HW_MODE = FCUSB_BOARD.Pro_PCB4) Then
+        ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional) Then
         Else
             rb_speed_100khz.Enabled = False
             rb_speed_1mhz.Enabled = False
@@ -111,7 +111,6 @@ Public Class FrmSettings
             rb_fastread_op.Enabled = False
             rb_read_op.Checked = True
         End If
-        cb_spi_quad.Checked = MySettings.SPI_QUAD
         cb_spinand_disable_ecc.Checked = MySettings.SPI_NAND_DISABLE_ECC
         cb_nand_image_readverify.Checked = MySettings.NAND_Verify
         cb_ECC_ReadEnable.Checked = MySettings.ECC_READ_ENABLED
@@ -160,8 +159,18 @@ Public Class FrmSettings
         cb_s93_org.SelectedIndex = MySettings.S93_DEVICE_ORG
         cb_retry_write.SelectedIndex = (MySettings.VERIFY_COUNT - 1)
         cbSrec.SelectedIndex = MySettings.SREC_BITMODE
-        'BETA VERSION ONLY - DISABLE THESE
-        MyTabs.TabPages.Remove(TP_JTAG)
+        Select Case MySettings.JTAG_SPEED
+            Case FlashcatSettings.JTAG_TCK_FREQ._10MHZ
+                cb_jtag_tck_speed.SelectedIndex = 0
+            Case FlashcatSettings.JTAG_TCK_FREQ._20MHz
+                cb_jtag_tck_speed.SelectedIndex = 1
+        End Select
+        Select Case MySettings.SPI_QUAD_SPEED
+            Case SPI.SQI_SPEED.MHZ_10
+                cb_sqi_speed.SelectedIndex = 0
+            Case SPI.SQI_SPEED.MHZ_20
+                cb_sqi_speed.SelectedIndex = 1
+        End Select
     End Sub
 
     Private Sub Language_setup()
@@ -266,10 +275,17 @@ Public Class FrmSettings
         End If
         'i2c tab
         Dim i2c_address As Byte = &HA0 'Initial address
-        If cbI2C_A2.Checked Then i2c_address = i2c_address Or (1 << 3)
-        If cbI2C_A1.Checked Then i2c_address = i2c_address Or (1 << 2)
-        If cbI2C_A0.Checked Then i2c_address = i2c_address Or (1 << 1)
+        If cb_i2c_a2.Checked Then i2c_address = i2c_address Or (1 << 3)
+        If cb_i2c_a1.Checked Then i2c_address = i2c_address Or (1 << 2)
+        If cb_i2c_a0.Checked Then i2c_address = i2c_address Or (1 << 1)
         MySettings.I2C_ADDRESS = i2c_address
+        'swi
+        Dim swi_address As Byte = 0
+        If cb_swi_a2.Checked Then swi_address = swi_address Or (1 << 3)
+        If cb_swi_a1.Checked Then swi_address = swi_address Or (1 << 2)
+        If cb_swi_a0.Checked Then swi_address = swi_address Or (1 << 1)
+        MySettings.SWI_ADDRESS = swi_address
+
         If rb_speed_100khz.Checked Then
             MySettings.I2C_SPEED = FlashcatSettings.I2C_SPEED_MODE._100kHz
         ElseIf rb_speed_400khz.Checked Then
@@ -306,7 +322,6 @@ Public Class FrmSettings
                 MySettings.I2C_SIZE = 262144
         End Select
         MySettings.SPI_EEPROM = cb_spi_eeprom.SelectedIndex
-        MySettings.SPI_QUAD = cb_spi_quad.Checked
         MySettings.SPI_NAND_DISABLE_ECC = cb_spinand_disable_ecc.Checked
         MySettings.NAND_Verify = cb_nand_image_readverify.Checked
         MySettings.ECC_READ_ENABLED = cb_ECC_ReadEnable.Checked
@@ -339,8 +354,20 @@ Public Class FrmSettings
         MySettings.VERIFY_COUNT = cb_retry_write.SelectedIndex + 1
         MySettings.S93_DEVICE_INDEX = cb_s93_devices.SelectedIndex
         MySettings.S93_DEVICE_ORG = cb_s93_org.SelectedIndex
-
         MySettings.SREC_BITMODE = cbSrec.SelectedIndex
+        Select Case cb_jtag_tck_speed.SelectedIndex
+            Case 0
+                MySettings.JTAG_SPEED = FlashcatSettings.JTAG_TCK_FREQ._10MHZ
+            Case 1
+                MySettings.JTAG_SPEED = FlashcatSettings.JTAG_TCK_FREQ._20MHz
+        End Select
+
+        Select Case cb_sqi_speed.SelectedIndex
+            Case 0
+                MySettings.SPI_QUAD_SPEED = SPI.SQI_SPEED.MHZ_10
+            Case 1
+                MySettings.SPI_QUAD_SPEED = SPI.SQI_SPEED.MHZ_20
+        End Select
     End Sub
 
     Private Sub CustomDevice_LoadSettings()
@@ -635,21 +662,30 @@ Public Class FrmSettings
         End If
     End Sub
 
-    Private Sub Setup_i2C()
+    Private Sub Setup_I2C_SWI_tab()
+        cb_i2c_a2.Checked = False
+        cb_i2c_a1.Checked = False
+        cb_i2c_a0.Checked = False
         If ((MySettings.I2C_ADDRESS And (1 << 3)) > 0) Then
-            cbI2C_A2.Checked = True
-        Else
-            cbI2C_A2.Checked = False
+            cb_i2c_a2.Checked = True
         End If
         If ((MySettings.I2C_ADDRESS And (1 << 2)) > 0) Then
-            cbI2C_A1.Checked = True
-        Else
-            cbI2C_A1.Checked = False
+            cb_i2c_a1.Checked = True
         End If
         If ((MySettings.I2C_ADDRESS And (1 << 1)) > 0) Then
-            cbI2C_A0.Checked = True
-        Else
-            cbI2C_A0.Checked = False
+            cb_i2c_a0.Checked = True
+        End If
+        cb_swi_a2.Checked = False
+        cb_swi_a1.Checked = False
+        cb_swi_a0.Checked = False
+        If ((MySettings.SWI_ADDRESS And (1 << 3)) > 0) Then
+            cb_swi_a2.Checked = True
+        End If
+        If ((MySettings.SWI_ADDRESS And (1 << 2)) > 0) Then
+            cb_swi_a1.Checked = True
+        End If
+        If ((MySettings.SWI_ADDRESS And (1 << 1)) > 0) Then
+            cb_swi_a0.Checked = True
         End If
         Select Case MySettings.I2C_SIZE
             Case 0
@@ -692,17 +728,17 @@ Public Class FrmSettings
     End Sub
 
     Private Sub cbi2cDensity_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbi2cDensity.SelectedIndexChanged
-        cbI2C_A0.Enabled = True
-        cbI2C_A1.Enabled = True
-        cbI2C_A2.Enabled = True
+        cb_i2c_a0.Enabled = True
+        cb_i2c_a1.Enabled = True
+        cb_i2c_a2.Enabled = True
         If cbi2cDensity.SelectedIndex = 11 Then
-            cbI2C_A0.Checked = False
-            cbI2C_A0.Enabled = False
+            cb_i2c_a0.Checked = False
+            cb_i2c_a0.Enabled = False
         ElseIf cbi2cDensity.SelectedIndex = 12 Then
-            cbI2C_A0.Checked = False
-            cbI2C_A1.Checked = False
-            cbI2C_A0.Enabled = False
-            cbI2C_A1.Enabled = False
+            cb_i2c_a0.Checked = False
+            cb_i2c_a1.Checked = False
+            cb_i2c_a0.Enabled = False
+            cb_i2c_a1.Enabled = False
         End If
     End Sub
 

@@ -129,22 +129,18 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                     RaiseEvent PrintConsole(String.Format(RM.GetString("ext_page_size"), MyFlashDevice.PAGE_SIZE, DirectCast(MyFlashDevice, SLC_NAND_Flash).EXT_PAGE_SIZE))
                     Dim nand_mem As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
                     If nand_mem.IFACE = ND_IF.X8_3V Then
-                        RaiseEvent PrintConsole("NAND interface: X8 3.3V")
-                        FCUSB.USB_VCC_3V()
+                        RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NAND (X8 3.3V)")
                     ElseIf nand_mem.IFACE = ND_IF.X8_1V8 Then
-                        RaiseEvent PrintConsole("NAND interface: X8 1.8V")
-                        FCUSB.USB_VCC_1V8()
+                        RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NAND (X8 1.8V)")
                     ElseIf nand_mem.IFACE = ND_IF.X16_3V Then
-                        RaiseEvent PrintConsole("NAND interface: X16 3.3V")
-                        FCUSB.USB_VCC_3V()
+                        RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NAND (X16 3.3V)")
                         RaiseEvent PrintConsole("This NAND device uses X16 IO and is not compatible with this programmer")
-                        MyFlashStatus = USB.DeviceStatus.NotCompatible
+                        MyFlashStatus = DeviceStatus.NotCompatible
                         Return False
                     ElseIf nand_mem.IFACE = ND_IF.X16_1V8 Then
-                        RaiseEvent PrintConsole("NAND interface: X16 1.8V")
-                        FCUSB.USB_VCC_1V8()
+                        RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NAND (X16 1.8V)")
                         RaiseEvent PrintConsole("This NAND device uses X16 IO and is not compatible with this programmer")
-                        MyFlashStatus = USB.DeviceStatus.NotCompatible
+                        MyFlashStatus = DeviceStatus.NotCompatible
                         Return False
                     End If
                     EXPIO_SETUP_ERASESECTOR(E_EXPIO_SECTOR.NAND)
@@ -242,11 +238,11 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         End Get
     End Property
 
-    Friend ReadOnly Property DeviceSize As UInt32 Implements MemoryDeviceUSB.DeviceSize
+    Friend ReadOnly Property DeviceSize As Long Implements MemoryDeviceUSB.DeviceSize
         Get
             If MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND Then
                 Dim d As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
-                Dim available_pages As UInt32 = FCUSB.NAND_IF.MAPPED_PAGES
+                Dim available_pages As Long = FCUSB.NAND_IF.MAPPED_PAGES
                 If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then
                     Return (available_pages * (d.PAGE_SIZE + d.EXT_PAGE_SIZE))
                 Else
@@ -267,7 +263,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         End Get
     End Property
 
-    Public Function ReadData(ByVal logical_address As UInt32, ByVal data_count As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
+    Public Function ReadData(ByVal logical_address As Long, ByVal data_count As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
         If MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND Then
             Dim nand_dev As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
             Dim page_addr As UInt32 'This is the page address
@@ -363,7 +359,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                 Next
             End If
             Dim erase_cmd As UInt32 = fwh_device.ERASE_CMD
-            Dim setup_data() As Byte = GetSetupPacket(Logical_Address, 0, 0)
+            Dim setup_data() As Byte = GetSetupPacket_NOR(Logical_Address, 0, 0)
             Result = FCUSB.USB_SETUP_BULKOUT(USBREQ.EXPIO_SECTORERASE, setup_data, Nothing, (erase_cmd << 16))
             If Not Result Then Return False
             Utilities.Sleep(50)
@@ -391,7 +387,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                         Else
                             sector_start_addr = Logical_Address
                         End If
-                        Dim setup_data() As Byte = GetSetupPacket(sector_start_addr, 0, 0)
+                        Dim setup_data() As Byte = GetSetupPacket_NOR(sector_start_addr, 0, 0)
                         Result = FCUSB.USB_SETUP_BULKOUT(USBREQ.EXPIO_SECTORERASE, setup_data, Nothing, 0)
                     Catch ex As Exception
                     End Try
@@ -420,7 +416,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         End If
     End Function
 
-    Public Function WriteData(ByVal logical_address As UInt32, ByVal data_to_write() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
+    Public Function WriteData(ByVal logical_address As Long, ByVal data_to_write() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
         If (MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND) Then
             Dim page_addr As UInt32 = GetNandPageAddress(MyFlashDevice, logical_address, Params.Memory_Area)
             page_addr = FCUSB.NAND_IF.GetPageMapping(page_addr) 'Adjusts the page to point to a valid page
@@ -456,7 +452,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                     FCUSB.USB_WaitForComplete()
                 Next
                 If nor_device.DELAY_MODE = MFP_DELAY.DQ7 Or nor_device.DELAY_MODE = MFP_DELAY.SR1 Or nor_device.DELAY_MODE = MFP_DELAY.SR2 Then
-                    FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_WAIT) 'Calls the assigned WAIT function (uS, mS, SR, DQ7)
+                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT) 'Calls the assigned WAIT function (uS, mS, SR, DQ7)
                     FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
                 Else
                     Utilities.Sleep(DirectCast(MyFlashDevice, MFP_Flash).SOFTWARE_DELAY)
@@ -557,7 +553,8 @@ Public Class ExtPort : Implements MemoryDeviceUSB
     Public Sub WaitForReady() Implements MemoryDeviceUSB.WaitUntilReady
         If MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND Then
             Utilities.Sleep(10) 'Checks READ/BUSY# pin
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_NAND_WAIT)
+            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT)
+            FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
         ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
             Utilities.Sleep(100) 'Some flash devices have registers, some rely on delays
         ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.FWH_NOR Then
@@ -567,7 +564,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         End If
     End Sub
 
-    Public Function SectorFind(ByVal sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As UInt32 Implements MemoryDeviceUSB.SectorFind
+    Public Function SectorFind(ByVal sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Long Implements MemoryDeviceUSB.SectorFind
         Dim base_addr As UInt32 = 0
         If sector_index > 0 Then
             For i As UInt32 = 0 To sector_index - 1
@@ -742,26 +739,29 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         Parallel_CE2 = 5 '64mbit samsung dual-die device
     End Enum
 
-    Private Enum E_EXPIO_IDENT As UInt16
+    Public Enum E_EXPIO_IDENT As UInt16
         Type1 = 1 '(0x5555=0xAA;0x2AAA=0x55;0x5555=0x90) READ 0x00,0x01,0x02 (0x5555=0xAA;0x2AAA=0x55;0x5555=0xF0)
         Type2 = 2 '(0x555=0xAA;2AA=0x55;0x555=0x90) READ 0x00,0x01,0x0E,0x0F,0x03 (0x00=0x00F0), x16 (typically)
         Type3 = 3 '(0xAAA=0xAA;0x555=0x55;0xAAA=0x90)
         NAND = 4
+        HF = 5
     End Enum
 
-    Private Enum E_EXPIO_SECTOR As UInt16
+    Public Enum E_EXPIO_SECTOR As UInt16
         Type1 = 1 '0x5555=0xAA;0x2AAA=0x55;0x5555=0x80;0x5555=0xAA;0x2AAA=0x55;SA=0x30 (used by older devices)
         Type2 = 2 '0xAAA=0xAA;0x555=0x55;0xAAA=0x80;0xAAA=0xAA;0x555=0x55;SA=0x30 (used by x8 devices)
         Type3 = 3 '0x555=0xAA,0x2AA=0x55,0x555=0x80,0x555=0xAA,0x2AA=0x55;SA=0x30 (used by x16 devices)
         Type4 = 4 'SA=0x50;SA=0x60;SA=0xD0,SR.7,SA=0x20;SA=0xD0,SR.7 (used by Intel/Sharp devices)
         NAND = 5
+        HF = 6
     End Enum
 
-    Private Enum E_EXPIO_CHIPERASE As UInt16
+    Public Enum E_EXPIO_CHIPERASE As UInt16
         Type1 = 1 '0x5555=0xAA;0x2AAA=0x55;0x5555=0x80;0x5555=0xAA;0x2AAA=0x55;0x5555=0x10 (used by older devices)
         Type2 = 2 '0xAAA=0xAA;0x555=0x55;0xAAA=0x80;0xAAA=0xAA;0x555=0x55;0xAAA=0x10 (used by x8 devices)
         Type3 = 3 '0x555=0xAA;0x2AA=0x55;0x555=0x80;0x555=0xAA;0x2AA=0x55;0x555=0x10 (used by x16 devices)
         Type4 = 4 '0x00=0x30;0x00=0xD0;
+        HF = 5
     End Enum
 
     Private Enum E_EXPIO_WRITEDATA As UInt16
@@ -780,8 +780,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
     Private Function EXPIO_SETUP_USB(ByVal mode As EXPIO_Mode) As Boolean
         Try
             Dim result_data(0) As Byte
-            Dim setup_data As UInt32 = mode
-            setup_data = setup_data Or (10 << 16) 'Ignored by classic/xport
+            Dim setup_data As UInt32 = mode Or (10 << 16)
             Dim result As Boolean = FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_INIT, result_data, setup_data)
             If Not result Then Return False
             If (result_data(0) = &H17) Then 'Extension port returns 0x17 if it can communicate with the MCP23S17
@@ -915,7 +914,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
 
     Private Sub EXPIO_CHIPENABLE_HIGH()
         Try
-            FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_CE_HIGH)
+            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_CE_HIGH)
         Catch ex As Exception
         End Try
     End Sub
@@ -968,6 +967,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         NOR_x16 = 2
         NAND_x8 = 3
         FWH = 4
+        HYPERFLASH = 5
     End Enum
 
     Private Function DetectFlashDevice() As Boolean
@@ -1095,7 +1095,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
             Case AdatperType.FWH
                 EXPIO_SETUP_USB(EXPIO_Mode.FWH)
         End Select
-        Threading.Thread.Sleep(10) 'Delay
+        Threading.Thread.Sleep(20) 'Delay
         Return DetectFlash()
     End Function
     'contains AutoSelect Device ID and some CFI-ID space
@@ -1135,11 +1135,6 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                 Case MFP_IF.X16_5V_12V
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X16 (5V/12V VPP)")
             End Select
-            If (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB3) Then 'Lets lower VCC if needed
-                If DirectCast(MyFlashDevice, MFP_Flash).IFACE = MFP_IF.X16_3V OrElse DirectCast(MyFlashDevice, MFP_Flash).IFACE = MFP_IF.X16_3V Then
-                    If VCC_OPTION = USB.Voltage.V5_0 Then FCUSB.USB_VCC_3V() 'Changes hardware VCC from 5v to 3V
-                End If
-            End If
         ElseIf (MyFlashDevice.FLASH_TYPE = MemoryType.FWH_NOR) Then
             RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR (FWH)")
         End If
@@ -1156,6 +1151,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
             If ident_data(0) = &H90 AndAlso ident_data(2) = 0 Then Return result '0x9000 
             If ident_data(0) = &HFF AndAlso ident_data(2) = &HFF Then Return result '0xFFFF 
             If ident_data(0) = &HFF AndAlso ident_data(2) = 0 Then Return result '0xFF00
+            If ident_data(0) = &H1 AndAlso ident_data(1) = 0 AndAlso ident_data(2) = &H1 AndAlso ident_data(3) = 0 Then Return result '0x01000100
             result.MFG = ident_data(0)
             result.ID1 = (CUInt(ident_data(1)) << 8) Or CUInt(ident_data(2))
             result.ID2 = (CUInt(ident_data(3)) << 8) Or CUInt(ident_data(4))
@@ -1226,9 +1222,11 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         End Try
     End Function
 
-    Private Function GetSetupPacket_NAND(ByVal page_addr As UInt32, ByVal page_offset As UInt16, ByVal Count As UInt32, ByVal area As FlashArea) As Byte()
-        Dim TX_NAND_ADDRSIZE As Byte 'Number of bytes the address command table uses
+    Private Function GetSetupPacket_NAND(page_addr As UInt32, page_offset As UInt16, transfer_size As UInt32, area As FlashArea) As Byte()
         Dim NAND_DEV As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
+        Dim nand_layout As NANDLAYOUT_STRUCTURE = NANDLAYOUT_Get(NAND_DEV)
+        If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then area = FlashArea.All
+        Dim TX_NAND_ADDRSIZE As Byte 'Number of bytes the address command table uses
         If (NAND_DEV.PAGE_SIZE = 512) Then 'Small page
             If (MyFlashDevice.FLASH_SIZE > Mb256) Then
                 TX_NAND_ADDRSIZE = 4
@@ -1242,10 +1240,17 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                 TX_NAND_ADDRSIZE = 5 '2Gbit+
             End If
         End If
-        Dim nand_layout As NANDLAYOUT_STRUCTURE = NANDLAYOUT_Get(NAND_DEV)
-        If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then area = FlashArea.All
-        Dim spare_size As UInt16 = NAND_DEV.EXT_PAGE_SIZE
-        Dim setup_data() As Byte = GetSetupPacket(page_addr, Count, page_offset)
+        Dim setup_data(19) As Byte '18 bytes total
+        setup_data(0) = CByte(page_addr And 255)
+        setup_data(1) = CByte((page_addr >> 8) And 255)
+        setup_data(2) = CByte((page_addr >> 16) And 255)
+        setup_data(3) = CByte((page_addr >> 24) And 255)
+        setup_data(4) = CByte(transfer_size And 255)
+        setup_data(5) = CByte((transfer_size >> 8) And 255)
+        setup_data(6) = CByte((transfer_size >> 16) And 255)
+        setup_data(7) = CByte((transfer_size >> 24) And 255)
+        setup_data(8) = CByte(page_offset And 255)
+        setup_data(9) = CByte((page_offset >> 8) And 255)
         setup_data(10) = CByte(MyFlashDevice.PAGE_SIZE And 255)
         setup_data(11) = CByte((MyFlashDevice.PAGE_SIZE >> 8) And 255)
         setup_data(12) = CByte(NAND_DEV.EXT_PAGE_SIZE And 255)
@@ -1259,7 +1264,35 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         Return setup_data
     End Function
 
-    Private Function GetSetupPacket(ByVal Address As UInt32, ByVal Count As UInt32, ByVal PageSize As UInt16) As Byte()
+    Private Function GetSetupPacket_NAND_debug(page_addr As UInt32, page_offset As UInt16, transfer_size As UInt32, area As FlashArea) As Byte()
+        Dim TX_NAND_ADDRSIZE As Byte = 4
+        Dim TX_OOB_SIZE As UInt16 = 64
+        Dim TX_MAIN_SIZE As UInt16 = 2048
+        Dim setup_data(19) As Byte '18 bytes total
+        setup_data(0) = CByte(page_addr And 255)
+        setup_data(1) = CByte((page_addr >> 8) And 255)
+        setup_data(2) = CByte((page_addr >> 16) And 255)
+        setup_data(3) = CByte((page_addr >> 24) And 255)
+        setup_data(4) = CByte(transfer_size And 255)
+        setup_data(5) = CByte((transfer_size >> 8) And 255)
+        setup_data(6) = CByte((transfer_size >> 16) And 255)
+        setup_data(7) = CByte((transfer_size >> 24) And 255)
+        setup_data(8) = CByte(page_offset And 255)
+        setup_data(9) = CByte((page_offset >> 8) And 255)
+        setup_data(10) = CByte(TX_MAIN_SIZE And 255)
+        setup_data(11) = CByte((TX_MAIN_SIZE >> 8) And 255)
+        setup_data(12) = CByte(TX_OOB_SIZE And 255)
+        setup_data(13) = CByte((TX_OOB_SIZE >> 8) And 255)
+        setup_data(14) = CByte(TX_MAIN_SIZE And 255)
+        setup_data(15) = CByte((TX_MAIN_SIZE >> 8) And 255)
+        setup_data(16) = CByte(TX_OOB_SIZE And 255)
+        setup_data(17) = CByte((TX_OOB_SIZE >> 8) And 255)
+        setup_data(18) = TX_NAND_ADDRSIZE
+        setup_data(19) = area 'Area (0=main,1=spare,2=all), note: all ignores layout settings
+        Return setup_data
+    End Function
+
+    Private Function GetSetupPacket_NOR(ByVal Address As UInt32, ByVal Count As UInt32, ByVal PageSize As UInt16) As Byte()
         Dim addr_bytes As Byte = 0
         Dim data_in(19) As Byte '18 bytes total
         data_in(0) = CByte(Address And 255)
@@ -1293,7 +1326,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         End Try
     End Function
 
-    Public Function ReadBulk_NOR(ByVal address As UInt32, ByVal count As UInt32) As Byte()
+    Private Function ReadBulk_NOR(ByVal address As UInt32, ByVal count As UInt32) As Byte()
         Try
             Dim read_count As UInt32 = count
             Dim addr_offset As Boolean = False
@@ -1309,7 +1342,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                     read_count += 1
                 End If
             End If
-            Dim setup_data() As Byte = GetSetupPacket(address, read_count, MyFlashDevice.PAGE_SIZE)
+            Dim setup_data() As Byte = GetSetupPacket_NOR(address, read_count, MyFlashDevice.PAGE_SIZE)
             Dim data_out(read_count - 1) As Byte 'Bytes we want to read
             If MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM Then FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WE_LOW) : Utilities.Sleep(10)
             Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, data_out, 0)
@@ -1330,7 +1363,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
 
     Private Function WriteBulk_NOR(ByVal address As UInt32, ByVal data_out() As Byte) As Boolean
         Try
-            Dim setup_data() As Byte = GetSetupPacket(address, data_out.Length, MyFlashDevice.PAGE_SIZE)
+            Dim setup_data() As Byte = GetSetupPacket_NOR(address, data_out.Length, MyFlashDevice.PAGE_SIZE)
             Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USBREQ.EXPIO_WRITEDATA, setup_data, data_out, 0)
             Return result
         Catch ex As Exception
@@ -1425,6 +1458,17 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         Catch ex As Exception
         End Try
         Return False
+    End Function
+    'This is used to write data (8/16 bit) to the EXTIO IO (parallel NOR) port.
+    Public Function WriteAddressData(ByVal addr As UInt32, ByVal data As UInt16)
+        Dim addr_data(5) As Byte
+        addr_data(0) = CByte((addr >> 24) And 255)
+        addr_data(1) = CByte((addr >> 16) And 255)
+        addr_data(2) = CByte((addr >> 8) And 255)
+        addr_data(3) = CByte(addr And 255)
+        addr_data(4) = CByte((data >> 8) And 255)
+        addr_data(5) = CByte(data And 255)
+        Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRADRDATA, addr_data)
     End Function
 
 End Class

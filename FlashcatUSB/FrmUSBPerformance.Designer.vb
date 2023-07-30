@@ -22,7 +22,6 @@ Partial Class FrmUSBPerformance
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
-        Me.PictureBox1 = New System.Windows.Forms.PictureBox()
         Me.Label1 = New System.Windows.Forms.Label()
         Me.lblreadspeed = New System.Windows.Forms.Label()
         Me.cmdstart = New System.Windows.Forms.Button()
@@ -30,22 +29,12 @@ Partial Class FrmUSBPerformance
         Me.cbMachDownloadSize = New System.Windows.Forms.ComboBox()
         Me.lblwritespeed = New System.Windows.Forms.Label()
         Me.lblstatus = New System.Windows.Forms.Label()
-        CType(Me.PictureBox1, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
-        '
-        'PictureBox1
-        '
-        Me.PictureBox1.Image = Global.FlashcatUSB.My.Resources.Resources.rpm_32
-        Me.PictureBox1.Location = New System.Drawing.Point(12, 12)
-        Me.PictureBox1.Name = "PictureBox1"
-        Me.PictureBox1.Size = New System.Drawing.Size(34, 34)
-        Me.PictureBox1.TabIndex = 0
-        Me.PictureBox1.TabStop = False
         '
         'Label1
         '
         Me.Label1.AutoSize = True
-        Me.Label1.Location = New System.Drawing.Point(52, 23)
+        Me.Label1.Location = New System.Drawing.Point(29, 23)
         Me.Label1.Name = "Label1"
         Me.Label1.Size = New System.Drawing.Size(189, 13)
         Me.Label1.TabIndex = 1
@@ -81,7 +70,7 @@ Partial Class FrmUSBPerformance
         Me.cbMachDownloadSize.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cbMachDownloadSize.FormattingEnabled = True
         Me.cbMachDownloadSize.Items.AddRange(New Object() {"100MB", "200MB", "300MB", "400MB", "500MB"})
-        Me.cbMachDownloadSize.Location = New System.Drawing.Point(267, 20)
+        Me.cbMachDownloadSize.Location = New System.Drawing.Point(243, 20)
         Me.cbMachDownloadSize.Name = "cbMachDownloadSize"
         Me.cbMachDownloadSize.Size = New System.Drawing.Size(84, 21)
         Me.cbMachDownloadSize.TabIndex = 5
@@ -116,7 +105,6 @@ Partial Class FrmUSBPerformance
         Me.Controls.Add(Me.cmdstart)
         Me.Controls.Add(Me.lblreadspeed)
         Me.Controls.Add(Me.Label1)
-        Me.Controls.Add(Me.PictureBox1)
         Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle
         Me.MaximizeBox = False
         Me.Name = "FrmUSBPerformance"
@@ -125,13 +113,10 @@ Partial Class FrmUSBPerformance
         Me.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide
         Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent
         Me.Text = "FlashcatUSB USB Performance"
-        CType(Me.PictureBox1, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
     End Sub
-
-    Friend WithEvents PictureBox1 As PictureBox
     Friend WithEvents Label1 As Label
     Friend WithEvents lblreadspeed As Label
     Friend WithEvents cmdstart As Button

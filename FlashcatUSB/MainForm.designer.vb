@@ -50,9 +50,9 @@ Partial Class MainForm
         Me.mi_vcc_seperator = New System.Windows.Forms.ToolStripSeparator()
         Me.mi_1V8 = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_3V3 = New System.Windows.Forms.ToolStripMenuItem()
-        Me.mi_5V0 = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator7 = New System.Windows.Forms.ToolStripSeparator()
         Me.mi_mode_spi = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_mode_quad = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_spi_nand = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_spieeprom = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_i2c = New System.Windows.Forms.ToolStripMenuItem()
@@ -60,6 +60,7 @@ Partial Class MainForm
         Me.mi_mode_3wire = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_extio = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_eprom_otp = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_mode_hyperflash = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_jtag = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_script_menu = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_script_selected = New System.Windows.Forms.ToolStripMenuItem()
@@ -82,6 +83,7 @@ Partial Class MainForm
         Me.mi_language_russian = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_language_chinese = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_language_italian = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_langauge_german = New System.Windows.Forms.ToolStripMenuItem()
         Me.FlashStatus = New System.Windows.Forms.StatusStrip()
         Me.FlashStatusLabel = New System.Windows.Forms.ToolStripStatusLabel()
         Me.MyTabs = New System.Windows.Forms.TabControl()
@@ -134,7 +136,7 @@ Partial Class MainForm
         Me.MenuStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_main_menu, Me.mi_mode_menu, Me.mi_script_menu, Me.mi_tools_menu, Me.mi_Language})
         Me.MenuStrip1.Location = New System.Drawing.Point(0, 0)
         Me.MenuStrip1.Name = "MenuStrip1"
-        Me.MenuStrip1.Size = New System.Drawing.Size(469, 24)
+        Me.MenuStrip1.Size = New System.Drawing.Size(525, 24)
         Me.MenuStrip1.TabIndex = 0
         Me.MenuStrip1.Text = "MenuStrip1"
         '
@@ -160,7 +162,7 @@ Partial Class MainForm
         '
         'mi_usb_performance
         '
-        Me.mi_usb_performance.Image = Global.FlashcatUSB.My.Resources.Resources.rpm_16
+        Me.mi_usb_performance.Image = Global.FlashcatUSB.My.Resources.Resources.rpm2_16
         Me.mi_usb_performance.Name = "mi_usb_performance"
         Me.mi_usb_performance.Size = New System.Drawing.Size(212, 22)
         Me.mi_usb_performance.Text = "USB Performance"
@@ -200,7 +202,7 @@ Partial Class MainForm
         '
         'mi_mode_menu
         '
-        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.mi_vcc_seperator, Me.mi_1V8, Me.mi_3V3, Me.mi_5V0, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_3wire, Me.mi_mode_extio, Me.mi_mode_eprom_otp, Me.mi_mode_jtag})
+        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.mi_vcc_seperator, Me.mi_1V8, Me.mi_3V3, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_quad, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_3wire, Me.mi_mode_extio, Me.mi_mode_eprom_otp, Me.mi_mode_hyperflash, Me.mi_mode_jtag})
         Me.mi_mode_menu.Name = "mi_mode_menu"
         Me.mi_mode_menu.Size = New System.Drawing.Size(50, 20)
         Me.mi_mode_menu.Text = "Mode"
@@ -304,12 +306,6 @@ Partial Class MainForm
         Me.mi_3V3.Size = New System.Drawing.Size(225, 22)
         Me.mi_3V3.Text = "Voltage (3.3v)"
         '
-        'mi_5V0
-        '
-        Me.mi_5V0.Name = "mi_5V0"
-        Me.mi_5V0.Size = New System.Drawing.Size(225, 22)
-        Me.mi_5V0.Text = "Voltage (5.0v)"
-        '
         'ToolStripSeparator7
         '
         Me.ToolStripSeparator7.Name = "ToolStripSeparator7"
@@ -320,6 +316,12 @@ Partial Class MainForm
         Me.mi_mode_spi.Name = "mi_mode_spi"
         Me.mi_mode_spi.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_spi.Text = "SPI NOR FLASH"
+        '
+        'mi_mode_quad
+        '
+        Me.mi_mode_quad.Name = "mi_mode_quad"
+        Me.mi_mode_quad.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_quad.Text = "SPI QUAD FLASH"
         '
         'mi_mode_spi_nand
         '
@@ -343,7 +345,7 @@ Partial Class MainForm
         '
         Me.mi_mode_1wire.Name = "mi_mode_1wire"
         Me.mi_mode_1wire.Size = New System.Drawing.Size(225, 22)
-        Me.mi_mode_1wire.Text = "DOW EEPROM"
+        Me.mi_mode_1wire.Text = "1-Wire EEPROM (SWI/DOW)"
         '
         'mi_mode_3wire
         '
@@ -363,11 +365,17 @@ Partial Class MainForm
         Me.mi_mode_eprom_otp.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_eprom_otp.Text = "EPROM"
         '
+        'mi_mode_hyperflash
+        '
+        Me.mi_mode_hyperflash.Name = "mi_mode_hyperflash"
+        Me.mi_mode_hyperflash.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_hyperflash.Text = "HyperFlash"
+        '
         'mi_mode_jtag
         '
         Me.mi_mode_jtag.Name = "mi_mode_jtag"
         Me.mi_mode_jtag.Size = New System.Drawing.Size(225, 22)
-        Me.mi_mode_jtag.Text = "JTAG Mode"
+        Me.mi_mode_jtag.Text = "JTAG"
         '
         'mi_script_menu
         '
@@ -456,7 +464,7 @@ Partial Class MainForm
         '
         'mi_Language
         '
-        Me.mi_Language.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_language_english, Me.mi_language_spanish, Me.mi_language_french, Me.mi_language_portuguese, Me.mi_language_russian, Me.mi_language_chinese, Me.mi_language_italian})
+        Me.mi_Language.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_language_english, Me.mi_language_spanish, Me.mi_language_french, Me.mi_language_portuguese, Me.mi_language_russian, Me.mi_language_chinese, Me.mi_language_italian, Me.mi_langauge_german})
         Me.mi_Language.Name = "mi_Language"
         Me.mi_Language.Size = New System.Drawing.Size(71, 20)
         Me.mi_Language.Text = "Language"
@@ -510,12 +518,19 @@ Partial Class MainForm
         Me.mi_language_italian.Size = New System.Drawing.Size(134, 22)
         Me.mi_language_italian.Text = "Italian"
         '
+        'mi_langauge_german
+        '
+        Me.mi_langauge_german.Image = Global.FlashcatUSB.My.Resources.Resources.german
+        Me.mi_langauge_german.Name = "mi_langauge_german"
+        Me.mi_langauge_german.Size = New System.Drawing.Size(134, 22)
+        Me.mi_langauge_german.Text = "German"
+        '
         'FlashStatus
         '
         Me.FlashStatus.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FlashStatusLabel})
         Me.FlashStatus.Location = New System.Drawing.Point(0, 350)
         Me.FlashStatus.Name = "FlashStatus"
-        Me.FlashStatus.Size = New System.Drawing.Size(469, 22)
+        Me.FlashStatus.Size = New System.Drawing.Size(525, 22)
         Me.FlashStatus.TabIndex = 1
         Me.FlashStatus.Text = "StatusStrip1"
         '
@@ -536,7 +551,7 @@ Partial Class MainForm
         Me.MyTabs.Location = New System.Drawing.Point(2, 24)
         Me.MyTabs.Name = "MyTabs"
         Me.MyTabs.SelectedIndex = 0
-        Me.MyTabs.Size = New System.Drawing.Size(467, 323)
+        Me.MyTabs.Size = New System.Drawing.Size(523, 323)
         Me.MyTabs.TabIndex = 2
         '
         'TabStatus
@@ -548,15 +563,17 @@ Partial Class MainForm
         Me.TabStatus.Location = New System.Drawing.Point(4, 22)
         Me.TabStatus.Name = "TabStatus"
         Me.TabStatus.Padding = New System.Windows.Forms.Padding(3)
-        Me.TabStatus.Size = New System.Drawing.Size(459, 297)
+        Me.TabStatus.Size = New System.Drawing.Size(515, 297)
         Me.TabStatus.TabIndex = 0
         Me.TabStatus.Text = "  Status  "
         '
         'statuspage_progress
         '
+        Me.statuspage_progress.Anchor = CType(((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left) _
+            Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.statuspage_progress.Location = New System.Drawing.Point(3, 282)
         Me.statuspage_progress.Name = "statuspage_progress"
-        Me.statuspage_progress.Size = New System.Drawing.Size(450, 12)
+        Me.statuspage_progress.Size = New System.Drawing.Size(506, 12)
         Me.statuspage_progress.TabIndex = 8
         '
         'pb_logo
@@ -567,12 +584,14 @@ Partial Class MainForm
         Me.pb_logo.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center
         Me.pb_logo.Location = New System.Drawing.Point(3, 179)
         Me.pb_logo.Name = "pb_logo"
-        Me.pb_logo.Size = New System.Drawing.Size(450, 100)
+        Me.pb_logo.Size = New System.Drawing.Size(506, 100)
         Me.pb_logo.TabIndex = 7
         Me.pb_logo.TabStop = False
         '
         'status_panel
         '
+        Me.status_panel.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Left) _
+            Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.status_panel.ColumnCount = 1
         Me.status_panel.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle())
         Me.status_panel.Controls.Add(Me.sm7, 0, 7)
@@ -595,7 +614,7 @@ Partial Class MainForm
         Me.status_panel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
         Me.status_panel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
         Me.status_panel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
-        Me.status_panel.Size = New System.Drawing.Size(450, 165)
+        Me.status_panel.Size = New System.Drawing.Size(506, 165)
         Me.status_panel.TabIndex = 5
         '
         'sm7
@@ -674,7 +693,7 @@ Partial Class MainForm
         Me.TabConsole.Location = New System.Drawing.Point(4, 22)
         Me.TabConsole.Name = "TabConsole"
         Me.TabConsole.Padding = New System.Windows.Forms.Padding(3)
-        Me.TabConsole.Size = New System.Drawing.Size(459, 297)
+        Me.TabConsole.Size = New System.Drawing.Size(515, 297)
         Me.TabConsole.TabIndex = 1
         Me.TabConsole.Text = "  Console  "
         '
@@ -683,7 +702,7 @@ Partial Class MainForm
         Me.cmd_console_copy.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.cmd_console_copy.FlatStyle = System.Windows.Forms.FlatStyle.Popup
         Me.cmd_console_copy.Image = Global.FlashcatUSB.My.Resources.Resources.clipboard_ico
-        Me.cmd_console_copy.Location = New System.Drawing.Point(408, 272)
+        Me.cmd_console_copy.Location = New System.Drawing.Point(459, 272)
         Me.cmd_console_copy.Name = "cmd_console_copy"
         Me.cmd_console_copy.Size = New System.Drawing.Size(22, 22)
         Me.cmd_console_copy.TabIndex = 9
@@ -694,7 +713,7 @@ Partial Class MainForm
         Me.cmd_console_clear.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.cmd_console_clear.FlatStyle = System.Windows.Forms.FlatStyle.Popup
         Me.cmd_console_clear.Image = Global.FlashcatUSB.My.Resources.Resources.clear_x
-        Me.cmd_console_clear.Location = New System.Drawing.Point(382, 272)
+        Me.cmd_console_clear.Location = New System.Drawing.Point(433, 272)
         Me.cmd_console_clear.Name = "cmd_console_clear"
         Me.cmd_console_clear.Size = New System.Drawing.Size(22, 22)
         Me.cmd_console_clear.TabIndex = 8
@@ -705,7 +724,7 @@ Partial Class MainForm
         Me.cmdSaveLog.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.cmdSaveLog.FlatStyle = System.Windows.Forms.FlatStyle.Popup
         Me.cmdSaveLog.Image = CType(resources.GetObject("cmdSaveLog.Image"), System.Drawing.Image)
-        Me.cmdSaveLog.Location = New System.Drawing.Point(434, 272)
+        Me.cmdSaveLog.Location = New System.Drawing.Point(485, 272)
         Me.cmdSaveLog.Name = "cmdSaveLog"
         Me.cmdSaveLog.Size = New System.Drawing.Size(22, 22)
         Me.cmdSaveLog.TabIndex = 7
@@ -717,7 +736,7 @@ Partial Class MainForm
             Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.txtInput.Location = New System.Drawing.Point(3, 274)
         Me.txtInput.Name = "txtInput"
-        Me.txtInput.Size = New System.Drawing.Size(373, 20)
+        Me.txtInput.Size = New System.Drawing.Size(424, 20)
         Me.txtInput.TabIndex = 6
         '
         'ConsoleBox
@@ -728,7 +747,7 @@ Partial Class MainForm
         Me.ConsoleBox.FormattingEnabled = True
         Me.ConsoleBox.Location = New System.Drawing.Point(3, 3)
         Me.ConsoleBox.Name = "ConsoleBox"
-        Me.ConsoleBox.Size = New System.Drawing.Size(453, 264)
+        Me.ConsoleBox.Size = New System.Drawing.Size(504, 264)
         Me.ConsoleBox.TabIndex = 1
         '
         'TabMultiDevice
@@ -741,14 +760,14 @@ Partial Class MainForm
         Me.TabMultiDevice.Location = New System.Drawing.Point(4, 22)
         Me.TabMultiDevice.Name = "TabMultiDevice"
         Me.TabMultiDevice.Padding = New System.Windows.Forms.Padding(3)
-        Me.TabMultiDevice.Size = New System.Drawing.Size(459, 297)
+        Me.TabMultiDevice.Size = New System.Drawing.Size(515, 297)
         Me.TabMultiDevice.TabIndex = 2
         Me.TabMultiDevice.Text = "  Multi-device  "
         '
         'lbl_gang_info
         '
         Me.lbl_gang_info.AutoSize = True
-        Me.lbl_gang_info.Location = New System.Drawing.Point(104, 13)
+        Me.lbl_gang_info.Location = New System.Drawing.Point(129, 17)
         Me.lbl_gang_info.Name = "lbl_gang_info"
         Me.lbl_gang_info.Size = New System.Drawing.Size(239, 13)
         Me.lbl_gang_info.TabIndex = 5
@@ -766,7 +785,7 @@ Partial Class MainForm
         Me.GroupBox1.Controls.Add(Me.lbl_gang2)
         Me.GroupBox1.Controls.Add(Me.pb_gang1)
         Me.GroupBox1.Controls.Add(Me.lbl_gang1)
-        Me.GroupBox1.Location = New System.Drawing.Point(8, 82)
+        Me.GroupBox1.Location = New System.Drawing.Point(33, 86)
         Me.GroupBox1.Name = "GroupBox1"
         Me.GroupBox1.Size = New System.Drawing.Size(445, 134)
         Me.GroupBox1.TabIndex = 4
@@ -855,7 +874,7 @@ Partial Class MainForm
         '
         'cmd_gang_erase
         '
-        Me.cmd_gang_erase.Location = New System.Drawing.Point(139, 42)
+        Me.cmd_gang_erase.Location = New System.Drawing.Point(164, 46)
         Me.cmd_gang_erase.Name = "cmd_gang_erase"
         Me.cmd_gang_erase.Size = New System.Drawing.Size(75, 23)
         Me.cmd_gang_erase.TabIndex = 1
@@ -864,7 +883,7 @@ Partial Class MainForm
         '
         'cmd_gang_write
         '
-        Me.cmd_gang_write.Location = New System.Drawing.Point(220, 42)
+        Me.cmd_gang_write.Location = New System.Drawing.Point(245, 46)
         Me.cmd_gang_write.Name = "cmd_gang_write"
         Me.cmd_gang_write.Size = New System.Drawing.Size(75, 23)
         Me.cmd_gang_write.TabIndex = 0
@@ -875,7 +894,7 @@ Partial Class MainForm
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(469, 372)
+        Me.ClientSize = New System.Drawing.Size(525, 372)
         Me.Controls.Add(Me.MyTabs)
         Me.Controls.Add(Me.FlashStatus)
         Me.Controls.Add(Me.MenuStrip1)
@@ -944,7 +963,6 @@ Partial Class MainForm
     Friend WithEvents mi_script_unload As ToolStripMenuItem
     Friend WithEvents mi_1V8 As ToolStripMenuItem
     Friend WithEvents mi_3V3 As ToolStripMenuItem
-    Friend WithEvents mi_5V0 As ToolStripMenuItem
     Friend WithEvents ToolStripSeparator7 As ToolStripSeparator
     Friend WithEvents cmd_console_clear As Button
     Friend WithEvents mi_verify As ToolStripMenuItem
@@ -998,4 +1016,7 @@ Partial Class MainForm
     Friend WithEvents statuspage_progress As ProgressBar
     Friend WithEvents mi_usb_performance As ToolStripMenuItem
     Friend WithEvents ToolStripSeparator6 As ToolStripSeparator
+    Friend WithEvents mi_mode_hyperflash As ToolStripMenuItem
+    Friend WithEvents mi_mode_quad As ToolStripMenuItem
+    Friend WithEvents mi_langauge_german As ToolStripMenuItem
 End Class

@@ -4,6 +4,7 @@
 ''INFO: This class is the entire scripting engine which can control the software
 ''via user supplied text files. The langauge format is similar to BASIC.
 
+Imports FlashcatUSB.JTAG
 Imports FlashcatUSB.MemoryInterface
 
 Public Class FcScriptEngine
@@ -13,6 +14,7 @@ Public Class FcScriptEngine
     Private CurrentScript As New ScriptFile
     Private CurrentVars As New ScriptVariableManager
     Private Delegate Function ScriptFunction(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Public Property CURRENT_DEVICE_MODE As FlashcatSettings.DeviceMode
 
     Public Event WriteConsole(ByVal msg As String)
     Public Event SetStatus(ByVal msg As String)
@@ -35,7 +37,7 @@ Public Class FcScriptEngine
         STR_CMD.Add("fromint", {CmdParam.Integer}, New ScriptFunction(AddressOf c_str_fromint))
         CmdFunctions.AddNest(STR_CMD)
         Dim DATA_CMD As New ScriptCmd("DATA")
-        DATA_CMD.Add("new", {CmdParam.Integer, CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_data_new))
+        DATA_CMD.Add("new", {CmdParam.Integer, CmdParam.Any}, New ScriptFunction(AddressOf c_data_new))
         DATA_CMD.Add("compare", {CmdParam.Data}, New ScriptFunction(AddressOf c_data_compare))
         DATA_CMD.Add("length", {CmdParam.Data}, New ScriptFunction(AddressOf c_data_length))
         DATA_CMD.Add("resize", {CmdParam.Data, CmdParam.Integer, CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_data_resize))
@@ -52,6 +54,7 @@ Public Class FcScriptEngine
         CmdFunctions.AddNest(IO_CMD)
         Dim MEM_CMD As New ScriptCmd("MEMORY")
         MEM_CMD.Add("name", Nothing, New ScriptFunction(AddressOf c_mem_name))
+        MEM_CMD.Add("size", Nothing, New ScriptFunction(AddressOf c_mem_size))
         MEM_CMD.Add("write", {CmdParam.Data, CmdParam.Integer, CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_mem_write))
         MEM_CMD.Add("read", {CmdParam.Integer, CmdParam.Integer, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_mem_read))
         MEM_CMD.Add("readstring", {CmdParam.Integer}, New ScriptFunction(AddressOf c_mem_readstring))
@@ -87,7 +90,10 @@ Public Class FcScriptEngine
         CmdFunctions.AddNest(SPI_CMD)
         Dim JTAG_CMD As New ScriptCmd("JTAG")
         JTAG_CMD.Add("idcode", Nothing, New ScriptFunction(AddressOf c_jtag_idcode))
-        JTAG_CMD.Add("setdelay", {CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_setdelay))
+        JTAG_CMD.Add("config", {CmdParam.String}, New ScriptFunction(AddressOf c_jtag_config))
+        JTAG_CMD.Add("select", {CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_select))
+        JTAG_CMD.Add("writeword", {CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_write32))
+        JTAG_CMD.Add("readword", {CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_read32))
         JTAG_CMD.Add("control", {CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_control))
         JTAG_CMD.Add("memoryinit", {CmdParam.String, CmdParam.Integer_Optional, CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_jtag_memoryinit))
         JTAG_CMD.Add("debug", {CmdParam.Bool}, New ScriptFunction(AddressOf c_jtag_debug))
@@ -99,9 +105,8 @@ Public Class FcScriptEngine
         JTAG_CMD.Add("shiftout", {CmdParam.Data, CmdParam.Integer, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_jtag_shiftout))
         JTAG_CMD.Add("tapreset", Nothing, New ScriptFunction(AddressOf c_jtag_tapreset))
         JTAG_CMD.Add("state", {CmdParam.String}, New ScriptFunction(AddressOf c_jtag_state))
-        JTAG_CMD.Add("poke", {CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_poke))
-        JTAG_CMD.Add("peek", {CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_peek))
         JTAG_CMD.Add("graycode", {CmdParam.Integer, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_jtag_graycode))
+        JTAG_CMD.Add("setdelay", {CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_setdelay)) 'Legacy support
         CmdFunctions.AddNest(JTAG_CMD)
         Dim BCM_CMD As New ScriptCmd("BCM")
         BCM_CMD.Add("init", {CmdParam.Integer}, New ScriptFunction(AddressOf c_bcm_init))
@@ -119,12 +124,16 @@ Public Class FcScriptEngine
         CmdFunctions.Add("print", {CmdParam.Any, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_writeline))
         CmdFunctions.Add("msgbox", {CmdParam.Any}, New ScriptFunction(AddressOf c_msgbox))
         CmdFunctions.Add("status", {CmdParam.String}, New ScriptFunction(AddressOf c_setstatus))
+        CmdFunctions.Add("refresh", Nothing, New ScriptFunction(AddressOf c_refresh))
         CmdFunctions.Add("sleep", {CmdParam.Integer}, New ScriptFunction(AddressOf c_sleep))
         CmdFunctions.Add("verify", {CmdParam.Bool}, New ScriptFunction(AddressOf c_verify))
         CmdFunctions.Add("mode", Nothing, New ScriptFunction(AddressOf c_mode))
         CmdFunctions.Add("ask", {CmdParam.String}, New ScriptFunction(AddressOf c_ask))
         CmdFunctions.Add("endian", {CmdParam.String}, New ScriptFunction(AddressOf c_endian))
         CmdFunctions.Add("abort", Nothing, New ScriptFunction(AddressOf c_abort))
+        CmdFunctions.Add("cpen", {CmdParam.Bool}, New ScriptFunction(AddressOf c_cpen))
+        CmdFunctions.Add("crc16", {CmdParam.Data}, New ScriptFunction(AddressOf c_crc16))
+        CmdFunctions.Add("crc32", {CmdParam.Data}, New ScriptFunction(AddressOf c_crc32))
         'CmdFunctions.Add("debug", Nothing, New ScriptFunction(AddressOf c_debug))
     End Sub
 
@@ -186,7 +195,7 @@ Public Class FcScriptEngine
         Return True
     End Function
     'This loads the script file
-    Public Function LoadFile(ByVal file_name As IO.FileInfo) As Boolean
+    Public Function LoadFile(file_name As IO.FileInfo) As Boolean
         Me.Unload()
         RaiseEvent WriteConsole("Loading FlashcatUSB script: " & file_name.Name)
         Dim f() As String = Utilities.FileIO.ReadFile(file_name.FullName)
@@ -1068,6 +1077,7 @@ Public Class FcScriptEngine
                                     Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs Bool but was supplied a " & OperandTypeToString(my_vars(i).VarType) : Return Nothing
                                 End If
                             End If
+                        Case CmdParam.Any_Optional
                     End Select
                 Next
             End If
@@ -1464,6 +1474,7 @@ Public Class FcScriptEngine
         [Bool]
         [Bool_Optional]
         [Any]
+        [Any_Optional]
         [Variable]
     End Enum
 
@@ -2432,6 +2443,20 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
+    Private Function c_refresh(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Dim count As Integer = MEM_IF.DeviceCount
+            For i = 0 To count - 1
+                Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(i)
+                mem_device.GuiControl.RefreshView()
+            Next
+            Application.DoEvents()
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Refresh function exception"}
+        End Try
+        Return Nothing
+    End Function
+
     Private Function c_sleep(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
             Dim wait_ms As Integer = arguments(0).Value
@@ -2461,7 +2486,7 @@ Public Class FcScriptEngine
     Private Function c_mode(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
             Dim rv As New ScriptVariable(CurrentVars.GetNewName, OperandType.String)
-            Select Case MySettings.OPERATION_MODE
+            Select Case Me.CURRENT_DEVICE_MODE
                 Case FlashcatSettings.DeviceMode.SPI
                     rv.Value = "SPI"
                 Case FlashcatSettings.DeviceMode.SPI_EEPROM
@@ -2472,7 +2497,7 @@ Public Class FcScriptEngine
                     rv.Value = "I2C"
                 Case FlashcatSettings.DeviceMode.NOR_NAND
                     rv.Value = "EXTIO"
-                Case FlashcatSettings.DeviceMode.DOW
+                Case FlashcatSettings.DeviceMode.SINGLE_WIRE
                     rv.Value = "Dallas 1-Wire"
                 Case Else
                     rv.Value = "Other"
@@ -2527,6 +2552,52 @@ Public Class FcScriptEngine
             RaiseEvent WriteConsole("Aborting any running script")
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Abort function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_cpen(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Dim cp_en As Boolean = arguments(0).Value
+            If Not USBCLIENT.FCUSB(Index).IS_CONNECTED Then
+                Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "FlashcatUSB device is not connected"}
+            End If
+            Dim w_index As Integer = 0
+            If cp_en Then w_index = 1
+            USBCLIENT.FCUSB(Index).USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_CPEN, Nothing, w_index)
+            If cp_en Then
+                RaiseEvent WriteConsole("CPEN pin set to HIGH")
+            Else
+                RaiseEvent WriteConsole("CPEN pin set to LOW")
+            End If
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "CPEN function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_crc16(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Dim DataBytes() As Byte = arguments(0).Value
+            Dim crc16_value As UInt32 = Utilities.CRC16.ComputeChecksum(DataBytes)
+            Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
+            sv.Value = crc16_value
+            Return sv
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "CRC16 function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_crc32(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Dim DataBytes() As Byte = arguments(0).Value
+            Dim crc32_value As UInt32 = Utilities.CRC32.ComputeChecksum(DataBytes)
+            Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
+            sv.Value = crc32_value
+            Return sv
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "CRC32 function exception"}
         End Try
         Return Nothing
     End Function
@@ -2618,14 +2689,26 @@ Public Class FcScriptEngine
     Private Function c_data_new(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
             Dim size As UInt32 = arguments(0).Value
-            Dim initial_data As Byte = 0
-            If arguments.Length > 1 Then
-                initial_data = 255 And arguments(1).Value
-            End If
             Dim data(size - 1) As Byte
-            For i = 0 To data.Length - 1
-                data(i) = initial_data
-            Next
+            If (arguments.Length > 1) Then
+                Dim data_init() As Byte
+                If arguments(1).VarType = OperandType.Data Then
+                    data_init = arguments(1).Value
+                ElseIf arguments(1).VarType = OperandType.Integer Then
+                    data_init = Utilities.Bytes.FromUInt32(arguments(1).Value, True)
+                Else
+                    Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Data.New function 2nd argument requires an integer or data variable"}
+                End If
+                Dim bytes_to_repeat As Integer = data_init.Length
+                Dim ptr As Integer = 0
+                For i = 0 To data.Length - 1
+                    data(i) = data_init(ptr)
+                    ptr += 1
+                    If ptr = bytes_to_repeat Then ptr = 0
+                Next
+            Else
+                Utilities.FillByteArray(data, 255)
+            End If
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Data)
             sv.Value = data
             Return sv
@@ -2862,6 +2945,18 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
+    Private Function c_mem_size(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Dim size_value As UInt32 = MEM_IF.GetDevice(Index).Size
+            Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
+            sv.Value = size_value
+            Return sv
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Memory.Size function exception"}
+        End Try
+        Return Nothing
+    End Function
+
     Private Function c_mem_write(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
             Dim data_to_write() As Byte = arguments(0).Value
@@ -2881,8 +2976,8 @@ Public Class FcScriptEngine
             MEM_IF.GetDevice(Index).DisableGuiControls()
             MEM_IF.GetDevice(Index).FCUSB.USB_LEDBlink()
             Try
-                Dim memDev As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
-                Dim write_result As Boolean = memDev.WriteBytes(offset, data_to_write, FlashMemory.FlashArea.Main, cb)
+                Dim mem_dev As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
+                Dim write_result As Boolean = mem_dev.WriteBytes(offset, data_to_write, MySettings.VERIFY_WRITE, FlashMemory.FlashArea.Main, cb)
                 If write_result Then
                     RaiseEvent WriteConsole("Sucessfully programmed " & data_len.ToString("N0") & " bytes")
                 Else
@@ -3183,8 +3278,10 @@ Public Class FcScriptEngine
 
     Private Function c_spi_getsr(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
-            If Not MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI Then
-                Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Device is not in SPI operation mode"}
+            If Me.CURRENT_DEVICE_MODE = FlashcatSettings.DeviceMode.SPI Then
+            ElseIf Me.CURRENT_DEVICE_MODE = FlashcatSettings.DeviceMode.SQI Then
+            Else
+                Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Device is not in SPI/QUAD operation mode"}
             End If
             If Not USBCLIENT.FCUSB(Index).IS_CONNECTED Then
                 Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "FlashcatUSB device is not connected"}
@@ -3192,7 +3289,11 @@ Public Class FcScriptEngine
             Dim bytes_to_read As UInt32 = 1
             If arguments IsNot Nothing AndAlso arguments.Length > 0 Then bytes_to_read = arguments(0).Value
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Data)
-            sv.Value = USBCLIENT.FCUSB(Index).SPI_NOR_IF.ReadStatusRegister(bytes_to_read)
+            If Me.CURRENT_DEVICE_MODE = FlashcatSettings.DeviceMode.SPI Then
+                sv.Value = USBCLIENT.FCUSB(Index).SPI_NOR_IF.ReadStatusRegister(bytes_to_read)
+            ElseIf Me.CURRENT_DEVICE_MODE = FlashcatSettings.DeviceMode.SQI Then
+                sv.Value = USBCLIENT.FCUSB(Index).SQI_NOR_IF.ReadStatusRegister(bytes_to_read)
+            End If
             Return sv
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "SPI.GetSR function exception"}
@@ -3202,14 +3303,20 @@ Public Class FcScriptEngine
 
     Private Function c_spi_setsr(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
-            If Not MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI Then
-                Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Device is not in SPI operation mode"}
+            If Me.CURRENT_DEVICE_MODE = FlashcatSettings.DeviceMode.SPI Then
+            ElseIf Me.CURRENT_DEVICE_MODE = FlashcatSettings.DeviceMode.SQI Then
+            Else
+                Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Device is not in SPI/QUAD operation mode"}
             End If
             If Not USBCLIENT.FCUSB(Index).IS_CONNECTED Then
                 Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "FlashcatUSB device is not connected"}
             End If
             Dim data_out() As Byte = arguments(0).Value
-            USBCLIENT.FCUSB(Index).SPI_NOR_IF.WriteStatusRegister(data_out)
+            If Me.CURRENT_DEVICE_MODE = FlashcatSettings.DeviceMode.SPI Then
+                USBCLIENT.FCUSB(Index).SPI_NOR_IF.WriteStatusRegister(data_out)
+            ElseIf Me.CURRENT_DEVICE_MODE = FlashcatSettings.DeviceMode.SQI Then
+                USBCLIENT.FCUSB(Index).SQI_NOR_IF.WriteStatusRegister(data_out)
+            End If
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "SPI.SetSR function exception"}
         End Try
@@ -3218,7 +3325,7 @@ Public Class FcScriptEngine
 
     Private Function c_spi_writeread(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
-            If Not MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI Then
+            If Not Me.CURRENT_DEVICE_MODE = FlashcatSettings.DeviceMode.SPI Then
                 Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Device is not in SPI operation mode"}
             End If
             If Not USBCLIENT.FCUSB(Index).IS_CONNECTED Then
@@ -3265,37 +3372,47 @@ Public Class FcScriptEngine
     Private Function c_jtag_idcode(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
-            sv.Value = USBCLIENT.FCUSB(Index).EJ_IF.TargetDevice.IDCODE
+            Dim current_index As Integer = USBCLIENT.FCUSB(Index).JTAG_IF.SELECTED_INDEX
+            sv.Value = USBCLIENT.FCUSB(Index).JTAG_IF.Devices(current_index).IDCODE
             Return sv
         Catch ex As Exception
-            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.idcode function exception"}
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.IDCODE function exception"}
         End Try
         Return Nothing
     End Function
 
-    Private Function c_jtag_setdelay(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_config(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
-            Dim dev_ind As UInt32 = arguments(0).Value
-            Dim delay_val As UInt32 = arguments(1).Value
-            Select Case dev_ind
-                Case 1 'Intel
-                    USBCLIENT.FCUSB(Index).EJ_IF.IntelFlashDelay = delay_val
-                Case 2 'AMD
-                    USBCLIENT.FCUSB(Index).EJ_IF.AmdFlashDelay = delay_val
-                Case 3 'DMA
-                    USBCLIENT.FCUSB(Index).EJ_IF.DMA_Delay = delay_val
+            Dim mode As String = arguments(0).Value
+            Select Case mode.ToUpper
+                Case "MIPS"
+                    USBCLIENT.FCUSB(Index).JTAG_IF.Configure(PROCESSOR.MIPS)
+                Case "ARM"
+                    USBCLIENT.FCUSB(Index).JTAG_IF.Configure(PROCESSOR.ARM)
+                Case Else
+                    Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.config unknown mode: " & mode}
             End Select
-            USBCLIENT.FCUSB(Index).EJ_IF.SetParameter()
+            Return Nothing
         Catch ex As Exception
-            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.SetDelay function exception"}
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.config function exception"}
         End Try
         Return Nothing
     End Function
-    'EJTAG only
+
+    Private Function c_jtag_select(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Dim jtag_device_index As UInt32 = arguments(0).Value
+            USBCLIENT.FCUSB(Index).JTAG_IF.Select_Device(jtag_device_index)
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.Select function exception"}
+        End Try
+        Return Nothing
+    End Function
+
     Private Function c_jtag_control(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
             Dim control_value As UInt32 = arguments(0).Value
-            Dim result As UInt32 = USBCLIENT.FCUSB(Index).EJ_IF.ReadWriteData(JTAG_IF.EJTAG_OPCODE.CONTROL_IR, control_value)
+            Dim result As UInt32 = USBCLIENT.FCUSB(Index).JTAG_IF.ReadWriteReg32(EJTAG_OPCODE.CONTROL_IR, control_value)
             RaiseEvent WriteConsole("JTAT CONTROL command issued: 0x" & Hex(control_value) & " result: 0x" & Hex(result))
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
             sv.Value = result
@@ -3309,18 +3426,18 @@ Public Class FcScriptEngine
     Private Function c_jtag_memoryinit(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
             Dim memory_size As UInt32 = 0
-            Dim memory_base_addr As UInt32 = 0
+            Dim mem_base_or_index As UInt32 = 0
             Dim flash_type As String = arguments(0).Value
-            If arguments.Length > 1 Then memory_base_addr = arguments(1).Value
+            If arguments.Length > 1 Then mem_base_or_index = arguments(1).Value
             If arguments.Length > 2 Then memory_size = arguments(2).Value
             Dim new_dev As MemoryDeviceInstance = Nothing
             Select Case flash_type.ToUpper
                 Case "DMA"
-                    new_dev = JTAG_Connect_DMA(USBCLIENT.FCUSB(Index), memory_base_addr, memory_size)
+                    new_dev = JTAG_Connect_DMA(USBCLIENT.FCUSB(Index), mem_base_or_index, memory_size)
                 Case "CFI"
-                    new_dev = JTAG_Connect_CFI(USBCLIENT.FCUSB(Index), memory_base_addr)
+                    new_dev = JTAG_Connect_CFI(USBCLIENT.FCUSB(Index), mem_base_or_index)
                 Case "SPI"
-                    new_dev = JTAG_Connect_SPI(USBCLIENT.FCUSB(Index))
+                    new_dev = JTAG_Connect_SPI(USBCLIENT.FCUSB(Index), mem_base_or_index)
                 Case Else
                     Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Error in JTAG.MemoryInit: device type not specified"}
                     Return Nothing
@@ -3341,9 +3458,9 @@ Public Class FcScriptEngine
         Try
             Dim enable As Boolean = arguments(0).Value
             If enable Then
-                USBCLIENT.FCUSB(Index).EJ_IF.EJTAG_Debug_Enable()
+                USBCLIENT.FCUSB(Index).JTAG_IF.EJTAG_Debug_Enable()
             Else
-                USBCLIENT.FCUSB(Index).EJ_IF.EJTAG_Debug_Disable()
+                USBCLIENT.FCUSB(Index).JTAG_IF.EJTAG_Debug_Disable()
             End If
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.Debug function exception"}
@@ -3353,7 +3470,7 @@ Public Class FcScriptEngine
 
     Private Function c_jtag_cpureset(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
-            USBCLIENT.FCUSB(Index).EJ_IF.EJTAG_Reset()
+            USBCLIENT.FCUSB(Index).JTAG_IF.EJTAG_Reset()
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.CpuReset function exception"}
         End Try
@@ -3363,19 +3480,19 @@ Public Class FcScriptEngine
     Private Function c_jtag_runsvf(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
             ProgressUpdate_Percent(0)
-            RemoveHandler USBCLIENT.FCUSB(Index).EJ_IF.JSP.Progress, AddressOf ProgressUpdate_Percent
-            AddHandler USBCLIENT.FCUSB(Index).EJ_IF.JSP.Progress, AddressOf ProgressUpdate_Percent
+            RemoveHandler USBCLIENT.FCUSB(Index).JTAG_IF.JSP.Progress, AddressOf ProgressUpdate_Percent
+            AddHandler USBCLIENT.FCUSB(Index).JTAG_IF.JSP.Progress, AddressOf ProgressUpdate_Percent
             RaiseEvent WriteConsole("Running SVF file in internal JTAG SVF player")
             Dim DataBytes() As Byte = arguments(0).Value
             Dim FileStr() As String = Utilities.Bytes.ToCharStringArray(DataBytes)
-            Dim result As Boolean = USBCLIENT.FCUSB(Index).EJ_IF.JSP.RunFile_SVF(FileStr)
+            Dim result As Boolean = USBCLIENT.FCUSB(Index).JTAG_IF.JSP.RunFile_SVF(FileStr)
             If result Then
                 RaiseEvent WriteConsole("SVF file successfully played")
             Else
                 RaiseEvent WriteConsole("Error playing the SVF file")
             End If
             ProgressUpdate_Percent(0)
-            RemoveHandler USBCLIENT.FCUSB(Index).EJ_IF.JSP.Progress, AddressOf ProgressUpdate_Percent
+            RemoveHandler USBCLIENT.FCUSB(Index).JTAG_IF.JSP.Progress, AddressOf ProgressUpdate_Percent
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Bool)
             sv.Value = result
             Return sv
@@ -3388,18 +3505,18 @@ Public Class FcScriptEngine
     Private Function c_jtag_runxsvf(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
             ProgressUpdate_Percent(0)
-            RemoveHandler USBCLIENT.FCUSB(Index).EJ_IF.JSP.Progress, AddressOf ProgressUpdate_Percent
-            AddHandler USBCLIENT.FCUSB(Index).EJ_IF.JSP.Progress, AddressOf ProgressUpdate_Percent
+            RemoveHandler USBCLIENT.FCUSB(Index).JTAG_IF.JSP.Progress, AddressOf ProgressUpdate_Percent
+            AddHandler USBCLIENT.FCUSB(Index).JTAG_IF.JSP.Progress, AddressOf ProgressUpdate_Percent
             RaiseEvent WriteConsole("Running XSVF file in internal JTAG XSVF player")
             Dim DataBytes() As Byte = arguments(0).Value
-            Dim result As Boolean = USBCLIENT.FCUSB(Index).EJ_IF.JSP.RunFile_XSVF(DataBytes)
+            Dim result As Boolean = USBCLIENT.FCUSB(Index).JTAG_IF.JSP.RunFile_XSVF(DataBytes)
             If result Then
                 RaiseEvent WriteConsole("XSVF file successfully played")
             Else
                 RaiseEvent WriteConsole("Error playing the XSVF file")
             End If
             ProgressUpdate_Percent(0)
-            RemoveHandler USBCLIENT.FCUSB(Index).EJ_IF.JSP.Progress, AddressOf ProgressUpdate_Percent
+            RemoveHandler USBCLIENT.FCUSB(Index).JTAG_IF.JSP.Progress, AddressOf ProgressUpdate_Percent
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Bool)
             sv.Value = result
             Return sv
@@ -3415,10 +3532,9 @@ Public Class FcScriptEngine
             Dim data_back() As Byte = Nothing
             Dim bit_count As Integer = arguments(1).Value
             If arguments.Length = 3 Then
-                Dim exit_mode As Boolean = arguments(2).Value
-                USBCLIENT.FCUSB(Index).EJ_IF.TAP.ShiftDR(data_in, data_back, bit_count, exit_mode)
+                USBCLIENT.FCUSB(Index).JTAG_IF.JSP_ShiftDR(data_in, data_back, bit_count, CBool(arguments(2).Value))
             Else
-                USBCLIENT.FCUSB(Index).EJ_IF.TAP.ShiftDR(data_in, data_back, bit_count)
+                USBCLIENT.FCUSB(Index).JTAG_IF.JSP_ShiftDR(data_in, data_back, bit_count, True)
             End If
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Data)
             sv.Value = data_back
@@ -3436,9 +3552,9 @@ Public Class FcScriptEngine
             Dim bit_count As Integer = arguments(1).Value
             If arguments.Length = 3 Then
                 Dim exit_mode As Boolean = arguments(2).Value
-                USBCLIENT.FCUSB(Index).EJ_IF.TAP.ShiftIR(data_in, data_back, bit_count, exit_mode)
+                USBCLIENT.FCUSB(Index).JTAG_IF.JSP_ShiftIR(data_in, data_back, bit_count, exit_mode)
             Else
-                USBCLIENT.FCUSB(Index).EJ_IF.TAP.ShiftIR(data_in, data_back, bit_count)
+                USBCLIENT.FCUSB(Index).JTAG_IF.JSP_ShiftIR(data_in, data_back, bit_count, True)
             End If
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Data)
             sv.Value = data_back
@@ -3451,17 +3567,17 @@ Public Class FcScriptEngine
 
     Private Function c_jtag_shiftout(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
-            Dim data_in() As Byte = arguments(0).Value
-            Dim data_back() As Byte = Nothing
+            Dim tdi_data() As Byte = arguments(0).Value
             Dim bit_count As Integer = arguments(1).Value
-            If arguments.Length = 3 Then
-                Dim exit_mode As Boolean = arguments(2).Value
-                data_back = USBCLIENT.FCUSB(Index).EJ_IF.TAP.ShiftOut(data_in, bit_count, exit_mode)
-            Else
-                data_back = USBCLIENT.FCUSB(Index).EJ_IF.TAP.ShiftOut(data_in, bit_count)
+            Dim exit_tms As Boolean = True
+            If arguments.Length = 3 Then exit_tms = CBool(arguments(2).Value)
+            Dim tdo_data() As Byte = Nothing
+            USBCLIENT.FCUSB(Index).JTAG_IF.ShiftTDI(bit_count, tdi_data, tdo_data, exit_tms)
+            If exit_tms Then
+                If USBCLIENT.FCUSB(Index).JTAG_IF.TAP IsNot Nothing Then USBCLIENT.FCUSB(Index).JTAG_IF.TAP.ExitState()
             End If
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Data)
-            sv.Value = data_back
+            sv.Value = tdo_data
             Return sv
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.ShiftOut function exception"}
@@ -3471,32 +3587,32 @@ Public Class FcScriptEngine
 
     Private Function c_jtag_tapreset(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
-            USBCLIENT.FCUSB(Index).EJ_IF.ResetTAP()
+            USBCLIENT.FCUSB(Index).JTAG_IF.Reset_StateMachine()
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.TapReset function exception"}
         End Try
         Return Nothing
     End Function
 
-    Private Function c_jtag_poke(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_write32(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
             Dim addr32 As UInt32 = arguments(0).Value
             Dim data As UInt32 = arguments(1).Value
-            USBCLIENT.FCUSB(Index).EJ_IF.Memory_Write_W(addr32, data)
+            USBCLIENT.FCUSB(Index).JTAG_IF.WriteMemory(addr32, data, DATA_WIDTH.Word)
         Catch ex As Exception
-            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.Poke function exception"}
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.Write32 function exception"}
         End Try
         Return Nothing
     End Function
 
-    Private Function c_jtag_peek(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_read32(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
             Dim addr32 As UInt32 = arguments(0).Value
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
-            sv.Value = USBCLIENT.FCUSB(Index).EJ_IF.Memory_Read_W(addr32)
+            sv.Value = USBCLIENT.FCUSB(Index).JTAG_IF.ReadMemory(addr32, DATA_WIDTH.Word)
             Return sv
         Catch ex As Exception
-            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.Peek function exception"}
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.Read32 function exception"}
         End Try
         Return Nothing
     End Function
@@ -3506,35 +3622,35 @@ Public Class FcScriptEngine
             Dim state_str As String = arguments(0).Value
             Select Case state_str.ToUpper
                 Case "RunTestIdle".ToUpper
-                    USBCLIENT.FCUSB(Index).EJ_IF.TAP.GotoState(JTAG_STATE_CONTROLLER.MachineState.RunTestIdle)
+                    USBCLIENT.FCUSB(Index).JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.RunTestIdle)
                 Case "Select_DR".ToUpper
-                    USBCLIENT.FCUSB(Index).EJ_IF.TAP.GotoState(JTAG_STATE_CONTROLLER.MachineState.Select_DR)
+                    USBCLIENT.FCUSB(Index).JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.Select_DR)
                 Case "Capture_DR".ToUpper
-                    USBCLIENT.FCUSB(Index).EJ_IF.TAP.GotoState(JTAG_STATE_CONTROLLER.MachineState.Capture_DR)
+                    USBCLIENT.FCUSB(Index).JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.Capture_DR)
                 Case "Shift_DR".ToUpper
-                    USBCLIENT.FCUSB(Index).EJ_IF.TAP.GotoState(JTAG_STATE_CONTROLLER.MachineState.Shift_DR)
+                    USBCLIENT.FCUSB(Index).JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.Shift_DR)
                 Case "Exit1_DR".ToUpper
-                    USBCLIENT.FCUSB(Index).EJ_IF.TAP.GotoState(JTAG_STATE_CONTROLLER.MachineState.Exit1_DR)
+                    USBCLIENT.FCUSB(Index).JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.Exit1_DR)
                 Case "Pause_DR".ToUpper
-                    USBCLIENT.FCUSB(Index).EJ_IF.TAP.GotoState(JTAG_STATE_CONTROLLER.MachineState.Pause_DR)
+                    USBCLIENT.FCUSB(Index).JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.Pause_DR)
                 Case "Exit2_DR".ToUpper
-                    USBCLIENT.FCUSB(Index).EJ_IF.TAP.GotoState(JTAG_STATE_CONTROLLER.MachineState.Exit2_DR)
+                    USBCLIENT.FCUSB(Index).JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.Exit2_DR)
                 Case "Update_DR".ToUpper
-                    USBCLIENT.FCUSB(Index).EJ_IF.TAP.GotoState(JTAG_STATE_CONTROLLER.MachineState.Update_DR)
+                    USBCLIENT.FCUSB(Index).JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.Update_DR)
                 Case "Select_IR".ToUpper
-                    USBCLIENT.FCUSB(Index).EJ_IF.TAP.GotoState(JTAG_STATE_CONTROLLER.MachineState.Select_IR)
+                    USBCLIENT.FCUSB(Index).JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.Select_IR)
                 Case "Capture_IR".ToUpper
-                    USBCLIENT.FCUSB(Index).EJ_IF.TAP.GotoState(JTAG_STATE_CONTROLLER.MachineState.Capture_IR)
+                    USBCLIENT.FCUSB(Index).JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.Capture_IR)
                 Case "Shift_IR".ToUpper
-                    USBCLIENT.FCUSB(Index).EJ_IF.TAP.GotoState(JTAG_STATE_CONTROLLER.MachineState.Shift_IR)
+                    USBCLIENT.FCUSB(Index).JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.Shift_IR)
                 Case "Exit1_IR".ToUpper
-                    USBCLIENT.FCUSB(Index).EJ_IF.TAP.GotoState(JTAG_STATE_CONTROLLER.MachineState.Exit1_IR)
+                    USBCLIENT.FCUSB(Index).JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.Exit1_IR)
                 Case "Pause_IR".ToUpper
-                    USBCLIENT.FCUSB(Index).EJ_IF.TAP.GotoState(JTAG_STATE_CONTROLLER.MachineState.Pause_IR)
+                    USBCLIENT.FCUSB(Index).JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.Pause_IR)
                 Case "Exit2_IR".ToUpper
-                    USBCLIENT.FCUSB(Index).EJ_IF.TAP.GotoState(JTAG_STATE_CONTROLLER.MachineState.Exit2_IR)
+                    USBCLIENT.FCUSB(Index).JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.Exit2_IR)
                 Case "Update_IR".ToUpper
-                    USBCLIENT.FCUSB(Index).EJ_IF.TAP.GotoState(JTAG_STATE_CONTROLLER.MachineState.Update_IR)
+                    USBCLIENT.FCUSB(Index).JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.Update_IR)
                 Case Else
                     Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.State: unknown state: " & state_str}
             End Select
@@ -3558,6 +3674,24 @@ Public Class FcScriptEngine
             Return sv
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.GrayCode function exception"}
+        End Try
+        Return Nothing
+    End Function
+    'Undocumented. This is for setting delays on FCUSB Classic EJTAG firmware
+    Private Function c_jtag_setdelay(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Dim dev_ind As UInt32 = arguments(0).Value
+            Dim delay_val As UInt32 = arguments(1).Value
+            Select Case dev_ind
+                Case 1 'Intel
+                    USBCLIENT.FCUSB(Index).USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_SET_OPTION, Nothing, (delay_val << 16) + 1)
+                Case 2 'AMD
+                    USBCLIENT.FCUSB(Index).USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_SET_OPTION, Nothing, (delay_val << 16) + 2)
+                Case 3 'DMA
+                    USBCLIENT.FCUSB(Index).USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_SET_OPTION, Nothing, (delay_val << 16) + 3)
+            End Select
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.SetDelay function exception"}
         End Try
         Return Nothing
     End Function

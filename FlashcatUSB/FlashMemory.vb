@@ -33,15 +33,17 @@ Namespace FlashMemory
         PARALLEL_NOR
         OTP_EPROM
         SERIAL_NOR 'SPI devices
+        SERIAL_QUAD 'SQI devices
         SERIAL_I2C 'I2C EEPROMs
         SERIAL_MICROWIRE
         SERIAL_NAND 'SPI NAND devices
+        SERIAL_SWI 'Atmel single-wire
         SLC_NAND 'NAND devices
         JTAG_DMA_RAM 'Vol memory attached to a MCU with DMA access
-        JTAG_DMA_CFI 'Non-Vol memory attached to a MCU with DMA access
+        JTAG_CFI 'Non-Vol memory attached to a MCU with DMA access
         JTAG_SPI    'SPI devices connected to an MCU with a SPI access register
         FWH_NOR 'Firmware hub memories
-        'HYPERFLASH
+        HYPERFLASH
         'MLC_NAND
         'TLC_NAND
         DFU_MODE
@@ -139,7 +141,11 @@ Namespace FlashMemory
         Public WRDI As Byte = &H4 'Write-Disable
         Public RDSR As Byte = &H5 'Read Status Register
         Public WREN As Byte = &H6 'Write-Enable
-        Public FAST_READ As Byte = &HB 'Fast Read
+        Public FAST_READ As Byte = &HB 'FAST READ
+        Public DUAL_READ As Byte = &H3B 'DUAL OUTPUT FAST READ
+        Public QUAD_READ As Byte = &H6B 'QUAD OUTPUT FAST READ
+        Public QUAD_PROG As Byte = &H32 'QUAD INPUT PROGRAM
+        Public DUAL_PROG As Byte = &HA2 'DUAL INPUT PROGRAM
         Public EWSR As Byte = &H50 'Enable Write Status Register (used by SST/PCT chips) or (Clear Flag Status Register)
         Public RDFR As Byte = &H70 'Read Flag Status Register
         Public WRTB As Byte = &H84 'Command to write data into SRAM buffer 1 (used by Atmel)
@@ -155,16 +161,16 @@ Namespace FlashMemory
         Public DIESEL As Byte = &HC2 'Die-Select (used by flashes with multiple die)
     End Class
 
-    Public Enum SPI_QUADMODE
-        NotSupported = 0
-        all_quadio = 1 'commands are sent using quad i/o
-        spisetup_quadio = 2 'commands are sent using SPI, then switches to quad i/o for reading/writing
+    Public Enum SPI_MULTI_IO
+        NO_MULTI = 0 'Only SPI (not multi-io capability)
+        MULTI = 1 'All commands are data are received in 1/2/4
+        SPI_MULTI = 2 'Commands are sent in single, but data is sent/received in multi-io
     End Enum
 
     Public Enum VENDOR_FEATURE As Integer
         NotSupported = -1
         Micron = 1
-        Spansion = 2
+        Spansion_FL = 2
         ISSI = 3
     End Enum
 
@@ -382,15 +388,15 @@ Namespace FlashMemory
         'These are properties unique to SPI devices
         Public Property ADDRESSBITS As UInt32 = 24 'Number of bits the address space takes up (16/24/32)
         Public Property PAGE_COUNT As UInt32 'The total number of pages this flash contains
-        Public Property QUAD As SPI_QUADMODE = SPI_QUADMODE.NotSupported 'SQI mode
+        Public Property SQI_MODE As SPI_MULTI_IO = SPI_MULTI_IO.NO_MULTI
         Public Property ProgramMode As SPI_ProgramMode
         Public Property STACKED_DIES As UInt32 = 1 'If device has more than one die, set this value
         Public Property SEND_EN4B As Boolean = False 'Set to True to send the EN4BSP
         Public Property SEND_RDFS As Boolean = False 'Set to True to read the flag status register
         Public Property ERASE_SIZE As UInt32 = &H10000 'Number of bytes per page that are erased(typically 64KB)
         Public Property VENDOR_SPECIFIC As VENDOR_FEATURE = VENDOR_FEATURE.NotSupported 'Indicates we can load a unique vendor specific tab
-        Public Property SPI_DUMMY As Integer = 8 'Number of cycles after read in SPI operation
-        Public Property SQI_DUMMY As Integer = 2 'Number of cycles after read in QUAD operation
+        Public Property SPI_DUMMY As Byte = 8 'Number of cycles after read in SPI operation
+        Public Property SQI_DUMMY As Byte = 10 'Number of cycles after read in QUAD SPI operation
         Public Property CHIP_ERASE As EraseMethod = EraseMethod.Standard 'How to erase the entire device
         Public Property SEND_EWSR As Boolean = False 'Set to TRUE to write the enable write status-register
         Public Property PAGE_SIZE As UInt32 Implements Device.PAGE_SIZE  'Number of bytes per page
@@ -631,6 +637,31 @@ Namespace FlashMemory
 
     End Class
 
+    Public Class HF_Flash
+        Implements Device
+        Public ReadOnly Property NAME As String Implements Device.NAME
+        Public ReadOnly Property MFG_CODE As Byte Implements Device.MFG_CODE
+        Public ReadOnly Property ID1 As UInt16 Implements Device.ID1
+        Public Property ID2 As UInt16 Implements Device.ID2 'NOT USED
+        Public ReadOnly Property FLASH_TYPE As MemoryType = MemoryType.HYPERFLASH Implements Device.FLASH_TYPE
+        Public ReadOnly Property FLASH_SIZE As Long Implements Device.FLASH_SIZE
+        Public Property PAGE_SIZE As UInt32 = 512 Implements Device.PAGE_SIZE 'Only used for WRITE_PAGE mode of certain flash devices
+        Public ReadOnly Property SECTOR_SIZE As UInt32
+        Public ReadOnly Property SECTOR_COUNT As UInt32 Implements Device.Sector_Count
+        Public Property ERASE_REQUIRED As Boolean = True Implements Device.ERASE_REQUIRED
+
+        Sub New(f_name As String, MFG As Byte, ID1 As UInt16, f_size As UInt32)
+            Me.NAME = f_name
+            Me.MFG_CODE = MFG
+            Me.ID1 = ID1
+            Me.ID2 = ID2
+            Me.FLASH_SIZE = f_size
+            Me.SECTOR_SIZE = Mb002
+            Me.SECTOR_COUNT = (f_size / Me.SECTOR_SIZE)
+        End Sub
+
+    End Class
+
     Public Class FlashDatabase
         Public FlashDB As New List(Of Device)
 
@@ -643,75 +674,82 @@ Namespace FlashMemory
             FWH_Database() 'Adds all of the firmware hub devices
             'Add device specific features
             Dim MT25QL02GC As SPI_NOR_FLASH = FindDevice(&H20, &HBA22, 0, MemoryType.SERIAL_NOR)
-            MT25QL02GC.QUAD = SPI_QUADMODE.all_quadio
             MT25QL02GC.VENDOR_SPECIFIC = VENDOR_FEATURE.Micron 'Adds the non-vol tab to the GUI
             MT25QL02GC.SEND_RDFS = True 'Will read the flag-status register after a erase/programer opertion
             MT25QL02GC.CHIP_ERASE = EraseMethod.Micron   'Will erase all of the sectors instead
-
             Dim N25Q00AA_3V As SPI_NOR_FLASH = FindDevice(&H20, &HBA21, 0, MemoryType.SERIAL_NOR)
-            N25Q00AA_3V.QUAD = SPI_QUADMODE.all_quadio
             N25Q00AA_3V.VENDOR_SPECIFIC = VENDOR_FEATURE.Micron 'Adds the non-vol tab to the GUI
             N25Q00AA_3V.SEND_RDFS = True 'Will read the flag-status register after a erase/programer opertion
             N25Q00AA_3V.CHIP_ERASE = EraseMethod.Micron  'Will erase all of the sectors instead
             N25Q00AA_3V.STACKED_DIES = 4
-
             Dim N25Q00AA_1V8 As SPI_NOR_FLASH = FindDevice(&H20, &HBB21, 0, MemoryType.SERIAL_NOR) 'CV
-            N25Q00AA_1V8.QUAD = SPI_QUADMODE.all_quadio
             N25Q00AA_1V8.VENDOR_SPECIFIC = VENDOR_FEATURE.Micron 'Adds the non-vol tab to the GUI
             N25Q00AA_1V8.SEND_RDFS = True 'Will read the flag-status register after a erase/programer opertion
             N25Q00AA_1V8.CHIP_ERASE = EraseMethod.Micron  'Will erase all of the sectors instead
             N25Q00AA_1V8.STACKED_DIES = 4
-
             Dim N25Q512 As SPI_NOR_FLASH = FindDevice(&H20, &HBA20, 0, MemoryType.SERIAL_NOR)
-            N25Q512.QUAD = SPI_QUADMODE.all_quadio
             N25Q512.VENDOR_SPECIFIC = VENDOR_FEATURE.Micron 'Adds the non-vol tab to the GUI
             N25Q512.SEND_RDFS = True 'Will read the flag-status register after a erase/programer opertion
             N25Q512.CHIP_ERASE = EraseMethod.Micron 'Will erase all of the sectors instead
-
             Dim N25Q256 As SPI_NOR_FLASH = FindDevice(&H20, &HBA19, 0, MemoryType.SERIAL_NOR)
-            N25Q256.QUAD = SPI_QUADMODE.all_quadio
             N25Q256.VENDOR_SPECIFIC = VENDOR_FEATURE.Micron 'Adds the non-vol tab to the GUI
             N25Q256.SEND_RDFS = True 'Will read the flag-status register after a erase/programer opertion
 
             Dim S25FL116K As SPI_NOR_FLASH = FindDevice(&H1, &H4015, 0, MemoryType.SERIAL_NOR)
-            S25FL116K.QUAD = SPI_QUADMODE.all_quadio
-            S25FL116K.VENDOR_SPECIFIC = VENDOR_FEATURE.Spansion
-
+            S25FL116K.VENDOR_SPECIFIC = VENDOR_FEATURE.Spansion_FL
+            S25FL116K.SQI_MODE = SPI_MULTI_IO.SPI_MULTI
             Dim S25FL132K As SPI_NOR_FLASH = FindDevice(&H1, &H4016, 0, MemoryType.SERIAL_NOR)
-            S25FL132K.QUAD = SPI_QUADMODE.all_quadio
-            S25FL132K.VENDOR_SPECIFIC = VENDOR_FEATURE.Spansion
-
+            S25FL132K.VENDOR_SPECIFIC = VENDOR_FEATURE.Spansion_FL
+            S25FL132K.SQI_MODE = SPI_MULTI_IO.SPI_MULTI
             Dim S25FL164K As SPI_NOR_FLASH = FindDevice(&H1, &H4017, 0, MemoryType.SERIAL_NOR)
-            S25FL164K.QUAD = SPI_QUADMODE.all_quadio
-            S25FL164K.VENDOR_SPECIFIC = VENDOR_FEATURE.Spansion
+            S25FL164K.VENDOR_SPECIFIC = VENDOR_FEATURE.Spansion_FL
+            S25FL164K.SQI_MODE = SPI_MULTI_IO.SPI_MULTI
+
+            Dim S25FL512S As SPI_NOR_FLASH = FindDevice(&H1, &H220, 0, MemoryType.SERIAL_NOR)
+            S25FL512S.VENDOR_SPECIFIC = VENDOR_FEATURE.Spansion_FL
+            S25FL512S.SQI_MODE = SPI_MULTI_IO.SPI_MULTI
+            S25FL512S.OP_COMMANDS.QUAD_READ = &H6C '4QOR
+            S25FL512S.OP_COMMANDS.QUAD_PROG = &H34 '4QPP
+
+            Dim S25FL256S_256KB As SPI_NOR_FLASH = FindDevice(&H1, &H219, &H4D00, MemoryType.SERIAL_NOR)
+            S25FL256S_256KB.VENDOR_SPECIFIC = VENDOR_FEATURE.Spansion_FL
+            S25FL256S_256KB.SQI_MODE = SPI_MULTI_IO.SPI_MULTI
+            S25FL256S_256KB.OP_COMMANDS.QUAD_READ = &H6C '4QOR
+            S25FL256S_256KB.OP_COMMANDS.QUAD_PROG = &H34 '4QPP
+
+            Dim S25FL256S_64KB As SPI_NOR_FLASH = FindDevice(&H1, &H219, &H4D01, MemoryType.SERIAL_NOR)
+            S25FL256S_64KB.VENDOR_SPECIFIC = VENDOR_FEATURE.Spansion_FL
+            S25FL256S_64KB.SQI_MODE = SPI_MULTI_IO.SPI_MULTI
+            S25FL256S_64KB.OP_COMMANDS.QUAD_READ = &H6C '4QOR
+            S25FL256S_64KB.OP_COMMANDS.QUAD_PROG = &H34 '4QPP
 
             Dim IS25LQ032 As SPI_NOR_FLASH = FindDevice(&H9D, &H4016, 0, MemoryType.SERIAL_NOR)
-            IS25LQ032.QUAD = SPI_QUADMODE.all_quadio
             IS25LQ032.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
             Dim IS25LQ016 As SPI_NOR_FLASH = FindDevice(&H9D, &H4015, 0, MemoryType.SERIAL_NOR)
-            IS25LQ016.QUAD = SPI_QUADMODE.all_quadio
             IS25LQ016.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
             Dim IS25LP080D As SPI_NOR_FLASH = FindDevice(&H9D, &H6014, 0, MemoryType.SERIAL_NOR)
-            IS25LP080D.QUAD = SPI_QUADMODE.all_quadio
             IS25LP080D.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
             Dim IS25WP080D As SPI_NOR_FLASH = FindDevice(&H9D, &H7014, 0, MemoryType.SERIAL_NOR)
-            IS25WP080D.QUAD = SPI_QUADMODE.all_quadio
             IS25WP080D.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
             Dim IS25WP040D As SPI_NOR_FLASH = FindDevice(&H9D, &H7013, 0, MemoryType.SERIAL_NOR)
-            IS25WP040D.QUAD = SPI_QUADMODE.all_quadio
             IS25WP040D.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
             Dim IS25WP020D As SPI_NOR_FLASH = FindDevice(&H9D, &H7012, 0, MemoryType.SERIAL_NOR)
-            IS25WP020D.QUAD = SPI_QUADMODE.all_quadio
             IS25WP020D.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
             Dim IS25LP256 As SPI_NOR_FLASH = FindDevice(&H9D, &H6019, 0, MemoryType.SERIAL_NOR)
-            IS25LP256.QUAD = SPI_QUADMODE.all_quadio
             IS25LP256.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
             Dim IS25WP256 As SPI_NOR_FLASH = FindDevice(&H9D, &H7019, 0, MemoryType.SERIAL_NOR)
-            IS25WP256.QUAD = SPI_QUADMODE.all_quadio
             IS25WP256.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
             Dim IS25LP128 As SPI_NOR_FLASH = FindDevice(&H9D, &H6018, 0, MemoryType.SERIAL_NOR)
-            IS25LP128.QUAD = SPI_QUADMODE.all_quadio
             IS25LP128.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
+
+            'Add HyperFlash devices
+            FlashDB.Add(New HF_Flash("Cypress S26KS128S", &H1, &H7E74, Mb128)) '1.8V
+            FlashDB.Add(New HF_Flash("Cypress S26KS256S", &H1, &H7E72, Mb256)) '1.8V
+            FlashDB.Add(New HF_Flash("Cypress S26KS512S", &H1, &H7E70, Mb512)) '1.8V
+            FlashDB.Add(New HF_Flash("Cypress S26KL128S", &H1, &H7E73, Mb128)) '3.3V
+            FlashDB.Add(New HF_Flash("Cypress S26KL256S", &H1, &H7E71, Mb256)) '3.3V
+            FlashDB.Add(New HF_Flash("Cypress S26KL512S", &H1, &H7E6F, Mb512)) '3.3V
+
 
             'CreateHtmlCatalog(MemoryType.SERIAL_NOR, 3, "d: \spi_database.html")
             'CreateHtmlCatalog(MemoryType.SERIAL_NAND, 3, "d:\spinand_database.html")
@@ -781,20 +819,20 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL204K", Mb004, &H1, &H4013))
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL004A", Mb004, &H1, &H212))
             'Micron (ST)
-            FlashDB.Add(New SPI_NOR_FLASH("Micron MT25QL02GC", Gb002, &H20, &HBA22) With {.SEND_EN4B = True})
-            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q00AA", Gb001, &H20, &HBA21) With {.SEND_EN4B = True}) '3V
-            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q00AA", Gb001, &H20, &HBB21) With {.SEND_EN4B = True}) '1.8V CV
-            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q512A", Mb512, &H20, &HBA20) With {.SEND_EN4B = True})
-            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q512A", Mb512, &H20, &HBB20) With {.SEND_EN4B = True}) '1.8v 
-            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q256A", Mb256, &H20, &HBA19) With {.SEND_EN4B = True}) '3.3v version
-            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q256A", Mb256, &H20, &HBB19) With {.SEND_EN4B = True}) '1.8v version
-            FlashDB.Add(New SPI_NOR_FLASH("Micron NP5Q128A", Mb128, &H20, &HDA18, 64) With {.ERASE_SIZE = &H20000}) 'NEW! PageSize is 64 bytes
-            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q128", Mb128, &H20, &HBA18))
-            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q064A", Mb064, &H20, &HBB17))
-            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q064", Mb064, &H20, &HBA17))
-            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q032", Mb032, &H20, &HBA16))
-            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q016", Mb016, &H20, &HBB15))
-            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q008", Mb008, &H20, &HBB14))
+            FlashDB.Add(New SPI_NOR_FLASH("Micron MT25QL02GC", Gb002, &H20, &HBA22) With {.SEND_EN4B = True, .SQI_MODE = SPI_MULTI_IO.MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q00AA", Gb001, &H20, &HBA21) With {.SEND_EN4B = True, .SQI_MODE = SPI_MULTI_IO.MULTI}) '3V
+            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q00AA", Gb001, &H20, &HBB21) With {.SEND_EN4B = True, .SQI_MODE = SPI_MULTI_IO.MULTI}) '1.8V CV
+            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q512A", Mb512, &H20, &HBA20) With {.SEND_EN4B = True, .SQI_MODE = SPI_MULTI_IO.MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q512A", Mb512, &H20, &HBB20) With {.SEND_EN4B = True, .SQI_MODE = SPI_MULTI_IO.MULTI}) '1.8v 
+            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q256A", Mb256, &H20, &HBA19) With {.SEND_EN4B = True, .SQI_MODE = SPI_MULTI_IO.MULTI}) '3.3v version
+            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q256A", Mb256, &H20, &HBB19) With {.SEND_EN4B = True, .SQI_MODE = SPI_MULTI_IO.MULTI}) '1.8v version
+            FlashDB.Add(New SPI_NOR_FLASH("Micron NP5Q128A", Mb128, &H20, &HDA18, 64) With {.ERASE_SIZE = &H20000, .SQI_MODE = SPI_MULTI_IO.MULTI}) 'NEW! PageSize is 64 bytes
+            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q128", Mb128, &H20, &HBA18) With {.SQI_MODE = SPI_MULTI_IO.MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q064A", Mb064, &H20, &HBB17) With {.SQI_MODE = SPI_MULTI_IO.MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q064", Mb064, &H20, &HBA17) With {.SQI_MODE = SPI_MULTI_IO.MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q032", Mb032, &H20, &HBA16) With {.SQI_MODE = SPI_MULTI_IO.MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q016", Mb016, &H20, &HBB15) With {.SQI_MODE = SPI_MULTI_IO.MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Micron N25Q008", Mb008, &H20, &HBB14) With {.SQI_MODE = SPI_MULTI_IO.MULTI})
             FlashDB.Add(New SPI_NOR_FLASH("Micron M25P128", Mb128, &H20, &H2018) With {.ERASE_SIZE = Mb002}) 'Confirmed (build 350)
             FlashDB.Add(New SPI_NOR_FLASH("Micron M25P64", Mb064, &H20, &H2017)) 'Confirmed (Build 350)
             FlashDB.Add(New SPI_NOR_FLASH("Micron M25PX32", Mb032, &H20, &H7116))
@@ -824,25 +862,26 @@ Namespace FlashMemory
             'Windbond
             'http://www.nexflash.com/hq/enu/ProductAndSales/ProductLines/FlashMemory/SerialFlash/
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25M512JV", Mb512, &HEF, &H7119) With {.SEND_EN4B = True, .STACKED_DIES = 2}) 'Confirmed working (7/13/17)
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q256JV", Mb256, &HEF, &H7019) With {.SEND_EN4B = True})
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q128JV", Mb128, &HEF, &H7018))
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q64JV", Mb064, &HEF, &H7017))
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q32JV", Mb032, &HEF, &H7016))
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q512", Mb512, &HEF, &H4020) With {.SEND_EN4B = True})
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q256", Mb256, &HEF, &H4019) With {.SEND_EN4B = True})
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q128", Mb128, &HEF, &H4018)) 'CV
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q64", Mb064, &HEF, &H4017))
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q32", Mb032, &HEF, &H4016))
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q16", Mb016, &HEF, &H4015)) 'Confirmed (Build 350)
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q80", Mb008, &HEF, &H4014)) 'Confirmed (Build 350)
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q80BW", Mb008, &HEF, &H5014)) 'Added in build 350
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q40", Mb004, &HEF, &H4013))
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q128FW", Mb128, &HEF, &H6018))
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q64FW", Mb064, &HEF, &H6017))
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q32FW", Mb032, &HEF, &H6016))
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q16FW", Mb016, &HEF, &H6015))
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q08EW", Mb008, &HEF, &H6014))
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q40BW", Mb004, &HEF, &H5013))
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q256JV", Mb256, &HEF, &H7019) With {.SEND_EN4B = True, .SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q256FV", Mb256, &HEF, &H6019) With {.SEND_EN4B = True, .SQI_MODE = SPI_MULTI_IO.SPI_MULTI}) 'QUAD mode
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q128JV", Mb128, &HEF, &H7018) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q64JV", Mb064, &HEF, &H7017) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q32JV", Mb032, &HEF, &H7016) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q512", Mb512, &HEF, &H4020) With {.SEND_EN4B = True, .SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q256", Mb256, &HEF, &H4019) With {.SEND_EN4B = True, .SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q128", Mb128, &HEF, &H4018) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI}) 'CV
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q64", Mb064, &HEF, &H4017) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q32", Mb032, &HEF, &H4016) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q16", Mb016, &HEF, &H4015) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI}) 'Confirmed (Build 350)
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q80", Mb008, &HEF, &H4014) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI}) 'Confirmed (Build 350)
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q80BW", Mb008, &HEF, &H5014) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI}) 'Added in build 350
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q40", Mb004, &HEF, &H4013) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q128FW", Mb128, &HEF, &H6018) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q64FW", Mb064, &HEF, &H6017) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q32FW", Mb032, &HEF, &H6016) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q16FW", Mb016, &HEF, &H6015) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q08EW", Mb008, &HEF, &H6014) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q40BW", Mb004, &HEF, &H5013) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25X64", Mb064, &HEF, &H3017))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25X64", Mb064, &HEF, &H3017))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25X32", Mb032, &HEF, &H3016))
@@ -857,6 +896,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("MXIC MX25L51245G", Mb512, &HC2, &H201A) With {.SEND_EN4B = True}) 'Added (Build 372)
             FlashDB.Add(New SPI_NOR_FLASH("MXIC MX25L25655E", Mb256, &HC2, &H2619) With {.SEND_EN4B = True}) 'Added (Build 371)
             FlashDB.Add(New SPI_NOR_FLASH("MXIC MX25L256", Mb256, &HC2, &H2019) With {.SEND_EN4B = True}) 'Added (Build 350)
+            FlashDB.Add(New SPI_NOR_FLASH("MXIC MX25U25645G", Mb256, &HC2, &H2539) With {.SEND_EN4B = True}) '1.8V
             FlashDB.Add(New SPI_NOR_FLASH("MXIC MX25L12855E", Mb128, &HC2, &H2618)) 'Added Build 372
             FlashDB.Add(New SPI_NOR_FLASH("MXIC MX25L128", Mb128, &HC2, &H2018))
             FlashDB.Add(New SPI_NOR_FLASH("MXIC MX25U12873F", Mb128, &HC2, &H2538)) '1.8V SQI
@@ -887,17 +927,17 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("MXIC MX25V4035", Mb004, &HC2, &H2553))
             FlashDB.Add(New SPI_NOR_FLASH("MXIC MX25V8035F", Mb008, &HC2, &H2314))
             'EON
-            FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q128", Mb128, &H1C, &H3018)) 'Fixed
-            FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q64", Mb064, &H1C, &H3017))
-            FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q32", Mb032, &H1C, &H3016))
-            FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q16", Mb016, &H1C, &H3015))
-            FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q80", Mb008, &H1C, &H3014))
-            FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q40", Mb004, &H1C, &H3013))
-            FlashDB.Add(New SPI_NOR_FLASH("EON EN25QH128", Mb128, &H1C, &H7018)) 'Added build 402
-            FlashDB.Add(New SPI_NOR_FLASH("EON EN25QH64", Mb064, &H1C, &H7017))
-            FlashDB.Add(New SPI_NOR_FLASH("EON EN25QH32", Mb032, &H1C, &H7016)) 'Added build 350
-            FlashDB.Add(New SPI_NOR_FLASH("EON EN25QH16", Mb016, &H1C, &H7015)) 'Added build 402
-            FlashDB.Add(New SPI_NOR_FLASH("EON EN25QH80", Mb008, &H1C, &H7014)) 'Added build 402
+            FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q128", Mb128, &H1C, &H3018) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI}) 'Fixed
+            FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q64", Mb064, &H1C, &H3017) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q32", Mb032, &H1C, &H3016) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q16", Mb016, &H1C, &H3015) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q80", Mb008, &H1C, &H3014) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q40", Mb004, &H1C, &H3013) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("EON EN25QH128", Mb128, &H1C, &H7018) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI}) 'Added build 402
+            FlashDB.Add(New SPI_NOR_FLASH("EON EN25QH64", Mb064, &H1C, &H7017) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("EON EN25QH32", Mb032, &H1C, &H7016) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI}) 'Added build 350
+            FlashDB.Add(New SPI_NOR_FLASH("EON EN25QH16", Mb016, &H1C, &H7015) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI}) 'Added build 402
+            FlashDB.Add(New SPI_NOR_FLASH("EON EN25QH80", Mb008, &H1C, &H7014) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI}) 'Added build 402
             FlashDB.Add(New SPI_NOR_FLASH("EON EN25P64", Mb064, &H1C, &H2017))
             FlashDB.Add(New SPI_NOR_FLASH("EON EN25P32", Mb032, &H1C, &H2016))
             FlashDB.Add(New SPI_NOR_FLASH("EON EN25P16", Mb016, &H1C, &H2015))
@@ -919,8 +959,8 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("Microchip SST26VF032", Mb032, &HBF, &H2602)) 'PCT26VF032
             FlashDB.Add(New SPI_NOR_FLASH("Microchip SST26VF032B", Mb032, &HBF, &H2642, &H20, &H1000)) 'SST26VF032BA
             FlashDB.Add(New SPI_NOR_FLASH("Microchip SST26WF032", Mb032, &HBF, &H2622)) 'PCT26WF032
-            FlashDB.Add(New SPI_NOR_FLASH("Microchip SST26VF016", Mb016, &HBF, &H2601, &H20, &H1000) With {.QUAD = SPI_QUADMODE.all_quadio})
-            FlashDB.Add(New SPI_NOR_FLASH("Microchip SST26VF032", Mb032, &HBF, &H2602, &H20, &H1000) With {.QUAD = SPI_QUADMODE.all_quadio})
+            FlashDB.Add(New SPI_NOR_FLASH("Microchip SST26VF016", Mb016, &HBF, &H2601, &H20, &H1000) With {.SQI_MODE = SPI_MULTI_IO.MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Microchip SST26VF032", Mb032, &HBF, &H2602, &H20, &H1000) With {.SQI_MODE = SPI_MULTI_IO.MULTI})
             FlashDB.Add(New SPI_NOR_FLASH("Microchip SST26VF016B", Mb016, &HBF, &H2641, &H20, &H1000)) 'SST26VF016BA
             FlashDB.Add(New SPI_NOR_FLASH("Microchip SST26VF016", Mb016, &HBF, &H16BF, &H20, &H1000) With {.ProgramMode = SPI_ProgramMode.AAI_Byte})
             FlashDB.Add(New SPI_NOR_FLASH("Microchip SST26WF016B", Mb016, &HBF, &H2651)) 'SST26WF016BA
@@ -960,11 +1000,11 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("PMC Pm25LD512", Kb512, &H7F, &H9D20))
             'AMIC
             'http://www.amictechnology.com/english/flash_spi_flash.html
-            FlashDB.Add(New SPI_NOR_FLASH("AMIC A25LQ64", Mb064, &H37, &H4017)) 'A25LMQ64
-            FlashDB.Add(New SPI_NOR_FLASH("AMIC A25LQ32A", Mb032, &H37, &H4016))
+            FlashDB.Add(New SPI_NOR_FLASH("AMIC A25LQ64", Mb064, &H37, &H4017) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI}) 'A25LMQ64
+            FlashDB.Add(New SPI_NOR_FLASH("AMIC A25LQ32A", Mb032, &H37, &H4016) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
             FlashDB.Add(New SPI_NOR_FLASH("AMIC A25L032", Mb032, &H37, &H3016))
             FlashDB.Add(New SPI_NOR_FLASH("AMIC A25L016", Mb016, &H37, &H3015))
-            FlashDB.Add(New SPI_NOR_FLASH("AMIC A25LQ16", Mb016, &H37, &H4015))
+            FlashDB.Add(New SPI_NOR_FLASH("AMIC A25LQ16", Mb016, &H37, &H4015) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
             FlashDB.Add(New SPI_NOR_FLASH("AMIC A25L080", Mb008, &H37, &H3014))
             FlashDB.Add(New SPI_NOR_FLASH("AMIC A25L040", Mb004, &H37, &H3013)) 'A25L040A A25P040
             FlashDB.Add(New SPI_NOR_FLASH("AMIC A25L020", Mb002, &H37, &H3012)) 'A25L020C A25P020
@@ -973,8 +1013,8 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("AMIC A25LS512A", Kb512, &HC2, &H2010))
             'Fidelix
             'http://www.fidelix.co.kr/semiconductor/eng/product/serialflash.jsp
-            FlashDB.Add(New SPI_NOR_FLASH("Fidelix FM25Q16A", Mb016, &HF8, &H3215)) 'FM25Q16B
-            FlashDB.Add(New SPI_NOR_FLASH("Fidelix FM25Q32A", Mb032, &HF8, &H3216))
+            FlashDB.Add(New SPI_NOR_FLASH("Fidelix FM25Q16A", Mb016, &HF8, &H3215) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI}) 'FM25Q16B
+            FlashDB.Add(New SPI_NOR_FLASH("Fidelix FM25Q32A", Mb032, &HF8, &H3216) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
             FlashDB.Add(New SPI_NOR_FLASH("Fidelix FM25M04A", Mb004, &HF8, &H4213))
             FlashDB.Add(New SPI_NOR_FLASH("Fidelix FM25M08A", Mb008, &HF8, &H4214))
             FlashDB.Add(New SPI_NOR_FLASH("Fidelix FM25M16A", Mb016, &HF8, &H4215))
@@ -982,15 +1022,15 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("Fidelix FM25M64A", Mb064, &HF8, &H4217))
             FlashDB.Add(New SPI_NOR_FLASH("Fidelix FM25M4AA", Mb004, &HF8, &H4212))
             'Gigadevice
-            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q128", Mb128, &HC8, &H4018))
-            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q64", Mb064, &HC8, &H4017))
-            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q32", Mb032, &HC8, &H4016))
-            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q16", Mb016, &HC8, &H4015))
-            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q80", Mb008, &HC8, &H4014))
-            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q40", Mb004, &HC8, &H4013))
-            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q20", Mb002, &HC8, &H4012))
-            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q10", Mb001, &HC8, &H4011))
-            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q512", Kb512, &HC8, &H4010))
+            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q128", Mb128, &HC8, &H4018) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q64", Mb064, &HC8, &H4017) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q32", Mb032, &HC8, &H4016) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q16", Mb016, &HC8, &H4015) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q80", Mb008, &HC8, &H4014) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q40", Mb004, &HC8, &H4013) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q20", Mb002, &HC8, &H4012) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q10", Mb001, &HC8, &H4011) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
+            FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25Q512", Kb512, &HC8, &H4010) With {.SQI_MODE = SPI_MULTI_IO.SPI_MULTI})
             FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25VQ16C", Mb016, &HC8, &H4215))
             FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25VQ80C", Mb008, &HC8, &H4214))
             FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25VQ41B", Mb004, &HC8, &H4213))
@@ -1003,18 +1043,19 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25LQ40", Mb004, &HC8, &H6013))
             FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25LQ20", Mb002, &HC8, &H6012))
             FlashDB.Add(New SPI_NOR_FLASH("Gigadevice GD25LQ10", Mb001, &HC8, &H6011))
+            FlashDB.Add(New SPI_NOR_FLASH("GigaDevice MD25D16SIG", Mb016, &H51, &H4015))
             'ISSI
-            FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25CD020", Mb002, &H9D, &H1122))
-            FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25CD010", Mb001, &H9D, &H1021))
-            FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25CD512", Kb512, &H9D, &H520))
-            FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25CD025", Kb256, &H7F, &H9D2F))
-            FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25CQ032", Mb032, &H7F, &H9D46))
-            FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25LP256", Mb256, &H9D, &H6019))
+            FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25LP256", Mb256, &H9D, &H6019) With {.SEND_EN4B = True}) 'CV
             FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25LP128", Mb128, &H9D, &H6018))
             FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25LP064", Mb064, &H9D, &H6017))
             FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25LP032", Mb032, &H9D, &H6016))
             FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25LP016", Mb016, &H9D, &H6015))
             FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25LP080", Mb008, &H9D, &H6014))
+            FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25CD020", Mb002, &H9D, &H1122))
+            FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25CD010", Mb001, &H9D, &H1021))
+            FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25CD512", Kb512, &H9D, &H520))
+            FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25CD025", Kb256, &H7F, &H9D2F))
+            FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25CQ032", Mb032, &H7F, &H9D46))
             FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25LQ032", Mb032, &H9D, &H4016))
             FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25LQ016", Mb016, &H9D, &H4015))
             FlashDB.Add(New SPI_NOR_FLASH("ISSI IS25LQ080", Mb008, &H9D, &H1344))
@@ -1044,12 +1085,15 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("ESMT F25L08", Mb008, &H8C, &H2014) With {.ProgramMode = SPI_ProgramMode.AAI_Word})
             FlashDB.Add(New SPI_NOR_FLASH("ESMT F25L32QA", Mb032, &H8C, &H4116))
             FlashDB.Add(New SPI_NOR_FLASH("Sanyo LE25FU406B", Mb004, &H62, &H1E62))
+            FlashDB.Add(New SPI_NOR_FLASH("Sanyo LE25FW406A", Mb004, &H62, &H1A62))
             FlashDB.Add(New SPI_NOR_FLASH("Berg_Micro BG25Q32A", Mb032, &HE0, &H4016))
             FlashDB.Add(New SPI_NOR_FLASH("XMC XM25QH64A", Mb064, &H20, &H7017)) 'Rebranded-micron
             FlashDB.Add(New SPI_NOR_FLASH("XMC XM25QH128A", Mb128, &H20, &H7018))
             FlashDB.Add(New SPI_NOR_FLASH("BOYAMICRO BY25D16", Mb016, &H68, &H4015))
             FlashDB.Add(New SPI_NOR_FLASH("BOYAMICRO BY25Q32", Mb032, &H68, &H4016))
             FlashDB.Add(New SPI_NOR_FLASH("BOYAMICRO BY25Q64", Mb064, &H68, &H4017))
+            FlashDB.Add(New SPI_NOR_FLASH("BOYAMICRO BY25Q128A", Mb128, &H68, &H4018))
+
             'SUPPORTED EEPROM SPI DEVICES:
             FlashDB.Add(New SPI_NOR_FLASH("Atmel AT25128B", 16384, 64))
             FlashDB.Add(New SPI_NOR_FLASH("Atmel AT25256B", 32768, 64))
@@ -1120,7 +1164,6 @@ Namespace FlashMemory
         Private Sub MFP_Database()
             'https://github.com/jhcloos/flashrom/blob/master/flashchips.h
             'Intel
-
             FlashDB.Add(New MFP_Flash("Intel A28F512", &H89, &HB8, Kb512, MFP_IF.X8_5V_12V, MFP_BLKLAYOUT.EntireDevice, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("Intel 28F320J3", &H89, &H16, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer1, MFP_DELAY.SR1)) '32 byte buffers
             FlashDB.Add(New MFP_Flash("Intel 28F640J3", &H89, &H17, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer1, MFP_DELAY.SR1))
@@ -1148,6 +1191,8 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Intel 28F640B3(T)", &H89, &H8898, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.IntelSharp, MFP_DELAY.SR1))
             FlashDB.Add(New MFP_Flash("Intel 28F640B3(B)", &H89, &H8899, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.IntelSharp, MFP_DELAY.SR1))
             'AMD
+            FlashDB.Add(New MFP_Flash("AMD AM29LV002B(T)", &H1, &H40, Mb002, MFP_IF.X8_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.BypassMode, MFP_DELAY.uS)) 'TSOP40 (TYPE-B) CV
+            FlashDB.Add(New MFP_Flash("AMD AM29LV002B(B)", &H1, &HC2, Mb002, MFP_IF.X8_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.BypassMode, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("AMD AM29LV065D", &H1, &H93, Mb064, MFP_IF.X8_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.BypassMode, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("AMD AM29F040", &H1, &HA4, Mb004, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.DQ7) With {.ERASE_DELAY = 500, .RESET_ENABLED = False})
             FlashDB.Add(New MFP_Flash("AMD AM29F010B", &H1, &H20, Mb001, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb128_Uni, MFP_PROG.Standard, MFP_DELAY.uS) With {.ERASE_DELAY = 500, .RESET_ENABLED = False})
@@ -1230,10 +1275,9 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("MXIC MX29LV320B", &HC2, &H22A8, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.Standard, MFP_DELAY.uS) With {.HARDWARE_DELAY = 0})
             FlashDB.Add(New MFP_Flash("MXIC MX29LV640ET", &HC2, &H22C9, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS) With {.HARDWARE_DELAY = 0})
             FlashDB.Add(New MFP_Flash("MXIC MX29LV640EB", &HC2, &H22CB, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.Standard, MFP_DELAY.uS) With {.HARDWARE_DELAY = 0})
-            FlashDB.Add(New MFP_Flash("MXIC MX29GL128F", &HC2, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Standard, MFP_DELAY.uS, &H2101) With {.HARDWARE_DELAY = 0})
+            FlashDB.Add(New MFP_Flash("MXIC MX29GL128F", &HC2, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2101) With {.HARDWARE_DELAY = 6})
             FlashDB.Add(New MFP_Flash("MXIC MX29F800T", &HC2, &H22D6, Mb008, MFP_IF.X16_5V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS)) 'SO44 CV
             FlashDB.Add(New MFP_Flash("MXIC MX29F800B", &HC2, &H2258, Mb008, MFP_IF.X16_5V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.Standard, MFP_DELAY.uS))
-
             'Cypress / Spansion
             'http://www.cypress.com/file/177976/download   S29GLxxxS
             'http://www.cypress.com/file/219926/download   S29GLxxxP
@@ -1252,9 +1296,9 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Cypress S29GL256", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.uS, &H2200) With {.PAGE_SIZE = 64})
             FlashDB.Add(New MFP_Flash("Cypress S29GL512", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.uS, &H2300) With {.PAGE_SIZE = 64})
             FlashDB.Add(New MFP_Flash("Cypress S29GL01G", &H1, &H227E, Gb001, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.uS, &H2800) With {.PAGE_SIZE = 64})
-            FlashDB.Add(New MFP_Flash("Cypress S29JL064J", &H1, &H227E, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Dual, MFP_PROG.Standard, MFP_DELAY.SR1, &H201)) 'Dual-boot
+            FlashDB.Add(New MFP_Flash("Cypress S29JL064J", &H1, &H227E, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Dual, MFP_PROG.Standard, MFP_DELAY.DQ7, &H201)) 'Top and bottom boot blocks (CV)
             FlashDB.Add(New MFP_Flash("Cypress S29GL032M", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.SR1, &H1C00)) 'Model R0
-            FlashDB.Add(New MFP_Flash("Cypress S29GL032M", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.SR1, &H1D00))
+
             FlashDB.Add(New MFP_Flash("Cypress S29GL032M(B)", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.Standard, MFP_DELAY.SR1, &H1A00)) 'Bottom-Boot
             FlashDB.Add(New MFP_Flash("Cypress S29GL032M(T)", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.Standard, MFP_DELAY.SR1, &H1A01)) 'Top-Boot
             FlashDB.Add(New MFP_Flash("Cypress S29JL032J(B)", &H1, &H225F, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.BypassMode, MFP_DELAY.DQ7)) 'Bottom-Boot
@@ -1270,6 +1314,9 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Cypress S29GL064M", &H1, &H227E, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.SR1, &H1301))
             FlashDB.Add(New MFP_Flash("Cypress S29GL128M", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Standard, MFP_DELAY.SR1, &H1200))
             FlashDB.Add(New MFP_Flash("Cypress S29GL256M", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Standard, MFP_DELAY.SR1, &H1201))
+
+            FlashDB.Add(New MFP_Flash("Cypress S29GL032N", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H1D00) With {.PAGE_SIZE = 32})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL064N", &H1, &H227E, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &HC01) With {.PAGE_SIZE = 32})
             FlashDB.Add(New MFP_Flash("Cypress S29GL128N", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2101) With {.PAGE_SIZE = 32})
             FlashDB.Add(New MFP_Flash("Cypress S29GL256N", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.PAGE_SIZE = 32}) '(CHIP-VAULT)
             FlashDB.Add(New MFP_Flash("Cypress S29GL512N", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2301) With {.PAGE_SIZE = 32})
@@ -1435,6 +1482,8 @@ Namespace FlashMemory
             FlashDB.Add(New SLC_NAND_Flash("Micron MT29F4G08ABADAWP", &H2C, &H90A0B0CUI, Gb002, 2048, 64, Mb001, ND_IF.X8_3V)) 'Fixed/CV
             FlashDB.Add(New SLC_NAND_Flash("Micron MT29F4G08ABAHC", &H2C, &HDC90A654UI, Gb004, 2048, 64, Mb001, ND_IF.X8_3V)) 'Just added
             FlashDB.Add(New SLC_NAND_Flash("Micron MT29F8G08BAA", &H2C, &HD3D19558UI, Gb008, 2048, 64, Mb001, ND_IF.X8_3V))
+            FlashDB.Add(New SLC_NAND_Flash("Micron MT29F8G08DAA", &H2C, &HD3909554UI, Gb004, 2048, 64, Mb001, ND_IF.X8_3V)) 'Dual die (2x4GB) CE1 and CE2
+            FlashDB.Add(New SLC_NAND_Flash("Micron MT29F8G08ABACA", &H2C, &HD390A664UI, Gb008, 4096, 224, Mb002, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Micron MT29F8G08ABABA", &H2C, &H38002685UI, Gb008, 4096, 224, Mb004, ND_IF.X8_3V))
             'Toshiba SLC 8x NAND devices
             FlashDB.Add(New SLC_NAND_Flash("Toshiba TC58DVM92A5TA10", &H98, &H76A5C029UI, Mb512, 512, 16, Kb128, ND_IF.X8_3V))
@@ -1451,12 +1500,10 @@ Namespace FlashMemory
             FlashDB.Add(New SLC_NAND_Flash("Toshiba TH58NVG3S0HTA00", &H98, &HD3912676UI, Gb008, 4096, 256, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Toshiba TH58NVG3S0HTAI0", &H98, &HD3912676UI, Gb008, 2048, 128, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Toshiba TC58NVG3S0FTA00", &H98, &HD3902676UI, Gb008, 4096, 232, Mb002, ND_IF.X8_3V))
-
             'Winbond SLC 8x NAND devices
             FlashDB.Add(New SLC_NAND_Flash("Winbond W29N01GV", &HEF, &HF1809500UI, Gb001, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Winbond W29N02GV", &HEF, &HDA909504UI, Gb002, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Winbond W29N01HV", &HEF, &HF1009500UI, Gb001, 2048, 64, Mb001, ND_IF.X8_3V))
-
             'Macronix SLC 8x NAND devices
             FlashDB.Add(New SLC_NAND_Flash("MXIC MX30LF1208AA", &HC2, &HF0801D, Mb512, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("MXIC MX30LF1GE8AB", &HC2, &HF1809582UI, Gb001, 2048, 64, Mb001, ND_IF.X8_3V))
@@ -1477,6 +1524,7 @@ Namespace FlashMemory
             FlashDB.Add(New SLC_NAND_Flash("MXIC MX60LF8G18AC", &HC2, &HD3D1955AUI, Gb008, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("MXIC MX60LF8G28AB", &HC2, &HD3D1955BUI, Gb008, 2048, 64, Mb001, ND_IF.X8_3V))
             'Samsung SLC x8 NAND devices
+            FlashDB.Add(New SLC_NAND_Flash("Samsung K9K2G08U0M", &HEC, &HDAC11544UI, Gb002, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Samsung K9K1606UOM", &HEC, &H79A5C0ECUI, Gb001, 512, 16, Kb128, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Samsung K9F5608U0D", &HEC, &H75A5BDECUI, Mb256, 512, 16, Kb128, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Samsung K9F1208U0C", &HEC, &H765A3F74UI, Mb512, 512, 16, Kb128, ND_IF.X8_3V))
@@ -1513,16 +1561,17 @@ Namespace FlashMemory
             FlashDB.Add(New SLC_NAND_Flash("Hynix H27U2G6F2C", &HAD, &HCA90D544UI, Gb002, 2048, 64, Mb001, ND_IF.X16_3V))
             FlashDB.Add(New SLC_NAND_Flash("Hynix H27S2G8F2C", &HAD, &HAA901544UI, Gb002, 2048, 64, Mb001, ND_IF.X8_1V8))
             FlashDB.Add(New SLC_NAND_Flash("Hynix H27S2G6F2C", &HAD, &HBA905544UI, Gb002, 2048, 64, Mb001, ND_IF.X16_1V8))
+            FlashDB.Add(New SLC_NAND_Flash("Hynix H27U2G8F2C", &HAD, &HDA909544UI, Gb002, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Hynix H27UAG8T2M", &HAD, &HD514B644UI, Gb016, 4096, 128, Mb016, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Hynix H27UAG8T2B", &HAD, &HD5949A74UI, Gb016, 8192, 448, Mb016, ND_IF.X8_3V)) 'ECC recommends: 24-bit/1024 bytes
             FlashDB.Add(New SLC_NAND_Flash("Hynix HY27UBG8T2B", &HAD, &HD794DA74UI, Gb032, 8192, 640, Mb016, ND_IF.X8_3V))
             'Spansion SLC 34 series
+            FlashDB.Add(New SLC_NAND_Flash("Cypress S34ML01G2", &H1, &HF1801DUI, Gb001, 2048, 64, Mb001, ND_IF.X8_3V)) '<--CV (BGA-63)
+            FlashDB.Add(New SLC_NAND_Flash("Cypress S34ML02G2", &H1, &HDA909546UI, Gb002, 2048, 128, Mb001, ND_IF.X8_3V))
+            FlashDB.Add(New SLC_NAND_Flash("Cypress S34ML04G2", &H1, &HDC909556UI, Gb004, 2048, 128, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Cypress S34ML01G1", &H1, &HF1001DUI, Gb001, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Cypress S34ML02G1", &H1, &HDA9095UI, Gb002, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Cypress S34ML04G1", &H1, &HDC9095UI, Gb004, 2048, 64, Mb001, ND_IF.X8_3V))
-            FlashDB.Add(New SLC_NAND_Flash("Cypress S34ML01G2", &H1, &HF1801DUI, Gb001, 2048, 64, Mb001, ND_IF.X8_3V)) '<--CV (BGA-63)
-            FlashDB.Add(New SLC_NAND_Flash("Cypress S34ML02G2", &H1, &HD89097UI, Gb002, 2048, 64, Mb001, ND_IF.X8_3V))
-            FlashDB.Add(New SLC_NAND_Flash("Cypress S34ML04G2", &H1, &HDC9095UI, Gb004, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Cypress S34MS01G200", &H1, &HA18015UI, Gb004, 2048, 64, Mb001, ND_IF.X8_1V8))
             FlashDB.Add(New SLC_NAND_Flash("Cypress S34MS02G200", &H1, &HAA901546UI, Gb004, 2048, 64, Mb001, ND_IF.X8_1V8))
             FlashDB.Add(New SLC_NAND_Flash("Cypress S34MS04G200", &H1, &HAC901556UI, Gb004, 2048, 64, Mb001, ND_IF.X8_1V8))
@@ -1672,6 +1721,14 @@ Namespace FlashMemory
                             End If
                         End If
                     Next
+                Case MemoryType.HYPERFLASH
+                    For Each flash In FlashDB
+                        If flash.FLASH_TYPE = MemoryType.HYPERFLASH Then
+                            If flash.MFG_CODE = MFG Then
+                                If flash.ID1 = ID1 Then Return flash
+                            End If
+                        End If
+                    Next
             End Select
             Return Nothing 'Not found
         End Function
@@ -1702,33 +1759,27 @@ Namespace FlashMemory
                 Return FlashDB.Count
             ElseIf DEVICE = MemoryType.PARALLEL_NOR Then 'Search only CFI devices
                 For Each flash In FlashDB
-                    If flash.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
-                        Count += 1
-                    End If
+                    If flash.FLASH_TYPE = MemoryType.PARALLEL_NOR Then Count += 1
                 Next
             ElseIf DEVICE = MemoryType.SERIAL_NAND Then
                 For Each flash In FlashDB
-                    If flash.FLASH_TYPE = MemoryType.SERIAL_NAND Then
-                        Count += 1
-                    End If
+                    If flash.FLASH_TYPE = MemoryType.SERIAL_NAND Then Count += 1
                 Next
             ElseIf DEVICE = MemoryType.SERIAL_NOR Then
                 For Each flash In FlashDB
-                    If flash.FLASH_TYPE = MemoryType.SERIAL_NOR Then
-                        Count += 1
-                    End If
+                    If flash.FLASH_TYPE = MemoryType.SERIAL_NOR Then Count += 1
                 Next
             ElseIf DEVICE = MemoryType.SLC_NAND Then
                 For Each flash In FlashDB
-                    If flash.FLASH_TYPE = MemoryType.SLC_NAND Then
-                        Count += 1
-                    End If
+                    If flash.FLASH_TYPE = MemoryType.SLC_NAND Then Count += 1
                 Next
             ElseIf DEVICE = MemoryType.FWH_NOR Then
                 For Each flash In FlashDB
-                    If flash.FLASH_TYPE = MemoryType.FWH_NOR Then
-                        Count += 1
-                    End If
+                    If flash.FLASH_TYPE = MemoryType.FWH_NOR Then Count += 1
+                Next
+            ElseIf DEVICE = MemoryType.HYPERFLASH Then
+                For Each flash In FlashDB
+                    If flash.FLASH_TYPE = MemoryType.HYPERFLASH Then Count += 1
                 Next
             End If
             Return Count
@@ -1876,6 +1927,18 @@ Namespace FlashMemory
             ElseIf type = MemoryType.SLC_NAND Then
                 For Each flash In FlashDB
                     If flash.FLASH_TYPE = MemoryType.SLC_NAND Then
+                        dev.Add(flash)
+                    End If
+                Next
+            ElseIf type = MemoryType.FWH_NOR Then
+                For Each flash In FlashDB
+                    If flash.FLASH_TYPE = MemoryType.FWH_NOR Then
+                        dev.Add(flash)
+                    End If
+                Next
+            ElseIf type = MemoryType.HYPERFLASH Then
+                For Each flash In FlashDB
+                    If flash.FLASH_TYPE = MemoryType.HYPERFLASH Then
                         dev.Add(flash)
                     End If
                 Next

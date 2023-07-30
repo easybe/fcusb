@@ -58,7 +58,7 @@ Public Class BcmNonVol
     Public Sub WriteConfig()
         Try
             RaiseEvent WriteConsole("Writing Non-Vol configuration to Flash")
-            mem_dev.WriteBytes(GetCfgArea, NonVolCfg.GetConfig, FlashMemory.FlashArea.Main)
+            mem_dev.WriteBytes(GetCfgArea, NonVolCfg.GetConfig, MySettings.VERIFY_WRITE, FlashMemory.FlashArea.Main)
             RaiseEvent WriteConsole("Done. Non-Vol config updated")
         Catch ex As Exception
         End Try

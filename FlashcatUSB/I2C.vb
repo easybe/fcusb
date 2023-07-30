@@ -1,5 +1,4 @@
-﻿Imports FlashcatUSB
-Imports FlashcatUSB.FlashMemory
+﻿Imports FlashcatUSB.FlashMemory
 Imports FlashcatUSB.USB.HostClient
 
 Public Class I2C_Programmer : Implements MemoryDeviceUSB
@@ -50,7 +49,7 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         End Get
     End Property
 
-    Public ReadOnly Property DeviceSize As UInteger Implements MemoryDeviceUSB.DeviceSize
+    Public ReadOnly Property DeviceSize As Long Implements MemoryDeviceUSB.DeviceSize
         Get
             Return eeprom_size
         End Get
@@ -177,7 +176,7 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         [ERROR] = &H51
     End Enum
 
-    Public Function ReadData(flash_offset As UInteger, data_count As UInteger, Optional area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
+    Public Function ReadData(flash_offset As Long, data_count As UInteger, Optional area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
         Try
             Dim setup_data(6) As Byte
             Dim result As Boolean = False
@@ -197,7 +196,7 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         Return Nothing
     End Function
 
-    Public Function WriteData(flash_offset As UInteger, data_to_write() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
+    Public Function WriteData(flash_offset As Long, data_to_write() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
         Try
             Dim setup_data(6) As Byte
             Dim data_count As UInt32 = data_to_write.Length
@@ -226,7 +225,7 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         Utilities.Sleep(10)
     End Sub
 
-    Public Function SectorFind(SectorIndex As UInteger, Optional area As FlashArea = FlashArea.Main) As UInteger Implements MemoryDeviceUSB.SectorFind
+    Public Function SectorFind(SectorIndex As UInteger, Optional area As FlashArea = FlashArea.Main) As Long Implements MemoryDeviceUSB.SectorFind
         Return 0
     End Function
 

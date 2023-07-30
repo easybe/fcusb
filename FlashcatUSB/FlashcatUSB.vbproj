@@ -51,6 +51,9 @@
   <PropertyGroup>
     <ApplicationIcon>Main.ico</ApplicationIcon>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="ECC, Version=1.0.6589.39316, Culture=neutral, processorArchitecture=x86">
       <SpecificVersion>False</SpecificVersion>
@@ -118,14 +121,19 @@
     <Compile Include="FrmUSBPerformance.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="HexAsciiByteBox.vb">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="HexEditor_v2.designer.vb">
       <DependentUpon>HexEditor_v2.vb</DependentUpon>
     </Compile>
     <Compile Include="HexEditor_v2.vb">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="HyperFlash.vb" />
     <Compile Include="I2C.vb" />
     <Compile Include="JTAG.vb" />
+    <Compile Include="JTAG_BSDL.vb" />
     <Compile Include="JTAG_SVF_Player.vb" />
     <Compile Include="JTAG_TAP.vb" />
     <Compile Include="languages\chinese.Designer.vb">
@@ -142,6 +150,11 @@
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>french.resx</DependentUpon>
+    </Compile>
+    <Compile Include="languages\german.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>german.resx</DependentUpon>
     </Compile>
     <Compile Include="languages\italian.Designer.vb">
       <AutoGen>True</AutoGen>
@@ -201,22 +214,30 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="NAND_Block_Manager.vb" />
-    <Compile Include="vendor_micron.designer.vb">
+    <Compile Include="SQI.vb" />
+    <Compile Include="SWI.vb" />
+    <Compile Include="vendor\vendor_microchip_at21.Designer.vb">
+      <DependentUpon>vendor_microchip_at21.vb</DependentUpon>
+    </Compile>
+    <Compile Include="vendor\vendor_microchip_at21.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="vendor\vendor_micron.designer.vb">
       <DependentUpon>vendor_micron.vb</DependentUpon>
     </Compile>
-    <Compile Include="vendor_micron.vb">
+    <Compile Include="vendor\vendor_micron.vb">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="vendor_spansion.designer.vb">
-      <DependentUpon>vendor_spansion.vb</DependentUpon>
+    <Compile Include="vendor\vendor_spansion_FL.designer.vb">
+      <DependentUpon>vendor_spansion_FL.vb</DependentUpon>
     </Compile>
-    <Compile Include="vendor_spansion.vb">
+    <Compile Include="vendor\vendor_spansion_FL.vb">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="vendor_issi.designer.vb">
+    <Compile Include="vendor\vendor_issi.designer.vb">
       <DependentUpon>vendor_issi.vb</DependentUpon>
     </Compile>
-    <Compile Include="vendor_issi.vb">
+    <Compile Include="vendor\vendor_issi.vb">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="ScriptEng.vb" />
@@ -260,6 +281,11 @@
       <LastGenOutput>french.Designer.vb</LastGenOutput>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <EmbeddedResource Include="languages\german.resx">
+      <CustomToolNamespace>My.Resources</CustomToolNamespace>
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>german.Designer.vb</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Include="languages\italian.resx">
       <CustomToolNamespace>My.Resources</CustomToolNamespace>
       <Generator>ResXFileCodeGenerator</Generator>
@@ -299,24 +325,34 @@
     <EmbeddedResource Include="NAND_Block_Management.resx">
       <DependentUpon>NAND_Block_Management.vb</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="vendor_micron.resx">
+    <EmbeddedResource Include="vendor\vendor_microchip_at21.resx">
+      <DependentUpon>vendor_microchip_at21.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="vendor\vendor_micron.resx">
       <DependentUpon>vendor_micron.vb</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="vendor_spansion.resx">
-      <DependentUpon>vendor_spansion.vb</DependentUpon>
+    <EmbeddedResource Include="vendor\vendor_spansion_FL.resx">
+      <DependentUpon>vendor_spansion_FL.vb</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="vendor_issi.resx">
+    <EmbeddedResource Include="vendor\vendor_issi.resx">
       <DependentUpon>vendor_issi.vb</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <EmbeddedResource Include="firmware\PCB3_Boot.bin" />
-    <EmbeddedResource Include="firmware\PCB3_BLUPDATE.bin" />
     <EmbeddedResource Include="firmware\PCB4_I2C.svf" />
     <EmbeddedResource Include="firmware\Mach1_Source.bin" />
     <EmbeddedResource Include="firmware\MACH1_NAND_3V3.svf" />
     <EmbeddedResource Include="firmware\MACH1_NAND_1V8.svf" />
+    <EmbeddedResource Include="firmware\JTAG_3V3.svf" />
+    <EmbeddedResource Include="firmware\MACH1_HF_1V8.svf" />
+    <EmbeddedResource Include="firmware\MACH1_HF_3V3.svf" />
+    <EmbeddedResource Include="firmware\arm_spi.bin" />
+    <EmbeddedResource Include="firmware\PCB4_QUAD_3V3.svf" />
+    <EmbeddedResource Include="firmware\PCB4_QUAD_1V8.svf" />
+    <EmbeddedResource Include="firmware\PCB4_BL_1.02.bin" />
+    <EmbeddedResource Include="firmware\PCB4_BL_APP.bin" />
+    <None Include="My Project\app.manifest" />
     <None Include="My Project\Application.myapp">
       <Generator>MyApplicationCodeGenerator</Generator>
       <LastGenOutput>Application.Designer.vb</LastGenOutput>
@@ -326,7 +362,6 @@
       <CustomToolNamespace>My</CustomToolNamespace>
       <LastGenOutput>Settings.Designer.vb</LastGenOutput>
     </None>
-    <EmbeddedResource Include="firmware\PCB3_Source.bin" />
     <EmbeddedResource Include="firmware\PCB4_Source.bin" />
     <EmbeddedResource Include="firmware\PCB4_3V3.svf" />
     <EmbeddedResource Include="firmware\PCB4_1V8.svf" />
@@ -431,6 +466,17 @@
     <None Include="images\Italy.png" />
     <None Include="images\rpm_16.png" />
     <None Include="images\rpm_32.png" />
+    <None Include="images\rpm2_16.png" />
+    <None Include="images\English_sel.png" />
+    <None Include="images\china_sel.png" />
+    <None Include="images\france_sel.png" />
+    <None Include="images\german_sel.png" />
+    <None Include="images\Italy_sel.png" />
+    <None Include="images\russia_sel.png" />
+    <None Include="images\portugal_sel.png" />
+    <None Include="images\spain_sel.png" />
+    <None Include="images\edit.gif" />
+    <None Include="images\edit_file.png" />
     <Content Include="Main.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />

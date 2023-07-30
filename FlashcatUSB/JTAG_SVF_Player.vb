@@ -2,23 +2,25 @@
 'CONTACT EMAIL: contact@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: This class implements the SVF / XSVF file format developed by Texas Instroments
-Imports FlashcatUSB.JTAG_STATE_CONTROLLER
-
 Namespace JTAG
 
     Public Class SVF_Player
-        Public IgnoreErrors As Boolean = False 'If set to true, this player will not stop executing on a readback error
+        Public Property IgnoreErrors As Boolean = False 'If set to true, this player will not stop executing on a readback error
+        Public Property Current_Hertz As Integer = 1000000 'Default of 1 MHz
 
         Public Event Progress(ByVal percent As Integer)
         Public Event SetFrequency(ByVal Hz As Integer)
         Public Event SetTRST(ByVal Enabled As Boolean)
-        Public Event Printf(ByVal msg As String)
+        Public Event Writeconsole(ByVal msg As String)
 
-        Public Current_Hertz As Integer = 1000000 'Default of 1 MHz
-        Private MY_JTAG As JTAG_IF
+        Public Event ResetTap()
+        Public Event GotoState(dst_state As JTAG_MACHINE_STATE)
+        Public Event ShiftIR(ByVal tdi_bits() As Byte, ByRef tdo_bits() As Byte, ByVal bit_count As Integer, exit_mode As Boolean)
+        Public Event ShiftDR(ByVal tdi_bits() As Byte, ByRef tdo_bits() As Byte, ByVal bit_count As Integer, exit_mode As Boolean)
+        Public Event ToggleClock(ByVal clk_tck As UInt32)
 
-        Sub New(ByRef jtag As JTAG_IF)
-            MY_JTAG = jtag
+        Sub New()
+
         End Sub
 
         Private Sub Setup()
@@ -28,8 +30,8 @@ Namespace JTAG
         Public Function RunFile_XSVF(ByVal user_file() As Byte) As Boolean
             Setup()
             Dim xsvf_file() As xsvf_param = ConvertDataToProperFormat(user_file)
-            Dim XENDIR As MachineState = MachineState.RunTestIdle
-            Dim XENDDR As MachineState = MachineState.RunTestIdle
+            Dim XENDIR As JTAG_MACHINE_STATE = JTAG_MACHINE_STATE.RunTestIdle
+            Dim XENDDR As JTAG_MACHINE_STATE = JTAG_MACHINE_STATE.RunTestIdle
             Dim IR_TAIL As New svf_param
             Dim IR_HEAD As New svf_param
             Dim DR_TAIL As New svf_param
@@ -39,7 +41,7 @@ Namespace JTAG
             Dim XRUNTEST As UInt32 = 0
             Dim XSDRSIZE As UInt32 = 0
             Dim line_counter As Integer = 0
-            MY_JTAG.TAP.GotoState(MachineState.RunTestIdle)
+            RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             For Each line In xsvf_file
                 line_counter += 1
                 RaiseEvent Progress((line_counter / xsvf_file.Length) * 100)
@@ -51,33 +53,33 @@ Namespace JTAG
                     Case xsvf_instruction.XRUNTEST
                         XRUNTEST = line.value_uint
                     Case xsvf_instruction.XSIR
-                        MY_JTAG.TAP.ShiftIR(line.value_data.data, Nothing, line.value_data.bits)
+                        RaiseEvent ShiftIR(line.value_data.data, Nothing, line.value_data.bits, True)
                         If Not XRUNTEST = 0 Then
-                            MY_JTAG.TAP.GotoState(MachineState.RunTestIdle)
+                            RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
                             DoXRunTest(XRUNTEST) 'wait for the last specified XRUNTEST time. 
                         Else
-                            MY_JTAG.TAP.GotoState(XENDIR)  'Otherwise, go to the last specified XENDIR state.
+                            RaiseEvent GotoState(XENDIR)  'Otherwise, go to the last specified XENDIR state.
                         End If
                     Case xsvf_instruction.XSDR
                         Dim Counter As UInt32 = TDO_REPEAT
                         Dim Result As Boolean = False
                         Do
                             Dim TDO() As Byte = Nothing
-                            MY_JTAG.TAP.ShiftDR(line.value_data.data, TDO, line.value_data.bits)
+                            RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, True)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
                             If (Not Result) Then
-                                RaiseEvent Printf("Failed sending XSDR command (command number: " & line_counter & ")")
-                                RaiseEvent Printf("TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" &
+                                RaiseEvent Writeconsole("Failed sending XSDR command (command number: " & line_counter & ")")
+                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" &
                                                   Utilities.Bytes.ToHexString(line.value_expected.data) & " Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
                             If Counter > 0 Then Counter -= 1
                         Loop Until Result
                         If Not XRUNTEST = 0 Then
-                            MY_JTAG.TAP.GotoState(MachineState.RunTestIdle)
+                            RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
                             DoXRunTest(XRUNTEST) 'wait for the last specified XRUNTEST time. 
                         Else
-                            MY_JTAG.TAP.GotoState(XENDDR)  'Otherwise, go to the last specified XENDDR state.
+                            RaiseEvent GotoState(XENDDR)  'Otherwise, go to the last specified XENDDR state.
                         End If
                     Case xsvf_instruction.XSDRSIZE
                         XSDRSIZE = line.value_uint    'Specifies the length of all XSDR/XSDRTDO records that follow.
@@ -87,39 +89,39 @@ Namespace JTAG
                         Do
                             If Counter > 0 Then Counter -= 1
                             Dim TDO() As Byte = Nothing
-                            MY_JTAG.TAP.ShiftDR(line.value_data.data, TDO, line.value_data.bits)
+                            RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, True)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
                             If Not Result Then
-                                RaiseEvent Printf("Failed sending XSDRTDO command (command number: " & line_counter & ")")
-                                RaiseEvent Printf("TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" &
+                                RaiseEvent Writeconsole("Failed sending XSDRTDO command (command number: " & line_counter & ")")
+                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" &
                                                   Utilities.Bytes.ToHexString(line.value_expected.data) & " Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
                         Loop Until Result
                         If Not XRUNTEST = 0 Then
-                            MY_JTAG.TAP.GotoState(MachineState.RunTestIdle)
+                            RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
                             DoXRunTest(XRUNTEST) 'wait for the last specified XRUNTEST time. 
                         Else
-                            MY_JTAG.TAP.GotoState(XENDDR)  'Otherwise, go to the last specified XENDDR state.
+                            RaiseEvent GotoState(XENDDR)  'Otherwise, go to the last specified XENDDR state.
                         End If
                     Case xsvf_instruction.XSDRB
-                        MY_JTAG.TAP.ShiftDR(line.value_data.data, Nothing, line.value_data.bits, False)'Stay in DR
+                        RaiseEvent ShiftDR(line.value_data.data, Nothing, line.value_data.bits, False)'Stay in DR
                     Case xsvf_instruction.XSDRC
-                        MY_JTAG.TAP.ShiftDR(line.value_data.data, Nothing, line.value_data.bits, False) 'Stay in DR
+                        RaiseEvent ShiftDR(line.value_data.data, Nothing, line.value_data.bits, False) 'Stay in DR
                     Case xsvf_instruction.XSDRE
-                        MY_JTAG.TAP.ShiftDR(line.value_data.data, Nothing, line.value_data.bits, False)
-                        MY_JTAG.TAP.GotoState(XENDDR)
+                        RaiseEvent ShiftDR(line.value_data.data, Nothing, line.value_data.bits, False)
+                        RaiseEvent GotoState(XENDDR)
                     Case xsvf_instruction.XSDRTDOB
                         Dim Counter As UInt32 = TDO_REPEAT
                         Dim Result As Boolean = False
                         Do
                             If Counter > 0 Then Counter -= 1
                             Dim TDO() As Byte = Nothing
-                            MY_JTAG.TAP.ShiftDR(line.value_data.data, TDO, line.value_data.bits, False)
+                            RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, False)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
                             If Not Result Then
-                                RaiseEvent Printf("Failed sending XSDRTDOB command (command number: " & line_counter & ")")
-                                RaiseEvent Printf("TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" &
+                                RaiseEvent Writeconsole("Failed sending XSDRTDOB command (command number: " & line_counter & ")")
+                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" &
                                                   Utilities.Bytes.ToHexString(line.value_expected.data) & " Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
@@ -130,12 +132,12 @@ Namespace JTAG
                         Dim Result As Boolean = False
                         Do
                             Dim TDO() As Byte = Nothing
-                            MY_JTAG.TAP.ShiftDR(line.value_data.data, TDO, line.value_data.bits, False)
+                            RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, False)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
                             If IgnoreErrors Then Exit Do
                             If Not Result Then
-                                RaiseEvent Printf("Failed sending XSDRTDOC command (command number: " & line_counter & ")")
-                                RaiseEvent Printf("TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" &
+                                RaiseEvent Writeconsole("Failed sending XSDRTDOC command (command number: " & line_counter & ")")
+                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" &
                                                   Utilities.Bytes.ToHexString(line.value_expected.data) & " Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
@@ -146,56 +148,56 @@ Namespace JTAG
                         Do
                             If Counter > 0 Then Counter -= 1
                             Dim TDO() As Byte = Nothing
-                            MY_JTAG.TAP.ShiftDR(line.value_data.data, TDO, line.value_data.bits, False)
+                            RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, False)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data)
                             If Not Result Then
-                                RaiseEvent Printf("Failed sending XSDRTDOE command (command number: " & line_counter & ")")
-                                RaiseEvent Printf("TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" &
+                                RaiseEvent Writeconsole("Failed sending XSDRTDOE command (command number: " & line_counter & ")")
+                                RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" &
                                                   Utilities.Bytes.ToHexString(line.value_expected.data) & " Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
                                 If Counter = 0 Then If IgnoreErrors Then Exit Do Else Return False
                             End If
                         Loop Until Result
-                        MY_JTAG.TAP.GotoState(XENDDR)
+                        RaiseEvent GotoState(XENDDR)
                     Case xsvf_instruction.XSETSDRMASKS 'Obsolete
                     Case xsvf_instruction.XSDRINC 'Obsolete
                     Case xsvf_instruction.XCOMPLETE
                         Exit For
                     Case xsvf_instruction.XSTATE
-                        If line.state = MachineState.TestLogicReset Then
-                            MY_JTAG.TAP.Reset()
+                        If line.state = JTAG_MACHINE_STATE.TestLogicReset Then
+                            RaiseEvent ResetTap()
                         Else
-                            MY_JTAG.TAP.GotoState(line.state)
+                            RaiseEvent GotoState(line.state)
                         End If
                     Case xsvf_instruction.XENDIR
                         XENDIR = line.state
                     Case xsvf_instruction.XENDDR
                         XENDDR = line.state
                     Case xsvf_instruction.XSIR2 'Same as XSIR (since we should all support 255 bit lengths or more)
-                        MY_JTAG.TAP.ShiftIR(line.value_data.data, Nothing, line.value_data.bits)
+                        RaiseEvent ShiftIR(line.value_data.data, Nothing, line.value_data.bits, True)
                         If Not XRUNTEST = 0 Then
-                            MY_JTAG.TAP.GotoState(MachineState.RunTestIdle)
+                            RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
                             DoXRunTest(line.value_uint) 'wait for the last specified XRUNTEST time. 
                         Else
-                            MY_JTAG.TAP.GotoState(XENDIR)  'Otherwise, go to the last specified XENDIR state.
+                            RaiseEvent GotoState(XENDIR)  'Otherwise, go to the last specified XENDIR state.
                         End If
                     Case xsvf_instruction.XCOMMENT 'No need to display this
                     Case xsvf_instruction.XWAIT
-                        MY_JTAG.TAP.GotoState(line.state)
+                        RaiseEvent GotoState(line.state)
                         Dim Sleep As Double = line.value_uint / 1000
                         Threading.Thread.Sleep(Sleep)
-                        MY_JTAG.TAP.GotoState(line.state_end)
+                        RaiseEvent GotoState(line.state_end)
                     Case Else
                 End Select
             Next
-            MY_JTAG.TAP.GotoState(MachineState.TestLogicReset)
+            RaiseEvent GotoState(JTAG_MACHINE_STATE.TestLogicReset)
             Return True
         End Function
 
         Public Function RunFile_SVF(ByVal user_file() As String) As Boolean
             Setup()
             Dim svf_file() As String = ConvertFileToProperFormat(user_file)
-            Dim ENDIR As MachineState = MachineState.RunTestIdle
-            Dim ENDDR As MachineState = MachineState.RunTestIdle
+            Dim ENDIR As JTAG_MACHINE_STATE = JTAG_MACHINE_STATE.RunTestIdle
+            Dim ENDDR As JTAG_MACHINE_STATE = JTAG_MACHINE_STATE.RunTestIdle
             Dim IR_TAIL As New svf_param
             Dim IR_HEAD As New svf_param
             Dim DR_TAIL As New svf_param
@@ -206,19 +208,19 @@ Namespace JTAG
             Dim SDR_LAST_LEN As Integer = -1 'Number of bits the last mask length was
             Dim RUNTEST As UInt32 = 0
             Dim line_counter As Integer = 0
-            MY_JTAG.TAP.GotoState(MachineState.RunTestIdle)
+            RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             For Each line In svf_file
-                line_counter += 1
+                line_counter += 1 'fail at 18
                 RaiseEvent Progress((line_counter / svf_file.Length) * 100)
                 If line.ToUpper.StartsWith("SIR ") Then
                     Dim line_svf As New svf_param(line)
                     Dim TDO() As Byte = Nothing
-                    If (IR_HEAD.LEN > 0) Then MY_JTAG.TAP.ShiftIR(IR_HEAD.TDI, Nothing, IR_HEAD.LEN, False)
+                    If (IR_HEAD.LEN > 0) Then RaiseEvent ShiftIR(IR_HEAD.TDI, Nothing, IR_HEAD.LEN, False)
                     If (IR_TAIL.LEN > 0) Then
-                        MY_JTAG.TAP.ShiftIR(line_svf.TDI, TDO, line_svf.LEN, False)
-                        MY_JTAG.TAP.ShiftIR(IR_TAIL.TDI, Nothing, IR_TAIL.LEN)
+                        RaiseEvent ShiftIR(line_svf.TDI, TDO, line_svf.LEN, False)
+                        RaiseEvent ShiftIR(IR_TAIL.TDI, Nothing, IR_TAIL.LEN, True)
                     Else
-                        MY_JTAG.TAP.ShiftIR(line_svf.TDI, TDO, line_svf.LEN)
+                        RaiseEvent ShiftIR(line_svf.TDI, TDO, line_svf.LEN, True)
                     End If
                     Dim MASK_TO_COMPARE() As Byte = line_svf.MASK
                     If MASK_TO_COMPARE Is Nothing Then
@@ -229,24 +231,24 @@ Namespace JTAG
                     SIR_LAST_LEN = line_svf.LEN
                     Dim Result As Boolean = CompareResult(TDO, line_svf.TDO, MASK_TO_COMPARE)
                     If (Not Result) Then
-                        RaiseEvent Printf("Failed sending SIR command (command number: " & line_counter & ")")
+                        RaiseEvent Writeconsole("Failed sending SIR command (command number: " & line_counter & ")")
                         Dim LineOut As String = "TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" & Utilities.Bytes.ToHexString(line_svf.TDO)
                         If (line_svf.MASK IsNot Nothing) Then
                             LineOut &= " Mask: 0x" & Utilities.Bytes.ToHexString(line_svf.MASK)
                         End If
-                        RaiseEvent Printf(LineOut)
+                        RaiseEvent Writeconsole(LineOut)
                         If Not IgnoreErrors Then Return False
                     End If
-                    MY_JTAG.TAP.GotoState(ENDIR)
+                    RaiseEvent GotoState(ENDIR)
                 ElseIf line.ToUpper.StartsWith("SDR ") Then
                     Dim line_svf As New svf_param(line)
                     Dim TDO() As Byte = Nothing
-                    If (DR_HEAD.LEN > 0) Then MY_JTAG.TAP.ShiftDR(DR_HEAD.TDI, Nothing, DR_HEAD.LEN, False)
+                    If (DR_HEAD.LEN > 0) Then RaiseEvent ShiftDR(DR_HEAD.TDI, Nothing, DR_HEAD.LEN, False)
                     If (DR_TAIL.LEN > 0) Then
-                        MY_JTAG.TAP.ShiftDR(line_svf.TDI, TDO, line_svf.LEN, False)
-                        MY_JTAG.TAP.ShiftDR(DR_TAIL.TDI, Nothing, DR_TAIL.LEN)
+                        RaiseEvent ShiftDR(line_svf.TDI, TDO, line_svf.LEN, False)
+                        RaiseEvent ShiftDR(DR_TAIL.TDI, Nothing, DR_TAIL.LEN, True)
                     Else
-                        MY_JTAG.TAP.ShiftDR(line_svf.TDI, TDO, line_svf.LEN)
+                        RaiseEvent ShiftDR(line_svf.TDI, TDO, line_svf.LEN, True)
                     End If
                     Dim MASK_TO_COMPARE() As Byte = line_svf.MASK
                     If MASK_TO_COMPARE Is Nothing Then
@@ -257,15 +259,15 @@ Namespace JTAG
                     SDR_LAST_LEN = line_svf.LEN
                     Dim Result As Boolean = CompareResult(TDO, line_svf.TDO, MASK_TO_COMPARE)
                     If (Not Result) Then
-                        RaiseEvent Printf("Failed sending SDR command (command number: " & line_counter & ")")
+                        RaiseEvent Writeconsole("Failed sending SDR command (command number: " & line_counter & ")")
                         Dim LineOut As String = "TDO: 0x" & Utilities.Bytes.ToHexString(TDO) & " Expected: 0x" & Utilities.Bytes.ToHexString(line_svf.TDO)
                         If (line_svf.MASK IsNot Nothing) Then
                             LineOut &= " Mask: 0x" & Utilities.Bytes.ToHexString(line_svf.MASK)
                         End If
-                        RaiseEvent Printf(LineOut)
+                        RaiseEvent Writeconsole(LineOut)
                         If Not IgnoreErrors Then Return False
                     End If
-                    MY_JTAG.TAP.GotoState(ENDDR)
+                    RaiseEvent GotoState(ENDDR)
                 ElseIf line.ToUpper.StartsWith("ENDIR ") Then
                     ENDIR = GetStateFromInput(Mid(line, 7).Trim)
                 ElseIf line.ToUpper.StartsWith("ENDDR ") Then
@@ -288,7 +290,7 @@ Namespace JTAG
                     DoRuntest(Mid(line, 9).Trim)
                 ElseIf line.ToUpper.StartsWith("STATE ") Then
                     Dim Desired_State As String = Mid(line, 7).Trim.ToUpper 'Possibly a list?
-                    MY_JTAG.TAP.GotoState(GetStateFromInput(Desired_State))
+                    RaiseEvent GotoState(GetStateFromInput(Desired_State))
                 ElseIf line.ToUpper.StartsWith("TIR ") Then
                     IR_TAIL.LoadParams(line)
                 ElseIf line.ToUpper.StartsWith("HIR ") Then
@@ -298,10 +300,10 @@ Namespace JTAG
                 ElseIf line.ToUpper.StartsWith("HDR ") Then
                     DR_HEAD.LoadParams(line)
                 Else
-                    RaiseEvent Printf("Unknown SVF command at line " & line_counter & " : " & line)
+                    RaiseEvent Writeconsole("Unknown SVF command at line " & line_counter & " : " & line)
                 End If
             Next
-            MY_JTAG.TAP.GotoState(MachineState.TestLogicReset)
+            RaiseEvent GotoState(JTAG_MACHINE_STATE.TestLogicReset)
             Return True
         End Function
 
@@ -345,7 +347,7 @@ Namespace JTAG
 
         Private Sub DoRuntest(ByVal line As String)
             Try
-                Dim start_state As MachineState = MachineState.RunTestIdle 'Default
+                Dim start_state As JTAG_MACHINE_STATE = JTAG_MACHINE_STATE.RunTestIdle 'Default
                 Dim Params() As String = line.Split(" ")
                 If Params Is Nothing Then Exit Sub
                 Dim Counter As Integer = 0
@@ -353,17 +355,13 @@ Namespace JTAG
                     start_state = GetStateFromInput(Params(Counter))
                     Counter += 1
                 End If
-                MY_JTAG.TAP.GotoState(start_state)
+                RaiseEvent GotoState(start_state)
                 If Not IsNumeric(Params(Counter)) Then Exit Sub
-                Dim wait_time As Decimal = Decimal.Parse(Params(Counter), Globalization.NumberStyles.Float) 'GetDoubleFromExpString(Params(Counter))
+                Dim wait_time As Decimal = Decimal.Parse(Params(Counter), Globalization.NumberStyles.Float)
                 Select Case Params(Counter + 1).Trim.ToUpper
                     Case "TCK" 'Toggle test-clock
                         Dim ticks As UInt32 = CUInt(wait_time)
-                        If MY_JTAG.FCUSB.HWBOARD = USB.FCUSB_BOARD.Classic_JTAG Then
-                            MY_JTAG.TAP.ShiftOut(Nothing, ticks, False)
-                        Else
-                            MY_JTAG.Tap_Toggle(ticks) 'New boards can toggle via a command
-                        End If
+                        RaiseEvent ToggleClock(ticks)
                     Case "SCK" 'Toggle system-clock
                         Threading.Thread.Sleep(wait_time)
                     Case "SEC"
@@ -389,28 +387,28 @@ Namespace JTAG
                 End If
                 If (Counter = Params.Length) Then Exit Sub 'The rest are optional
                 If (Params(Counter).Trim.ToUpper = "ENDSTATE") AndAlso IsValidRunState(Params(Counter + 1)) Then
-                    Dim end_state As MachineState = GetStateFromInput(Params(Counter))
-                    MY_JTAG.TAP.GotoState(end_state)
+                    Dim end_state As JTAG_MACHINE_STATE = GetStateFromInput(Params(Counter))
+                    RaiseEvent GotoState(end_state)
                 End If
             Catch ex As Exception
                 Utilities.Sleep(50)
             End Try
         End Sub
 
-        Private Function GetStateFromInput(ByVal input As String) As MachineState
+        Private Function GetStateFromInput(ByVal input As String) As JTAG_MACHINE_STATE
             input = RemoveComment(input)
             If input.EndsWith(";") Then input = Mid(input, 1, input.Length - 1).Trim
             Select Case input.ToUpper
                 Case "IRPAUSE"
-                    Return MachineState.Pause_IR
+                    Return JTAG_MACHINE_STATE.Pause_IR
                 Case "DRPAUSE"
-                    Return MachineState.Pause_DR
+                    Return JTAG_MACHINE_STATE.Pause_DR
                 Case "RESET"
-                    Return MachineState.TestLogicReset
+                    Return JTAG_MACHINE_STATE.TestLogicReset
                 Case "IDLE"
-                    Return MachineState.RunTestIdle
+                    Return JTAG_MACHINE_STATE.RunTestIdle
                 Case Else
-                    Return MachineState.RunTestIdle
+                    Return JTAG_MACHINE_STATE.RunTestIdle
             End Select
         End Function
 
@@ -437,7 +435,7 @@ Namespace JTAG
 
         Private Function ConvertDataToProperFormat(ByVal data() As Byte) As xsvf_param()
             Dim pointer As Integer = 0
-            Dim x As New ArrayList
+            Dim x As New List(Of xsvf_param)
             Dim XSDRSIZE As UInt32 = 8 'number of bits
             Do Until pointer = data.Length
                 Dim n As New xsvf_param(data(pointer))
@@ -484,7 +482,7 @@ Namespace JTAG
                     Case xsvf_instruction.XSETSDRMASKS 'Obsolete
                     Case xsvf_instruction.XSDRINC 'Obsolete
                     Case xsvf_instruction.XCOMPLETE
-                        Return DirectCast(x.ToArray(GetType(xsvf_param)), xsvf_param())
+                        Return x.ToArray
                     Case xsvf_instruction.XSTATE
                         n.value_uint = data(pointer + 1)
                         n.state = GetStateFromInput(data(pointer + 1))
@@ -493,18 +491,18 @@ Namespace JTAG
                         n.value_uint = data(pointer + 1)
                         Select Case n.value_uint
                             Case 0
-                                n.state = MachineState.RunTestIdle
+                                n.state = JTAG_MACHINE_STATE.RunTestIdle
                             Case 1
-                                n.state = MachineState.Pause_IR
+                                n.state = JTAG_MACHINE_STATE.Pause_IR
                         End Select
                         pointer += 2
                     Case xsvf_instruction.XENDDR
                         n.value_uint = data(pointer + 1)
                         Select Case n.value_uint
                             Case 0
-                                n.state = MachineState.RunTestIdle
+                                n.state = JTAG_MACHINE_STATE.RunTestIdle
                             Case 1
-                                n.state = MachineState.Pause_DR
+                                n.state = JTAG_MACHINE_STATE.Pause_DR
                         End Select
                         pointer += 2
                     Case xsvf_instruction.XSIR2 'Same as XSIR (since we should all support 255 bit lengths or more)
@@ -530,7 +528,7 @@ Namespace JTAG
                 End Select
                 x.Add(n)
             Loop
-            Return DirectCast(x.ToArray(GetType(xsvf_param)), xsvf_param())
+            Return x.ToArray
         End Function
 
         Private Sub Load_TDI(ByRef data() As Byte, ByRef pointer As Integer, ByRef line As xsvf_param, ByVal XSDRSIZE As Integer)
@@ -635,8 +633,8 @@ Namespace JTAG
 
     Public Class xsvf_param
         Public instruction As xsvf_instruction
-        Public state As MachineState
-        Public state_end As MachineState
+        Public state As JTAG_MACHINE_STATE
+        Public state_end As JTAG_MACHINE_STATE
         Public value_uint As UInt64
         Public value_data As svf_data
         Public value_expected As svf_data

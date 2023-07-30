@@ -1,5 +1,5 @@
 ﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
-Partial Class vendor_spansion
+Partial Class vendor_spansion_FL
     Inherits System.Windows.Forms.UserControl
 
     'UserControl overrides dispose to clean up the component list.
@@ -31,9 +31,9 @@ Partial Class vendor_spansion
         Me.Label1 = New System.Windows.Forms.Label()
         Me.group_sr1 = New System.Windows.Forms.GroupBox()
         Me.group_sr2 = New System.Windows.Forms.GroupBox()
+        Me.cb_sr2_1 = New System.Windows.Forms.CheckBox()
         Me.cmd_write_config = New System.Windows.Forms.Button()
         Me.cmd_read_config = New System.Windows.Forms.Button()
-        Me.cb_sr2_1 = New System.Windows.Forms.CheckBox()
         Me.group_sr1.SuspendLayout()
         Me.group_sr2.SuspendLayout()
         Me.SuspendLayout()
@@ -131,7 +131,17 @@ Partial Class vendor_spansion
         Me.group_sr2.Size = New System.Drawing.Size(342, 48)
         Me.group_sr2.TabIndex = 9
         Me.group_sr2.TabStop = False
-        Me.group_sr2.Text = "Status Register-2"
+        Me.group_sr2.Text = "Status Register-2 / Configuration Register-1"
+        '
+        'cb_sr2_1
+        '
+        Me.cb_sr2_1.AutoSize = True
+        Me.cb_sr2_1.Location = New System.Drawing.Point(12, 21)
+        Me.cb_sr2_1.Name = "cb_sr2_1"
+        Me.cb_sr2_1.Size = New System.Drawing.Size(88, 17)
+        Me.cb_sr2_1.TabIndex = 8
+        Me.cb_sr2_1.Text = "Quad Enable"
+        Me.cb_sr2_1.UseVisualStyleBackColor = True
         '
         'cmd_write_config
         '
@@ -151,17 +161,7 @@ Partial Class vendor_spansion
         Me.cmd_read_config.Text = "Read"
         Me.cmd_read_config.UseVisualStyleBackColor = True
         '
-        'cb_sr2_1
-        '
-        Me.cb_sr2_1.AutoSize = True
-        Me.cb_sr2_1.Location = New System.Drawing.Point(12, 21)
-        Me.cb_sr2_1.Name = "cb_sr2_1"
-        Me.cb_sr2_1.Size = New System.Drawing.Size(88, 17)
-        Me.cb_sr2_1.TabIndex = 8
-        Me.cb_sr2_1.Text = "Quad Enable"
-        Me.cb_sr2_1.UseVisualStyleBackColor = True
-        '
-        'NonVol_2
+        'vendor_spansion_FL_K
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
@@ -169,7 +169,7 @@ Partial Class vendor_spansion
         Me.Controls.Add(Me.cmd_read_config)
         Me.Controls.Add(Me.group_sr2)
         Me.Controls.Add(Me.group_sr1)
-        Me.Name = "NonVol_2"
+        Me.Name = "vendor_spansion_FL_K"
         Me.Size = New System.Drawing.Size(355, 228)
         Me.group_sr1.ResumeLayout(False)
         Me.group_sr1.PerformLayout()

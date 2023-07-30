@@ -59,7 +59,8 @@ Partial Class FrmSettings
         Me.op_prog = New System.Windows.Forms.ComboBox()
         Me.RadioUseSpiAuto = New System.Windows.Forms.RadioButton()
         Me.GroupBox1 = New System.Windows.Forms.GroupBox()
-        Me.cb_spi_quad = New System.Windows.Forms.CheckBox()
+        Me.cb_sqi_speed = New System.Windows.Forms.ComboBox()
+        Me.Label21 = New System.Windows.Forms.Label()
         Me.cb_spi_eeprom = New System.Windows.Forms.ComboBox()
         Me.Label3 = New System.Windows.Forms.Label()
         Me.lbl_read_cmd = New System.Windows.Forms.Label()
@@ -67,14 +68,17 @@ Partial Class FrmSettings
         Me.rb_fastread_op = New System.Windows.Forms.RadioButton()
         Me.rb_read_op = New System.Windows.Forms.RadioButton()
         Me.Label1 = New System.Windows.Forms.Label()
-        Me.TP_JTAG = New System.Windows.Forms.TabPage()
         Me.TP_I2C = New System.Windows.Forms.TabPage()
+        Me.GroupBox8 = New System.Windows.Forms.GroupBox()
+        Me.cb_swi_a0 = New System.Windows.Forms.CheckBox()
+        Me.cb_swi_a1 = New System.Windows.Forms.CheckBox()
+        Me.cb_swi_a2 = New System.Windows.Forms.CheckBox()
         Me.GroupBox6 = New System.Windows.Forms.GroupBox()
         Me.cbi2cDensity = New System.Windows.Forms.ComboBox()
         Me.GroupBox5 = New System.Windows.Forms.GroupBox()
-        Me.cbI2C_A0 = New System.Windows.Forms.CheckBox()
-        Me.cbI2C_A1 = New System.Windows.Forms.CheckBox()
-        Me.cbI2C_A2 = New System.Windows.Forms.CheckBox()
+        Me.cb_i2c_a0 = New System.Windows.Forms.CheckBox()
+        Me.cb_i2c_a1 = New System.Windows.Forms.CheckBox()
+        Me.cb_i2c_a2 = New System.Windows.Forms.CheckBox()
         Me.GroupBox4 = New System.Windows.Forms.GroupBox()
         Me.rb_speed_1mhz = New System.Windows.Forms.RadioButton()
         Me.rb_speed_400khz = New System.Windows.Forms.RadioButton()
@@ -120,25 +124,30 @@ Partial Class FrmSettings
         Me.cb_ECC_BITERR = New System.Windows.Forms.ComboBox()
         Me.lbl_nandecc_biterror = New System.Windows.Forms.Label()
         Me.TP_GEN = New System.Windows.Forms.TabPage()
+        Me.GroupBox7 = New System.Windows.Forms.GroupBox()
+        Me.cb_otp_device_list = New System.Windows.Forms.ComboBox()
+        Me.Label2 = New System.Windows.Forms.Label()
+        Me.cb_s93_devices = New System.Windows.Forms.ComboBox()
+        Me.Label18 = New System.Windows.Forms.Label()
+        Me.cb_s93_org = New System.Windows.Forms.ComboBox()
+        Me.Label19 = New System.Windows.Forms.Label()
+        Me.GroupBox2 = New System.Windows.Forms.GroupBox()
+        Me.cb_jtag_tck_speed = New System.Windows.Forms.ComboBox()
+        Me.Label22 = New System.Windows.Forms.Label()
         Me.GroupBox3 = New System.Windows.Forms.GroupBox()
         Me.Label16 = New System.Windows.Forms.Label()
         Me.cbSrec = New System.Windows.Forms.ComboBox()
         Me.cb_ce_select = New System.Windows.Forms.ComboBox()
+        Me.cb_retry_write = New System.Windows.Forms.ComboBox()
+        Me.Label17 = New System.Windows.Forms.Label()
         Me.Label20 = New System.Windows.Forms.Label()
         Me.cb_multi_ce = New System.Windows.Forms.ComboBox()
-        Me.Label19 = New System.Windows.Forms.Label()
-        Me.cb_s93_org = New System.Windows.Forms.ComboBox()
-        Me.Label18 = New System.Windows.Forms.Label()
-        Me.cb_s93_devices = New System.Windows.Forms.ComboBox()
-        Me.Label2 = New System.Windows.Forms.Label()
-        Me.cb_otp_device_list = New System.Windows.Forms.ComboBox()
-        Me.Label17 = New System.Windows.Forms.Label()
-        Me.cb_retry_write = New System.Windows.Forms.ComboBox()
         Me.MyTabs.SuspendLayout()
         Me.TP_SPI.SuspendLayout()
         Me.group_custom.SuspendLayout()
         Me.GroupBox1.SuspendLayout()
         Me.TP_I2C.SuspendLayout()
+        Me.GroupBox8.SuspendLayout()
         Me.GroupBox6.SuspendLayout()
         Me.GroupBox5.SuspendLayout()
         Me.GroupBox4.SuspendLayout()
@@ -150,6 +159,8 @@ Partial Class FrmSettings
         Me.TP_NAND2.SuspendLayout()
         Me.gb_nandecc_title.SuspendLayout()
         Me.TP_GEN.SuspendLayout()
+        Me.GroupBox7.SuspendLayout()
+        Me.GroupBox2.SuspendLayout()
         Me.GroupBox3.SuspendLayout()
         Me.SuspendLayout()
         '
@@ -159,7 +170,6 @@ Partial Class FrmSettings
             Or System.Windows.Forms.AnchorStyles.Left) _
             Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.MyTabs.Controls.Add(Me.TP_SPI)
-        Me.MyTabs.Controls.Add(Me.TP_JTAG)
         Me.MyTabs.Controls.Add(Me.TP_I2C)
         Me.MyTabs.Controls.Add(Me.TP_NAND1)
         Me.MyTabs.Controls.Add(Me.TP_NAND2)
@@ -187,7 +197,7 @@ Partial Class FrmSettings
         'RadioUseSpiSettings
         '
         Me.RadioUseSpiSettings.AutoSize = True
-        Me.RadioUseSpiSettings.Location = New System.Drawing.Point(265, 123)
+        Me.RadioUseSpiSettings.Location = New System.Drawing.Point(268, 117)
         Me.RadioUseSpiSettings.Name = "RadioUseSpiSettings"
         Me.RadioUseSpiSettings.Size = New System.Drawing.Size(112, 17)
         Me.RadioUseSpiSettings.TabIndex = 27
@@ -525,7 +535,7 @@ Partial Class FrmSettings
         '
         Me.RadioUseSpiAuto.AutoSize = True
         Me.RadioUseSpiAuto.Checked = True
-        Me.RadioUseSpiAuto.Location = New System.Drawing.Point(6, 123)
+        Me.RadioUseSpiAuto.Location = New System.Drawing.Point(9, 117)
         Me.RadioUseSpiAuto.Name = "RadioUseSpiAuto"
         Me.RadioUseSpiAuto.Size = New System.Drawing.Size(132, 17)
         Me.RadioUseSpiAuto.TabIndex = 26
@@ -535,7 +545,8 @@ Partial Class FrmSettings
         '
         'GroupBox1
         '
-        Me.GroupBox1.Controls.Add(Me.cb_spi_quad)
+        Me.GroupBox1.Controls.Add(Me.cb_sqi_speed)
+        Me.GroupBox1.Controls.Add(Me.Label21)
         Me.GroupBox1.Controls.Add(Me.cb_spi_eeprom)
         Me.GroupBox1.Controls.Add(Me.Label3)
         Me.GroupBox1.Controls.Add(Me.lbl_read_cmd)
@@ -545,26 +556,35 @@ Partial Class FrmSettings
         Me.GroupBox1.Controls.Add(Me.Label1)
         Me.GroupBox1.Location = New System.Drawing.Point(6, 6)
         Me.GroupBox1.Name = "GroupBox1"
-        Me.GroupBox1.Size = New System.Drawing.Size(512, 111)
+        Me.GroupBox1.Size = New System.Drawing.Size(512, 97)
         Me.GroupBox1.TabIndex = 2
         Me.GroupBox1.TabStop = False
         Me.GroupBox1.Text = "General"
         '
-        'cb_spi_quad
+        'cb_sqi_speed
         '
-        Me.cb_spi_quad.AutoSize = True
-        Me.cb_spi_quad.Location = New System.Drawing.Point(15, 85)
-        Me.cb_spi_quad.Name = "cb_spi_quad"
-        Me.cb_spi_quad.Size = New System.Drawing.Size(169, 17)
-        Me.cb_spi_quad.TabIndex = 8
-        Me.cb_spi_quad.Text = "Enable SQI mode (QUAD-SPI)"
-        Me.cb_spi_quad.UseVisualStyleBackColor = True
+        Me.cb_sqi_speed.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_sqi_speed.FormattingEnabled = True
+        Me.cb_sqi_speed.Items.AddRange(New Object() {"10Mhz", "20MHz"})
+        Me.cb_sqi_speed.Location = New System.Drawing.Point(154, 34)
+        Me.cb_sqi_speed.Name = "cb_sqi_speed"
+        Me.cb_sqi_speed.Size = New System.Drawing.Size(90, 21)
+        Me.cb_sqi_speed.TabIndex = 6
+        '
+        'Label21
+        '
+        Me.Label21.AutoSize = True
+        Me.Label21.Location = New System.Drawing.Point(154, 18)
+        Me.Label21.Name = "Label21"
+        Me.Label21.Size = New System.Drawing.Size(90, 13)
+        Me.Label21.TabIndex = 7
+        Me.Label21.Text = "SPI-QUAD speed"
         '
         'cb_spi_eeprom
         '
         Me.cb_spi_eeprom.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_spi_eeprom.FormattingEnabled = True
-        Me.cb_spi_eeprom.Location = New System.Drawing.Point(157, 34)
+        Me.cb_spi_eeprom.Location = New System.Drawing.Point(298, 34)
         Me.cb_spi_eeprom.Name = "cb_spi_eeprom"
         Me.cb_spi_eeprom.Size = New System.Drawing.Size(156, 21)
         Me.cb_spi_eeprom.TabIndex = 4
@@ -572,7 +592,7 @@ Partial Class FrmSettings
         'Label3
         '
         Me.Label3.AutoSize = True
-        Me.Label3.Location = New System.Drawing.Point(156, 18)
+        Me.Label3.Location = New System.Drawing.Point(297, 18)
         Me.Label3.Name = "Label3"
         Me.Label3.Size = New System.Drawing.Size(108, 13)
         Me.Label3.TabIndex = 5
@@ -583,9 +603,9 @@ Partial Class FrmSettings
         Me.lbl_read_cmd.AutoSize = True
         Me.lbl_read_cmd.Location = New System.Drawing.Point(13, 65)
         Me.lbl_read_cmd.Name = "lbl_read_cmd"
-        Me.lbl_read_cmd.Size = New System.Drawing.Size(82, 13)
+        Me.lbl_read_cmd.Size = New System.Drawing.Size(85, 13)
         Me.lbl_read_cmd.TabIndex = 2
-        Me.lbl_read_cmd.Text = "Read command"
+        Me.lbl_read_cmd.Text = "Read command:"
         '
         'cb_spi_clock
         '
@@ -628,19 +648,10 @@ Partial Class FrmSettings
         Me.Label1.TabIndex = 1
         Me.Label1.Text = "Maximum clock speed"
         '
-        'TP_JTAG
-        '
-        Me.TP_JTAG.BackColor = System.Drawing.SystemColors.Control
-        Me.TP_JTAG.Location = New System.Drawing.Point(4, 22)
-        Me.TP_JTAG.Name = "TP_JTAG"
-        Me.TP_JTAG.Padding = New System.Windows.Forms.Padding(3)
-        Me.TP_JTAG.Size = New System.Drawing.Size(524, 328)
-        Me.TP_JTAG.TabIndex = 1
-        Me.TP_JTAG.Text = " JTAG "
-        '
         'TP_I2C
         '
         Me.TP_I2C.BackColor = System.Drawing.SystemColors.Control
+        Me.TP_I2C.Controls.Add(Me.GroupBox8)
         Me.TP_I2C.Controls.Add(Me.GroupBox6)
         Me.TP_I2C.Controls.Add(Me.GroupBox5)
         Me.TP_I2C.Controls.Add(Me.GroupBox4)
@@ -649,7 +660,49 @@ Partial Class FrmSettings
         Me.TP_I2C.Padding = New System.Windows.Forms.Padding(3)
         Me.TP_I2C.Size = New System.Drawing.Size(524, 328)
         Me.TP_I2C.TabIndex = 2
-        Me.TP_I2C.Text = " I ² C "
+        Me.TP_I2C.Text = " I ² C  / SWI "
+        '
+        'GroupBox8
+        '
+        Me.GroupBox8.Controls.Add(Me.cb_swi_a0)
+        Me.GroupBox8.Controls.Add(Me.cb_swi_a1)
+        Me.GroupBox8.Controls.Add(Me.cb_swi_a2)
+        Me.GroupBox8.Location = New System.Drawing.Point(6, 172)
+        Me.GroupBox8.Name = "GroupBox8"
+        Me.GroupBox8.Size = New System.Drawing.Size(512, 52)
+        Me.GroupBox8.TabIndex = 35
+        Me.GroupBox8.TabStop = False
+        Me.GroupBox8.Text = "SWI Address"
+        '
+        'cb_swi_a0
+        '
+        Me.cb_swi_a0.AutoSize = True
+        Me.cb_swi_a0.Location = New System.Drawing.Point(274, 19)
+        Me.cb_swi_a0.Name = "cb_swi_a0"
+        Me.cb_swi_a0.Size = New System.Drawing.Size(39, 17)
+        Me.cb_swi_a0.TabIndex = 28
+        Me.cb_swi_a0.Text = "A0"
+        Me.cb_swi_a0.UseVisualStyleBackColor = True
+        '
+        'cb_swi_a1
+        '
+        Me.cb_swi_a1.AutoSize = True
+        Me.cb_swi_a1.Location = New System.Drawing.Point(219, 19)
+        Me.cb_swi_a1.Name = "cb_swi_a1"
+        Me.cb_swi_a1.Size = New System.Drawing.Size(39, 17)
+        Me.cb_swi_a1.TabIndex = 29
+        Me.cb_swi_a1.Text = "A1"
+        Me.cb_swi_a1.UseVisualStyleBackColor = True
+        '
+        'cb_swi_a2
+        '
+        Me.cb_swi_a2.AutoSize = True
+        Me.cb_swi_a2.Location = New System.Drawing.Point(164, 19)
+        Me.cb_swi_a2.Name = "cb_swi_a2"
+        Me.cb_swi_a2.Size = New System.Drawing.Size(39, 17)
+        Me.cb_swi_a2.TabIndex = 30
+        Me.cb_swi_a2.Text = "A2"
+        Me.cb_swi_a2.UseVisualStyleBackColor = True
         '
         'GroupBox6
         '
@@ -659,7 +712,7 @@ Partial Class FrmSettings
         Me.GroupBox6.Size = New System.Drawing.Size(512, 51)
         Me.GroupBox6.TabIndex = 35
         Me.GroupBox6.TabStop = False
-        Me.GroupBox6.Text = "Density"
+        Me.GroupBox6.Text = "I2C Device"
         '
         'cbi2cDensity
         '
@@ -673,45 +726,45 @@ Partial Class FrmSettings
         '
         'GroupBox5
         '
-        Me.GroupBox5.Controls.Add(Me.cbI2C_A0)
-        Me.GroupBox5.Controls.Add(Me.cbI2C_A1)
-        Me.GroupBox5.Controls.Add(Me.cbI2C_A2)
-        Me.GroupBox5.Location = New System.Drawing.Point(3, 114)
+        Me.GroupBox5.Controls.Add(Me.cb_i2c_a0)
+        Me.GroupBox5.Controls.Add(Me.cb_i2c_a1)
+        Me.GroupBox5.Controls.Add(Me.cb_i2c_a2)
+        Me.GroupBox5.Location = New System.Drawing.Point(6, 114)
         Me.GroupBox5.Name = "GroupBox5"
-        Me.GroupBox5.Size = New System.Drawing.Size(515, 52)
+        Me.GroupBox5.Size = New System.Drawing.Size(512, 52)
         Me.GroupBox5.TabIndex = 34
         Me.GroupBox5.TabStop = False
-        Me.GroupBox5.Text = "Addressing mode"
+        Me.GroupBox5.Text = "I2C Address"
         '
-        'cbI2C_A0
+        'cb_i2c_a0
         '
-        Me.cbI2C_A0.AutoSize = True
-        Me.cbI2C_A0.Location = New System.Drawing.Point(274, 19)
-        Me.cbI2C_A0.Name = "cbI2C_A0"
-        Me.cbI2C_A0.Size = New System.Drawing.Size(39, 17)
-        Me.cbI2C_A0.TabIndex = 28
-        Me.cbI2C_A0.Text = "A0"
-        Me.cbI2C_A0.UseVisualStyleBackColor = True
+        Me.cb_i2c_a0.AutoSize = True
+        Me.cb_i2c_a0.Location = New System.Drawing.Point(274, 19)
+        Me.cb_i2c_a0.Name = "cb_i2c_a0"
+        Me.cb_i2c_a0.Size = New System.Drawing.Size(39, 17)
+        Me.cb_i2c_a0.TabIndex = 28
+        Me.cb_i2c_a0.Text = "A0"
+        Me.cb_i2c_a0.UseVisualStyleBackColor = True
         '
-        'cbI2C_A1
+        'cb_i2c_a1
         '
-        Me.cbI2C_A1.AutoSize = True
-        Me.cbI2C_A1.Location = New System.Drawing.Point(219, 19)
-        Me.cbI2C_A1.Name = "cbI2C_A1"
-        Me.cbI2C_A1.Size = New System.Drawing.Size(39, 17)
-        Me.cbI2C_A1.TabIndex = 29
-        Me.cbI2C_A1.Text = "A1"
-        Me.cbI2C_A1.UseVisualStyleBackColor = True
+        Me.cb_i2c_a1.AutoSize = True
+        Me.cb_i2c_a1.Location = New System.Drawing.Point(219, 19)
+        Me.cb_i2c_a1.Name = "cb_i2c_a1"
+        Me.cb_i2c_a1.Size = New System.Drawing.Size(39, 17)
+        Me.cb_i2c_a1.TabIndex = 29
+        Me.cb_i2c_a1.Text = "A1"
+        Me.cb_i2c_a1.UseVisualStyleBackColor = True
         '
-        'cbI2C_A2
+        'cb_i2c_a2
         '
-        Me.cbI2C_A2.AutoSize = True
-        Me.cbI2C_A2.Location = New System.Drawing.Point(164, 19)
-        Me.cbI2C_A2.Name = "cbI2C_A2"
-        Me.cbI2C_A2.Size = New System.Drawing.Size(39, 17)
-        Me.cbI2C_A2.TabIndex = 30
-        Me.cbI2C_A2.Text = "A2"
-        Me.cbI2C_A2.UseVisualStyleBackColor = True
+        Me.cb_i2c_a2.AutoSize = True
+        Me.cb_i2c_a2.Location = New System.Drawing.Point(164, 19)
+        Me.cb_i2c_a2.Name = "cb_i2c_a2"
+        Me.cb_i2c_a2.Size = New System.Drawing.Size(39, 17)
+        Me.cb_i2c_a2.TabIndex = 30
+        Me.cb_i2c_a2.Text = "A2"
+        Me.cb_i2c_a2.UseVisualStyleBackColor = True
         '
         'GroupBox4
         '
@@ -723,7 +776,7 @@ Partial Class FrmSettings
         Me.GroupBox4.Size = New System.Drawing.Size(512, 45)
         Me.GroupBox4.TabIndex = 33
         Me.GroupBox4.TabStop = False
-        Me.GroupBox4.Text = "Speed mode"
+        Me.GroupBox4.Text = "I2C SCL Speed"
         '
         'rb_speed_1mhz
         '
@@ -1197,32 +1250,129 @@ Partial Class FrmSettings
         'TP_GEN
         '
         Me.TP_GEN.BackColor = System.Drawing.SystemColors.Control
+        Me.TP_GEN.Controls.Add(Me.GroupBox7)
+        Me.TP_GEN.Controls.Add(Me.GroupBox2)
         Me.TP_GEN.Controls.Add(Me.GroupBox3)
         Me.TP_GEN.Location = New System.Drawing.Point(4, 22)
         Me.TP_GEN.Name = "TP_GEN"
         Me.TP_GEN.Padding = New System.Windows.Forms.Padding(3)
         Me.TP_GEN.Size = New System.Drawing.Size(524, 328)
         Me.TP_GEN.TabIndex = 5
-        Me.TP_GEN.Text = "MISC"
+        Me.TP_GEN.Text = "  General  "
+        '
+        'GroupBox7
+        '
+        Me.GroupBox7.Controls.Add(Me.cb_otp_device_list)
+        Me.GroupBox7.Controls.Add(Me.Label2)
+        Me.GroupBox7.Controls.Add(Me.cb_s93_devices)
+        Me.GroupBox7.Controls.Add(Me.Label18)
+        Me.GroupBox7.Controls.Add(Me.cb_s93_org)
+        Me.GroupBox7.Controls.Add(Me.Label19)
+        Me.GroupBox7.Location = New System.Drawing.Point(256, 6)
+        Me.GroupBox7.Name = "GroupBox7"
+        Me.GroupBox7.Size = New System.Drawing.Size(262, 178)
+        Me.GroupBox7.TabIndex = 53
+        Me.GroupBox7.TabStop = False
+        Me.GroupBox7.Text = "EEPROM Selection"
+        '
+        'cb_otp_device_list
+        '
+        Me.cb_otp_device_list.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_otp_device_list.FormattingEnabled = True
+        Me.cb_otp_device_list.Location = New System.Drawing.Point(9, 39)
+        Me.cb_otp_device_list.Name = "cb_otp_device_list"
+        Me.cb_otp_device_list.Size = New System.Drawing.Size(171, 21)
+        Me.cb_otp_device_list.TabIndex = 37
+        '
+        'Label2
+        '
+        Me.Label2.AutoSize = True
+        Me.Label2.Location = New System.Drawing.Point(9, 21)
+        Me.Label2.Name = "Label2"
+        Me.Label2.Size = New System.Drawing.Size(122, 13)
+        Me.Label2.TabIndex = 38
+        Me.Label2.Text = "OTP EPROM (series 27)"
+        '
+        'cb_s93_devices
+        '
+        Me.cb_s93_devices.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_s93_devices.FormattingEnabled = True
+        Me.cb_s93_devices.Items.AddRange(New Object() {"(Not Selected)", "93xx46  128 bytes (1Kbit)", "93xx56  256 bytes (2Kbit)", "93xx66  512 bytes (4Kbit)", "93xx76  1024 bytes (8Kbit)", "93xx86  2048 bytes (16Kbit)"})
+        Me.cb_s93_devices.Location = New System.Drawing.Point(9, 90)
+        Me.cb_s93_devices.Name = "cb_s93_devices"
+        Me.cb_s93_devices.Size = New System.Drawing.Size(171, 21)
+        Me.cb_s93_devices.TabIndex = 41
+        '
+        'Label18
+        '
+        Me.Label18.AutoSize = True
+        Me.Label18.Location = New System.Drawing.Point(9, 72)
+        Me.Label18.Name = "Label18"
+        Me.Label18.Size = New System.Drawing.Size(152, 13)
+        Me.Label18.TabIndex = 42
+        Me.Label18.Text = "Microwire EEPROM (series 93)"
+        '
+        'cb_s93_org
+        '
+        Me.cb_s93_org.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_s93_org.FormattingEnabled = True
+        Me.cb_s93_org.Items.AddRange(New Object() {"8-bit", "16-bit"})
+        Me.cb_s93_org.Location = New System.Drawing.Point(186, 90)
+        Me.cb_s93_org.Name = "cb_s93_org"
+        Me.cb_s93_org.Size = New System.Drawing.Size(63, 21)
+        Me.cb_s93_org.TabIndex = 43
+        '
+        'Label19
+        '
+        Me.Label19.AutoSize = True
+        Me.Label19.Location = New System.Drawing.Point(183, 72)
+        Me.Label19.Name = "Label19"
+        Me.Label19.Size = New System.Drawing.Size(66, 13)
+        Me.Label19.TabIndex = 44
+        Me.Label19.Text = "Organization"
+        '
+        'GroupBox2
+        '
+        Me.GroupBox2.Controls.Add(Me.cb_jtag_tck_speed)
+        Me.GroupBox2.Controls.Add(Me.Label22)
+        Me.GroupBox2.Location = New System.Drawing.Point(6, 190)
+        Me.GroupBox2.Name = "GroupBox2"
+        Me.GroupBox2.Size = New System.Drawing.Size(244, 84)
+        Me.GroupBox2.TabIndex = 52
+        Me.GroupBox2.TabStop = False
+        Me.GroupBox2.Text = "JTAG (Professional)"
+        '
+        'cb_jtag_tck_speed
+        '
+        Me.cb_jtag_tck_speed.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_jtag_tck_speed.FormattingEnabled = True
+        Me.cb_jtag_tck_speed.Items.AddRange(New Object() {"10 MHz", "20 MHz"})
+        Me.cb_jtag_tck_speed.Location = New System.Drawing.Point(9, 45)
+        Me.cb_jtag_tck_speed.Name = "cb_jtag_tck_speed"
+        Me.cb_jtag_tck_speed.Size = New System.Drawing.Size(117, 21)
+        Me.cb_jtag_tck_speed.TabIndex = 53
+        '
+        'Label22
+        '
+        Me.Label22.AutoSize = True
+        Me.Label22.Location = New System.Drawing.Point(9, 27)
+        Me.Label22.Name = "Label22"
+        Me.Label22.Size = New System.Drawing.Size(62, 13)
+        Me.Label22.TabIndex = 54
+        Me.Label22.Text = "TCK Speed"
         '
         'GroupBox3
         '
         Me.GroupBox3.Controls.Add(Me.Label16)
         Me.GroupBox3.Controls.Add(Me.cbSrec)
         Me.GroupBox3.Controls.Add(Me.cb_ce_select)
+        Me.GroupBox3.Controls.Add(Me.cb_retry_write)
+        Me.GroupBox3.Controls.Add(Me.Label17)
         Me.GroupBox3.Controls.Add(Me.Label20)
         Me.GroupBox3.Controls.Add(Me.cb_multi_ce)
-        Me.GroupBox3.Controls.Add(Me.Label19)
-        Me.GroupBox3.Controls.Add(Me.cb_s93_org)
-        Me.GroupBox3.Controls.Add(Me.Label18)
-        Me.GroupBox3.Controls.Add(Me.cb_s93_devices)
-        Me.GroupBox3.Controls.Add(Me.Label2)
-        Me.GroupBox3.Controls.Add(Me.cb_otp_device_list)
-        Me.GroupBox3.Controls.Add(Me.Label17)
-        Me.GroupBox3.Controls.Add(Me.cb_retry_write)
         Me.GroupBox3.Location = New System.Drawing.Point(6, 6)
         Me.GroupBox3.Name = "GroupBox3"
-        Me.GroupBox3.Size = New System.Drawing.Size(507, 294)
+        Me.GroupBox3.Size = New System.Drawing.Size(244, 178)
         Me.GroupBox3.TabIndex = 1
         Me.GroupBox3.TabStop = False
         Me.GroupBox3.Text = "General"
@@ -1230,7 +1380,7 @@ Partial Class FrmSettings
         'Label16
         '
         Me.Label16.AutoSize = True
-        Me.Label16.Location = New System.Drawing.Point(22, 236)
+        Me.Label16.Location = New System.Drawing.Point(9, 126)
         Me.Label16.Name = "Label16"
         Me.Label16.Size = New System.Drawing.Size(104, 13)
         Me.Label16.TabIndex = 49
@@ -1241,7 +1391,7 @@ Partial Class FrmSettings
         Me.cbSrec.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cbSrec.FormattingEnabled = True
         Me.cbSrec.Items.AddRange(New Object() {"8-bit (byte)", "16-bit (word)"})
-        Me.cbSrec.Location = New System.Drawing.Point(22, 254)
+        Me.cbSrec.Location = New System.Drawing.Point(9, 144)
         Me.cbSrec.Name = "cbSrec"
         Me.cbSrec.Size = New System.Drawing.Size(104, 21)
         Me.cbSrec.TabIndex = 48
@@ -1251,15 +1401,34 @@ Partial Class FrmSettings
         Me.cb_ce_select.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_ce_select.FormattingEnabled = True
         Me.cb_ce_select.Items.AddRange(New Object() {"A18", "A19", "A20", "A21", "A22", "A23", "A24"})
-        Me.cb_ce_select.Location = New System.Drawing.Point(108, 206)
+        Me.cb_ce_select.Location = New System.Drawing.Point(98, 90)
         Me.cb_ce_select.Name = "cb_ce_select"
         Me.cb_ce_select.Size = New System.Drawing.Size(63, 21)
         Me.cb_ce_select.TabIndex = 47
         '
+        'cb_retry_write
+        '
+        Me.cb_retry_write.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_retry_write.FormattingEnabled = True
+        Me.cb_retry_write.Items.AddRange(New Object() {"One time", "Two times", "Three times", "Four times", "Five times"})
+        Me.cb_retry_write.Location = New System.Drawing.Point(9, 39)
+        Me.cb_retry_write.Name = "cb_retry_write"
+        Me.cb_retry_write.Size = New System.Drawing.Size(117, 21)
+        Me.cb_retry_write.TabIndex = 39
+        '
+        'Label17
+        '
+        Me.Label17.AutoSize = True
+        Me.Label17.Location = New System.Drawing.Point(9, 21)
+        Me.Label17.Name = "Label17"
+        Me.Label17.Size = New System.Drawing.Size(112, 13)
+        Me.Label17.TabIndex = 40
+        Me.Label17.Text = "Re-attempt write verify"
+        '
         'Label20
         '
         Me.Label20.AutoSize = True
-        Me.Label20.Location = New System.Drawing.Point(19, 188)
+        Me.Label20.Location = New System.Drawing.Point(9, 72)
         Me.Label20.Name = "Label20"
         Me.Label20.Size = New System.Drawing.Size(153, 13)
         Me.Label20.TabIndex = 46
@@ -1270,85 +1439,10 @@ Partial Class FrmSettings
         Me.cb_multi_ce.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_multi_ce.FormattingEnabled = True
         Me.cb_multi_ce.Items.AddRange(New Object() {"Disabled", "Enabled"})
-        Me.cb_multi_ce.Location = New System.Drawing.Point(19, 206)
+        Me.cb_multi_ce.Location = New System.Drawing.Point(9, 90)
         Me.cb_multi_ce.Name = "cb_multi_ce"
         Me.cb_multi_ce.Size = New System.Drawing.Size(83, 21)
         Me.cb_multi_ce.TabIndex = 45
-        '
-        'Label19
-        '
-        Me.Label19.AutoSize = True
-        Me.Label19.Location = New System.Drawing.Point(209, 134)
-        Me.Label19.Name = "Label19"
-        Me.Label19.Size = New System.Drawing.Size(66, 13)
-        Me.Label19.TabIndex = 44
-        Me.Label19.Text = "Organization"
-        '
-        'cb_s93_org
-        '
-        Me.cb_s93_org.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cb_s93_org.FormattingEnabled = True
-        Me.cb_s93_org.Items.AddRange(New Object() {"8-bit", "16-bit"})
-        Me.cb_s93_org.Location = New System.Drawing.Point(212, 152)
-        Me.cb_s93_org.Name = "cb_s93_org"
-        Me.cb_s93_org.Size = New System.Drawing.Size(63, 21)
-        Me.cb_s93_org.TabIndex = 43
-        '
-        'Label18
-        '
-        Me.Label18.AutoSize = True
-        Me.Label18.Location = New System.Drawing.Point(19, 134)
-        Me.Label18.Name = "Label18"
-        Me.Label18.Size = New System.Drawing.Size(152, 13)
-        Me.Label18.TabIndex = 42
-        Me.Label18.Text = "Microwire EEPROM (series 93)"
-        '
-        'cb_s93_devices
-        '
-        Me.cb_s93_devices.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cb_s93_devices.FormattingEnabled = True
-        Me.cb_s93_devices.Items.AddRange(New Object() {"(Not Selected)", "93xx46  128 bytes (1Kbit)", "93xx56  256 bytes (2Kbit)", "93xx66  512 bytes (4Kbit)", "93xx76  1024 bytes (8Kbit)", "93xx86  2048 bytes (16Kbit)"})
-        Me.cb_s93_devices.Location = New System.Drawing.Point(19, 152)
-        Me.cb_s93_devices.Name = "cb_s93_devices"
-        Me.cb_s93_devices.Size = New System.Drawing.Size(187, 21)
-        Me.cb_s93_devices.TabIndex = 41
-        '
-        'Label2
-        '
-        Me.Label2.AutoSize = True
-        Me.Label2.Location = New System.Drawing.Point(19, 83)
-        Me.Label2.Name = "Label2"
-        Me.Label2.Size = New System.Drawing.Size(122, 13)
-        Me.Label2.TabIndex = 38
-        Me.Label2.Text = "OTP EPROM (series 27)"
-        '
-        'cb_otp_device_list
-        '
-        Me.cb_otp_device_list.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cb_otp_device_list.FormattingEnabled = True
-        Me.cb_otp_device_list.Location = New System.Drawing.Point(19, 101)
-        Me.cb_otp_device_list.Name = "cb_otp_device_list"
-        Me.cb_otp_device_list.Size = New System.Drawing.Size(187, 21)
-        Me.cb_otp_device_list.TabIndex = 37
-        '
-        'Label17
-        '
-        Me.Label17.AutoSize = True
-        Me.Label17.Location = New System.Drawing.Point(19, 29)
-        Me.Label17.Name = "Label17"
-        Me.Label17.Size = New System.Drawing.Size(112, 13)
-        Me.Label17.TabIndex = 40
-        Me.Label17.Text = "Re-attempt write verify"
-        '
-        'cb_retry_write
-        '
-        Me.cb_retry_write.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cb_retry_write.FormattingEnabled = True
-        Me.cb_retry_write.Items.AddRange(New Object() {"One time", "Two times", "Three times", "Four times", "Five times"})
-        Me.cb_retry_write.Location = New System.Drawing.Point(19, 47)
-        Me.cb_retry_write.Name = "cb_retry_write"
-        Me.cb_retry_write.Size = New System.Drawing.Size(117, 21)
-        Me.cb_retry_write.TabIndex = 39
         '
         'FrmSettings
         '
@@ -1372,6 +1466,8 @@ Partial Class FrmSettings
         Me.GroupBox1.ResumeLayout(False)
         Me.GroupBox1.PerformLayout()
         Me.TP_I2C.ResumeLayout(False)
+        Me.GroupBox8.ResumeLayout(False)
+        Me.GroupBox8.PerformLayout()
         Me.GroupBox6.ResumeLayout(False)
         Me.GroupBox5.ResumeLayout(False)
         Me.GroupBox5.PerformLayout()
@@ -1389,6 +1485,10 @@ Partial Class FrmSettings
         Me.gb_nandecc_title.ResumeLayout(False)
         Me.gb_nandecc_title.PerformLayout()
         Me.TP_GEN.ResumeLayout(False)
+        Me.GroupBox7.ResumeLayout(False)
+        Me.GroupBox7.PerformLayout()
+        Me.GroupBox2.ResumeLayout(False)
+        Me.GroupBox2.PerformLayout()
         Me.GroupBox3.ResumeLayout(False)
         Me.GroupBox3.PerformLayout()
         Me.ResumeLayout(False)
@@ -1397,7 +1497,6 @@ Partial Class FrmSettings
 
     Friend WithEvents MyTabs As TabControl
     Friend WithEvents TP_SPI As TabPage
-    Friend WithEvents TP_JTAG As TabPage
     Friend WithEvents TP_I2C As TabPage
     Friend WithEvents TP_NAND1 As TabPage
     Friend WithEvents Label1 As Label
@@ -1442,9 +1541,9 @@ Partial Class FrmSettings
     Friend WithEvents gb_nand_general As GroupBox
     Friend WithEvents cb_mismatch As CheckBox
     Friend WithEvents cb_preserve As CheckBox
-    Friend WithEvents cbI2C_A2 As CheckBox
-    Friend WithEvents cbI2C_A1 As CheckBox
-    Friend WithEvents cbI2C_A0 As CheckBox
+    Friend WithEvents cb_i2c_a2 As CheckBox
+    Friend WithEvents cb_i2c_a1 As CheckBox
+    Friend WithEvents cb_i2c_a0 As CheckBox
     Friend WithEvents GroupBox4 As GroupBox
     Friend WithEvents rb_speed_1mhz As RadioButton
     Friend WithEvents rb_speed_400khz As RadioButton
@@ -1461,7 +1560,6 @@ Partial Class FrmSettings
     Friend WithEvents gb_block_layout As GroupBox
     Friend WithEvents rb_mainspare_segmented As RadioButton
     Friend WithEvents rb_mainspare_default As RadioButton
-    Friend WithEvents cb_spi_quad As CheckBox
     Friend WithEvents rb_mainspare_all As RadioButton
     Friend WithEvents cb_spinand_disable_ecc As CheckBox
     Friend WithEvents cb_nand_image_readverify As CheckBox
@@ -1507,4 +1605,14 @@ Partial Class FrmSettings
     Friend WithEvents cb_ce_select As ComboBox
     Friend WithEvents Label16 As Label
     Friend WithEvents cbSrec As ComboBox
+    Friend WithEvents GroupBox7 As GroupBox
+    Friend WithEvents GroupBox2 As GroupBox
+    Friend WithEvents cb_jtag_tck_speed As ComboBox
+    Friend WithEvents Label22 As Label
+    Friend WithEvents cb_sqi_speed As ComboBox
+    Friend WithEvents Label21 As Label
+    Friend WithEvents GroupBox8 As GroupBox
+    Friend WithEvents cb_swi_a0 As CheckBox
+    Friend WithEvents cb_swi_a1 As CheckBox
+    Friend WithEvents cb_swi_a2 As CheckBox
 End Class
