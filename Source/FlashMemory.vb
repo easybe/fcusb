@@ -1450,6 +1450,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("Berg_Micro BG25Q32A", SPI_3V, Mb032, &HE0, &H4016))
             FlashDB.Add(New SPI_NOR("XMC XM25QH32B", SPI_3V, Mb032, &H20, &H4016)) 'Rebranded-micron
             FlashDB.Add(New SPI_NOR("XMC XM25QH64A", SPI_3V, Mb064, &H20, &H7017)) 'Rebranded-micron
+            FlashDB.Add(New SPI_NOR("XMC XM25QH64C", SPI_3V, Mb064, &H20, &H4017))
             FlashDB.Add(New SPI_NOR("XMC XM25QH128A", SPI_3V, Mb128, &H20, &H7018))
             FlashDB.Add(New SPI_NOR("XMC XM25QH128C", SPI_3V, Mb128, &H20, &H2018))
             FlashDB.Add(New SPI_NOR("BOYAMICRO BY25D16", SPI_3V, Mb016, &H68, &H4015))
