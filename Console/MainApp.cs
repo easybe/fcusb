@@ -13,7 +13,7 @@ public static class MainApp {
     public static double FC_BUILD = 1.03;
     private const float PRO_PCB5_FW = 1.09f;
     private const float MACH1_PCB2_FW = 2.22f;
-    private const float XPORT_PCB2_FW = 5.2f;
+    private const float XPORT_PCB2_FW = 5.21f;
     private const float CLASSIC_FW = 4.52f;
     private const uint MACH1_FGPA_3V3 = 0xAF330006U;
     private const uint MACH1_FGPA_1V8 = 0xAF180006U;

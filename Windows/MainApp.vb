@@ -18,7 +18,7 @@ Public Module MainApp
     Public Const FC_BUILD As Integer = 615
     Private Const PRO_PCB5_FW As Single = 1.09F 'This is the embedded firmware version for pro
     Private Const MACH1_PCB2_FW As Single = 2.22F 'Firmware version for Mach1
-    Private Const XPORT_PCB2_FW As Single = 5.2F 'XPORT PCB 2.x
+    Private Const XPORT_PCB2_FW As Single = 5.21F 'XPORT PCB 2.x
     Private Const CLASSIC_FW As Single = 4.52F 'Min revision allowed for classic (PCB 2.x)
     Private Const MACH1_FGPA_3V3 As UInt32 = &HAF330006UI
     Private Const MACH1_FGPA_1V8 As UInt32 = &HAF180006UI
