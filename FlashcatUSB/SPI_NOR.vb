@@ -686,7 +686,7 @@ Namespace SPI
 #Region "SPIBUS"
 
         Public Sub SPIBUS_Setup(bus_speed As SPI_SPEED)
-            Me.FCUSB.USB_SPI_SETUP(MySettings.SPI_MODE, MySettings.SPI_BIT_ORDER)
+            Me.FCUSB.USB_SPI_SETUP(MySettings.SPI_MODE, MySettings.SPI_BIT_ORDER, bus_speed)
             Utilities.Sleep(50) 'Allow time for device to change IO
         End Sub
 

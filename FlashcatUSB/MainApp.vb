@@ -18,7 +18,7 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 587
+    Public Const Build As Integer = 588
 
     Private Const PRO_PCB4_FW As Single = 1.18F 'This is the embedded firmware version for pro
     Private Const PRO_PCB5_FW As Single = 1.02F 'This is the embedded firmware version for pro
@@ -593,9 +593,9 @@ Public Module MainApp
         Select Case MyConsoleOperation.Mode
             Case DeviceMode.SPI
                 ConsoleWriteLine(RM.GetString("device_mode") & ": Serial Programmable Interface (SPI-NOR)")
-                Dim desired_speed As UInt32 = (MyConsoleOperation.SPI_SPEED * 1000000)
-                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, desired_speed))
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, SPI_SPEED.MHZ_8))
                 If usb_dev.SPI_NOR_IF.DeviceInit() Then
+                    usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, MyConsoleOperation.SPI_SPEED))
                     MyConsoleOperation.FLASH_SIZE = usb_dev.SPI_NOR_IF.MyFlashDevice.FLASH_SIZE
                     mem_dev = MEM_IF.Add(usb_dev, usb_dev.SPI_NOR_IF.MyFlashDevice)
                     ConsoleWriteLine(String.Format(RM.GetString("spi_set_clock"), MyConsoleOperation.SPI_SPEED) & " MHz")
@@ -1962,10 +1962,11 @@ Public Module MainApp
         GUI.SetStatus(RM.GetString("detecting_device"))
         Utilities.Sleep(100) 'Allow time for USB to power up devices
         If MySettings.OPERATION_MODE = DeviceMode.SPI Then
-            usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
             If MySettings.SPI_AUTO Then
                 GUI.PrintConsole(RM.GetString("spi_attempting_detect"))
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, SPI_SPEED.MHZ_8))
                 If usb_dev.SPI_NOR_IF.DeviceInit() Then
+                    usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
                     Dim block_size As UInt32 = 65536
                     If usb_dev.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then block_size = 262144
                     Connected_Event(usb_dev, MemoryType.SERIAL_NOR, "SPI NOR Flash", block_size)
@@ -1994,8 +1995,9 @@ Public Module MainApp
             End If
         ElseIf MySettings.OPERATION_MODE = DeviceMode.SQI Then
             GUI.PrintConsole("Attempting to detect SPI device in SPI extended mode")
-            usb_dev.SQI_NOR_IF.SQIBUS_Setup(GetSqiClock(usb_dev.HWBOARD, MySettings.SQI_CLOCK_MAX))
+            usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, SQI_SPEED.MHZ_10))
             If usb_dev.SQI_NOR_IF.DeviceInit() Then
+                usb_dev.SQI_NOR_IF.SQIBUS_Setup(GetSqiClock(usb_dev.HWBOARD, MySettings.SQI_CLOCK_MAX))
                 Dim mem_name As String = "SPI Flash"
                 Select Case usb_dev.SQI_NOR_IF.SQI_IO_MODE
                     Case MULTI_IO_MODE.Dual

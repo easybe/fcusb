@@ -16,7 +16,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     Public Property ONFI As NAND_ONFI 'Contains ONFI table information (NAND)
     Public Property CFI As NOR_CFI 'Contains CFI table information (NOR)
 
-    Public MyAdapter As MEM_PROTOCOL 'This is the kind of socket adapter connected and the mode it is in
+    Public Property MyAdapter As MEM_PROTOCOL 'This is the kind of socket adapter connected and the mode it is in
 
     Public FLASH_IDENT As FlashDetectResult
 
@@ -685,14 +685,20 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
 
     Public Function EPROM_Init() As Boolean
         MyFlashDevice = Nothing
-        If EPROM_Detect(True) Then 'X16
-            Me.MyAdapter = MEM_PROTOCOL.EPROM_X16
-            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.EPROM_X16)
-            RaiseEvent PrintConsole("Device mode set to EPROM (16-bit)")
-        ElseIf EPROM_Detect(False) Then 'X8
-            Me.MyAdapter = MEM_PROTOCOL.EPROM_X8
-            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.EPROM_X8)
-            RaiseEvent PrintConsole("Device mode set to EPROM (8-bit)")
+        If EPROM_Detect() Then
+            Dim o As OTP_EPROM = MyFlashDevice
+            If o.IFACE = VCC_IF.X16_5V_12VPP Then
+                EXPIO_SETUP_USB(MEM_PROTOCOL.EPROM_X16)
+                EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.EPROM_X16)
+                Me.MyAdapter = MEM_PROTOCOL.EPROM_X16
+                RaiseEvent PrintConsole("Device mode set to EPROM (16-bit)")
+            ElseIf o.IFACE = VCC_IF.X8_5V_12VPP Then
+                EXPIO_SETUP_USB(MEM_PROTOCOL.EPROM_X8)
+                Me.MyAdapter = MEM_PROTOCOL.EPROM_X8
+                EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.EPROM_X8)
+                Me.MyAdapter = MEM_PROTOCOL.EPROM_X8
+                RaiseEvent PrintConsole("Device mode set to EPROM (8-bit)")
+            End If
         Else
             RaiseEvent PrintConsole("Unable to automatically detect EPROM/OTP device")
             Return False
@@ -708,43 +714,57 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Return True
     End Function
 
-    Public Function EPROM_Detect(X16_MODE As Boolean) As Boolean
-        If X16_MODE Then
-            EXPIO_SETUP_USB(MEM_PROTOCOL.EPROM_X16)
-        Else
-            EXPIO_SETUP_USB(MEM_PROTOCOL.EPROM_X8)
-        End If
-        Utilities.Sleep(100)
-        Dim IDENT_DATA(3) As Byte
+    Public Function EPROM_Detect() As Boolean
+        EXPIO_SETUP_USB(MEM_PROTOCOL.EPROM_X8)
+        Utilities.Sleep(200)
+        Dim IDENT_DATA() As Byte
+        IDENT_DATA = EPROM_ReadEletronicID_1()
+        MyFlashDevice = FlashDatabase.FindDevice(IDENT_DATA(0), IDENT_DATA(1), 0, MemoryType.OTP_EPROM)
+        If MyFlashDevice Is Nothing Then IDENT_DATA = EPROM_ReadEletronicID_2()
+        MyFlashDevice = FlashDatabase.FindDevice(IDENT_DATA(0), IDENT_DATA(1), 0, MemoryType.OTP_EPROM)
+        If MyFlashDevice IsNot Nothing Then Return True 'Detected!
+        Return False
+    End Function
+
+    Private Function EPROM_ReadEletronicID_1() As Byte()
+        Dim IDENT_DATA(1) As Byte
         HardwareControl(EXPIO_CTRL.VPP_ENABLE)
         HardwareControl(EXPIO_CTRL.OE_LOW)
         HardwareControl(EXPIO_CTRL.WE_LOW)
         HardwareControl(EXPIO_CTRL.VPP_12V)
         HardwareControl(EXPIO_CTRL.RELAY_ON)
         Utilities.Sleep(150)
-        Dim setup_data() As Byte = GetSetupPacket_NOR(0, 4, 0)
-        FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, IDENT_DATA, 0)
-        If (IDENT_DATA(0) = 0) Or (IDENT_DATA(0) = 255) Then
-            HardwareControl(EXPIO_CTRL.VPP_DISABLE) 'Some devices need VPP and some need no VPP.
-            Utilities.Sleep(100)
-            FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, IDENT_DATA, 0)
-        End If
-        Dim EPROM_MFG As Byte = IDENT_DATA(0)
+        FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, GetSetupPacket_NOR(0, 2, 0), IDENT_DATA, 0)
         HardwareControl(EXPIO_CTRL.RELAY_OFF)
         HardwareControl(EXPIO_CTRL.VPP_0V)
         HardwareControl(EXPIO_CTRL.WE_HIGH)
-        HardwareControl(EXPIO_CTRL.VPP_ENABLE)
-        Dim EPROM_PART As Byte
-        If X16_MODE Then
-            EPROM_PART = IDENT_DATA(2)
-            RaiseEvent PrintConsole("EPROM X16 IDENT CODE returned MFG: 0x" & Hex(EPROM_MFG) & " and PART 0x" & Hex(EPROM_PART))
+        HardwareControl(EXPIO_CTRL.VPP_DISABLE)
+        If IDENT_DATA(0) = 0 Or IDENT_DATA(1) = 0 Then
+        ElseIf IDENT_DATA(0) = 255 Or IDENT_DATA(1) = 255 Then
         Else
-            EPROM_PART = IDENT_DATA(1)
-            RaiseEvent PrintConsole("EPROM X8 IDENT CODE returned MFG: 0x" & Hex(EPROM_MFG) & " and PART 0x" & Hex(EPROM_PART))
+            RaiseEvent PrintConsole("EPROM IDENT CODE returned MFG: 0x" & Hex(IDENT_DATA(0)) & " and PART 0x" & Hex(IDENT_DATA(1)))
         End If
-        MyFlashDevice = FlashDatabase.FindDevice(EPROM_MFG, EPROM_PART, 0, MemoryType.OTP_EPROM)
-        If MyFlashDevice IsNot Nothing Then Return True 'Detected!
-        Return False
+        Return IDENT_DATA
+    End Function
+
+    Private Function EPROM_ReadEletronicID_2() As Byte()
+        Dim IDENT_DATA(1) As Byte
+        HardwareControl(EXPIO_CTRL.VPP_DISABLE)
+        HardwareControl(EXPIO_CTRL.OE_LOW)
+        HardwareControl(EXPIO_CTRL.WE_LOW)
+        HardwareControl(EXPIO_CTRL.VPP_12V)
+        HardwareControl(EXPIO_CTRL.RELAY_ON)
+        Utilities.Sleep(150)
+        FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, GetSetupPacket_NOR(0, 2, 0), IDENT_DATA, 0)
+        HardwareControl(EXPIO_CTRL.RELAY_OFF)
+        HardwareControl(EXPIO_CTRL.VPP_0V)
+        HardwareControl(EXPIO_CTRL.WE_HIGH)
+        If IDENT_DATA(0) = 0 Or IDENT_DATA(1) = 0 Then
+        ElseIf IDENT_DATA(0) = 255 Or IDENT_DATA(1) = 255 Then
+        Else
+            RaiseEvent PrintConsole("EPROM IDENT CODE returned MFG: 0x" & Hex(IDENT_DATA(0)) & " and PART 0x" & Hex(IDENT_DATA(1)))
+        End If
+        Return IDENT_DATA
     End Function
 
     Public Function EPROM_BlankCheck() As Boolean
@@ -959,6 +979,8 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
             Return False
         End Try
     End Function
+
+
 
     Private Function EXPIO_SETUP_WRITEADDRESS(mode As E_EXPIO_WRADDR) As Boolean
         Try

@@ -108,9 +108,9 @@ Namespace USB
             Private SPI_MODE_BYTE As Byte
             Private SPI_ORDER_BYTE As Byte
 
-            Public Sub USB_SPI_SETUP(ByVal mode As SPIBUS_MODE, ByVal bit_order As SPI_ORDER)
+            Public Sub USB_SPI_SETUP(mode As SPIBUS_MODE, bit_order As SPI_ORDER, speed As Integer)
                 Try
-                    Dim clock_speed As UInt32 = GetSpiClock(Me.HWBOARD, 8000000)
+                    Dim clock_speed As UInt32 = GetSpiClock(Me.HWBOARD, speed)
                     If (Me.HWBOARD = FCUSB_BOARD.Professional_PCB4) Then
                         USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, clock_speed)
                     Else

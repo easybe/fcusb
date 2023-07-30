@@ -30,7 +30,8 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             MFG = &HEF
             PART = &HAA21 'We need to override AB21 to indicate 1Gbit NAND die
         Else
-            Me.FCUSB.USB_SPI_SETUP(MySettings.SPI_MODE, MySettings.SPI_BIT_ORDER)
+            Dim clk_speed As Integer = GetSpiClock(FCUSB.HWBOARD, MySettings.SPI_CLOCK_MAX)
+            Me.FCUSB.USB_SPI_SETUP(MySettings.SPI_MODE, MySettings.SPI_BIT_ORDER, clk_speed)
             SPIBUS_WriteRead({SPI_Command_DEF.RDID}, rdid) 'NAND devives use 1 dummy byte, then MFG and ID1 (and sometimes, ID2)
             If Not (rdid(0) = 0 Or rdid(0) = 255) Then Return False
             If rdid(1) = 0 OrElse rdid(1) = 255 Then Return False
