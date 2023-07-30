@@ -17,9 +17,9 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 527
-    Public PRO_CURRENT_FW As Single = 1.26F 'This is the embedded firmware version for pro
-    Public CLASSIC_CURRENT_FW_SPI As Single = 4.36F 'Min revision allowed for classic, xport
+    Public Const Build As Integer = 528
+    Public PRO_CURRENT_FW As Single = 1.27F 'This is the embedded firmware version for pro
+    Public CLASSIC_CURRENT_FW_SPI As Single = 4.37F 'Min revision allowed for classic, xport
     Public CLASSIC_CURRENT_FW_JTAG As Single = 7.1F 'Min version for JTAG support
     Public VCC_OPTION As USB.Voltage = USB.Voltage.V3_3 'Only Pro supports software VCC changing
     Public AppIsClosing As Boolean = False
@@ -49,7 +49,6 @@ Public Module MainApp
         'Args = {"-READ", "-SPIEEPROM", "-EEPROM", "M95M02", "-FILE", "Flash.bin"}
         'Args = {"-WRITE", "-SPI", "-FILE", "Flash.bin"}
         'Args = {"-EXECUTE", "-SPI", "-FILE", "sample.fcs"}
-
 
         Thread.CurrentThread.CurrentUICulture = Globalization.CultureInfo.CreateSpecificCulture("en-US")
         Thread.CurrentThread.CurrentCulture = Globalization.CultureInfo.CreateSpecificCulture("en-US")
@@ -1152,6 +1151,7 @@ Public Module MainApp
         Public Property ECC_Location As Byte
         Public Property ECC_SymWidth As Integer '8/9/10
         Public Property ECC_Seperate As Boolean
+        Public Property ECC_Reverse As Boolean
         'GENERAL
         Public Property OTP_MFG As Byte
         Public Property OTP_ID As UShort
@@ -1195,6 +1195,7 @@ Public Module MainApp
             Me.ECC_Location = GetRegistryValue("ECC_LOCATION", 2)
             Me.ECC_SymWidth = GetRegistryValue("ECC_SYMWIDTH", 9)
             Me.ECC_Seperate = GetRegistryValue("ECC_SEPERATE", True)
+            Me.ECC_Reverse = GetRegistryValue("ECC_REVERSE", False)
             Me.OTP_MFG = GetRegistryValue("OTP_MFG", 0)
             Me.OTP_ID = GetRegistryValue("OTP_ID", 0)
             Me.S93_DEVICE_INDEX = GetRegistryValue("S93_DEVICE", 0)
@@ -1235,6 +1236,7 @@ Public Module MainApp
             SetRegistryValue("ECC_LOCATION", Me.ECC_Location)
             SetRegistryValue("ECC_SYMWIDTH", Me.ECC_SymWidth)
             SetRegistryValue("ECC_SEPERATE", Me.ECC_Seperate)
+            SetRegistryValue("ECC_REVERSE", Me.ECC_Reverse)
             SetRegistryValue("OTP_MFG", Me.OTP_MFG)
             SetRegistryValue("OTP_ID", Me.OTP_ID)
             SetRegistryValue("S93_DEVICE", Me.S93_DEVICE_INDEX)
@@ -1948,6 +1950,8 @@ Public Module MainApp
                     GUI.SetStatus(RM.GetString("ext_not_detected")) '"Flash device not detected in Extension I/O mode"
                 Case USB.DeviceStatus.ExtIoNotConnected
                     GUI.SetStatus(RM.GetString("ext_board_not_detected")) '"Unable to connect to the Extension I/O board"
+                Case USB.DeviceStatus.NotCompatible
+                    GUI.SetStatus("Flash memory is not compatible with this FlashcatUSB programmer model")
             End Select
         ElseIf MySettings.OPERATION_MODE = DeviceMode.SPI_EEPROM Then
             SPIEEPROM_Configure(usb_dev, MySettings.SPI_EEPROM)
@@ -2021,6 +2025,7 @@ Public Module MainApp
                         NAND_ECC_ENG = New ECC_LIB.Engine(MySettings.ECC_Algorithum, MySettings.ECC_BitError)
                         NAND_ECC_ENG.ECC_DATA_LOCATION = MySettings.ECC_Location
                         NAND_ECC_ENG.ECC_SEPERATE = MySettings.ECC_Seperate
+                        NAND_ECC_ENG.REVERSE_ARRAY = MySettings.ECC_Reverse
                         NAND_ECC_ENG.SetSymbolWidth(MySettings.ECC_SymWidth)
                         usb_dev.EXT_IF.ECC_READ_ENABLED = MySettings.ECC_READ_ENABLED
                         usb_dev.EXT_IF.ECC_WRITE_ENABLED = MySettings.ECC_WRITE_ENABLED

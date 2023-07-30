@@ -1134,7 +1134,7 @@ Partial Class FrmSettings
         '
         Me.cb_sym_width.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_sym_width.FormattingEnabled = True
-        Me.cb_sym_width.Items.AddRange(New Object() {"8-bit", "9-bit", "10-bit"})
+        Me.cb_sym_width.Items.AddRange(New Object() {"9-bit", "10-bit"})
         Me.cb_sym_width.Location = New System.Drawing.Point(366, 85)
         Me.cb_sym_width.Name = "cb_sym_width"
         Me.cb_sym_width.Size = New System.Drawing.Size(80, 21)

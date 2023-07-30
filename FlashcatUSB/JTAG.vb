@@ -256,16 +256,22 @@ Public Class JTAG_IF
         SPI_JTAG_IF = New SPI_API(TargetDevice.CONTROLLER)
         reg = SPI_SendCommand(SPI_JTAG_IF.READ_ID, 1, 3)
         WriteConsole(String.Format("JTAG: SPI register returned {0}", "0x" & Hex(reg)))
-        Dim ReadBack() As Byte = Utilities.Bytes.FromUInt32(reg, False) 'Returns 4 bytes
-        Dim PartNum As UInt16 = (CUInt(ReadBack(1)) << 8) + ReadBack(2)
-        SPI_Part = FlashDatabase.FindDevice(ReadBack(0), PartNum, 0, False, FlashMemory.MemoryType.SERIAL_NOR)
-        If SPI_Part IsNot Nothing Then
-            WriteConsole(String.Format("JTAG: SPI flash detected ({0})", SPI_Part.NAME))
-            If TargetDevice.CONTROLLER = JTAG_CONTROLLER.Broadcom Then
-                Memory_Write_W(SPI_JTAG_IF.REG_CNTR, 0)
-                Dim data() As Byte = SPI_ReadFlash(0, 4) 'Why?
+        If reg = 0 OrElse reg = &HFFFFFFFFUI Then
+            Return False
+        Else
+            Dim MFG_BYTE As Byte = CByte((reg And &HFF0000) >> 16)
+            Dim PART_ID As UInt16 = CUShort(reg And &HFFFF)
+            SPI_Part = FlashDatabase.FindDevice(MFG_BYTE, PART_ID, 0, FlashMemory.MemoryType.SERIAL_NOR)
+            If SPI_Part IsNot Nothing Then
+                WriteConsole(String.Format("JTAG: SPI flash detected ({0})", SPI_Part.NAME))
+                If TargetDevice.CONTROLLER = JTAG_CONTROLLER.Broadcom Then
+                    Memory_Write_W(SPI_JTAG_IF.REG_CNTR, 0)
+                    Dim data() As Byte = SPI_ReadFlash(0, 4) 'Why?
+                End If
+                Return True
+            Else
+                WriteConsole("JTAG: SPI flash not found in database")
             End If
-            Return True
         End If
         Return False
     End Function
@@ -405,11 +411,13 @@ Public Class JTAG_IF
             reg = Memory_Read_W(SPI_JTAG_IF.REG_DATA)
             Select Case BytesToRead
                 Case 1
-                    reg = (reg And &HFF)
+                    reg = (reg And 255)
                 Case 2
-                    reg = (reg And &HFFFF)
+                    reg = ((reg And 255) << 8) Or ((reg And &HFF00) >> 8)
                 Case 3
-                    reg = (reg And &HFFFFFF)
+                    reg = ((reg And 255) << 16) Or (reg And &HFF00) Or ((reg And &HFF0000) >> 16)
+                Case 4
+                    reg = ((reg And 255) << 24) Or ((reg And &HFF00) << 8) Or ((reg And &HFF0000) >> 8) Or ((reg And &HFF000000) >> 24)
             End Select
             Return reg
         End If

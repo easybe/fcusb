@@ -131,6 +131,7 @@ Public Class FrmSettings
         cb_ECC_ReadEnable.Checked = MySettings.ECC_READ_ENABLED
         cb_ECC_WriteEnable.Checked = MySettings.ECC_WRITE_ENABLED
         cb_ecc_seperate.Checked = MySettings.ECC_Seperate
+        cb_rs_reverse_data.Checked = MySettings.ECC_Reverse
         Select Case MySettings.ECC_Algorithum
             Case 0
                 rb_ECC_Hamming.Checked = True
@@ -142,12 +143,10 @@ Public Class FrmSettings
         SetBitErrorLevel(MySettings.ECC_BitError)
         txt_ecc_location.Text = "0x" & Hex(MySettings.ECC_Location).PadLeft(2, "0")
         Select Case MySettings.ECC_SymWidth
-            Case 8
-                cb_sym_width.SelectedIndex = 0
             Case 9
-                cb_sym_width.SelectedIndex = 1
+                cb_sym_width.SelectedIndex = 0
             Case 10
-                cb_sym_width.SelectedIndex = 2
+                cb_sym_width.SelectedIndex = 1
         End Select
         ECC_CheckIfEnabled()
         Dim otp_index As Integer = 0
@@ -330,6 +329,7 @@ Public Class FrmSettings
         MySettings.ECC_READ_ENABLED = cb_ECC_ReadEnable.Checked
         MySettings.ECC_WRITE_ENABLED = cb_ECC_WriteEnable.Checked
         MySettings.ECC_Seperate = cb_ecc_seperate.Checked
+        MySettings.ECC_Reverse = cb_rs_reverse_data.Checked
         If rb_ECC_Hamming.Checked Then
             MySettings.ECC_Algorithum = 0
         ElseIf rb_ECC_ReedSolomon.Checked Then
@@ -340,10 +340,8 @@ Public Class FrmSettings
         MySettings.ECC_BitError = GetBitErrorLevel()
         Select Case cb_sym_width.SelectedIndex
             Case 0
-                MySettings.ECC_SymWidth = 8
-            Case 1
                 MySettings.ECC_SymWidth = 9
-            Case 2
+            Case 1
                 MySettings.ECC_SymWidth = 10
         End Select
         Select Case cb_otp_device_list.SelectedIndex
@@ -822,7 +820,13 @@ Public Class FrmSettings
             rb_ECC_ReedSolomon.Enabled = True
             rb_ECC_BHC.Enabled = True
             txt_ecc_location.Enabled = True
-            If cb_ECC_ReadEnable.Checked Then cb_sym_width.Enabled = True
+            If cb_ECC_ReadEnable.Checked Then
+                If rb_ECC_ReedSolomon.Checked Then
+                    cb_sym_width.Enabled = True
+                Else
+                    cb_sym_width.Enabled = False
+                End If
+            End If
             cb_rs_reverse_data.Enabled = True
             cb_ecc_seperate.Enabled = True
             If rb_ECC_Hamming.Checked Then
@@ -849,24 +853,27 @@ Public Class FrmSettings
             lbl_ECC_size.Text = "ECC data size: 0 bytes"
             Exit Sub
         End If
+        Dim ecc_eng_example As Engine = Nothing
         If rb_ECC_Hamming.Checked Then
-            NAND_ECC_ENG = New Engine(ecc_algorithum.hamming, bit_lvl)
+            ecc_eng_example = New Engine(ecc_algorithum.hamming, bit_lvl)
         ElseIf rb_ECC_ReedSolomon.Checked Then
-            NAND_ECC_ENG = New Engine(ecc_algorithum.reedsolomon, bit_lvl)
+            ecc_eng_example = New Engine(ecc_algorithum.reedsolomon, bit_lvl)
             Select Case cb_sym_width.SelectedIndex
                 Case 0
-                    NAND_ECC_ENG.SetSymbolWidth(8)
+                    ecc_eng_example.SetSymbolWidth(9)
                 Case 1
-                    NAND_ECC_ENG.SetSymbolWidth(9)
-                Case 2
-                    NAND_ECC_ENG.SetSymbolWidth(10)
+                    ecc_eng_example.SetSymbolWidth(10)
             End Select
         ElseIf rb_ECC_BHC.Checked Then
-            NAND_ECC_ENG = New Engine(ecc_algorithum.bhc, bit_lvl)
+            ecc_eng_example = New Engine(ecc_algorithum.bhc, bit_lvl)
         End If
-        Dim ecc_data_size As UInt16 = NAND_ECC_ENG.GetEccByteSize
-        Dim ecc_offset As UInt16 = MySettings.ECC_Location
-        lbl_ECC_size.Text = "ECC data per 512 byte sector: " & ecc_data_size.ToString & " bytes"
+        If ecc_eng_example Is Nothing Then
+            lbl_ECC_size.Text = "ECC data per 512 byte sector: 0 bytes"
+        Else
+            Dim ecc_data_size As Integer = ecc_eng_example.GetEccByteSize
+            Dim ecc_offset As UInt16 = MySettings.ECC_Location
+            lbl_ECC_size.Text = "ECC data per 512 byte sector: " & ecc_data_size.ToString & " bytes"
+        End If
     End Sub
 
     Private Function GetBitErrorLevel() As UInt16

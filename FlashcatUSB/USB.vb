@@ -474,7 +474,7 @@ Namespace USB
                 Do
                     Dim packet_out(0) As Byte
                     Utilities.Sleep(4) 'Prevents slamming the USB port
-                    USB_CONTROL_MSG_IN(USBREQ.GET_TASK, packet_out)
+                    Dim result As Boolean = USB_CONTROL_MSG_IN(USBREQ.GET_TASK, packet_out)
                     task_id = packet_out(0)
                     timeout_counter += 1
                     If (timeout_counter = 500) Then Return False
@@ -927,6 +927,7 @@ Namespace USB
         NotDetected = 1
         Supported = 2
         NotSupported = 3
+        NotCompatible = 4
     End Enum
 
 End Namespace

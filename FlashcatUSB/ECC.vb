@@ -194,22 +194,38 @@ Namespace ECC_LIB
         End Sub
 
         Public Function GetEccSize() As Integer
-            Select Case PARITY_BITS
-                Case 1
-                    Return 3
-                Case 2
-                    Return 5
-                Case 4
-                    Return 9
-                Case 8
-                    Return 18
-                Case 10
-                    Return 23
-                Case 14
-                    Return 32
-                Case Else
-                    Return -1
-            End Select
+            If Me.RS_SYM_W = 9 Then
+                Select Case PARITY_BITS
+                    Case 1
+                        Return 3
+                    Case 2
+                        Return 5
+                    Case 4
+                        Return 9
+                    Case 8
+                        Return 18
+                    Case 10
+                        Return 23
+                    Case 14
+                        Return 32
+                End Select
+            ElseIf Me.RS_SYM_W = 10 Then
+                Select Case PARITY_BITS
+                    Case 1
+                        Return 3
+                    Case 2
+                        Return 5
+                    Case 4
+                        Return 10
+                    Case 8
+                        Return 20
+                    Case 10
+                        Return 25
+                    Case 14
+                        Return 35
+                End Select
+            End If
+            Return -1
         End Function
 
         Public Function GenerateECC(ByVal block() As Byte) As Byte()
@@ -442,7 +458,7 @@ Namespace ECC_LIB
             End Select
             Return Nothing
         End Function
-
+        'Processes blocks of 512 bytes and returns the last decoded result
         Public Function ReadData(ByRef data_in() As Byte, ByVal ecc() As Byte) As decode_result
             Dim result As decode_result
             Try
@@ -464,7 +480,11 @@ Namespace ECC_LIB
                         Case ecc_algorithum.bhc
                             result = ecc_bhc.ProcessECC(block, ecc_data)
                     End Select
-                    Array.Copy(block, 0, data_in, i - 1, 512)
+                    If result = decode_result.Uncorractable Then
+                        Return decode_result.Uncorractable
+                    ElseIf result = decode_result.Correctable Then
+                        Array.Copy(block, 0, data_in, i - 1, 512)
+                    End If
                     ecc_ptr += ecc_byte_size
                 Next
             Catch ex As Exception
@@ -477,7 +497,7 @@ Namespace ECC_LIB
                 If Not (data_in.Length Mod 512 = 0) Then Exit Sub
                 If Me.REVERSE_ARRAY Then Array.Reverse(data_in)
                 Dim ecc_byte_size As Integer = GetEccByteSize()
-                Dim blocks As Integer = data_in.Length / 512
+                Dim blocks As Integer = (data_in.Length / 512)
                 ReDim ecc((blocks * ecc_byte_size) - 1)
                 Utilities.FillByteArray(ecc, 255)
                 Dim ecc_ptr As Integer = 0
@@ -512,49 +532,64 @@ Namespace ECC_LIB
             Return -1
         End Function
 
-        Public Function GetEccFromSpare(ByVal spare() As Byte, ByVal oob_per_ecc As UInt16) As Byte()
+        Public Function GetEccFromSpare(ByVal spare() As Byte, ByVal page_size As UInt16, ByVal oob_size As UInt16) As Byte()
             Dim bytes_per_ecc As Integer = Me.GetEccByteSize
-            Dim ecc_count As Integer = (spare.Length / oob_per_ecc)
-            Dim ecc_data((ecc_count * bytes_per_ecc) - 1) As Byte
-            Utilities.FillByteArray(ecc_data, 255)
-            Dim seperate_ecc As Boolean = True
+            Dim sub_pages As Integer = (page_size / 512)
+            Dim page_count As Integer = (spare.Length / oob_size)
+            Dim seperate_ecc As Boolean = False
             If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Seperated Then
-                If Not Me.ECC_SEPERATE Then seperate_ecc = False
+                seperate_ecc = Me.ECC_SEPERATE
             End If
-            If seperate_ecc Then
-                For i = 0 To ecc_count - 1
-                    Dim base_ptr As Integer = (i * oob_per_ecc)
-                    Dim ecc_ptr As Integer = (i * bytes_per_ecc)
-                    Dim ecc_start As Integer = ECC_DATA_LOCATION 'the index of where the ecc data starts
-                    If (ecc_start + bytes_per_ecc) > oob_per_ecc Then Return ecc_data
-                    Array.Copy(spare, base_ptr + ecc_start, ecc_data, ecc_ptr, bytes_per_ecc)
-                Next
-            Else
-                If (spare.Length - ECC_DATA_LOCATION) < ecc_data.Length Then Return ecc_data 'Returning all 0xFF
-                Array.Copy(spare, ECC_DATA_LOCATION, ecc_data, 0, ecc_data.Length)
-            End If
+            Dim ecc_data(page_count * (sub_pages * bytes_per_ecc) - 1) As Byte
+            Utilities.FillByteArray(ecc_data, 255)
+            Dim ptr As Integer = 0
+            For x = 0 To page_count - 1
+                Dim page_offset As Integer = (x * oob_size)
+                Dim page_ecc_size As Integer = (bytes_per_ecc * sub_pages)
+                Dim sub_page_size As Integer = (oob_size / sub_pages)
+                If seperate_ecc AndAlso (sub_pages > 1) Then
+                    If (ECC_DATA_LOCATION + bytes_per_ecc) > sub_page_size Then Return ecc_data
+                    For i = 0 To sub_pages - 1
+                        Dim base_ptr As Integer = (i * sub_page_size) + Me.ECC_DATA_LOCATION
+                        Array.Copy(spare, page_offset + base_ptr, ecc_data, ptr, bytes_per_ecc)
+                        ptr += bytes_per_ecc
+                    Next
+                Else
+                    If ((Me.ECC_DATA_LOCATION + page_ecc_size) > oob_size) Then Return ecc_data
+                    Array.Copy(spare, page_offset + Me.ECC_DATA_LOCATION, ecc_data, ptr, page_ecc_size)
+                    ptr += page_ecc_size
+                End If
+            Next
             Return ecc_data
         End Function
         'Writes the ECC bytes into the spare area
-        Public Sub SetEccToSpare(ByRef spare() As Byte, ecc_data() As Byte, oob_per_ecc As UInt16)
+        Public Sub SetEccToSpare(ByRef spare() As Byte, ecc_data() As Byte, ByVal page_size As UInt16, ByVal oob_size As UInt16)
             Dim bytes_per_ecc As Integer = Me.GetEccByteSize
-            Dim ecc_count As Integer = (spare.Length / oob_per_ecc)
-            Dim seperate_ecc As Boolean = True
+            Dim sub_pages As Integer = (page_size / 512)
+            Dim page_count As Integer = (spare.Length / oob_size)
+            Dim seperate_ecc As Boolean = False
             If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Seperated Then
-                If Not Me.ECC_SEPERATE Then seperate_ecc = False
+                seperate_ecc = Me.ECC_SEPERATE
             End If
-            If seperate_ecc Then
-                For i = 0 To ecc_count - 1
-                    Dim base_ptr As Integer = (i * oob_per_ecc)
-                    Dim ecc_ptr As Integer = (i * bytes_per_ecc)
-                    Dim ecc_start As Integer = ECC_DATA_LOCATION 'the index of where the ecc data starts
-                    If (ecc_start + bytes_per_ecc) > oob_per_ecc Then Exit Sub
-                    Array.Copy(ecc_data, ecc_ptr, spare, base_ptr + ecc_start, bytes_per_ecc)
-                Next
-            Else
-                If (spare.Length - ECC_DATA_LOCATION) < ecc_data.Length Then Exit Sub
-                Array.Copy(ecc_data, 0, spare, ECC_DATA_LOCATION, ecc_data.Length)
-            End If
+            Dim ptr As Integer = 0
+            For x = 0 To page_count - 1
+                Dim page_offset As Integer = (x * oob_size)
+                Dim page_ecc(bytes_per_ecc * sub_pages - 1) As Byte
+                Dim sub_page_size As Integer = (oob_size / sub_pages)
+                Array.Copy(ecc_data, ptr, page_ecc, 0, page_ecc.Length)
+                ptr += page_ecc.Length
+                If seperate_ecc AndAlso (sub_pages > 1) Then
+                    If (ECC_DATA_LOCATION + bytes_per_ecc) > sub_page_size Then Exit Sub
+                    For i = 0 To sub_pages - 1
+                        Dim base_ptr As Integer = (i * sub_page_size)
+                        Dim ecc_ptr As Integer = (i * bytes_per_ecc)
+                        Array.Copy(page_ecc, ecc_ptr, spare, page_offset + base_ptr + Me.ECC_DATA_LOCATION, bytes_per_ecc)
+                    Next
+                Else
+                    If (page_ecc.Length + ECC_DATA_LOCATION > oob_size) Then Exit Sub
+                    Array.Copy(page_ecc, 0, spare, page_offset + Me.ECC_DATA_LOCATION, page_ecc.Length)
+                End If
+            Next
         End Sub
 
         Public Sub SetSymbolWidth(ByVal bit_width As Integer)

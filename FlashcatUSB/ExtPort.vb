@@ -111,6 +111,25 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                 ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND Then
                     RaiseEvent PrintConsole(String.Format(RM.GetString("ext_page_size"), MyFlashDevice.PAGE_SIZE, DirectCast(MyFlashDevice, NAND_Flash).EXT_PAGE_SIZE))
                     Dim nand_mem As NAND_Flash = DirectCast(MyFlashDevice, NAND_Flash)
+                    If nand_mem.IFACE = ND_IF.X8_3V Then
+                        RaiseEvent PrintConsole("NAND interface: X8 3.3V")
+                        FCUSB.USB_VCC_3V()
+                    ElseIf nand_mem.IFACE = ND_IF.X8_1V8 Then
+                        RaiseEvent PrintConsole("NAND interface: X8 1.8V")
+                        FCUSB.USB_VCC_1V8()
+                    ElseIf nand_mem.IFACE = ND_IF.X16_3V Then
+                        RaiseEvent PrintConsole("NAND interface: X16 3.3V")
+                        FCUSB.USB_VCC_3V()
+                        RaiseEvent PrintConsole("This NAND device uses X16 IO and is not compatible with this programmer")
+                        MyFlashStatus = USB.DeviceStatus.NotCompatible
+                        Return False
+                    ElseIf nand_mem.IFACE = ND_IF.X16_1V8 Then
+                        RaiseEvent PrintConsole("NAND interface: X16 1.8V")
+                        FCUSB.USB_VCC_1V8()
+                        RaiseEvent PrintConsole("This NAND device uses X16 IO and is not compatible with this programmer")
+                        MyFlashStatus = USB.DeviceStatus.NotCompatible
+                        Return False
+                    End If
                     EXPIO_SETUP_ERASESECTOR(E_EXPIO_SECTOR.NAND)
                     NAND_SetupHandlers()
                     FCUSB.NAND_IF.CreateMap(nand_mem.FLASH_SIZE, nand_mem.PAGE_SIZE, nand_mem.EXT_PAGE_SIZE, nand_mem.BLOCK_SIZE)
@@ -964,7 +983,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         Dim TX_NAND_ADDRSIZE As Byte 'Number of bytes the address command table uses
         Dim NAND_DEV As NAND_Flash = DirectCast(MyFlashDevice, NAND_Flash)
         If NAND_DEV.PAGE_SIZE = 512 Then 'Small page
-            If (MyFlashDevice.FLASH_SIZE > &HFFFFFFUI) Then
+            If (MyFlashDevice.FLASH_SIZE > Mb256) Then
                 TX_NAND_ADDRSIZE = 4
             Else
                 TX_NAND_ADDRSIZE = 3
@@ -1075,40 +1094,23 @@ Public Class ExtPort : Implements MemoryDeviceUSB
     Public Function ReadBulk_NAND(ByVal page_addr As UInt32, ByVal page_offset As UInt16, ByVal count As UInt32, ByVal memory_area As FlashArea) As Byte()
         Try
             Dim result As Boolean
-            If Me.ECC_READ_ENABLED AndAlso memory_area = FlashArea.Main Then 'We need to auto-correct data uisng ECC
+            If Me.ECC_READ_ENABLED AndAlso (memory_area = FlashArea.Main) Then 'We need to auto-correct data uisng ECC
                 Dim NAND_DEV As NAND_Flash = DirectCast(MyFlashDevice, NAND_Flash)
-                Dim new_offset As UInt16 = 0
-                Dim oob_offset As UInt16 = 0
-                Dim oob_per_ecc As UInt16 'Number of bytes in the OOB per 512 bytes
-                Dim new_count As UInt32
-                If (NAND_DEV.PAGE_SIZE = 512) Then 'Small page devices
-                    new_count = count + page_offset 'We need to increase the count to cover the starting bytes
-                    oob_per_ecc = NAND_DEV.EXT_PAGE_SIZE
-                Else
-                    Dim before As UInt32 = (page_offset Mod 512)
-                    new_count = (count + before)
-                    If Not new_count Mod 512 = 0 Then
-                        new_count = new_count + (512 - (new_count Mod 512))
-                    End If
-                    new_offset = (page_offset - before)
-                    oob_per_ecc = (NAND_DEV.EXT_PAGE_SIZE / 4)
-                    Dim p_index As UInt16 = (new_offset / 512)
-                    oob_offset = p_index * oob_per_ecc
-                End If
-                Dim oob_count As UInt32 = (new_count / 512) * oob_per_ecc 'Number of bytes to read from spare area
-                Dim main_area_data(new_count - 1) As Byte 'Data from the main page
-                Dim setup_data() As Byte = GetSetupPacket_NAND(page_addr, new_offset, new_count, FlashArea.Main)
+                Dim page_count As UInt32 = Math.Ceiling((count + page_offset) / NAND_DEV.PAGE_SIZE) 'Number of complete pages and OOB to read and correct
+                Dim total_main_bytes As UInt32 = (page_count * NAND_DEV.PAGE_SIZE)
+                Dim total_oob_bytes As UInt32 = (page_count * NAND_DEV.EXT_PAGE_SIZE)
+                Dim main_area_data(total_main_bytes - 1) As Byte 'Data from the main page
+                Dim setup_data() As Byte = GetSetupPacket_NAND(page_addr, 0, main_area_data.Length, FlashArea.Main)
                 result = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.EXPIO_READDATA, setup_data, main_area_data, 1)
                 If Not result Then Return Nothing
-                Dim oob_area_data(oob_count - 1) As Byte 'Data from the spare page, containing flags, metadata and ecc data
-                setup_data = GetSetupPacket_NAND(page_addr, oob_offset, oob_count, FlashArea.OOB)
+                Dim oob_area_data(total_oob_bytes - 1) As Byte 'Data from the spare page, containing flags, metadata and ecc data
+                setup_data = GetSetupPacket_NAND(page_addr, 0, oob_area_data.Length, FlashArea.OOB)
                 result = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.EXPIO_READDATA, setup_data, oob_area_data, 1)
                 If Not result Then Return Nothing
-                Dim ecc_data() As Byte = NAND_ECC_ENG.GetEccFromSpare(oob_area_data, oob_per_ecc) 'This strips out the ecc data from the spare area
+                Dim ecc_data() As Byte = NAND_ECC_ENG.GetEccFromSpare(oob_area_data, NAND_DEV.PAGE_SIZE, NAND_DEV.EXT_PAGE_SIZE) 'This strips out the ecc data from the spare area
                 ECC_LAST_RESULT = NAND_ECC_ENG.ReadData(main_area_data, ecc_data) 'This processes the flash data (512 bytes at a time) and corrects for any errors using the ECC
                 Dim data_out(count - 1) As Byte 'This is the data the user requested
-                Dim arr_offset As UInt32 = (page_offset - new_offset)
-                Array.Copy(main_area_data, arr_offset, data_out, 0, data_out.Length)
+                Array.Copy(main_area_data, page_offset, data_out, 0, data_out.Length)
                 Return data_out
             Else 'Normal read from device
                 Dim data_out(count - 1) As Byte 'Bytes we want to read
@@ -1141,14 +1143,8 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                         Utilities.FillByteArray(oob_data, 255)
                     End If
                     Dim ecc_data() As Byte = Nothing
-                    Dim oob_per_ecc As UInt16 'Number of bytes in the OOB per 512 bytes
-                    If (NAND_DEV.PAGE_SIZE = 512) Then 'Small page devices
-                        oob_per_ecc = NAND_DEV.EXT_PAGE_SIZE
-                    Else
-                        oob_per_ecc = (NAND_DEV.EXT_PAGE_SIZE / 4)
-                    End If
                     NAND_ECC_ENG.WriteData(main_data, ecc_data)
-                    NAND_ECC_ENG.SetEccToSpare(oob_data, ecc_data, oob_per_ecc)
+                    NAND_ECC_ENG.SetEccToSpare(oob_data, ecc_data, NAND_DEV.PAGE_SIZE, NAND_DEV.EXT_PAGE_SIZE)
                 End If
                 page_aligned = CreatePageAligned(MyFlashDevice, main_data, oob_data)
             ElseIf memory_area = FlashArea.OOB Then
@@ -1157,7 +1153,17 @@ Public Class ExtPort : Implements MemoryDeviceUSB
             Dim pages_to_write As UInt32 = page_aligned.Length / page_size_tot
             Dim array_ptr As UInt32 = 0
             Do Until pages_to_write = 0
-                Dim count As UInt32 = Math.Min(4, pages_to_write) 'Write up to 4 pages (fcusb pro buffer has 12KB total)
+                Dim page_count_max As Integer = 0 'Number of total pages to write per operation
+                If NAND_DEV.PAGE_SIZE = 512 Then
+                    page_count_max = 8
+                ElseIf NAND_DEV.PAGE_SIZE = 2048 Then
+                    page_count_max = 4
+                ElseIf nand_dev.PAGE_SIZE = 4096 Then
+                    page_count_max = 2
+                ElseIf nand_dev.PAGE_SIZE = 8192 Then
+                    page_count_max = 1
+                End If
+                Dim count As UInt32 = Math.Min(page_count_max, pages_to_write) 'Write up to 4 pages (fcusb pro buffer has 12KB total)
                 Dim packet((count * page_size_tot) - 1) As Byte
                 Array.Copy(page_aligned, array_ptr, packet, 0, packet.Length)
                 array_ptr += packet.Length
