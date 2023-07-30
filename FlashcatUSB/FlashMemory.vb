@@ -766,6 +766,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("MXIC MX25V8035F", Mb008, &HC2, &H2314))
             'EON
             FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q128", Mb128, &H1C, &H3018)) 'Fixed
+            FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q64", Mb064, &H1C, &H3017))
             FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q32", Mb032, &H1C, &H3016))
             FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q16", Mb016, &H1C, &H3015))
             FlashDB.Add(New SPI_NOR_FLASH("EON EN25Q80", Mb008, &H1C, &H3014))
@@ -1045,8 +1046,8 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Winbond W29C010", &HDA, &HC1, Mb001, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb256_Uni, MFP_PROG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 128, .ERASE_REQUIRED = False})
             FlashDB.Add(New MFP_Flash("Winbond W29C020", &HDA, &H45, Mb002, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb256_Uni, MFP_PROG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 128, .ERASE_REQUIRED = False})
             FlashDB.Add(New MFP_Flash("Winbond W29C040", &HDA, &H46, Mb004, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb256_Uni, MFP_PROG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 256, .ERASE_REQUIRED = False})
-            FlashDB.Add(New MFP_Flash("Winbond W29GL032CT", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.Buffer2, MFP_DELAY.uS, &H1A01) With {.HARDWARE_DELAY = 40})
-            FlashDB.Add(New MFP_Flash("Winbond W29GL032CB", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.Buffer2, MFP_DELAY.uS, &H1A00) With {.HARDWARE_DELAY = 40})
+            FlashDB.Add(New MFP_Flash("Winbond W29GL032CT", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H1A01)) 'DQ.7 polling now added!
+            FlashDB.Add(New MFP_Flash("Winbond W29GL032CB", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H1A00))
             'SST
             FlashDB.Add(New MFP_Flash("SST 39SF512", &HBF, &HB4, Kb512, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb032_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("SST 39SF010", &HBF, &HB5, Mb001, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb032_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
@@ -1081,8 +1082,8 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("MXIC MX29LV400B", &HC2, &H22BA, Mb004, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("MXIC MX29LV800T", &HC2, &H22DA, Mb008, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("MXIC MX29LV800B", &HC2, &H225B, Mb008, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.Standard, MFP_DELAY.uS))
-            FlashDB.Add(New MFP_Flash("MXIC MX29LV160DT", &HC2, &H22C4, Mb016, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS) With {.HARDWARE_DELAY = 0})
-            FlashDB.Add(New MFP_Flash("MXIC MX29LV160DB", &HC2, &H2249, Mb016, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.Standard, MFP_DELAY.uS) With {.HARDWARE_DELAY = 0})
+            FlashDB.Add(New MFP_Flash("MXIC MX29LV160DT", &HC2, &H22C4, Mb016, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS) With {.HARDWARE_DELAY = 6}) 'Required! SO-44 in CV
+            FlashDB.Add(New MFP_Flash("MXIC MX29LV160DB", &HC2, &H2249, Mb016, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.Standard, MFP_DELAY.uS) With {.HARDWARE_DELAY = 6})
             FlashDB.Add(New MFP_Flash("MXIC MX29LV320T", &HC2, &H22A7, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS) With {.HARDWARE_DELAY = 0})
             FlashDB.Add(New MFP_Flash("MXIC MX29LV320B", &HC2, &H22A8, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.Standard, MFP_DELAY.uS) With {.HARDWARE_DELAY = 0})
             FlashDB.Add(New MFP_Flash("MXIC MX29LV640ET", &HC2, &H22C9, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS) With {.HARDWARE_DELAY = 0})
@@ -1091,6 +1092,15 @@ Namespace FlashMemory
             'Cypress / Spansion
             'http://www.cypress.com/file/177976/download   S29GLxxxS
             'http://www.cypress.com/file/219926/download   S29GLxxxP
+            FlashDB.Add(New MFP_Flash("Cypress S29AL004D(B)", &HC2, &H22BA, Mb004, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New MFP_Flash("Cypress S29AL004D(T)", &HC2, &H22B9, Mb004, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New MFP_Flash("Cypress S29AL008J(B)", &HC2, &H225B, Mb008, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New MFP_Flash("Cypress S29AL008J(T)", &HC2, &H22DA, Mb008, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New MFP_Flash("Cypress S29AL016D(B)", &HC2, &H2249, Mb016, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New MFP_Flash("Cypress S29AL016D(T)", &HC2, &H22C4, Mb016, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New MFP_Flash("Cypress S29AL032D", &HC2, &HA3, Mb032, MFP_IF.X8_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.BypassMode, MFP_DELAY.uS)) 'Available in TSOP-40
+            FlashDB.Add(New MFP_Flash("Cypress S29AL032D(B)", &HC2, &H22F9, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New MFP_Flash("Cypress S29AL032D(T)", &HC2, &H22F6, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.BypassMode, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("Cypress S29GL128", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.uS, &H2100) With {.PAGE_SIZE = 64}) 'We need to test this device
             FlashDB.Add(New MFP_Flash("Cypress S29GL256", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.uS, &H2200) With {.PAGE_SIZE = 64})
             FlashDB.Add(New MFP_Flash("Cypress S29GL512", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.uS, &H2300) With {.PAGE_SIZE = 64})
@@ -1100,6 +1110,12 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Cypress S29GL032M", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.SR1, &H1D00))
             FlashDB.Add(New MFP_Flash("Cypress S29GL032M(B)", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.Standard, MFP_DELAY.SR1, &H1A00)) 'Bottom-Boot
             FlashDB.Add(New MFP_Flash("Cypress S29GL032M(T)", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.Standard, MFP_DELAY.SR1, &H1A01)) 'Top-Boot
+            FlashDB.Add(New MFP_Flash("Cypress S29JL032J(B)", &H1, &H225F, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.BypassMode, MFP_DELAY.DQ7)) 'Bottom-Boot
+            FlashDB.Add(New MFP_Flash("Cypress S29JL032J(T)", &H1, &H225C, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.BypassMode, MFP_DELAY.DQ7)) 'Top-Boot
+            FlashDB.Add(New MFP_Flash("Cypress S29JL032J(B)", &H1, &H2253, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.BypassMode, MFP_DELAY.DQ7)) 'Bottom-Boot
+            FlashDB.Add(New MFP_Flash("Cypress S29JL032J(T)", &H1, &H2250, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.BypassMode, MFP_DELAY.DQ7)) 'Top-Boot
+            FlashDB.Add(New MFP_Flash("Cypress S29JL032J(B)", &H1, &H2256, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.BypassMode, MFP_DELAY.DQ7)) 'Bottom-Boot
+            FlashDB.Add(New MFP_Flash("Cypress S29JL032J(T)", &H1, &H2255, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.BypassMode, MFP_DELAY.DQ7)) 'Top-Boot
             FlashDB.Add(New MFP_Flash("Cypress S29GL064M", &H1, &H227E, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.SR1, &H1300)) 'Model R0
             FlashDB.Add(New MFP_Flash("Cypress S29GL064M", &H1, &H227E, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.SR1, &HC01))
             FlashDB.Add(New MFP_Flash("Cypress S29GL064M(T)", &H1, &H227E, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.Standard, MFP_DELAY.SR1, &H1001)) 'Top-Boot
@@ -1110,11 +1126,7 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Cypress S29GL128N", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2101) With {.PAGE_SIZE = 32})
             FlashDB.Add(New MFP_Flash("Cypress S29GL256N", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.PAGE_SIZE = 32}) '(CHIP-VAULT)
             FlashDB.Add(New MFP_Flash("Cypress S29GL512N", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2301) With {.PAGE_SIZE = 32})
-
-
             FlashDB.Add(New MFP_Flash("Cypress S29GL128P", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2101) With {.PAGE_SIZE = 64}) '(CHIP-VAULT)
-
-
             FlashDB.Add(New MFP_Flash("Cypress S29GL256P", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.PAGE_SIZE = 64})
             FlashDB.Add(New MFP_Flash("Cypress S29GL512P", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2301) With {.PAGE_SIZE = 64})
             FlashDB.Add(New MFP_Flash("Cypress S29GL01GP", &H1, &H227E, Gb001, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2801) With {.PAGE_SIZE = 64})
@@ -1394,8 +1406,8 @@ Namespace FlashMemory
             For Each flash In FlashDB
                 If flash.FLASH_TYPE = DEVICE Then
                     If flash.MFG_CODE = MFG Then
-                        If flash.ID1 = ID1 Then
-                            If ID2 = 0 OrElse ID2 = flash.ID2 Then
+                        If (flash.ID1 = ID1) Then
+                            If flash.ID2 = 0 OrElse flash.ID2 = ID2 Then
                                 devices.Add(flash)
                             ElseIf flash.FLASH_TYPE = MemoryType.SLC_NAND Then 'SLC NAND we may only want to check byte #3
                                 If (flash.ID2 And &HFF) = 0 Then

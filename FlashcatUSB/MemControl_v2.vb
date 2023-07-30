@@ -179,6 +179,7 @@ Public Class MemControl_v2
         Public DataStream As IO.Stream
         Public Offset As UInt32
         Public Size As UInt32
+        Public FileTypeIndex As Integer 'Default is binary
     End Class
 
     'Call this to setup this control
@@ -729,21 +730,33 @@ Public Class MemControl_v2
         End Try
     End Sub
 
-    Private Function CreateFileForFlashRead(ByVal DefaultName As String, ByRef file As IO.FileInfo) As Boolean
+    Private Function CreateFileForRead(ByVal DefaultName As String, ByRef file As IO.FileInfo, ByRef file_type As FileFilterIndex) As Boolean
         Try
-            Dim Saveme As New SaveFileDialog
-            Saveme.AddExtension = True
-            Saveme.InitialDirectory = Application.StartupPath
-            Saveme.Title = RM.GetString("mc_io_save_type")
-            Saveme.CheckPathExists = True
-            Saveme.FileName = DefaultName.Replace("/", "-")
+            Dim SaveMe As New SaveFileDialog
+            SaveMe.AddExtension = True
+            SaveMe.InitialDirectory = Application.StartupPath
+            SaveMe.Title = RM.GetString("mc_io_save_type")
+            SaveMe.CheckPathExists = True
+            SaveMe.FileName = DefaultName.Replace("/", "-")
             Dim BinFile As String = "Binary Files (*.bin)|*.bin"
-            Dim IntelHexFrmt As String = "Intel Hex Format (*.hex)|*.hex"
-            Saveme.Filter = BinFile & "|" & IntelHexFrmt & "|All files (*.*)|*.*"
-            If Saveme.ShowDialog = Windows.Forms.DialogResult.OK Then
-                Dim n As New IO.FileInfo(Saveme.FileName)
+            Dim IntelHexFormat As String = "Intel Hex Format (*.hex)|*.hex"
+            Dim SrecFormat As String = "S-REC Format (*.srec)|*.srec"
+            Dim AllFiles As String = "All files (*.*)|*.*"
+            SaveMe.Filter = BinFile & "|" & IntelHexFormat & "|" & SrecFormat & "|" & AllFiles
+            If SaveMe.ShowDialog = Windows.Forms.DialogResult.OK Then
+                Dim n As New IO.FileInfo(SaveMe.FileName)
                 If n.Exists Then n.Delete()
                 file = n
+                Select Case SaveMe.FilterIndex
+                    Case 1
+                        file_type = FileFilterIndex.Binary
+                    Case 2
+                        file_type = FileFilterIndex.IntelHex
+                    Case 3
+                        file_type = FileFilterIndex.SRecord
+                    Case 4
+                        file_type = FileFilterIndex.AllFiles
+                End Select
                 Return True
             End If
         Catch ex As Exception
@@ -751,18 +764,29 @@ Public Class MemControl_v2
         Return False
     End Function
 
-    Private Function OpenFileForWrite(ByRef file As IO.FileInfo) As Boolean
+    Private Function OpenFileForWrite(ByRef file As IO.FileInfo, ByRef file_type As FileFilterIndex) As Boolean
         Dim BinFile As String = "Binary Files (*.bin)|*.bin"
-        Dim IHexFormat As String = "Intel Hex Format (*.hex)|*.hex"
+        Dim IntelHexFormat As String = "Intel Hex Format (*.hex)|*.hex"
+        Dim SrecFormat As String = "S-REC Format (*.srec)|*.srec"
         Dim AllFiles As String = "All files (*.*)|*.*"
         Dim OpenMe As New OpenFileDialog
         OpenMe.AddExtension = True
         OpenMe.InitialDirectory = Application.StartupPath
         OpenMe.Title = String.Format(RM.GetString("mc_io_file_choose"), FlashName)
         OpenMe.CheckPathExists = True
-        OpenMe.Filter = BinFile & "|" & IHexFormat & "|" & AllFiles 'Bin Files, Hex Files, All Files
+        OpenMe.Filter = BinFile & "|" & IntelHexFormat & "|" & SrecFormat & "|" & AllFiles 'Bin Files, Hex Files, SREC, All Files
         If OpenMe.ShowDialog = Windows.Forms.DialogResult.OK Then
             file = New IO.FileInfo(OpenMe.FileName)
+            Select Case OpenMe.FilterIndex
+                Case 1
+                    file_type = FileFilterIndex.Binary
+                Case 2
+                    file_type = FileFilterIndex.IntelHex
+                Case 3
+                    file_type = FileFilterIndex.SRecord
+                Case 4
+                    file_type = FileFilterIndex.AllFiles
+            End Select
             RaiseEvent SetStatus(String.Format(RM.GetString("mc_io_file_writing"), FlashName))
             Return True
         Else
@@ -831,17 +855,23 @@ Public Class MemControl_v2
                     Dim StatusSpeed As String = Format(Math.Round(read_params.Size / (ReadingParams.Timer.ElapsedMilliseconds / 1000)), "#,###") & " Bytes/s"
                     RaiseEvent WriteConsole(RM.GetString("mc_mem_read_done"))
                     RaiseEvent WriteConsole(String.Format(RM.GetString("mc_mem_read_result"), Format(read_params.Size, "#,###"), (ReadingParams.Timer.ElapsedMilliseconds / 1000), StatusSpeed))
-                    If read_params.FileName.Extension.ToUpper.EndsWith(".HEX") Then
+                    If DirectCast(read_params.FileTypeIndex, FileFilterIndex) = FileFilterIndex.IntelHex Then
                         Try
-                            RaiseEvent WriteConsole(RM.GetString("mc_bin_to_hex"))
+                            RaiseEvent WriteConsole(String.Format(RM.GetString("mc_mem_converting_format"), "Intel HEX"))
                             Dim data() As Byte = Utilities.FileIO.ReadBytes(read_params.FileName.FullName)
                             If data IsNot Nothing AndAlso data.Length > 0 Then
                                 data = Utilities.BinToIntelHex(data)
                                 Utilities.FileIO.WriteBytes(data, read_params.FileName.FullName)
                             End If
-                            RaiseEvent WriteConsole(RM.GetString("mc_mem_write_intel"))
                         Catch ex As Exception
                         End Try
+                    ElseIf DirectCast(read_params.FileTypeIndex, FileFilterIndex) = FileFilterIndex.SRecord Then 'Convert and save to SREC
+                        RaiseEvent WriteConsole(String.Format(RM.GetString("mc_mem_converting_format"), "S-REC"))
+                        Dim data() As Byte = Utilities.FileIO.ReadBytes(read_params.FileName.FullName)
+                        If data IsNot Nothing AndAlso data.Length > 0 Then
+                            data = Utilities.SREC_FromBin(data, read_params.FileName.Name, 0)
+                            Utilities.FileIO.WriteBytes(data, read_params.FileName.FullName)
+                        End If
                     End If
                     RaiseEvent SetStatus(String.Format(RM.GetString("mc_mem_write_success"), read_params.FileName.Name))
                 End If
@@ -937,8 +967,10 @@ Public Class MemControl_v2
             If UserCount = 0 Then Exit Sub
             Dim DefaultName As String = FlashName.Replace(" ", "_") & "_" & Utilities.Pad(Hex((BaseOffset))) & "-" & Utilities.Pad(Hex((BaseOffset + UserCount - 1)))
             Dim TargetIO As IO.FileInfo = Nothing
-            If CreateFileForFlashRead(DefaultName, TargetIO) Then
+            Dim create_file_type As FileFilterIndex
+            If CreateFileForRead(DefaultName, TargetIO, create_file_type) Then
                 Dim read_params As New XFER_Operation 'We want to remember the last operation
+                read_params.FileTypeIndex = create_file_type
                 read_params.FileName = TargetIO
                 read_params.Offset = BaseOffset
                 read_params.Size = UserCount
@@ -1112,16 +1144,25 @@ Public Class MemControl_v2
         Public BYTE_FLASH As Byte 'This is the byte in the flash
     End Class
 
+    Private Enum FileFilterIndex As Integer
+        AllFiles = -1 'Uses Binary mode
+        Binary = 0
+        IntelHex = 1
+        SRecord = 2
+    End Enum
+
     Private Sub cmd_write_Click(sender As Object, e As EventArgs) Handles cmd_write.Click
         Try
             Dim BaseOffset As UInt32 = 0 'The starting address to write data to
             Dim fn As IO.FileInfo = Nothing
-            If Not OpenFileForWrite(fn) Then Exit Sub
+            Dim open_file_type As FileFilterIndex
+            If Not OpenFileForWrite(fn, open_file_type) Then Exit Sub
             If Not fn.Exists OrElse fn.Length = 0 Then
                 RaiseEvent SetStatus(RM.GetString("mc_wr_oper_file_err")) : Exit Sub
             End If
             RaiseEvent SetStatus(RM.GetString("mc_wr_oper_start"))
             LAST_WRITE_OPERATION = New XFER_Operation
+            LAST_WRITE_OPERATION.FileTypeIndex = open_file_type
             LAST_WRITE_OPERATION.FileName = fn
             LAST_WRITE_OPERATION.Offset = BaseOffset
             LAST_WRITE_OPERATION.Size = 0
@@ -1165,21 +1206,31 @@ Public Class MemControl_v2
     End Sub
 
     Public Sub PerformWriteOperation(ByRef x As XFER_Operation)
-        Dim FileIntelHexFormat As Boolean = False
-        Using file_st As IO.Stream = x.FileName.OpenRead
-            If Utilities.IsIntelHex(file_st) Then FileIntelHexFormat = True
-        End Using
-        If FileIntelHexFormat Then
+        If DirectCast(x.FileTypeIndex, FileFilterIndex) = FileFilterIndex.IntelHex Then
             Dim hex_data() As Byte = Utilities.FileIO.ReadBytes(x.FileName.FullName)
+            If Not Utilities.IsIntelHex(hex_data) Then
+                RaiseEvent SetStatus(String.Format(RM.GetString("mc_mem_incorrect_format"), "Intel HEX"))
+                Exit Sub
+            End If
             Dim b() As Byte = Utilities.IntelHexToBin(hex_data)
             x.DataStream = New IO.MemoryStream
             x.DataStream.Write(b, 0, b.Length)
-            RaiseEvent WriteConsole(String.Format(RM.GetString("mc_mem_read_intel"), x.FileName.Name, Format(hex_data.Length, "#,###")))
+            RaiseEvent WriteConsole(String.Format(RM.GetString("mc_mem_open_file_write"), x.FileName.Name, "Intel HEX", Format(hex_data.Length, "#,###")))
+        ElseIf DirectCast(x.FileTypeIndex, FileFilterIndex) = FileFilterIndex.SRecord Then 'Convert and save to SREC
+            Dim hex_data() As Byte = Utilities.FileIO.ReadBytes(x.FileName.FullName)
+            If Not Utilities.SREC_IsValid(hex_data) Then
+                RaiseEvent SetStatus(String.Format(RM.GetString("mc_mem_incorrect_format"), "S-REC"))
+                Exit Sub
+            End If
+            Dim b() As Byte = Utilities.SREC_ToBin(hex_data, Nothing, Nothing)
+            x.DataStream = New IO.MemoryStream
+            x.DataStream.Write(b, 0, b.Length)
+            RaiseEvent WriteConsole(String.Format(RM.GetString("mc_mem_open_file_write"), x.FileName.Name, "S-REC", Format(hex_data.Length, "#,###")))
         Else
             x.DataStream = x.FileName.OpenRead
         End If
         Dim BaseAddress As UInt32 = 0 'The starting address to write the data
-        If x.Size = 0 Then
+        If (x.Size = 0) Then
             RaiseEvent SetStatus(String.Format(RM.GetString("mc_select_range"), FlashName))
             Dim dbox As New DynamicRangeBox
             Dim NumberToWrite As UInt32 = x.DataStream.Length 'The total number of bytes to write
@@ -1231,9 +1282,6 @@ Public Class MemControl_v2
             cmd_ident.Enabled = True
         End Try
     End Sub
-
-
-
 
 
 End Class

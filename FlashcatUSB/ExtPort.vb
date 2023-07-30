@@ -56,6 +56,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                 RaiseEvent PrintConsole(RM.GetString("ext_prog_mode"))
                 SetupFlashDevice()
                 If (MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR) Then
+                    Me.ResetDevice() 'This is needed for some devices
                     Dim NOR_FLASH As MFP_Flash = DirectCast(MyFlashDevice, MFP_Flash)
                     EXPIO_SETUP_WRITEDELAY(NOR_FLASH.HARDWARE_DELAY)
                     EXPIO_SETUP_DELAY(NOR_FLASH.DELAY_MODE)
@@ -651,7 +652,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         If Me.CHIPID_DETECT.Successful Then
             RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "SLC NAND"))
             CHIPID_MFG = Me.CHIPID_DETECT.MFG
-            CHIPID_PART = CUInt(Me.CHIPID_DETECT.ID1) << 16 Or (Me.CHIPID_DETECT.ID2)
+            CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16) Or (Me.CHIPID_DETECT.ID2)
             MyAdapter = AdatperType.NAND
             Return True
         End If
@@ -659,7 +660,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         If Me.CHIPID_DETECT.Successful Then
             RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X16 (Type-2)"))
             CHIPID_MFG = Me.CHIPID_DETECT.MFG
-            CHIPID_PART = CUInt(Me.CHIPID_DETECT.ID1) << 16 Or (Me.CHIPID_DETECT.ID2)
+            CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16) Or (Me.CHIPID_DETECT.ID2)
             MyAdapter = AdatperType.X16_Type2
             Return True
         End If
@@ -667,7 +668,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         If Me.CHIPID_DETECT.Successful Then
             RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X16 (Type-1)"))
             CHIPID_MFG = Me.CHIPID_DETECT.MFG
-            CHIPID_PART = Me.CHIPID_DETECT.ID1
+            CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16)
             MyAdapter = AdatperType.X16_Type1
             Return True
         End If
@@ -675,7 +676,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         If Me.CHIPID_DETECT.Successful Then
             RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X8 (Type-2)"))
             CHIPID_MFG = Me.CHIPID_DETECT.MFG
-            CHIPID_PART = Me.CHIPID_DETECT.ID1
+            CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16)
             MyAdapter = AdatperType.X8_Type2
             Return True
         End If
@@ -683,7 +684,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         If Me.CHIPID_DETECT.Successful Then
             RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X8 (Type-1)"))
             CHIPID_MFG = Me.CHIPID_DETECT.MFG
-            CHIPID_PART = Me.CHIPID_DETECT.ID1
+            CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16)
             MyAdapter = AdatperType.X8_Type1
             Return True
         End If
@@ -691,7 +692,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         If Me.CHIPID_DETECT.Successful Then
             RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X8 (Type-3)"))
             CHIPID_MFG = Me.CHIPID_DETECT.MFG
-            CHIPID_PART = Me.CHIPID_DETECT.ID1
+            CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16)
             MyAdapter = AdatperType.X8_Type3
             Return True
         End If
@@ -980,8 +981,5 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         End Try
         Return False
     End Function
-
-
-
 
 End Class
