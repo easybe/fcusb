@@ -59,20 +59,26 @@ Namespace USB
             Public SPI_NOR_IF As New SPI_Programmer(Me)
             Public SQI_NOR_IF As New SQI_Programmer(Me)
             Public SPI_NAND_IF As New SPINAND_Programmer(Me)
-            Public EXT_IF As New PARALLEL_NOR_NAND(Me)
+            Public PARALLEL_IF As New PARALLEL_NOR_NAND(Me)
+            Public EPROM_IF As New EPROM_Programmer(Me)
             Public HF_IF As New HF_Port(Me)
             Public JTAG_IF As New JTAG.JTAG_IF(Me)
             Public I2C_IF As New I2C_Programmer(Me)
-            Public DFU_IF As New DFU_API(Me)
-            Public NAND_IF As New NAND_BLOCK_IF 'BAD block management system
             Public MW_IF As New Microwire_Programmer(Me)
             Public SWI_IF As New SWI_Programmer(Me)
+
+            Public DFU_IF As New DFU_API(Me)
+            Public NAND_IF As New NAND_BLOCK_IF 'BAD block management system
+
+
+            Public Property PROGRAMMER As MemoryDeviceUSB
+
 
             Private USB_TIMEOUT_VALUE As Integer = DEFAULT_TIMEOUT
 
             Public Property HWBOARD As FCUSB_BOARD = FCUSB_BOARD.NotConnected
 
-            Public Event UpdateProgress(ByVal percent As Integer, ByRef device As FCUSB_DEVICE)
+            Public Event UpdateProgress(percent As Integer, device As FCUSB_DEVICE)
 
             Public ReadOnly Property HasLogic() As Boolean
                 Get
@@ -93,10 +99,10 @@ Namespace USB
                 AddHandler SQI_NOR_IF.PrintConsole, AddressOf WriteConsole
                 AddHandler SPI_NAND_IF.PrintConsole, AddressOf WriteConsole
                 AddHandler I2C_IF.PrintConsole, AddressOf WriteConsole
-                AddHandler EXT_IF.PrintConsole, AddressOf WriteConsole
+                AddHandler PARALLEL_IF.PrintConsole, AddressOf WriteConsole
                 AddHandler MW_IF.PrintConsole, AddressOf WriteConsole
                 AddHandler HF_IF.PrintConsole, AddressOf WriteConsole
-
+                AddHandler EPROM_IF.PrintConsole, AddressOf WriteConsole
                 If IS_DEBUG_VER Then USB_TIMEOUT_VALUE = 5000000
             End Sub
 
@@ -106,6 +112,33 @@ Namespace USB
                     Return USBHANDLE.UsbRegistryInfo.IsAlive
                 End Get
             End Property
+
+            Public Sub SelectProgrammer(dev As FlashcatSettings.DeviceMode)
+                Select Case dev
+                    Case FlashcatSettings.DeviceMode.SPI
+                        Me.PROGRAMMER = SPI_NOR_IF
+                    Case FlashcatSettings.DeviceMode.SQI
+                        Me.PROGRAMMER = SQI_NOR_IF
+                    Case FlashcatSettings.DeviceMode.SPI_NAND
+                        Me.PROGRAMMER = SPI_NAND_IF
+                    Case FlashcatSettings.DeviceMode.NOR_NAND
+                        Me.PROGRAMMER = PARALLEL_IF
+                    Case FlashcatSettings.DeviceMode.EPROM
+                        Me.PROGRAMMER = EPROM_IF
+                    Case FlashcatSettings.DeviceMode.HyperFlash
+                        Me.PROGRAMMER = HF_IF
+                    Case FlashcatSettings.DeviceMode.JTAG
+                        Me.PROGRAMMER = JTAG_IF
+                    Case FlashcatSettings.DeviceMode.I2C_EEPROM
+                        Me.PROGRAMMER = I2C_IF
+                    Case FlashcatSettings.DeviceMode.Microwire
+                        Me.PROGRAMMER = MW_IF
+                    Case FlashcatSettings.DeviceMode.SINGLE_WIRE
+                        Me.PROGRAMMER = SWI_IF
+                    Case FlashcatSettings.DeviceMode.SPI_EEPROM
+                        Me.PROGRAMMER = SPI_NOR_IF
+                End Select
+            End Sub
 
             Private SPI_MODE_BYTE As Byte
             Private SPI_ORDER_BYTE As Byte
@@ -420,6 +453,7 @@ Namespace USB
             Public Sub USB_VCC_OFF()
                 If (Me.HasLogic()) Then
                     USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
+                    Utilities.Sleep(100)
                 End If
             End Sub
 
@@ -882,9 +916,6 @@ Namespace USB
         EXPIO_CHIPERASE = &H69
         EXPIO_SECTORERASE = &H6A
         EXPIO_WRITEPAGE = &H6B
-        EXPIO_NAND_ONFI = &H6C
-        EXPIO_NAND_SR = &H6D
-        EXPIO_NAND_PAGEOFFSET = &H6E
         EXPIO_MODE_ADDRESS = &H6F
         EXPIO_MODE_READ = &H73
         EXPIO_MODE_WRITE = &H74
@@ -936,9 +967,12 @@ Namespace USB
         SPI_REPEAT = &HC6
         EPROM_RESULT = &HC7
         LOGIC_START = &HC8
+        NAND_ONFI = &HD0
+        NAND_SR = &HD1
+        NAND_SETTYPE = &HD2
     End Enum
 
-    Public Enum EXPIO_CTRL As Byte
+    Public Enum FCUSB_HW_CTRL As Byte
         WE_HIGH = 1
         WE_LOW = 2
         OE_HIGH = 3

@@ -108,6 +108,7 @@
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="ECC.vb" />
+    <Compile Include="EPROM.vb" />
     <Compile Include="FrmLicense.Designer.vb">
       <DependentUpon>FrmLicense.vb</DependentUpon>
     </Compile>

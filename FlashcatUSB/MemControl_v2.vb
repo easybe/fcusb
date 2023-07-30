@@ -549,19 +549,19 @@ Public Class MemControl_v2
                 Me.HAS_EXTAREA = False
                 SetSelectedArea(FlashMemory.FlashArea.All)
             Else
-                Me.AddExtendedArea(available_pages, d.PAGE_SIZE, d.EXT_PAGE_SIZE, pages_per_block)
+                Me.AddExtendedArea(available_pages, d.PAGE_SIZE, d.PAGE_EXT, pages_per_block)
             End If
-        ElseIf Me.ParentMemDevice.FlashType = FlashMemory.MemoryType.NAND Then
-            Dim d As FlashMemory.P_NAND = DirectCast(FCUSB.EXT_IF.MyFlashDevice, FlashMemory.P_NAND)
+        ElseIf Me.ParentMemDevice.FlashType = FlashMemory.MemoryType.PARALLEL_NAND Then
+            Dim d As FlashMemory.P_NAND = DirectCast(FCUSB.PARALLEL_IF.MyFlashDevice, FlashMemory.P_NAND)
             Dim pages_per_block As UInt32 = (d.BLOCK_SIZE / d.PAGE_SIZE)
             Dim available_pages As UInt32 = FCUSB.NAND_IF.MAPPED_PAGES
-            Me.FlashAvailable = FCUSB.EXT_IF.DeviceSize
+            Me.FlashAvailable = FCUSB.PARALLEL_IF.DeviceSize
             Me.ParentMemDevice.Size = Me.FlashAvailable
             If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then 'We need to show all data
                 Me.HAS_EXTAREA = False
                 SetSelectedArea(FlashMemory.FlashArea.All)
             Else
-                Me.AddExtendedArea(available_pages, d.PAGE_SIZE, d.EXT_PAGE_SIZE, pages_per_block)
+                Me.AddExtendedArea(available_pages, d.PAGE_SIZE, d.PAGE_EXT, pages_per_block)
             End If
         End If
     End Sub
@@ -970,7 +970,7 @@ Public Class MemControl_v2
         End Try
     End Sub
 
-    Friend Sub WriteMemoryThread(ByVal file_out As XFER_Operation)
+    Friend Sub WriteMemoryThread(file_out As XFER_Operation)
         Try
             GUI.OperationStarted(Me)
             Me.IN_OPERATION = True

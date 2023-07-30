@@ -13,7 +13,11 @@ Public Class NAND_BLOCK_IF
     Private Property NAND_SIZE As Long 'Typical size of the nand (does not include extra area)
     Private Property PAGE_MAIN As UInt32 'Size of the main page
     Private Property PAGE_OOB As UInt32 'Size of the ext page
-    Private Property BLOCK_SIZE As UInt32 'size of the block (minus oob)
+    Private Property PAGE_COUNT As UInt16 'Number of pages in the block
+    Private Property BLOCK_COUNT As UInt16 'Number of blocks
+
+
+    'Private Property BLOCK_SIZE As UInt32 'size of the block (minus oob)
 
     Private MEMORY_AREA_ERASED() As Byte 'If CopyExtendedArea is true, this will contain the other area that was erased
 
@@ -38,23 +42,20 @@ Public Class NAND_BLOCK_IF
     End Class
 
     'Called once on device init to create a map of all blocks
-    Public Sub CreateMap(mem_size As Long, main_page As UInt32, oob_page As UInt32, flash_block As UInt32)
+    Public Sub CreateMap(mem_size As Long, main_page As UInt32, oob_page As UInt32, page_count As UInt16, block_count As UInt16)
         Me.NAND_SIZE = mem_size
         Me.PAGE_MAIN = main_page
         Me.PAGE_OOB = oob_page
-        Me.BLOCK_SIZE = flash_block
+        Me.PAGE_COUNT = page_count
+        Me.BLOCK_COUNT = block_count
         MAP.Clear()
-        Dim BaseAddress As Long = 0
-        Dim BlockCount As UInt32 = NAND_SIZE / BLOCK_SIZE
-        Dim PagesPerBlock As UInt32 = BLOCK_SIZE / PAGE_MAIN
-        For i As UInt32 = 0 To BlockCount - 1
+        For i As UInt32 = 0 To Me.BLOCK_COUNT - 1
             Dim block_info As New MAPPING
             block_info.Status = BLOCK_STATUS.Valid
             block_info.BlockIndex = i
-            block_info.PageAddress = (CLng(PagesPerBlock) * i)
-            block_info.LogicalPage = (CLng(PagesPerBlock) * i)
+            block_info.PageAddress = (CLng(Me.PAGE_COUNT) * i)
+            block_info.LogicalPage = (CLng(Me.PAGE_COUNT) * i)
             MAP.Add(block_info)
-            BaseAddress += BLOCK_SIZE
         Next
     End Sub
 
@@ -67,11 +68,9 @@ Public Class NAND_BLOCK_IF
                 SetStatus(RM.GetString("nand_mem_device_detected"))
                 RaiseEvent PrintConsole(RM.GetString("nand_mem_map_loading"))
             End If
-            Dim BlockCount As Integer = NAND_SIZE / BLOCK_SIZE
-            Dim PagesPerBlock As UInt32 = BLOCK_SIZE / PAGE_MAIN
             Dim page_addr As UInt32 = 0
-            For i As UInt32 = 0 To BlockCount - 1
-                Dim LastPageAddr As UInt32 = (page_addr + PagesPerBlock - 1) 'The last page of this block
+            For i As UInt32 = 0 To Me.BLOCK_COUNT - 1
+                Dim LastPageAddr As UInt32 = (page_addr + PAGE_COUNT - 1) 'The last page of this block
                 Dim page_one() As Byte = Nothing
                 Dim page_two() As Byte = Nothing
                 Dim page_last() As Byte = Nothing
@@ -104,7 +103,7 @@ Public Class NAND_BLOCK_IF
                 Else
                     MAP(i).Status = BLOCK_STATUS.Valid
                 End If
-                page_addr += PagesPerBlock
+                page_addr += PAGE_COUNT
             Next
             Return True
         Catch ex As Exception
@@ -115,12 +114,11 @@ Public Class NAND_BLOCK_IF
     Public Sub ProcessMap()
         Me.MAPPED_PAGES = 0
         Dim Logical_Page_Pointer As Long = 0
-        Dim PagesPerBlock As UInt32 = BLOCK_SIZE / PAGE_MAIN
         For i As UInt32 = 0 To MAP.Count - 1
             If MAP(i).Status = BLOCK_STATUS.Valid Then
                 MAP(i).LogicalPage = Logical_Page_Pointer
-                Logical_Page_Pointer += PagesPerBlock
-                Me.MAPPED_PAGES += PagesPerBlock
+                Logical_Page_Pointer += Me.PAGE_COUNT
+                Me.MAPPED_PAGES += Me.PAGE_COUNT
             Else
                 MAP(i).LogicalPage = 0
             End If
@@ -129,11 +127,10 @@ Public Class NAND_BLOCK_IF
     End Sub
     'Returns the physical page address from the logical page address
     Public Function GetPageMapping(page_index As UInt32) As UInt32
-        Dim PagesPerBlock As UInt32 = BLOCK_SIZE / PAGE_MAIN
         For i As UInt32 = 0 To MAP.Count - 1
             If (MAP(i).Status = BLOCK_STATUS.Valid) Then
                 Dim page_start As UInt32 = MAP(i).LogicalPage
-                Dim page_end As UInt32 = (page_start + PagesPerBlock) - 1
+                Dim page_end As UInt32 = (page_start + Me.PAGE_COUNT) - 1
                 If page_index >= page_start AndAlso page_index <= page_end Then
                     Return MAP(i).PageAddress + (page_index - page_start)
                 End If
@@ -151,11 +148,10 @@ Public Class NAND_BLOCK_IF
     Public Function ERASEBLOCK(page_address As Long, Memory_area As FlashArea, CopyOtherArea As Boolean) As Boolean
         MEMORY_AREA_ERASED = Nothing
         If CopyOtherArea AndAlso Not Memory_area = FlashArea.All Then
-            Dim page_count As Integer = (BLOCK_SIZE / PAGE_MAIN) 'number of pages per block
             If Memory_area = FlashArea.Main Then
-                RaiseEvent ReadPages(page_address, 0, (page_count * PAGE_OOB), FlashArea.OOB, MEMORY_AREA_ERASED)
+                RaiseEvent ReadPages(page_address, 0, (PAGE_COUNT * PAGE_OOB), FlashArea.OOB, MEMORY_AREA_ERASED)
             ElseIf Memory_area = FlashArea.OOB Then
-                RaiseEvent ReadPages(page_address, 0, (page_count * PAGE_MAIN), FlashArea.Main, MEMORY_AREA_ERASED)
+                RaiseEvent ReadPages(page_address, 0, (PAGE_COUNT * PAGE_MAIN), FlashArea.Main, MEMORY_AREA_ERASED)
             End If
         End If
         Try 'START BLOCK ERASE
@@ -204,10 +200,8 @@ Public Class NAND_BLOCK_IF
     End Function
 
     Public Function EraseChip() As Boolean
-        Dim PagesPerBlock As UInt32 = BLOCK_SIZE / PAGE_MAIN
-        Dim BlockCount As UInt32 = (NAND_SIZE / BLOCK_SIZE)
         Dim PageAddr As Long = 0
-        For i = 0 To BlockCount - 1
+        For i = 0 To Me.BLOCK_COUNT - 1
             Dim preserve As Boolean = MySettings.NAND_Preserve
             If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then preserve = False
             Dim Result As Boolean = ERASEBLOCK(PageAddr, FlashArea.Main, preserve)
@@ -216,9 +210,9 @@ Public Class NAND_BLOCK_IF
                 RaiseEvent WritePages(PageAddr, Nothing, MEMORY_AREA_ERASED, FlashArea.OOB, Result)
                 MEMORY_AREA_ERASED = Nothing
             End If
-            PageAddr += PagesPerBlock
+            PageAddr += PAGE_COUNT
             If i Mod 10 = 0 Then
-                Dim Percent As Integer = Math.Round((i / BlockCount) * 100)
+                Dim Percent As Integer = Math.Round((i / Me.BLOCK_COUNT) * 100)
                 RaiseEvent SetProgress(Percent)
             End If
         Next

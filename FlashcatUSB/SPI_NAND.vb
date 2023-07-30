@@ -53,7 +53,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         If MyFlashDevice IsNot Nothing Then
             MyFlashStatus = DeviceStatus.Supported
             RaiseEvent PrintConsole(String.Format(RM.GetString("spinand_flash_size"), MyFlashDevice.NAME, MyFlashDevice.FLASH_SIZE))
-            RaiseEvent PrintConsole(String.Format(RM.GetString("spinand_page_size"), MyFlashDevice.PAGE_SIZE, MyFlashDevice.EXT_PAGE_SIZE))
+            RaiseEvent PrintConsole(String.Format(RM.GetString("spinand_page_size"), MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT))
             NANDHELPER_SetupHandlers()
             Me.ECC_ENABLED = Not MySettings.SPI_NAND_DISABLE_ECC
             If MFG = &HEF AndAlso PART = &HAA21 Then 'W25M01GV/W25M121AV
@@ -78,7 +78,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                 SPIBUS_WriteEnable()
                 SPIBUS_WriteRead({OPCMD_SETFEAT, &HA0, 0}) 'Remove block protection
             End If
-            FCUSB.NAND_IF.CreateMap(MyFlashDevice.FLASH_SIZE, MyFlashDevice.PAGE_SIZE, MyFlashDevice.EXT_PAGE_SIZE, MyFlashDevice.BLOCK_SIZE)
+            FCUSB.NAND_IF.CreateMap(MyFlashDevice.FLASH_SIZE, MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT, MyFlashDevice.PAGE_COUNT, MyFlashDevice.Block_Size)
             FCUSB.NAND_IF.EnableBlockManager() 'If enabled
             FCUSB.NAND_IF.ProcessMap()
             Return True
@@ -131,7 +131,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Get
             Dim available_pages As UInt32 = FCUSB.NAND_IF.MAPPED_PAGES
             If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then
-                Return available_pages * (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE)
+                Return available_pages * (MyFlashDevice.PAGE_SIZE + MyFlashDevice.PAGE_EXT)
             Else
                 Return available_pages * MyFlashDevice.PAGE_SIZE
             End If
@@ -146,9 +146,9 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                 Case FlashArea.Main
                     Return (page_count * MyFlashDevice.PAGE_SIZE)
                 Case FlashArea.OOB
-                    Return (page_count * MyFlashDevice.EXT_PAGE_SIZE)
+                    Return (page_count * MyFlashDevice.PAGE_EXT)
                 Case FlashArea.All
-                    Return (page_count * (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE))
+                    Return (page_count * (MyFlashDevice.PAGE_SIZE + MyFlashDevice.PAGE_EXT))
             End Select
             Return 0
         End Get
@@ -176,12 +176,12 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             page_addr = Math.Floor(logical_address / MyFlashDevice.PAGE_SIZE)
             page_offset = logical_address - (page_addr * MyFlashDevice.PAGE_SIZE)
         ElseIf (memory_area = FlashArea.OOB) Then
-            page_size = MyFlashDevice.EXT_PAGE_SIZE
-            page_addr = Math.Floor(logical_address / MyFlashDevice.EXT_PAGE_SIZE)
-            page_offset = logical_address - (page_addr * MyFlashDevice.EXT_PAGE_SIZE)
+            page_size = MyFlashDevice.PAGE_EXT
+            page_addr = Math.Floor(logical_address / MyFlashDevice.PAGE_EXT)
+            page_offset = logical_address - (page_addr * MyFlashDevice.PAGE_EXT)
         ElseIf (memory_area = FlashArea.All) Then   'we need to adjust large address to logical address
-            page_size = MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE
-            Dim full_page_size As UInt32 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE)
+            page_size = MyFlashDevice.PAGE_SIZE + MyFlashDevice.PAGE_EXT
+            Dim full_page_size As UInt32 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.PAGE_EXT)
             page_addr = Math.Floor(logical_address / full_page_size)
             page_offset = logical_address - (page_addr * full_page_size)
         End If
@@ -222,7 +222,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     End Function
 
     Friend Function SectorCount() As UInteger Implements MemoryDeviceUSB.SectorCount
-        Return MyFlashDevice.Sector_Count
+        Return MyFlashDevice.BLOCK_COUNT
     End Function
 
     Friend Function SectorFind(sector_index As UInteger, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Long Implements MemoryDeviceUSB.SectorFind
@@ -268,11 +268,11 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             page_addr = (logical_address / MyFlashDevice.PAGE_SIZE)
             page_offset = logical_address - (page_addr * MyFlashDevice.PAGE_SIZE)
         ElseIf (Params.Memory_Area = FlashArea.OOB) Then
-            page_addr = Math.Floor(logical_address / MyFlashDevice.EXT_PAGE_SIZE)
-            page_offset = logical_address - (page_addr * (MyFlashDevice.EXT_PAGE_SIZE))
+            page_addr = Math.Floor(logical_address / MyFlashDevice.PAGE_EXT)
+            page_offset = logical_address - (page_addr * (MyFlashDevice.PAGE_EXT))
         ElseIf (Params.Memory_Area = FlashArea.All) Then   'we need to adjust large address to logical address
-            page_addr = (logical_address / MyFlashDevice.EXT_PAGE_SIZE)
-            page_offset = logical_address - (page_addr * (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE))
+            page_addr = (logical_address / MyFlashDevice.PAGE_EXT)
+            page_offset = logical_address - (page_addr * (MyFlashDevice.PAGE_SIZE + MyFlashDevice.PAGE_EXT))
         End If
         page_addr = FCUSB.NAND_IF.GetPageMapping(page_addr) 'Adjusts the page to point to a valid page
         Dim result As Boolean = FCUSB.NAND_IF.WRITEPAGE(page_addr, data_to_write, Params.Memory_Area) 'We will write the whole block instead
@@ -349,7 +349,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                         Array.Copy(main, main_ptr, die_data, 0, die_data.Length) : main_ptr += main_buffer_size
                         If oob IsNot Nothing Then
                             Dim main_pages As UInt32 = main_buffer_size / MyFlashDevice.PAGE_SIZE
-                            Dim oob_buffer_size As UInt32 = main_pages * MyFlashDevice.EXT_PAGE_SIZE
+                            Dim oob_buffer_size As UInt32 = main_pages * MyFlashDevice.PAGE_EXT
                             ReDim die_oob(oob_buffer_size - 1)
                             Array.Copy(oob, oob_ptr, die_oob, 0, die_oob.Length) : oob_ptr += oob_buffer_size
                         End If
@@ -494,7 +494,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                 If Not result Then Return Nothing
                 Else
                 Dim nand_layout As NANDLAYOUT_STRUCTURE = NANDLAYOUT_Get(MyFlashDevice)
-                Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE)
+                Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.PAGE_EXT)
                 Dim logical_block As UInt16 = (nand_layout.Layout_Main + nand_layout.Layout_Spare)
                 Dim data_ptr As UInt32 = 0
                 Dim op_setup() As Byte = Nothing
@@ -550,7 +550,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                                 adj_offset = ((sub_index * logical_block) - nand_layout.Layout_Spare)
                                 sub_index += 1
                             Loop
-                            If (page_offset = MyFlashDevice.EXT_PAGE_SIZE) Then
+                            If (page_offset = MyFlashDevice.PAGE_EXT) Then
                                 page_offset = 0
                                 page_addr += 1
                             End If
@@ -592,7 +592,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Dim write_result As Boolean = False
         Try
             If main_data Is Nothing And oob_data Is Nothing Then Return False
-            Dim page_size As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE) 'Entire size
+            Dim page_size As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.PAGE_EXT) 'Entire size
             Dim sep_layout As Boolean = CBool(MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Separated)
             If (Not area = FlashArea.All) AndAlso (sep_layout AndAlso (main_data Is Nothing Or oob_data Is Nothing)) Then 'We only need to write one area
                 If main_data IsNot Nothing Then
@@ -618,7 +618,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     End Function
 
     Private Function USB_WritePageAlignedData(ByRef page_addr As UInt32, page_aligned() As Byte) As Boolean
-        Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE)
+        Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.PAGE_EXT)
         Dim pages_to_write As UInt32 = (page_aligned.Length / page_size_tot)
         If (FCUSB.HasLogic()) Then 'Hardware-enabled routine
             Dim array_ptr As UInt32 = 0
@@ -659,7 +659,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             page_size = MyFlashDevice.PAGE_SIZE
             page_offset = 0
         ElseIf area = FlashArea.OOB Then
-            page_size = MyFlashDevice.EXT_PAGE_SIZE
+            page_size = MyFlashDevice.PAGE_EXT
             page_offset = MyFlashDevice.PAGE_SIZE
         Else
             Return False
@@ -716,7 +716,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
 
     Private Function SetupPacket_NAND(page_addr As UInt32, page_offset As UInt16, Count As UInt32, area As FlashArea) As Byte()
         Dim nand_layout As NANDLAYOUT_STRUCTURE = NANDLAYOUT_Get(MyFlashDevice)
-        Dim spare_size As UInt16 = MyFlashDevice.EXT_PAGE_SIZE
+        Dim spare_size As UInt16 = MyFlashDevice.PAGE_EXT
         If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then area = FlashArea.All
         Dim setup_data(19) As Byte
         setup_data(0) = CByte(page_addr And 255)
@@ -758,9 +758,9 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             Case FlashArea.Main
                 page_area_size = MyFlashDevice.PAGE_SIZE
             Case FlashArea.OOB
-                page_area_size = MyFlashDevice.EXT_PAGE_SIZE
+                page_area_size = MyFlashDevice.PAGE_EXT
             Case FlashArea.All
-                page_area_size = MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE
+                page_area_size = MyFlashDevice.PAGE_SIZE + MyFlashDevice.PAGE_EXT
         End Select
         bytes_left = (page_area_size - page_offset) + (page_area_size * (pages_left - 1))
         buffer_size = Math.Min(count, bytes_left)

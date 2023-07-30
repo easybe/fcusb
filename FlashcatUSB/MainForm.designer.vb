@@ -123,6 +123,7 @@ Partial Class MainForm
         Me.lbl_gang1 = New System.Windows.Forms.Label()
         Me.cmd_gang_erase = New System.Windows.Forms.Button()
         Me.cmd_gang_write = New System.Windows.Forms.Button()
+        Me.mi_mode_mmc = New System.Windows.Forms.ToolStripMenuItem()
         Me.MenuStrip1.SuspendLayout()
         Me.FlashStatus.SuspendLayout()
         Me.MyTabs.SuspendLayout()
@@ -212,7 +213,7 @@ Partial Class MainForm
         '
         'mi_mode_menu
         '
-        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.mi_vcc_seperator, Me.mi_1V8, Me.mi_3V3, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_sqi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_3wire, Me.mi_mode_nornand, Me.mi_mode_eprom_otp, Me.mi_mode_hyperflash, Me.mi_mode_jtag})
+        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.mi_vcc_seperator, Me.mi_1V8, Me.mi_3V3, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_sqi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_3wire, Me.mi_mode_nornand, Me.mi_mode_eprom_otp, Me.mi_mode_hyperflash, Me.mi_mode_mmc, Me.mi_mode_jtag})
         Me.mi_mode_menu.Name = "mi_mode_menu"
         Me.mi_mode_menu.Size = New System.Drawing.Size(50, 20)
         Me.mi_mode_menu.Text = "Mode"
@@ -915,6 +916,12 @@ Partial Class MainForm
         Me.cmd_gang_write.Text = "Write"
         Me.cmd_gang_write.UseVisualStyleBackColor = True
         '
+        'mi_mode_mmc
+        '
+        Me.mi_mode_mmc.Name = "mi_mode_mmc"
+        Me.mi_mode_mmc.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_mmc.Text = "SD / MMC / eMMC"
+        '
         'MainForm
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -1047,4 +1054,5 @@ Partial Class MainForm
     Friend WithEvents mi_cfi_info As ToolStripMenuItem
     Friend WithEvents mi_license_menu As ToolStripMenuItem
     Friend WithEvents mi_blank_check As ToolStripMenuItem
+    Friend WithEvents mi_mode_mmc As ToolStripMenuItem
 End Class

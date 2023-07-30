@@ -21,7 +21,7 @@ Public Class MainForm
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Serial NOR memory", FlashDatabase.PartCount(MemoryType.SERIAL_NOR)))
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Serial NAND", FlashDatabase.PartCount(MemoryType.SERIAL_NAND)))
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Parallel NOR memory", FlashDatabase.PartCount(MemoryType.PARALLEL_NOR)))
-        PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Parallel NAND memory", FlashDatabase.PartCount(MemoryType.NAND)))
+        PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Parallel NAND memory", FlashDatabase.PartCount(MemoryType.PARALLEL_NAND)))
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "OTP/UV EPROM memory", FlashDatabase.PartCount(MemoryType.OTP_EPROM)))
         statuspage_progress.Visible = False
         Language_Setup()
@@ -776,6 +776,7 @@ Public Class MainForm
         mi_mode_nornand.Enabled = enabled
         mi_mode_eprom_otp.Enabled = enabled
         mi_mode_hyperflash.Enabled = enabled
+        mi_mode_mmc.Enabled = enabled
         mi_mode_jtag.Enabled = enabled
     End Sub
 
@@ -794,6 +795,7 @@ Public Class MainForm
             mi_mode_nornand.Enabled = True
             mi_mode_jtag.Enabled = True
             mi_mode_hyperflash.Enabled = True
+            mi_mode_mmc.Enabled = True
         Else
             Dim SupportedModes() As FlashcatSettings.DeviceMode = GetSupportedModes(USBCLIENT.FCUSB(0))
             If (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB4) Then
@@ -818,6 +820,7 @@ Public Class MainForm
                 If mode = FlashcatSettings.DeviceMode.EPROM Then mi_mode_eprom_otp.Enabled = True
                 If mode = FlashcatSettings.DeviceMode.HyperFlash Then mi_mode_hyperflash.Enabled = True
                 If mode = FlashcatSettings.DeviceMode.Microwire Then mi_mode_3wire.Enabled = True
+                If mode = FlashcatSettings.DeviceMode.SD_MMC_EMMC Then mi_mode_mmc.Enabled = True
             Next
             If mi_mode_i2c.Enabled AndAlso MySettings.I2C_INDEX = 0 Then mi_mode_i2c.Enabled = False
             If mi_mode_spieeprom.Enabled AndAlso MySettings.SPI_EEPROM = SPI_EEPROM.None Then mi_mode_spieeprom.Enabled = False
@@ -970,9 +973,9 @@ Public Class MainForm
                     Else
                         mi_device_features.Enabled = True
                     End If
-                    If mem_instance.FlashType = MemoryType.NAND Then
+                    If mem_instance.FlashType = MemoryType.PARALLEL_NAND Then
                         mi_nand_map.Enabled = True
-                        If mem_instance.FCUSB.EXT_IF.ONFI.IS_VALID Then
+                        If mem_instance.FCUSB.PARALLEL_IF.ONFI.IS_VALID Then
                             mi_cfi_info.Enabled = True
                         End If
                         Exit Sub 'Accept the above
@@ -984,7 +987,7 @@ Public Class MainForm
                     ElseIf mem_instance.FlashType = MemoryType.SERIAL_QUAD Then
                         Exit Sub 'Accept the above
                     ElseIf mem_instance.FlashType = MemoryType.PARALLEL_NOR Then
-                        If mem_instance.FCUSB.EXT_IF.CFI.IS_VALID Then
+                        If mem_instance.FCUSB.PARALLEL_IF.CFI.IS_VALID Then
                             mi_cfi_info.Enabled = True
                         End If
                         Exit Sub 'Accept the above
@@ -1073,14 +1076,13 @@ Public Class MainForm
             Dim n As New NAND_Block_Management(mem_dev.FCUSB)
             If mem_dev.FlashType = MemoryType.SERIAL_NAND Then
                 Dim nand As SPI_NAND = mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice
-                Dim pages_per_block As UInt32 = (nand.BLOCK_SIZE / nand.PAGE_SIZE)
+                Dim pages_per_block As UInt32 = (nand.Block_Size / nand.PAGE_SIZE)
                 Dim n_layout As NAND_LAYOUT_TOOL.NANDLAYOUT_STRUCTURE = FlashMemory.NANDLAYOUT_Get(nand)
-                n.SetDeviceParameters(nand.NAME, nand.PAGE_SIZE + nand.EXT_PAGE_SIZE, pages_per_block, nand.Sector_Count, n_layout)
-            ElseIf mem_dev.FlashType = MemoryType.NAND Then
-                Dim nand As P_NAND = DirectCast(mem_dev.FCUSB.EXT_IF.MyFlashDevice, P_NAND)
-                Dim pages_per_block As UInt32 = (nand.BLOCK_SIZE / nand.PAGE_SIZE)
+                n.SetDeviceParameters(nand.NAME, nand.PAGE_SIZE + nand.PAGE_EXT, pages_per_block, nand.BLOCK_COUNT, n_layout)
+            ElseIf mem_dev.FlashType = MemoryType.PARALLEL_NAND Then
+                Dim nand As P_NAND = DirectCast(mem_dev.FCUSB.PARALLEL_IF.MyFlashDevice, P_NAND)
                 Dim n_layout As NAND_LAYOUT_TOOL.NANDLAYOUT_STRUCTURE = FlashMemory.NANDLAYOUT_Get(nand)
-                n.SetDeviceParameters(nand.NAME, nand.PAGE_SIZE + nand.EXT_PAGE_SIZE, pages_per_block, nand.Sector_Count, n_layout)
+                n.SetDeviceParameters(nand.NAME, nand.PAGE_SIZE + nand.PAGE_EXT, nand.PAGE_COUNT, nand.BLOCK_COUNT, n_layout)
             End If
             n.ShowDialog()
             mem_dev.FCUSB.NAND_IF.ProcessMap()
@@ -1089,8 +1091,8 @@ Public Class MainForm
                 mem_dev.GuiControl.InitMemoryDevice(mem_dev.FCUSB, mem_dev.Name, mem_dev.Size, MemControl_v2.access_mode.Writable)
                 mem_dev.GuiControl.SetupLayout()
                 StatusMessages_LoadMemoryDevices()
-            ElseIf mem_dev.FlashType = MemoryType.NAND Then
-                Dim flash_available As UInt32 = mem_dev.FCUSB.EXT_IF.DeviceSize()
+            ElseIf mem_dev.FlashType = MemoryType.PARALLEL_NAND Then
+                Dim flash_available As UInt32 = mem_dev.FCUSB.PARALLEL_IF.DeviceSize()
                 mem_dev.GuiControl.InitMemoryDevice(mem_dev.FCUSB, mem_dev.Name, mem_dev.Size, MemControl_v2.access_mode.Writable)
                 mem_dev.GuiControl.SetupLayout()
                 StatusMessages_LoadMemoryDevices()
@@ -1186,7 +1188,7 @@ Public Class MainForm
             For i = 0 To MEM_IF.DeviceCount - 1
                 Dim dv As MemoryDeviceInstance = MEM_IF.GetDevice(i)
                 If dv IsNot Nothing Then
-                    If dv.FlashType = MemoryType.NAND Then
+                    If dv.FlashType = MemoryType.PARALLEL_NAND Then
                         dv.GuiControl.SetupLayout()
                         StatusMessages_LoadMemoryDevices()
                     End If
@@ -1210,6 +1212,7 @@ Public Class MainForm
             mi_mode_jtag.Checked = False
             mi_mode_spi_nand.Checked = False
             mi_mode_hyperflash.Checked = False
+            mi_mode_mmc.Checked = False
         Catch ex As Exception
         End Try
     End Sub
@@ -1298,6 +1301,14 @@ Public Class MainForm
         Menu_Mode_UncheckAll()
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.HyperFlash
+        MySettings.Save()
+        detect_event()
+    End Sub
+
+    Private Sub mi_mode_mmc_Click(sender As Object, e As EventArgs) Handles mi_mode_mmc.Click
+        Menu_Mode_UncheckAll()
+        DirectCast(sender, ToolStripMenuItem).Checked = True
+        MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SD_MMC_EMMC
         MySettings.Save()
         detect_event()
     End Sub
@@ -1450,7 +1461,7 @@ Public Class MainForm
         Try
             memDev.FCUSB.USB_LEDBlink()
             Backup_Start()
-            If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND) AndAlso (memDev.FCUSB.EXT_IF.MyFlashDevice.FLASH_TYPE = MemoryType.NAND) Then
+            If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND) AndAlso (memDev.FCUSB.PARALLEL_IF.MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NAND) Then
                 PrintNandFlashDetails(memDev)
                 NANDBACKUP_CreateIMG(memDev)
             ElseIf (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_NAND) Then
@@ -1497,7 +1508,7 @@ Public Class MainForm
         Try
             mem_dev.FCUSB.USB_LEDBlink()
             Backup_Start()
-            If MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND AndAlso mem_dev.FCUSB.EXT_IF.MyFlashDevice.FLASH_TYPE = MemoryType.NAND Then
+            If MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND AndAlso mem_dev.FCUSB.PARALLEL_IF.MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NAND Then
                 NANDBACKUP_WriteIMG(mem_dev)
             ElseIf MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_NAND Then
                 NANDBACKUP_WriteIMG(mem_dev)
@@ -1570,13 +1581,13 @@ Public Class MainForm
             WriteConsole("Flash size: " & Format(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice.FLASH_SIZE, "#,###") & " bytes")
             WriteConsole("Extended/Spare area: " & Format(mem_dev.FCUSB.NAND_IF.Extra_GetSize(), "#,###") & " bytes")
             WriteConsole("Page size: " & Format(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice.PAGE_SIZE, "#,###") & " bytes")
-            WriteConsole("Block size: " & Format(DirectCast(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice, SPI_NAND).BLOCK_SIZE, "#,###") & " bytes")
-        ElseIf mem_dev.FlashType = MemoryType.NAND Then
-            WriteConsole("Memory device name: " & mem_dev.FCUSB.EXT_IF.MyFlashDevice.NAME)
-            WriteConsole("Flash size: " & Format(mem_dev.FCUSB.EXT_IF.MyFlashDevice.FLASH_SIZE, "#,###") & " bytes")
+            WriteConsole("Block size: " & Format(DirectCast(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice, SPI_NAND).Block_Size, "#,###") & " bytes")
+        ElseIf mem_dev.FlashType = MemoryType.PARALLEL_NAND Then
+            WriteConsole("Memory device name: " & mem_dev.FCUSB.PARALLEL_IF.MyFlashDevice.NAME)
+            WriteConsole("Flash size: " & Format(mem_dev.FCUSB.PARALLEL_IF.MyFlashDevice.FLASH_SIZE, "#,###") & " bytes")
             WriteConsole("Extended/Spare area: " & Format(mem_dev.FCUSB.NAND_IF.Extra_GetSize(), "#,###") & " bytes")
-            WriteConsole("Page size: " & Format(mem_dev.FCUSB.EXT_IF.MyFlashDevice.PAGE_SIZE, "#,###") & " bytes")
-            WriteConsole("Block size: " & Format(DirectCast(mem_dev.FCUSB.EXT_IF.MyFlashDevice, P_NAND).BLOCK_SIZE, "#,###") & " bytes")
+            WriteConsole("Page size: " & Format(mem_dev.FCUSB.PARALLEL_IF.MyFlashDevice.PAGE_SIZE, "#,###") & " bytes")
+            WriteConsole("Block size: " & Format(DirectCast(mem_dev.FCUSB.PARALLEL_IF.MyFlashDevice, P_NAND).Block_Size, "#,###") & " bytes")
         End If
     End Sub
 
@@ -1623,7 +1634,7 @@ Public Class MainForm
         End If
     End Sub
 
-    Private Sub NANDBACKUP_CreateIMG(ByVal mem_dev As MemoryDeviceInstance)
+    Private Sub NANDBACKUP_CreateIMG(mem_dev As MemoryDeviceInstance)
         Try
             mem_dev.IsTaskRunning = True
             Dim double_read As Boolean = MySettings.NAND_Verify
@@ -1632,26 +1643,26 @@ Public Class MainForm
             Dim page_size As UInt32
             Dim oob_size As UInt32
             Dim block_count As UInt32
-            Dim block_size As UInt32
+            Dim pages_per_block As UInt32
             Dim chipid As String
             If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND) Then
-                Dim m As P_NAND = DirectCast(mem_dev.FCUSB.EXT_IF.MyFlashDevice, P_NAND)
+                Dim m As P_NAND = DirectCast(mem_dev.FCUSB.PARALLEL_IF.MyFlashDevice, P_NAND)
                 flash_name = m.NAME
                 chipid = Hex(m.MFG_CODE).PadLeft(2, "0") & Hex(m.ID1).PadLeft(4, "0") & Hex(m.ID2).PadLeft(4, "0")
                 flash_size = m.FLASH_SIZE
                 page_size = m.PAGE_SIZE
-                oob_size = m.EXT_PAGE_SIZE
-                block_count = m.Sector_Count
-                block_size = m.BLOCK_SIZE
+                oob_size = m.PAGE_EXT
+                block_count = m.BLOCK_COUNT
+                pages_per_block = m.PAGE_COUNT
             ElseIf (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_NAND) Then
                 Dim m As SPI_NAND = DirectCast(mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice, SPI_NAND)
                 flash_name = m.NAME
                 chipid = Hex(m.MFG_CODE).PadLeft(2, "0") & Hex(m.ID1).PadLeft(4, "0")
                 flash_size = m.FLASH_SIZE
                 page_size = m.PAGE_SIZE
-                oob_size = m.EXT_PAGE_SIZE
-                block_count = m.Sector_Count
-                block_size = m.BLOCK_SIZE
+                oob_size = m.PAGE_EXT
+                block_count = m.BLOCK_COUNT
+                pages_per_block = m.PAGE_COUNT
             Else
                 Exit Sub
             End If
@@ -1663,12 +1674,10 @@ Public Class MainForm
             InfoFile.Add("[MEMORY_DEVICE]" & flash_name)
             InfoFile.Add("[ID]" & chipid)
             InfoFile.Add("[FLASH_SIZE]" & flash_size.ToString)
-            InfoFile.Add("[BLOCK_SIZE]" & block_size.ToString)
             InfoFile.Add("[BLOCK_COUNT]" & block_count.ToString)
             InfoFile.Add("[PAGE_SIZE]" & page_size.ToString)
             InfoFile.Add("[OOB_SIZE]" & oob_size.ToString)
             NandDumpArchive.AddFile("NAND.cfg", Utilities.Bytes.FromCharStringArray(InfoFile.ToArray))
-            Dim pages_per_block As UInt32 = (block_size / page_size)
             Dim page_size_total As UInt32 = (page_size + oob_size)
             Dim block_total As UInt32 = pages_per_block * (page_size_total)
             Dim page_addr As UInt32 = 0
@@ -1684,8 +1693,8 @@ Public Class MainForm
                 Dim block_data_1(block_total - 1) As Byte
                 Dim block_data_2(block_total - 1) As Byte
                 If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND) Then
-                    mem_dev.FCUSB.EXT_IF.NAND_ReadPages(page_addr, 0, block_data_1.Length, FlashArea.All, block_data_1)
-                    If double_read Then mem_dev.FCUSB.EXT_IF.NAND_ReadPages(page_addr, 0, block_data_2.Length, FlashArea.All, block_data_2)
+                    mem_dev.FCUSB.PARALLEL_IF.NAND_ReadPages(page_addr, 0, block_data_1.Length, FlashArea.All, block_data_1)
+                    If double_read Then mem_dev.FCUSB.PARALLEL_IF.NAND_ReadPages(page_addr, 0, block_data_2.Length, FlashArea.All, block_data_2)
                 ElseIf (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_NAND) Then
                     mem_dev.FCUSB.SPI_NAND_IF.NAND_ReadPages(page_addr, 0, block_data_1.Length, FlashArea.All, block_data_1)
                     If double_read Then mem_dev.FCUSB.SPI_NAND_IF.NAND_ReadPages(page_addr, 0, block_data_2.Length, FlashArea.All, block_data_2)
@@ -2461,8 +2470,8 @@ Public Class MainForm
         frmCFI.MaximizeBox = False
         frmCFI.StartPosition = FormStartPosition.CenterParent
         Dim lbl_cfg_list As New List(Of Label)
-        If memDev.FlashType = MemoryType.NAND Then
-            Dim flash_onfi As NAND_ONFI = memDev.FCUSB.EXT_IF.ONFI
+        If memDev.FlashType = MemoryType.PARALLEL_NAND Then
+            Dim flash_onfi As NAND_ONFI = memDev.FCUSB.PARALLEL_IF.ONFI
             frmCFI.Text = "Open NAND Flash Interface"
             lbl_cfg_list.Add(New Label With {.Text = "Device Manufacturer: " & flash_onfi.DEVICE_MFG})
             lbl_cfg_list.Add(New Label With {.Text = "Device Model: " & flash_onfi.DEVICE_MODEL})
@@ -2473,7 +2482,7 @@ Public Class MainForm
             lbl_cfg_list.Add(New Label With {.Text = "LUN count: " & flash_onfi.LUN_COUNT})
             lbl_cfg_list.Add(New Label With {.Text = "Bits per cell: " & flash_onfi.BITS_PER_CELL})
         Else
-            Dim flash_cfi As NOR_CFI = memDev.FCUSB.EXT_IF.CFI
+            Dim flash_cfi As NOR_CFI = memDev.FCUSB.PARALLEL_IF.CFI
             frmCFI.Text = "Common Flash Interface (CFI)"
             lbl_cfg_list.Add(New Label With {.Text = "Minimum VCC for program/erase: " & flash_cfi.VCC_MIN_PROGERASE & " V"})
             lbl_cfg_list.Add(New Label With {.Text = "Maxiumum VCC for program/erase: " & flash_cfi.VCC_MAX_PROGERASE & " V"})

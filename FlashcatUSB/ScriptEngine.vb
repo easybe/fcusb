@@ -2649,7 +2649,7 @@ Public Class FcScriptEngine : Implements IDisposable
 
     Private Function c_parallel(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
-            Dim td As New Threading.Thread(AddressOf USBCLIENT.FCUSB(Index).EXT_IF.PARALLEL_PORT_TEST)
+            Dim td As New Threading.Thread(AddressOf USBCLIENT.FCUSB(Index).PARALLEL_IF.PARALLEL_PORT_TEST)
             td.Start()
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Parallel function exception"}
@@ -2664,8 +2664,8 @@ Public Class FcScriptEngine : Implements IDisposable
             FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.SERIAL_NOR, 3, "spi_database.html")
             FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.SERIAL_NAND, 3, "spinand_database.html")
             FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.PARALLEL_NOR, 3, "mpf_database.html")
-            FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.NAND, 3, "nand_all_database.html")
-            FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.NAND, 3, "nand_small_database.html", Gb004)
+            FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.PARALLEL_NAND, 3, "nand_all_database.html")
+            FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.PARALLEL_NAND, 3, "nand_small_database.html", Gb004)
             FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.HYPERFLASH, 3, "hf_database.html")
             FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.OTP_EPROM, 3, "otp_database.html")
             FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.FWH_NOR, 3, "fwh_database.html")

@@ -150,7 +150,7 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
     End Function
 
     Public Sub WaitUntilReady() Implements MemoryDeviceUSB.WaitUntilReady
-        Utilities.Sleep(10)
+        Utilities.Sleep(100)
     End Sub
 
     Public Function SectorFind(SectorIndex As UInteger, Optional area As FlashArea = FlashArea.Main) As Long Implements MemoryDeviceUSB.SectorFind

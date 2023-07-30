@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2019 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2020 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB PRODUCTS
 'CONTACT EMAIL: contact@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
@@ -18,14 +18,14 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 592
+    Public Const Build As Integer = 593
 
     Private Const PRO_PCB4_FW As Single = 1.22F 'This is the embedded firmware version for pro
-    Private Const PRO_PCB5_FW As Single = 1.04F 'This is the embedded firmware version for pro
-    Private Const MACH1_PCB2_FW As Single = 2.14F 'Firmware version for Mach1
+    Private Const PRO_PCB5_FW As Single = 1.05F 'This is the embedded firmware version for pro
+    Private Const MACH1_PCB2_FW As Single = 2.15F 'Firmware version for Mach1
     Private Const XPORT_PCB1_FW As Single = 4.55F 'XPORT PCB 1.x
-    Private Const XPORT_PCB2_FW As Single = 5.13F 'XPORT PCB 2.x
-    Private Const CLASSIC_FW As Single = 4.49F 'Min revision allowed for classic (PCB 2.x)
+    Private Const XPORT_PCB2_FW As Single = 5.14F 'XPORT PCB 2.x
+    Private Const CLASSIC_FW As Single = 4.5F 'Min revision allowed for classic (PCB 2.x)
 
     Private Const CPLD_SPI_3V3 As UInt32 = &HCD330003UI 'ID CODE FOR SPI (3.3v)
     Private Const CPLD_SPI_1V8 As UInt32 = &HCD180003UI 'ID CODE FOR JTAG (1.8v)
@@ -63,8 +63,6 @@ Public Module MainApp
 
         'Args = {"-WRITE", "-SPI", "-FILE", "test.bin", "-offset", "0"}
         'Args = {"-READ", "-SPI", "-MHZ", "24", "-FILE", "Flash.bin", "-LENGTH", "5000000"}
-        'Args = {"-READ", "-SPINAND", "-MHZ", "32", "-FILE", "Flash.bin", "-LENGTH", "20000000", "-LOG", "temp.txt"}
-        'Args = {"-READ", "-SPIEEPROM", "-EEPROM", "M95M02", "-FILE", "Flash.bin"}
         'Args = {"-WRITE", "-SPI", "-FILE", "Flash.bin"}
         'Args = {"-EXECUTE", "-SPI", "-FILE", "sample.fcs"}
 
@@ -125,15 +123,18 @@ Public Module MainApp
     Public Property LicenseStatus As LicenseStatusEnum = LicenseStatusEnum.NotLicensed
 
     Public Sub LicenseSystem_Init()
-        If MySettings.LICENSED_TO.Equals("") Then
-            LicenseStatus = LicenseStatusEnum.NotLicensed
-        ElseIf MySettings.LICENSE_EXP.Date.Year = 1 Then
-            LicenseStatus = LicenseStatusEnum.LicensedValid
-        ElseIf Date.Compare(DateTime.Now, MySettings.LICENSE_EXP.Date) < 0 Then
-            LicenseStatus = LicenseStatusEnum.LicensedValid
-        Else
-            LicenseStatus = LicenseStatusEnum.LicenseExpired
-        End If
+        Try
+            If MySettings.LICENSED_TO.Equals("") Then
+                LicenseStatus = LicenseStatusEnum.NotLicensed
+            ElseIf MySettings.LICENSE_EXP.Date.Year = 1 Then
+                LicenseStatus = LicenseStatusEnum.LicensedValid
+            ElseIf Date.Compare(DateTime.Now, MySettings.LICENSE_EXP.Date) < 0 Then
+                LicenseStatus = LicenseStatusEnum.LicensedValid
+            Else
+                LicenseStatus = LicenseStatusEnum.LicenseExpired
+            End If
+        Catch ex As Exception
+        End Try
     End Sub
 
 #End Region
@@ -271,6 +272,8 @@ Public Module MainApp
         M25AA512 = 26 'Microchip 64 bytes
         M25AA160A = 27 '2048 bytes
         M25AA160B = 28 '2048 bytes
+        M25LC1024 = 29 '131072 bytes
+        X25650 = 30 '8192 bytes
     End Enum
 
     Public Sub Create_SPI_EEPROM_List()
@@ -417,16 +420,26 @@ Public Module MainApp
         M25AA160B.ERASE_REQUIRED = False 'We will not send erase commands
         M25AA160B.ProgramMode = SPI_ProgramMode.SPI_EEPROM
         SPI_EEPROM_LIST.Add(M25AA160B)
+        Dim M25LC1024 As New SPI_NOR("Microchip 25LC1024", VCC_IF.SERIAL_3V, 131072, 0, 0) With {.EEPROM = SPI_EEPROM.M25LC1024}
+        M25LC1024.ERASE_SIZE = &H8000
+        M25LC1024.ProgramMode = SPI_ProgramMode.PageMode
+        SPI_EEPROM_LIST.Add(M25LC1024)
+        Dim X25650 As New SPI_NOR("XICOR X25650", VCC_IF.SERIAL_3V, 8192, 0, 0) With {.EEPROM = SPI_EEPROM.M25LC1024, .PAGE_SIZE = 32}
+        X25650.ADDRESSBITS = 16
+        X25650.ERASE_REQUIRED = False 'We will not send erase commands
+        X25650.ProgramMode = SPI_ProgramMode.SPI_EEPROM
+        SPI_EEPROM_LIST.Add(X25650)
+
     End Sub
 
-    Public Function Get_SPI_EEPROM(ByVal dev As SPI_EEPROM) As SPI_NOR
+    Public Function Get_SPI_EEPROM(dev As SPI_EEPROM) As SPI_NOR
         For Each spi_dev In SPI_EEPROM_LIST
             If spi_dev.EEPROM = dev Then Return spi_dev
         Next
         Return Nothing
     End Function
 
-    Public Sub SPIEEPROM_Configure(ByVal usb_dev As FCUSB_DEVICE, ByVal eeprom As SPI_EEPROM)
+    Public Sub SPIEEPROM_Configure(usb_dev As FCUSB_DEVICE, eeprom As SPI_EEPROM)
         Dim nRF24_mode As Boolean = False
         usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, SPI_SPEED.MHZ_1))
         Select Case eeprom
@@ -467,6 +480,8 @@ Public Module MainApp
         ElseIf eeprom = SPI_EEPROM.M95040 Then
             usb_dev.SPI_NOR_IF.WriteStatusRegister({0}) 'Disable BP0/BP1
         ElseIf eeprom = SPI_EEPROM.M95080 Then
+            usb_dev.SPI_NOR_IF.WriteStatusRegister({0}) 'Disable BP0/BP1
+        ElseIf eeprom = SPI_EEPROM.M25LC1024 Then
             usb_dev.SPI_NOR_IF.WriteStatusRegister({0}) 'Disable BP0/BP1
         End If
     End Sub
@@ -607,6 +622,7 @@ Public Module MainApp
             ConsoleWriteLine(RM.GetString("err_unable_to_connect"))
             Console_Exit() : Exit Sub
         End If
+        usb_dev.SelectProgrammer(MyConsoleOperation.Mode)
         USBCLIENT.FCUSB(0) = usb_dev
         usb_dev.USB_LEDOn()
         ConsoleWriteLine(RM.GetString("successfully_connected")) '"Successfully connected to FlashcatUSB over USB"
@@ -680,14 +696,14 @@ Public Module MainApp
                 End If
             Case DeviceMode.NOR_NAND
                 ConsoleWriteLine(RM.GetString("device_mode") & ": Extension Port Interface")
-                usb_dev.EXT_IF.DeviceInit()
-                Select Case usb_dev.EXT_IF.MyFlashStatus
+                usb_dev.PARALLEL_IF.DeviceInit()
+                Select Case usb_dev.PARALLEL_IF.MyFlashStatus
                     Case DeviceStatus.Supported
-                        Dim device_id As String = Hex(usb_dev.EXT_IF.MyFlashDevice.MFG_CODE).PadLeft(2, "0") & " " & Hex(usb_dev.EXT_IF.MyFlashDevice.ID1).PadLeft(4, "0")
+                        Dim device_id As String = Hex(usb_dev.PARALLEL_IF.MyFlashDevice.MFG_CODE).PadLeft(2, "0") & " " & Hex(usb_dev.PARALLEL_IF.MyFlashDevice.ID1).PadLeft(4, "0")
                         ConsoleWriteLine(RM.GetString("device_mode") & ": Multi-purpose Flash device (CHIP ID: " & device_id & ")")
-                        mem_dev = MEM_IF.Add(usb_dev, usb_dev.EXT_IF.MyFlashDevice)
+                        mem_dev = MEM_IF.Add(usb_dev, usb_dev.PARALLEL_IF.MyFlashDevice)
                         mem_dev.PreferredBlockSize = 32768
-                        MyConsoleOperation.FLASH_SIZE = usb_dev.EXT_IF.DeviceSize
+                        MyConsoleOperation.FLASH_SIZE = usb_dev.PARALLEL_IF.DeviceSize
                     Case DeviceStatus.NotSupported
                         ConsoleWriteLine(RM.GetString("mem_not_supported"))
                         Environment.ExitCode = -1
@@ -1045,8 +1061,8 @@ Public Module MainApp
     End Enum
 
     Public Property ConsoleProgressReset As Boolean = False
-    Private Delegate Sub UpdateFunction_Progress(ByVal percent As Integer)
-    Private Delegate Sub UpdateFunction_SpeedLabel(ByVal speed_str As String)
+    Private Delegate Sub UpdateFunction_Progress(percent As Integer)
+    Private Delegate Sub UpdateFunction_SpeedLabel(speed_str As String)
 
     Private Sub Console_UpdateProgress(percent As Integer)
         Try
@@ -1226,6 +1242,8 @@ Public Module MainApp
         Public Property LICENSE_EXP As DateTime
 
         Sub New()
+            Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY, RegistryKeyPermissionCheck.ReadWriteSubTree)
+            If key Is Nothing Then Registry.CurrentUser.CreateSubKey(REGKEY)
             LoadLanguageSettings()
             Me.LICENSE_KEY = GetRegistryValue("LICENSE_KEY", "")
             Dim date_str As String = GetRegistryValue("LICENSE_DATE", "01/01/0001")
@@ -1414,6 +1432,7 @@ Public Module MainApp
             HyperFlash = 9
             Microwire = 10
             SQI = 11
+            SD_MMC_EMMC = 12
             Unspecified = 20
         End Enum
 
@@ -1447,18 +1466,18 @@ Public Module MainApp
             _1MHz = 3
         End Enum
 
-        Public Sub SetPrefferedScript(ByVal name As String, ByVal id As UInt32)
+        Public Sub SetPrefferedScript(name As String, id As UInt32)
             SetRegistryValue("SCRIPT_" & id.ToString, name)
         End Sub
 
-        Public Function GetPrefferedScript(ByVal id As UInt32) As String
+        Public Function GetPrefferedScript(id As UInt32) As String
             Return GetRegistryValue("SCRIPT_" & id.ToString, "")
         End Function
 
 #Region "Registry"
         Private Const REGKEY As String = "Software\EmbComputers\FlashcatUSB\"
 
-        Public Function GetRegistryValue(ByVal Name As String, ByVal DefaultValue As String) As String
+        Public Function GetRegistryValue(Name As String, DefaultValue As String) As String
             Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY)
             If key Is Nothing Then Return DefaultValue
             Dim o As Object = key.GetValue(Name)
@@ -1466,7 +1485,7 @@ Public Module MainApp
             Return CStr(o)
         End Function
 
-        Public Function SetRegistryValue(ByVal Name As String, ByVal Value As String) As Boolean
+        Public Function SetRegistryValue(Name As String, Value As String) As Boolean
             Try
                 Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY, RegistryKeyPermissionCheck.ReadWriteSubTree)
                 key.SetValue(Name, Value)
@@ -1476,7 +1495,7 @@ Public Module MainApp
             End Try
         End Function
 
-        Public Function GetRegistryValue(ByVal Name As String, ByVal DefaultValue As Boolean) As Boolean
+        Public Function GetRegistryValue(Name As String, DefaultValue As Boolean) As Boolean
             Try
                 Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY)
                 If key Is Nothing Then Return DefaultValue
@@ -1488,7 +1507,7 @@ Public Module MainApp
             End Try
         End Function
 
-        Public Function SetRegistryValue(ByVal Name As String, ByVal Value As Boolean) As Boolean
+        Public Function SetRegistryValue(Name As String, Value As Boolean) As Boolean
             Try
                 Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY, RegistryKeyPermissionCheck.ReadWriteSubTree)
                 If key Is Nothing Then
@@ -1502,7 +1521,7 @@ Public Module MainApp
             End Try
         End Function
 
-        Public Function GetRegisteryData(ByVal Name As String) As Byte()
+        Public Function GetRegisteryData(Name As String) As Byte()
             Try
                 Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY)
                 If key Is Nothing Then Return Nothing
@@ -1514,7 +1533,7 @@ Public Module MainApp
             End Try
         End Function
 
-        Public Function SetRegisteryData(ByVal Name As String, ByVal data() As Byte) As Boolean
+        Public Function SetRegisteryData(Name As String, data() As Byte) As Boolean
             Try
                 Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY, RegistryKeyPermissionCheck.ReadWriteSubTree)
                 key.SetValue(Name, data)
@@ -1524,7 +1543,7 @@ Public Module MainApp
             End Try
         End Function
 
-        Public Function GetRegistryValue(ByVal Name As String, ByVal DefaultValue As Integer) As Integer
+        Public Function GetRegistryValue(Name As String, DefaultValue As Integer) As Integer
             Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY)
             If key Is Nothing Then Return DefaultValue
             Dim o As Object = key.GetValue(Name)
@@ -1532,7 +1551,7 @@ Public Module MainApp
             Return CInt(o)
         End Function
 
-        Public Function SetRegistryValue(ByVal Name As String, ByVal Value As Integer) As Boolean
+        Public Function SetRegistryValue(Name As String, Value As Integer) As Boolean
             Try
                 Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY, RegistryKeyPermissionCheck.ReadWriteSubTree)
                 key.SetValue(Name, Value)
@@ -1849,6 +1868,7 @@ Public Module MainApp
                 GUI.SetStatus("Connected to FlashcatUSB Professional (PCB 4.x)")
                 If usb_dev.USB_IsBootloaderMode() Then
                     FCUSBPRO_Bootloader(usb_dev, "PCB4_Source.bin") 'Current PCB 4 firmware 
+                    Exit Sub
                 End If
                 GUI.PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Pro (PCB 4.x)", fw_str}))
                 Dim AvrVerSng As Single = Utilities.StringToSingle(fw_str)
@@ -1901,7 +1921,6 @@ Public Module MainApp
                 End If
             Case FCUSB_BOARD.Mach1
                 If Not FCUSBMACH1_Init(usb_dev, MySettings.OPERATION_MODE) Then Exit Sub
-                FCUSBPRO_SetDeviceVoltage(usb_dev, True)
         End Select
         If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI) Then
             GUI.UpdateStatusMessage(RM.GetString("device_mode"), "Serial Programmable Interface (SPI)")
@@ -1957,7 +1976,7 @@ Public Module MainApp
     Private Sub JTAG_Init(usb_dev As FCUSB_DEVICE)
         ScriptEngine.CURRENT_DEVICE_MODE = MySettings.OPERATION_MODE
         usb_dev.JTAG_IF.TCK_SPEED = MySettings.JTAG_SPEED 'Supported by Pro only
-        If usb_dev.JTAG_IF.Init Then
+        If usb_dev.JTAG_IF.Init() Then
             GUI.PrintConsole(RM.GetString("jtag_setup"))
         Else
             Dim error_msg As String = RM.GetString("jtag_failed_to_connect")
@@ -1983,6 +2002,7 @@ Public Module MainApp
     End Sub
 
     Private Sub DetectDevice(usb_dev As FCUSB_DEVICE)
+        usb_dev.SelectProgrammer(MySettings.OPERATION_MODE)
         ScriptEngine.CURRENT_DEVICE_MODE = MySettings.OPERATION_MODE
         GUI.SetStatus(RM.GetString("detecting_device"))
         Utilities.Sleep(100) 'Allow time for USB to power up devices
@@ -2067,28 +2087,28 @@ Public Module MainApp
         ElseIf MySettings.OPERATION_MODE = DeviceMode.NOR_NAND Then
             GUI.PrintConsole(RM.GetString("ext_init")) 'Initializing parallel mode hardware board
             Utilities.Sleep(250) 'Wait for IO board vcc to charge
-            usb_dev.EXT_IF.DeviceInit()
-            Select Case usb_dev.EXT_IF.MyFlashStatus
+            usb_dev.PARALLEL_IF.DeviceInit()
+            Select Case usb_dev.PARALLEL_IF.MyFlashStatus
                 Case DeviceStatus.Supported
                     GUI.SetStatus(RM.GetString("mem_flash_supported")) '"Flash device successfully detected and ready for operation"
-                    If (usb_dev.EXT_IF.MyAdapter = MEM_PROTOCOL.NAND_X16_ASYNC) Then
+                    If (usb_dev.PARALLEL_IF.MyAdapter = MEM_PROTOCOL.NAND_X16_ASYNC) Then
                         If usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
-                            Connected_Event(usb_dev, MemoryType.NAND, "NAND X16 Flash", 524288)
+                            Connected_Event(usb_dev, MemoryType.PARALLEL_NAND, "NAND X16 Flash", 524288)
                         Else
-                            Connected_Event(usb_dev, MemoryType.NAND, "NAND X16 Flash", 65536)
+                            Connected_Event(usb_dev, MemoryType.PARALLEL_NAND, "NAND X16 Flash", 65536)
                         End If
-                    ElseIf (usb_dev.EXT_IF.MyAdapter = MEM_PROTOCOL.NAND_X8_ASYNC) Then
+                    ElseIf (usb_dev.PARALLEL_IF.MyAdapter = MEM_PROTOCOL.NAND_X8_ASYNC) Then
                         If usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
-                            Connected_Event(usb_dev, MemoryType.NAND, "NAND X8 Flash", 524288)
+                            Connected_Event(usb_dev, MemoryType.PARALLEL_NAND, "NAND X8 Flash", 524288)
                         Else
-                            Connected_Event(usb_dev, MemoryType.NAND, "NAND X8 Flash", 65536)
+                            Connected_Event(usb_dev, MemoryType.PARALLEL_NAND, "NAND X8 Flash", 65536)
                         End If
-                    ElseIf (usb_dev.EXT_IF.MyAdapter = MEM_PROTOCOL.FWH) Then
+                    ElseIf (usb_dev.PARALLEL_IF.MyAdapter = MEM_PROTOCOL.FWH) Then
                         Connected_Event(usb_dev, MemoryType.FWH_NOR, "FWH Flash", 4096)
                     Else
                         If usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
                             Connected_Event(usb_dev, MemoryType.PARALLEL_NOR, "NOR Flash", 262144)
-                            usb_dev.EXT_IF.EXPIO_SetTiming(MySettings.NOR_READ_ACCESS, MySettings.NOR_WE_PULSE)
+                            usb_dev.PARALLEL_IF.EXPIO_SetTiming(MySettings.NOR_READ_ACCESS, MySettings.NOR_WE_PULSE)
                         Else
                             Connected_Event(usb_dev, MemoryType.PARALLEL_NOR, "NOR Flash", 16384)
                         End If
@@ -2155,16 +2175,16 @@ Public Module MainApp
             USBCLIENT.HW_BUSY = True
             GUI.PrintConsole(RM.GetString("ext_init"))
             If GUI IsNot Nothing Then
-                AddHandler usb_dev.EXT_IF.SetProgress, AddressOf GUI.SetStatusPageProgress
+                AddHandler usb_dev.EPROM_IF.SetProgress, AddressOf GUI.SetStatusPageProgress
             End If
-            If usb_dev.EXT_IF.EPROM_Init() Then
+            If usb_dev.EPROM_IF.DeviceInit() Then
                 Dim mi As MemoryDeviceInstance = Connected_Event(usb_dev, MemoryType.OTP_EPROM, "EPROM", 16384) '8192
                 mi.GuiControl.AllowFullErase = False
             Else
                 GUI.SetStatus("EPROM device not detected")
             End If
-            If GUI IsNot Nothing Then
-                RemoveHandler usb_dev.EXT_IF.SetProgress, AddressOf GUI.SetStatusPageProgress
+            If (GUI IsNot Nothing) Then
+                RemoveHandler usb_dev.PARALLEL_IF.SetProgress, AddressOf GUI.SetStatusPageProgress
                 GUI.SetStatusPageProgress(100)
             End If
             USBCLIENT.HW_BUSY = False
@@ -2181,49 +2201,18 @@ Public Module MainApp
 
     Private Function Connected_Event(usb_dev As FCUSB_DEVICE, mem_type As MemoryType, tab_name As String, block_size As UInt32) As MemoryDeviceInstance
         Try
-            Dim access As MemControl_v2.access_mode = MemControl_v2.access_mode.Writable
             Utilities.Sleep(150) 'Some devices (such as Spansion 128mbit devices) need a delay here
-            Dim mem_dev As MemoryDeviceUSB = Nothing
-            Select Case mem_type
-                Case MemoryType.SERIAL_NOR
-                    mem_dev = usb_dev.SPI_NOR_IF
-                Case MemoryType.SERIAL_NAND
-                    mem_dev = usb_dev.SPI_NAND_IF
-                Case MemoryType.PARALLEL_NOR
-                    mem_dev = usb_dev.EXT_IF
-                    If usb_dev.EXT_IF.MyFlashDevice.GetType Is GetType(OTP_EPROM) Then
-                        If Not DirectCast(usb_dev.EXT_IF.MyFlashDevice, OTP_EPROM).IS_BLANK Then
-                            access = MemControl_v2.access_mode.ReadOnly
-                        Else
-                            access = MemControl_v2.access_mode.WriteOnce
-                        End If
-                        'FOR BETA, ALLOW USER TO ATTEMPT TO WRITE TO A NON BLANK DEVICE
-                        access = MemControl_v2.access_mode.WriteOnce
-                    End If
-                Case MemoryType.NAND
-                    mem_dev = usb_dev.EXT_IF
-                Case MemoryType.SERIAL_I2C
-                    mem_dev = usb_dev.I2C_IF
-                Case MemoryType.SERIAL_MICROWIRE
-                    mem_dev = usb_dev.MW_IF
-                Case MemoryType.SERIAL_QUAD
-                    mem_dev = usb_dev.SQI_NOR_IF
-                Case MemoryType.FWH_NOR
-                    mem_dev = usb_dev.EXT_IF
-                Case MemoryType.OTP_EPROM
-                    mem_dev = usb_dev.EXT_IF
-                Case MemoryType.HYPERFLASH
-                    mem_dev = usb_dev.HF_IF
-                Case MemoryType.SERIAL_SWI
-                    mem_dev = usb_dev.SWI_IF
-            End Select
-            Dim dev_inst As MemoryDeviceInstance = MEM_IF.Add(usb_dev, mem_type, mem_dev.DeviceName, mem_dev.DeviceSize)
+            Dim access As MemControl_v2.access_mode = MemControl_v2.access_mode.Writable
+            If usb_dev.PROGRAMMER Is usb_dev.EPROM_IF Then
+                access = MemControl_v2.access_mode.WriteOnce
+            End If
+            Dim dev_inst As MemoryDeviceInstance = MEM_IF.Add(usb_dev, mem_type, usb_dev.PROGRAMMER.DeviceName, usb_dev.PROGRAMMER.DeviceSize)
             dev_inst.PreferredBlockSize = block_size
             usb_dev.ATTACHED.Add(dev_inst)
             If GUI IsNot Nothing Then
                 AddHandler dev_inst.PrintConsole, AddressOf GUI.PrintConsole
                 AddHandler dev_inst.SetStatus, AddressOf GUI.SetStatus
-                AddHandler mem_dev.SetProgress, AddressOf dev_inst.GuiControl.SetProgress
+                AddHandler usb_dev.PROGRAMMER.SetProgress, AddressOf dev_inst.GuiControl.SetProgress
                 Dim newTab As New TabPage("  " & tab_name & "  ")
                 newTab.Tag = dev_inst
                 dev_inst.GuiControl.Width = newTab.Width
@@ -2241,7 +2230,7 @@ Public Module MainApp
         Return Nothing
     End Function
 
-    Public Function JTAG_Connect_CFI(ByVal usb_dev As FCUSB_DEVICE, ByVal base_address As UInt32) As MemoryDeviceInstance
+    Public Function JTAG_Connect_CFI(usb_dev As FCUSB_DEVICE, base_address As UInt32) As MemoryDeviceInstance
         Try
             WriteConsole(String.Format(RM.GetString("jtag_cfi_attempt_detect"), Hex(base_address).PadLeft(8, "0")))
             If usb_dev.JTAG_IF.CFI_Detect(base_address) Then
@@ -2271,7 +2260,7 @@ Public Module MainApp
         Return Nothing
     End Function
 
-    Public Function JTAG_Connect_BSDL(ByVal usb_dev As FCUSB_DEVICE) As MemoryDeviceInstance
+    Public Function JTAG_Connect_BSDL(usb_dev As FCUSB_DEVICE) As MemoryDeviceInstance
         Dim flash_name As String = usb_dev.JTAG_IF.BoundaryScan_DeviceName()
         Dim flash_size As Long = usb_dev.JTAG_IF.BoundaryScan_DeviceSize()
         Dim dev_inst As MemoryDeviceInstance = MEM_IF.Add(usb_dev, MemoryType.JTAG_BSDL, flash_name, flash_size)
@@ -2294,7 +2283,7 @@ Public Module MainApp
         Return dev_inst
     End Function
 
-    Public Function JTAG_Connect_SPI(ByVal usb_dev As FCUSB_DEVICE, ByVal hw_type As Integer) As MemoryDeviceInstance
+    Public Function JTAG_Connect_SPI(usb_dev As FCUSB_DEVICE, hw_type As Integer) As MemoryDeviceInstance
         Try
             WriteConsole(RM.GetString("jtag_spi_attempt_detect"))
             If usb_dev.JTAG_IF.SPI_Detect(hw_type) Then
@@ -2325,7 +2314,7 @@ Public Module MainApp
         Return Nothing
     End Function
 
-    Public Function JTAG_Connect_DMA(ByVal usb_dev As FCUSB_DEVICE, ByVal base_address As UInt32, ByVal dram_size As UInt32) As MemoryDeviceInstance
+    Public Function JTAG_Connect_DMA(usb_dev As FCUSB_DEVICE, base_address As UInt32, dram_size As UInt32) As MemoryDeviceInstance
         Try
             Dim dev_inst As MemoryDeviceInstance = MEM_IF.Add(usb_dev, MemoryType.JTAG_DMA_RAM, "DRAM", dram_size)
             dev_inst.PreferredBlockSize = 16384
@@ -2351,7 +2340,7 @@ Public Module MainApp
         Return Nothing
     End Function
 
-    Private Function DFU_Connected_Event(ByVal usb_dev As FCUSB_DEVICE) As MemoryDeviceInstance
+    Private Function DFU_Connected_Event(usb_dev As FCUSB_DEVICE) As MemoryDeviceInstance
         Try
             Dim DevSize As UInt32 = usb_dev.DFU_IF.GetFlashSize
             Dim dev_inst As MemoryDeviceInstance = MEM_IF.Add(usb_dev, MemoryType.DFU_MODE, "AVR Firmware", DevSize)
@@ -2377,7 +2366,7 @@ Public Module MainApp
         Return Nothing
     End Function
 
-    Public Sub OnDeviceUpdateProgress(ByVal percent As Integer, ByRef device As FCUSB_DEVICE)
+    Public Sub OnDeviceUpdateProgress(percent As Integer, device As FCUSB_DEVICE)
         If GUI IsNot Nothing Then
             GUI.SetStatusPageProgress(percent)
         End If
@@ -2397,7 +2386,7 @@ Public Module MainApp
 
 #Region "FlashcatUSB Pro and Mach1"
 
-    Private Sub FCUSBPRO_Bootloader(ByVal usb_dev As FCUSB_DEVICE, ByVal board_firmware As String)
+    Private Sub FCUSBPRO_Bootloader(usb_dev As FCUSB_DEVICE, board_firmware As String)
         Dim fw_ver As Single = 0
         If usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
             fw_ver = MACH1_PCB2_FW
@@ -2422,7 +2411,7 @@ Public Module MainApp
         USBCLIENT.HW_BUSY = False
     End Sub
 
-    Private Sub FCUSBPRO_SetDeviceVoltage(ByVal usb_dev As FCUSB_DEVICE, Optional silent As Boolean = False)
+    Private Sub FCUSBPRO_SetDeviceVoltage(usb_dev As FCUSB_DEVICE, Optional silent As Boolean = False)
         Dim console_message As String
         If MySettings.VOLT_SELECT = Voltage.V1_8 Then
             console_message = String.Format(RM.GetString("voltage_set_to"), "1.8V")
@@ -2518,7 +2507,7 @@ Public Module MainApp
             svf_data = Utilities.GetResourceAsBytes("PCB4_3V3.svf")
             svf_code = CPLD_SPI_3V3
         End If
-        If svf_data IsNot Nothing Then
+        If (svf_data IsNot Nothing) Then
             ProgramSVF(usb_dev, svf_data, svf_code)
             Return False 'Stop
         End If
@@ -2569,27 +2558,26 @@ Public Module MainApp
     End Enum
 
     Public Sub MACH1_FPGA_ERASE(usb_dev As FCUSB_DEVICE)
-        Try
-            SetStatus("Erasing FPGA device")
-            MEM_IF.Clear(usb_dev) 'Remove all devices that are on this usb port
-            Dim svf_data() As Byte = Utilities.GetResourceAsBytes("MACH1_ERASE.svf")
-            Dim jtag_successful As Boolean = usb_dev.JTAG_IF.Init(True)
-            If Not jtag_successful Then
-                WriteConsole("Error: failed to connect to FPGA via JTAG")
-                Exit Sub
-            End If
-            Dim svf_file() As String = Utilities.Bytes.ToCharStringArray(svf_data)
-            usb_dev.LOGIC_SetVersion(&HFFFFFFFFUI)
-            Dim result As Boolean = usb_dev.JTAG_IF.JSP.RunFile_SVF(svf_file)
-            If (Not result) Then
-                Dim err_msg As String = "FPGA erase failed"
-                WriteConsole(err_msg) : SetStatus(err_msg)
-                Exit Sub
-            Else
-                SetStatus("FPGA erased successfully")
-            End If
-        Catch ex As Exception
-        End Try
+        SetStatus("Erasing FPGA device")
+        MEM_IF.Clear(usb_dev) 'Remove all devices that are on this usb port
+        Dim svf_data() As Byte = Utilities.GetResourceAsBytes("MACH1_ERASE.svf")
+        Dim jtag_successful As Boolean = usb_dev.JTAG_IF.Init(True)
+        If (Not jtag_successful) Then
+            WriteConsole("Error: failed to connect to FPGA via JTAG")
+            Exit Sub
+        End If
+        Dim svf_file() As String = Utilities.Bytes.ToCharStringArray(svf_data)
+        usb_dev.LOGIC_SetVersion(&HFFFFFFFFUI)
+        Dim result As Boolean = usb_dev.JTAG_IF.JSP.RunFile_SVF(svf_file)
+        If (Not result) Then
+            Dim err_msg As String = "FPGA erase failed"
+            WriteConsole(err_msg) : SetStatus(err_msg)
+            Exit Sub
+        Else
+            SetStatus("FPGA erased successfully")
+            usb_dev.USB_VCC_OFF()
+            FCUSBPRO_SetDeviceVoltage(usb_dev)
+        End If
     End Sub
 
     Public Function FCUSBMACH1_Init(usb_dev As FCUSB_DEVICE, CurrentMode As DeviceMode) As Boolean

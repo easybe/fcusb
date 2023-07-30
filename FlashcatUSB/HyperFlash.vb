@@ -159,7 +159,7 @@ Public Class HF_Port : Implements MemoryDeviceUSB
     End Function
 
     Public Function SectorCount() As UInt32 Implements MemoryDeviceUSB.SectorCount
-        Return MyFlashDevice.SECTOR_COUNT
+        Return MyFlashDevice.Sector_Count
     End Function
 
     Public Function EraseDevice() As Boolean Implements MemoryDeviceUSB.EraseDevice
