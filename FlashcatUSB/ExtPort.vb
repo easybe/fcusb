@@ -71,6 +71,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                 If (MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR) Then
                     Dim NOR_FLASH As MFP_Flash = DirectCast(MyFlashDevice, MFP_Flash)
                     If MySettings.MUTLI_NOR Then
+                        RaiseEvent PrintConsole("Multi-chip select feature is enabled")
                         NOR_FLASH.AVAILABLE_SIZE = (NOR_FLASH.FLASH_SIZE * 2)
                         Me.MULTI_DIE = True
                         Me.DIE_SELECTED = 0
@@ -122,8 +123,8 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                     End Select
                     WaitForReady()
                 ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND Then
-                    RaiseEvent PrintConsole(String.Format(RM.GetString("ext_page_size"), MyFlashDevice.PAGE_SIZE, DirectCast(MyFlashDevice, NAND_Flash).EXT_PAGE_SIZE))
-                    Dim nand_mem As NAND_Flash = DirectCast(MyFlashDevice, NAND_Flash)
+                    RaiseEvent PrintConsole(String.Format(RM.GetString("ext_page_size"), MyFlashDevice.PAGE_SIZE, DirectCast(MyFlashDevice, SLC_NAND_Flash).EXT_PAGE_SIZE))
+                    Dim nand_mem As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
                     If nand_mem.IFACE = ND_IF.X8_3V Then
                         RaiseEvent PrintConsole("NAND interface: X8 3.3V")
                         FCUSB.USB_VCC_3V()
@@ -212,7 +213,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
     Friend ReadOnly Property DeviceSize As UInt32 Implements MemoryDeviceUSB.DeviceSize
         Get
             If MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND Then
-                Dim d As NAND_Flash = DirectCast(MyFlashDevice, NAND_Flash)
+                Dim d As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
                 Dim available_pages As UInt32 = FCUSB.NAND_IF.MAPPED_PAGES
                 If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then
                     Return (available_pages * (d.PAGE_SIZE + d.EXT_PAGE_SIZE))
@@ -230,7 +231,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
 
     Public Function ReadData(ByVal logical_address As UInt32, ByVal data_count As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
         If MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND Then
-            Dim nand_dev As NAND_Flash = DirectCast(MyFlashDevice, NAND_Flash)
+            Dim nand_dev As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
             Dim page_addr As UInt32 'This is the page address
             Dim page_offset As UInt16 'this is the start offset within the page
             Dim page_size As UInt32
@@ -307,7 +308,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
     Public Function Sector_Erase(ByVal sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.Sector_Erase
         If Not MyFlashDevice.ERASE_REQUIRED Then Return True
         If MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND Then
-            Dim pages_per_block As UInt32 = (DirectCast(MyFlashDevice, NAND_Flash).BLOCK_SIZE / MyFlashDevice.PAGE_SIZE)
+            Dim pages_per_block As UInt32 = (DirectCast(MyFlashDevice, SLC_NAND_Flash).BLOCK_SIZE / MyFlashDevice.PAGE_SIZE)
             Dim page_addr As UInt32 = (pages_per_block * sector_index)
             Dim local_page_addr As UInt32 = FCUSB.NAND_IF.GetPageMapping(page_addr)
             Return FCUSB.NAND_IF.ERASEBLOCK(local_page_addr, memory_area, MySettings.NAND_Preserve)
@@ -506,7 +507,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                 Try
                     EXPIO_VPP_START()
                     Dim wm As MFP_PROG = DirectCast(MyFlashDevice, MFP_Flash).WriteMode
-                    If wm = MFP_PROG.IntelSharp Or wm = MFP_PROG.Buffer1 Then
+                    If (wm = MFP_PROG.IntelSharp Or wm = MFP_PROG.Buffer1) Then
                         Dim BlockCount As Integer = DirectCast(MyFlashDevice, MFP_Flash).Sector_Count
                         RaiseEvent SetProgress(0)
                         For i = 0 To BlockCount - 1
@@ -555,7 +556,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                     Return DirectCast(MyFlashDevice, MFP_Flash).GetSectorSize(sector)
                 End If
             Else
-                Dim nand_dev As NAND_Flash = DirectCast(MyFlashDevice, NAND_Flash)
+                Dim nand_dev As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
                 Dim page_count As UInt32 = (nand_dev.BLOCK_SIZE / nand_dev.PAGE_SIZE)
                 Select Case memory_area
                     Case FlashArea.Main
@@ -1081,7 +1082,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
 
     Private Function GetSetupPacket_NAND(ByVal page_addr As UInt32, ByVal page_offset As UInt16, ByVal Count As UInt32, ByVal area As FlashArea) As Byte()
         Dim TX_NAND_ADDRSIZE As Byte 'Number of bytes the address command table uses
-        Dim NAND_DEV As NAND_Flash = DirectCast(MyFlashDevice, NAND_Flash)
+        Dim NAND_DEV As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
         If NAND_DEV.PAGE_SIZE = 512 Then 'Small page
             If (MyFlashDevice.FLASH_SIZE > Mb256) Then
                 TX_NAND_ADDRSIZE = 4
@@ -1193,7 +1194,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         Try
             Dim result As Boolean
             If Me.ECC_READ_ENABLED AndAlso (memory_area = FlashArea.Main) Then 'We need to auto-correct data uisng ECC
-                Dim NAND_DEV As NAND_Flash = DirectCast(MyFlashDevice, NAND_Flash)
+                Dim NAND_DEV As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
                 Dim page_count As UInt32 = Math.Ceiling((count + page_offset) / NAND_DEV.PAGE_SIZE) 'Number of complete pages and OOB to read and correct
                 Dim total_main_bytes As UInt32 = (page_count * NAND_DEV.PAGE_SIZE)
                 Dim total_oob_bytes As UInt32 = (page_count * NAND_DEV.EXT_PAGE_SIZE)
@@ -1225,7 +1226,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
     Private Function WriteBulk_NAND(ByVal page_addr As UInt32, main_data() As Byte, oob_data() As Byte, ByVal memory_area As FlashArea) As Boolean
         Try
             If main_data Is Nothing And oob_data Is Nothing Then Return False
-            Dim NAND_DEV As NAND_Flash = DirectCast(MyFlashDevice, NAND_Flash)
+            Dim NAND_DEV As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
             Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + NAND_DEV.EXT_PAGE_SIZE)
             Dim page_aligned() As Byte = Nothing
             If memory_area = FlashArea.All Then 'Ignore OOB/SPARE

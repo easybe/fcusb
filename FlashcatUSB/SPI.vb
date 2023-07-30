@@ -85,25 +85,6 @@ Namespace SPI
                     RaiseEvent PrintConsole(String.Format(RM.GetString("flash_detected"), Me.DeviceName, Format(Me.DeviceSize, "#,###")))
                     RaiseEvent PrintConsole(String.Format(RM.GetString("spi_flash_page_size"), Format(MyFlashDevice.ERASE_SIZE, "#,###")))
                     Utilities.Sleep(50)
-
-                    'Dim sr() As Byte = ReadStatusRegister() '0x02
-
-
-                    'SPIBUS_WriteEnable()
-
-                    'Dim d(3) As Byte
-                    ''4 13 14
-                    'd(0) = &HD8
-                    'd(0) = &H20
-
-                    'SPIBUS_WriteRead(d, Nothing)
-                    'Beep()
-                    'sr = ReadStatusRegister()
-                    'Beep()
-                    'sr = ReadStatusRegister()
-
-
-
                     Return True
                 Else
                     RaiseEvent PrintConsole(RM.GetString("unknown_device_email"))

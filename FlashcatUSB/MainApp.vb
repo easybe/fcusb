@@ -17,9 +17,9 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 530
+    Public Const Build As Integer = 532
     Public PRO3_CURRENT_FW As Single = 1.28F 'This is the embedded firmware version for pro
-    Public PRO4_CURRENT_FW As Single = 1.02F 'This is the embedded firmware version for pro
+    Public PRO4_CURRENT_FW As Single = 1.03F 'This is the embedded firmware version for pro
 
     Public PRO4_CPLD_3V3 As UInt32 = &HCD330001UI 'The CPLD version code for 3.3v
     Public PRO4_CPLD_1V8 As UInt32 = &HCD180001UI 'The CPLD version code for 1.8v
@@ -52,7 +52,7 @@ Public Module MainApp
             Exit Sub
         End Try
 
-        'Args = {"-READ", "-SPI", "-FILE", "Flash.bin"}
+        'Args = {"-READ", "-SPINAND", "-MHZ", "32", "-FILE", "Flash.bin", "-LENGTH", "20000000", "-LOG", "temp.txt"}
         'Args = {"-READ", "-SPIEEPROM", "-EEPROM", "M95M02", "-FILE", "Flash.bin"}
         'Args = {"-WRITE", "-SPI", "-FILE", "Flash.bin"}
         'Args = {"-EXECUTE", "-SPI", "-FILE", "sample.fcs"}
@@ -397,7 +397,7 @@ Public Module MainApp
         Else
             usb_dev.SPI_NOR_IF.PORT_SELECT = SPI_Programmer.SPIBUS_PORT.Port_A
             usb_dev.SPI_NOR_IF.SPIBUS_Setup()
-            usb_dev.USB_SPI_SETSPEED(SPI_Programmer.SPIBUS_PORT.Port_A, GetSpiClock(usb_dev.HWBOARD, 1000000))
+            usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, 1000000))
         End If
         Select Case eeprom
             Case SPI_EEPROM.nRF24LE1  '16384 bytes
@@ -417,9 +417,9 @@ Public Module MainApp
             usb_dev.SPI_NOR_IF.SetProgPin(True) 'Sets PROG.PIN to HIGH
             Utilities.Sleep(10)
             If (USBCLIENT.HW_MODE = FCUSB_BOARD.Pro_PCB3) OrElse (USBCLIENT.HW_MODE = FCUSB_BOARD.Pro_PCB4) Then
-                usb_dev.USB_SPI_SETSPEED(SPI_Programmer.SPIBUS_PORT.Port_A, GetSpiClock(usb_dev.HWBOARD, 12000000))
+                usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, 12000000))
             Else
-                usb_dev.USB_SPI_SETSPEED(SPI_Programmer.SPIBUS_PORT.Port_A, GetSpiClock(usb_dev.HWBOARD, 8000000))
+                usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, 8000000))
             End If
         End If
         usb_dev.SPI_NOR_IF.MyFlashDevice = Get_SPI_EEPROM(MySettings.SPI_EEPROM)
@@ -446,11 +446,13 @@ Public Module MainApp
         Public Property FLASH_OFFSET As UInt32 = 0
         Public Property FLASH_SIZE As UInt32 = 0
         Public Property SPI_EEPROM As SPI_NOR_FLASH = Nothing
+        Public Property SPI_SPEED As Integer = 10 'In MHZ
         Public Property I2C_EEPROM As I2C_Programmer.I2C_DEVICE = Nothing
         Public Property LogOutput As Boolean = False
         Public Property LogAppendFile As Boolean = False
         Public Property LogFilename As String = "FlashcatUSB_Console.txt"
         Public Property ExitConsole As Boolean = False 'Closes the console window when complete
+
     End Class
 
     Public Sub RunConsoleMode(ByVal Args() As String)
@@ -492,6 +494,8 @@ Public Module MainApp
                     MyConsoleOperation.Mode = DeviceMode.SPI
                 Case "-SPIEEPROM"
                     MyConsoleOperation.Mode = DeviceMode.SPI_EEPROM
+                Case "-SPINAND"
+                    MyConsoleOperation.Mode = DeviceMode.SPI_NAND
                 Case "-I2C"
                     MyConsoleOperation.Mode = DeviceMode.I2C_EEPROM
                 Case "-EXTIO"
@@ -554,10 +558,13 @@ Public Module MainApp
         ConsoleWriteLine(RM.GetString("board_fw_version") & ": " & FCUSB.FW_VERSION) 'Board firmware version
         Select Case MyConsoleOperation.Mode
             Case DeviceMode.SPI
-                ConsoleWriteLine(RM.GetString("device_mode") & ": Serial Programmable Interface (SPI)")
+                ConsoleWriteLine(RM.GetString("device_mode") & ": Serial Programmable Interface (SPI-NOR)")
                 If FCUSB.SPI_NOR_IF.DeviceInit() Then
                     MyConsoleOperation.FLASH_SIZE = FCUSB.SPI_NOR_IF.MyFlashDevice.FLASH_SIZE
                     mem_dev = MEM_IF.Add(FCUSB, FCUSB.SPI_NOR_IF.MyFlashDevice)
+                    Dim desired_speed As UInt32 = (MyConsoleOperation.SPI_SPEED * 1000000)
+                    FCUSB.USB_SPI_SETSPEED(GetSpiClock(FCUSB.HWBOARD, desired_speed))
+                    ConsoleWriteLine(String.Format(RM.GetString("spi_set_clock"), MyConsoleOperation.SPI_SPEED) & " MHz")
                 Else
                     Select Case FCUSB.SPI_NOR_IF.MyFlashStatus
                         Case USB.DeviceStatus.NotDetected
@@ -568,8 +575,26 @@ Public Module MainApp
                     Environment.ExitCode = -1
                     Console_Exit() : Exit Sub
                 End If 'Console mode
+            Case DeviceMode.SPI_NAND
+                ConsoleWriteLine(RM.GetString("device_mode") & ": Serial Programmable Interface (SPI-NAND)")
+                If FCUSB.SPI_NAND_IF.DeviceInit() Then
+                    MyConsoleOperation.FLASH_SIZE = FCUSB.SPI_NAND_IF.MyFlashDevice.FLASH_SIZE
+                    mem_dev = MEM_IF.Add(FCUSB, FCUSB.SPI_NAND_IF.MyFlashDevice)
+                    Dim desired_speed As UInt32 = (MyConsoleOperation.SPI_SPEED * 1000000)
+                    FCUSB.USB_SPI_SETSPEED(GetSpiClock(FCUSB.HWBOARD, desired_speed))
+                    ConsoleWriteLine(String.Format(RM.GetString("spi_set_clock"), MyConsoleOperation.SPI_SPEED) & " MHz")
+                Else
+                    Select Case FCUSB.SPI_NOR_IF.MyFlashStatus
+                        Case USB.DeviceStatus.NotDetected
+                            ConsoleWriteLine(RM.GetString("spi_nand_unable_to_detect"))
+                        Case USB.DeviceStatus.NotSupported
+                            ConsoleWriteLine(RM.GetString("mem_not_supported"))
+                    End Select
+                    Environment.ExitCode = -1
+                    Console_Exit() : Exit Sub
+                End If
             Case DeviceMode.SPI_EEPROM
-                ConsoleWriteLine(RM.GetString("device_mode") & ": Serial Programmable Interface (SPI)")
+                ConsoleWriteLine(RM.GetString("device_mode") & ": Serial Programmable Interface (SPI-EEPROM)")
                 If FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB3 Then
                     FCUSB.SPI_NOR_IF.PORT_SELECT = SPI.SPI_Programmer.SPIBUS_PORT.Port_B
                 End If
@@ -661,7 +686,8 @@ Public Module MainApp
                     ConsoleWriteLine(RM.GetString("console_read_err_nodata")) : Console_Exit() : Exit Sub
                 End If
                 Utilities.FileIO.WriteBytes(data_to_read, MyConsoleOperation.FILE_IO.FullName)
-                ConsoleWriteLine(String.Format(RM.GetString("console_i2c_saved"), MyConsoleOperation.FILE_IO.FullName))
+                Dim console_data_saved As String = "Saved data to: {0}" 'Move this to translated files
+                ConsoleWriteLine(String.Format(console_data_saved, MyConsoleOperation.FILE_IO.FullName))
             Case ConsoleTask.WriteMemory
                 Dim data_out() As Byte = Utilities.FileIO.ReadBytes(MyConsoleOperation.FILE_IO.FullName)
                 If (MyConsoleOperation.FLASH_OFFSET > MyConsoleOperation.FLASH_SIZE) Then MyConsoleOperation.FLASH_OFFSET = 0 'Out of bounds
@@ -739,16 +765,16 @@ Public Module MainApp
                     End If
                 End If
         End Select
-        If MyConsoleOperation.ExitConsole Then
-            ConsoleWriteLine("----------------------------------------------")
-            ConsoleWriteLine(RM.GetString("console_complete"))
-            If MyConsoleOperation.LogOutput Then
-                If MyConsoleOperation.LogAppendFile Then
-                    Utilities.FileIO.AppendFile(ConsoleLog.ToArray, MyConsoleOperation.LogFilename)
-                Else
-                    Utilities.FileIO.WriteFile(ConsoleLog.ToArray, MyConsoleOperation.LogFilename)
-                End If
+        ConsoleWriteLine("----------------------------------------------")
+        ConsoleWriteLine(RM.GetString("console_complete"))
+        If MyConsoleOperation.LogOutput Then
+            If MyConsoleOperation.LogAppendFile Then
+                Utilities.FileIO.AppendFile(ConsoleLog.ToArray, MyConsoleOperation.LogFilename)
+            Else
+                Utilities.FileIO.WriteFile(ConsoleLog.ToArray, MyConsoleOperation.LogFilename)
             End If
+        End If
+        If MyConsoleOperation.ExitConsole Then
             FreeConsole() 'Closes the console window/application
         Else
             Console_Exit() 'Wait for the user to hit enter
@@ -787,6 +813,17 @@ Public Module MainApp
                         ConsoleWriteLine(String.Format(RM.GetString("console_value_missing"), "LOG")) : Console_Exit() : Return False
                     End If
                     MyConsoleOperation.LogFilename = option_task(0) : option_task.RemoveAt(0)
+                    MyConsoleOperation.LogOutput = True
+                Case "-MHZ"
+                    If option_task.Count = 0 OrElse option_task(0).StartsWith("-") Then
+                        ConsoleWriteLine(String.Format(RM.GetString("console_value_missing"), "MHZ")) : Console_Exit() : Return False
+                    End If
+                    Dim speed_val As String = option_task(0) : option_task.RemoveAt(0)
+                    If IsNumeric(speed_val) AndAlso (speed_val > 1 OrElse speed_val < 48) Then
+                        MyConsoleOperation.SPI_SPEED = CInt(speed_val)
+                    Else
+                        ConsoleWriteLine("MHZ value must be between 1 and 48") : Console_Exit() : Return False
+                    End If
                 Case "-LOGAPPEND"
                     MyConsoleOperation.LogAppendFile = True
                 Case "-OFFSET"
@@ -967,9 +1004,10 @@ Public Module MainApp
         ConsoleWriteLine("-listpaths        " & RM.GetString("console_opt_list"))
         ConsoleWriteLine("-help             " & RM.GetString("console_opt_help"))
         ConsoleWriteLine("")
-        ConsoleWriteLine("Modes:")
+        ConsoleWriteLine("Supported modes:")
         ConsoleWriteLine("-SPI")
         ConsoleWriteLine("-SPIEEPROM")
+        ConsoleWriteLine("-SPINAND")
         ConsoleWriteLine("-I2C")
         ConsoleWriteLine("-EXTIO")
         ConsoleWriteLine("-JTAG")
@@ -977,6 +1015,7 @@ Public Module MainApp
         ConsoleWriteLine("Options:")
         ConsoleWriteLine("-File (filename)  " & RM.GetString("console_opt_file"))
         ConsoleWriteLine("-Length (value)   " & RM.GetString("console_opt_length"))
+        ConsoleWriteLine("-MHZ (value)   " & "Specifies the MHz speed for SPI operation")
         ConsoleWriteLine("-Offset (value)   " & RM.GetString("console_opt_offset"))
         ConsoleWriteLine("-EEPROM (part)    " & RM.GetString("console_opt_eeprom"))
         ConsoleWriteLine("-Address (hex)    " & RM.GetString("console_opt_addr"))
@@ -1081,6 +1120,7 @@ Public Module MainApp
         Public Property OTP_ID As UShort
         Public Property S93_DEVICE_INDEX As Integer 'The index of which Series 93 EEPROM to use
         Public Property S93_DEVICE_ORG As Integer '0=8-bit,1=16-bit
+        Public Property SREC_BITMODE As Integer '0=8-bit,1=16-bit
 
         Sub New()
             LoadLanguageSettings()
@@ -1122,6 +1162,7 @@ Public Module MainApp
             Me.OTP_ID = GetRegistryValue("OTP_ID", 0)
             Me.S93_DEVICE_INDEX = GetRegistryValue("S93_DEVICE", 0)
             Me.S93_DEVICE_ORG = GetRegistryValue("S93_ORG", 0)
+            Me.SREC_BITMODE = GetRegistryValue("SREC_ORG", 0)
             LoadCustomSPI()
         End Sub
 
@@ -1164,6 +1205,7 @@ Public Module MainApp
             SetRegistryValue("OTP_ID", Me.OTP_ID)
             SetRegistryValue("S93_DEVICE", Me.S93_DEVICE_INDEX)
             SetRegistryValue("S93_ORG", Me.S93_DEVICE_ORG)
+            SetRegistryValue("SREC_ORG", Me.SREC_BITMODE)
             SaveCustomSPI()
         End Sub
 
@@ -1836,7 +1878,7 @@ Public Module MainApp
                         Connected_Event(usb_dev, MemoryType.SERIAL_NOR, "SPI NOR Flash", 65536)
                         GUI.PrintConsole(RM.GetString("spi_detected_spi")) '"Detected SPI Flash on high-speed SPI port"
                         GUI.PrintConsole(String.Format(RM.GetString("spi_set_clock"), GetSpiClockString(usb_dev)))
-                        usb_dev.USB_SPI_SETSPEED(SPI_Programmer.SPIBUS_PORT.Port_A, GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
+                        usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
                     ElseIf usb_dev.SPI_NOR_IF.PORT_SELECT = SPI.SPI_Programmer.SPIBUS_PORT.Port_B Then
                         Connected_Event(usb_dev, MemoryType.SERIAL_NOR, "SPI NOR Flash", 16384) 'Configures the SPI device for the software interfaces
                         GUI.PrintConsole(RM.GetString("spi_detected_ls_spi"))
@@ -1864,7 +1906,7 @@ Public Module MainApp
                 usb_dev.SPI_NOR_IF.MyFlashDevice = CUSTOM_SPI_DEV
                 Connected_Event(usb_dev, MemoryType.SERIAL_NOR, "SPI NOR Flash", 65536)
                 GUI.PrintConsole(String.Format(RM.GetString("spi_set_clock"), GetSpiClockString(usb_dev)))
-                usb_dev.USB_SPI_SETSPEED(SPI_Programmer.SPIBUS_PORT.Port_A, GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
+                usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
             End If
         ElseIf MySettings.OPERATION_MODE = DeviceMode.SPI_NAND Then
             GUI.PrintConsole(RM.GetString("spi_nand_attempt_detect"))
@@ -1872,7 +1914,7 @@ Public Module MainApp
                 Connected_Event(usb_dev, MemoryType.SERIAL_NAND, "SPI NAND Flash", 65536)
                 GUI.PrintConsole(RM.GetString("spi_nand_detected"))
                 GUI.PrintConsole(String.Format(RM.GetString("spi_set_clock"), GetSpiClockString(usb_dev)))
-                usb_dev.USB_SPI_SETSPEED(SPI_Programmer.SPIBUS_PORT.Port_A, GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
+                usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
             Else
                 Select Case usb_dev.SPI_NOR_IF.MyFlashStatus
                     Case USB.DeviceStatus.NotDetected
@@ -2197,9 +2239,7 @@ Public Module MainApp
     Public Sub FCUSBPRO_CPLD_Init(ByVal usb_dev As FCUSB_DEVICE)
         If Not usb_dev.HWBOARD = FCUSB_BOARD.Pro_PCB4 Then Exit Sub
         Dim cpld32 As UInt32 = usb_dev.CPLD_GetVersion()
-
         'cpld32 = PRO4_CPLD_1V8 'DEBUG!
-
         Dim mode_needed As CPLD_MODE = CPLD_MODE.NotSelected
         If MySettings.OPERATION_MODE = DeviceMode.I2C_EEPROM Then
             mode_needed = CPLD_MODE.I2C

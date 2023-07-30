@@ -136,12 +136,9 @@ Namespace USB
                 End Try
             End Sub
 
-            Public Sub USB_SPI_SETSPEED(PORT As SPI_Programmer.SPIBUS_PORT, ByVal MHZ As UInt32)
+            Public Sub USB_SPI_SETSPEED(ByVal MHZ As UInt32)
                 If (Me.HWBOARD = FCUSB_BOARD.Pro_PCB3) OrElse (Me.HWBOARD = FCUSB_BOARD.Pro_PCB4) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
-                    Select Case PORT
-                        Case SPI_Programmer.SPIBUS_PORT.Port_A
-                            USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, MHZ)
-                    End Select
+                    USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, MHZ)
                 Else
                     Dim clock_byte As Byte
                     Select Case MHZ

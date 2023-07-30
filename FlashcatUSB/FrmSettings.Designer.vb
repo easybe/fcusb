@@ -121,6 +121,9 @@ Partial Class FrmSettings
         Me.lbl_nandecc_biterror = New System.Windows.Forms.Label()
         Me.TP_GEN = New System.Windows.Forms.TabPage()
         Me.GroupBox3 = New System.Windows.Forms.GroupBox()
+        Me.Label16 = New System.Windows.Forms.Label()
+        Me.cbSrec = New System.Windows.Forms.ComboBox()
+        Me.cb_ce_select = New System.Windows.Forms.ComboBox()
         Me.Label20 = New System.Windows.Forms.Label()
         Me.cb_multi_ce = New System.Windows.Forms.ComboBox()
         Me.Label19 = New System.Windows.Forms.Label()
@@ -131,7 +134,6 @@ Partial Class FrmSettings
         Me.cb_otp_device_list = New System.Windows.Forms.ComboBox()
         Me.Label17 = New System.Windows.Forms.Label()
         Me.cb_retry_write = New System.Windows.Forms.ComboBox()
-        Me.cb_ce_select = New System.Windows.Forms.ComboBox()
         Me.MyTabs.SuspendLayout()
         Me.TP_SPI.SuspendLayout()
         Me.group_custom.SuspendLayout()
@@ -1205,6 +1207,8 @@ Partial Class FrmSettings
         '
         'GroupBox3
         '
+        Me.GroupBox3.Controls.Add(Me.Label16)
+        Me.GroupBox3.Controls.Add(Me.cbSrec)
         Me.GroupBox3.Controls.Add(Me.cb_ce_select)
         Me.GroupBox3.Controls.Add(Me.Label20)
         Me.GroupBox3.Controls.Add(Me.cb_multi_ce)
@@ -1218,10 +1222,39 @@ Partial Class FrmSettings
         Me.GroupBox3.Controls.Add(Me.cb_retry_write)
         Me.GroupBox3.Location = New System.Drawing.Point(6, 6)
         Me.GroupBox3.Name = "GroupBox3"
-        Me.GroupBox3.Size = New System.Drawing.Size(507, 238)
+        Me.GroupBox3.Size = New System.Drawing.Size(507, 294)
         Me.GroupBox3.TabIndex = 1
         Me.GroupBox3.TabStop = False
         Me.GroupBox3.Text = "General"
+        '
+        'Label16
+        '
+        Me.Label16.AutoSize = True
+        Me.Label16.Location = New System.Drawing.Point(22, 236)
+        Me.Label16.Name = "Label16"
+        Me.Label16.Size = New System.Drawing.Size(104, 13)
+        Me.Label16.TabIndex = 49
+        Me.Label16.Text = "S-Record data width"
+        '
+        'cbSrec
+        '
+        Me.cbSrec.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cbSrec.FormattingEnabled = True
+        Me.cbSrec.Items.AddRange(New Object() {"8-bit (byte)", "16-bit (word)"})
+        Me.cbSrec.Location = New System.Drawing.Point(22, 254)
+        Me.cbSrec.Name = "cbSrec"
+        Me.cbSrec.Size = New System.Drawing.Size(104, 21)
+        Me.cbSrec.TabIndex = 48
+        '
+        'cb_ce_select
+        '
+        Me.cb_ce_select.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_ce_select.FormattingEnabled = True
+        Me.cb_ce_select.Items.AddRange(New Object() {"A18", "A19", "A20", "A21", "A22", "A23", "A24"})
+        Me.cb_ce_select.Location = New System.Drawing.Point(108, 206)
+        Me.cb_ce_select.Name = "cb_ce_select"
+        Me.cb_ce_select.Size = New System.Drawing.Size(63, 21)
+        Me.cb_ce_select.TabIndex = 47
         '
         'Label20
         '
@@ -1316,16 +1349,6 @@ Partial Class FrmSettings
         Me.cb_retry_write.Name = "cb_retry_write"
         Me.cb_retry_write.Size = New System.Drawing.Size(117, 21)
         Me.cb_retry_write.TabIndex = 39
-        '
-        'cb_ce_select
-        '
-        Me.cb_ce_select.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cb_ce_select.FormattingEnabled = True
-        Me.cb_ce_select.Items.AddRange(New Object() {"A18", "A19", "A20", "A21", "A22", "A23", "A24"})
-        Me.cb_ce_select.Location = New System.Drawing.Point(108, 206)
-        Me.cb_ce_select.Name = "cb_ce_select"
-        Me.cb_ce_select.Size = New System.Drawing.Size(63, 21)
-        Me.cb_ce_select.TabIndex = 47
         '
         'FrmSettings
         '
@@ -1482,4 +1505,6 @@ Partial Class FrmSettings
     Friend WithEvents Label20 As Label
     Friend WithEvents cb_multi_ce As ComboBox
     Friend WithEvents cb_ce_select As ComboBox
+    Friend WithEvents Label16 As Label
+    Friend WithEvents cbSrec As ComboBox
 End Class

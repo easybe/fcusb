@@ -85,6 +85,7 @@ Partial Class MainForm
         Me.FlashStatusLabel = New System.Windows.Forms.ToolStripStatusLabel()
         Me.MyTabs = New System.Windows.Forms.TabControl()
         Me.TabStatus = New System.Windows.Forms.TabPage()
+        Me.statuspage_progress = New System.Windows.Forms.ProgressBar()
         Me.pb_logo = New System.Windows.Forms.PictureBox()
         Me.status_panel = New System.Windows.Forms.TableLayoutPanel()
         Me.sm7 = New System.Windows.Forms.Label()
@@ -127,7 +128,6 @@ Partial Class MainForm
         Me.Label1 = New System.Windows.Forms.Label()
         Me.cbMachDownloadSize = New System.Windows.Forms.ComboBox()
         Me.cmdMach1DnTest = New System.Windows.Forms.Button()
-        Me.statuspage_progress = New System.Windows.Forms.ProgressBar()
         Me.MenuStrip1.SuspendLayout()
         Me.FlashStatus.SuspendLayout()
         Me.MyTabs.SuspendLayout()
@@ -208,18 +208,18 @@ Partial Class MainForm
         '
         Me.mi_mode_settings.Image = Global.FlashcatUSB.My.Resources.Resources.config
         Me.mi_mode_settings.Name = "mi_mode_settings"
-        Me.mi_mode_settings.Size = New System.Drawing.Size(182, 22)
+        Me.mi_mode_settings.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_settings.Text = "Protocol settings"
         '
         'ToolStripSeparator3
         '
         Me.ToolStripSeparator3.Name = "ToolStripSeparator3"
-        Me.ToolStripSeparator3.Size = New System.Drawing.Size(179, 6)
+        Me.ToolStripSeparator3.Size = New System.Drawing.Size(222, 6)
         '
         'mi_verify
         '
         Me.mi_verify.Name = "mi_verify"
-        Me.mi_verify.Size = New System.Drawing.Size(182, 22)
+        Me.mi_verify.Size = New System.Drawing.Size(225, 22)
         Me.mi_verify.Text = "Verify programming"
         '
         'mi_bit_swapping
@@ -227,7 +227,7 @@ Partial Class MainForm
         Me.mi_bit_swapping.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_bitswap_none, Me.mi_bitswap_8bit, Me.mi_bitswap_16bit, Me.mi_bitswap_32bit})
         Me.mi_bit_swapping.Image = Global.FlashcatUSB.My.Resources.Resources.binary
         Me.mi_bit_swapping.Name = "mi_bit_swapping"
-        Me.mi_bit_swapping.Size = New System.Drawing.Size(182, 22)
+        Me.mi_bit_swapping.Size = New System.Drawing.Size(225, 22)
         Me.mi_bit_swapping.Text = "Bit Swapping"
         '
         'mi_bitswap_none
@@ -259,7 +259,7 @@ Partial Class MainForm
         Me.mi_endian.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_bitendian_big_32, Me.mi_bitendian_big_16, Me.mi_bitendian_little_16, Me.mi_bitendian_little_8})
         Me.mi_endian.Image = Global.FlashcatUSB.My.Resources.Resources.binary
         Me.mi_endian.Name = "mi_endian"
-        Me.mi_endian.Size = New System.Drawing.Size(182, 22)
+        Me.mi_endian.Size = New System.Drawing.Size(225, 22)
         Me.mi_endian.Text = "Endian mode"
         '
         'mi_bitendian_big_32
@@ -289,89 +289,89 @@ Partial Class MainForm
         'mi_vcc_seperator
         '
         Me.mi_vcc_seperator.Name = "mi_vcc_seperator"
-        Me.mi_vcc_seperator.Size = New System.Drawing.Size(179, 6)
+        Me.mi_vcc_seperator.Size = New System.Drawing.Size(222, 6)
         '
         'mi_1V8
         '
         Me.mi_1V8.Name = "mi_1V8"
-        Me.mi_1V8.Size = New System.Drawing.Size(182, 22)
+        Me.mi_1V8.Size = New System.Drawing.Size(225, 22)
         Me.mi_1V8.Text = "Voltage (1.8v)"
         '
         'mi_3V3
         '
         Me.mi_3V3.Name = "mi_3V3"
-        Me.mi_3V3.Size = New System.Drawing.Size(182, 22)
+        Me.mi_3V3.Size = New System.Drawing.Size(225, 22)
         Me.mi_3V3.Text = "Voltage (3.3v)"
         '
         'mi_5V0
         '
         Me.mi_5V0.Name = "mi_5V0"
-        Me.mi_5V0.Size = New System.Drawing.Size(182, 22)
+        Me.mi_5V0.Size = New System.Drawing.Size(225, 22)
         Me.mi_5V0.Text = "Voltage (5.0v)"
         '
         'ToolStripSeparator7
         '
         Me.ToolStripSeparator7.Name = "ToolStripSeparator7"
-        Me.ToolStripSeparator7.Size = New System.Drawing.Size(179, 6)
+        Me.ToolStripSeparator7.Size = New System.Drawing.Size(222, 6)
         '
         'mi_mode_spi
         '
         Me.mi_mode_spi.Name = "mi_mode_spi"
-        Me.mi_mode_spi.Size = New System.Drawing.Size(182, 22)
+        Me.mi_mode_spi.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_spi.Text = "SPI NOR FLASH"
         '
         'mi_mode_spi_nand
         '
         Me.mi_mode_spi_nand.Name = "mi_mode_spi_nand"
-        Me.mi_mode_spi_nand.Size = New System.Drawing.Size(182, 22)
+        Me.mi_mode_spi_nand.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_spi_nand.Text = "SPI NAND FLASH"
         '
         'mi_mode_spieeprom
         '
         Me.mi_mode_spieeprom.Name = "mi_mode_spieeprom"
-        Me.mi_mode_spieeprom.Size = New System.Drawing.Size(182, 22)
-        Me.mi_mode_spieeprom.Text = "Serial EEPROM"
+        Me.mi_mode_spieeprom.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_spieeprom.Text = "SPI EEPROM"
         '
         'mi_mode_i2c
         '
         Me.mi_mode_i2c.Name = "mi_mode_i2c"
-        Me.mi_mode_i2c.Size = New System.Drawing.Size(182, 22)
+        Me.mi_mode_i2c.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_i2c.Text = "I2C EEPROM"
         '
         'mi_mode_1wire
         '
         Me.mi_mode_1wire.Name = "mi_mode_1wire"
-        Me.mi_mode_1wire.Size = New System.Drawing.Size(182, 22)
+        Me.mi_mode_1wire.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_1wire.Text = "DOW EEPROM"
         '
         'mi_mode_3wire
         '
         Me.mi_mode_3wire.Name = "mi_mode_3wire"
-        Me.mi_mode_3wire.Size = New System.Drawing.Size(182, 22)
+        Me.mi_mode_3wire.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_3wire.Text = "Microwire EEPROM"
         '
         'mi_mode_extio
         '
         Me.mi_mode_extio.Name = "mi_mode_extio"
-        Me.mi_mode_extio.Size = New System.Drawing.Size(182, 22)
-        Me.mi_mode_extio.Text = "NOR / NAND FLASH"
+        Me.mi_mode_extio.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_extio.Text = "Parallel FLASH (NOR/NAND)"
         '
         'mi_mode_eprom_otp
         '
         Me.mi_mode_eprom_otp.Name = "mi_mode_eprom_otp"
-        Me.mi_mode_eprom_otp.Size = New System.Drawing.Size(182, 22)
+        Me.mi_mode_eprom_otp.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_eprom_otp.Text = "EPROM OTP"
         '
         'mi_mode_jtag
         '
         Me.mi_mode_jtag.Name = "mi_mode_jtag"
-        Me.mi_mode_jtag.Size = New System.Drawing.Size(182, 22)
+        Me.mi_mode_jtag.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_jtag.Text = "JTAG Mode"
         '
         'mi_mode_mach1
         '
         Me.mi_mode_mach1.Name = "mi_mode_mach1"
-        Me.mi_mode_mach1.Size = New System.Drawing.Size(182, 22)
+        Me.mi_mode_mach1.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_mach1.Text = "Mach¹"
         '
         'mi_script_menu
@@ -385,21 +385,21 @@ Partial Class MainForm
         '
         Me.mi_script_selected.Image = Global.FlashcatUSB.My.Resources.Resources.config
         Me.mi_script_selected.Name = "mi_script_selected"
-        Me.mi_script_selected.Size = New System.Drawing.Size(144, 22)
+        Me.mi_script_selected.Size = New System.Drawing.Size(152, 22)
         Me.mi_script_selected.Text = "Select script"
         '
         'mi_script_load
         '
         Me.mi_script_load.Image = Global.FlashcatUSB.My.Resources.Resources.openfile
         Me.mi_script_load.Name = "mi_script_load"
-        Me.mi_script_load.Size = New System.Drawing.Size(144, 22)
+        Me.mi_script_load.Size = New System.Drawing.Size(152, 22)
         Me.mi_script_load.Text = "Load script"
         '
         'mi_script_unload
         '
         Me.mi_script_unload.Image = Global.FlashcatUSB.My.Resources.Resources.clear_x
         Me.mi_script_unload.Name = "mi_script_unload"
-        Me.mi_script_unload.Size = New System.Drawing.Size(144, 22)
+        Me.mi_script_unload.Size = New System.Drawing.Size(152, 22)
         Me.mi_script_unload.Text = "Unload script"
         '
         'mi_tools_menu
@@ -470,49 +470,49 @@ Partial Class MainForm
         '
         Me.mi_language_english.Image = Global.FlashcatUSB.My.Resources.Resources.English
         Me.mi_language_english.Name = "mi_language_english"
-        Me.mi_language_english.Size = New System.Drawing.Size(134, 22)
+        Me.mi_language_english.Size = New System.Drawing.Size(152, 22)
         Me.mi_language_english.Text = "English"
         '
         'mi_language_spanish
         '
         Me.mi_language_spanish.Image = Global.FlashcatUSB.My.Resources.Resources.spain
         Me.mi_language_spanish.Name = "mi_language_spanish"
-        Me.mi_language_spanish.Size = New System.Drawing.Size(134, 22)
+        Me.mi_language_spanish.Size = New System.Drawing.Size(152, 22)
         Me.mi_language_spanish.Text = "Spanish"
         '
         'mi_language_french
         '
         Me.mi_language_french.Image = Global.FlashcatUSB.My.Resources.Resources.france
         Me.mi_language_french.Name = "mi_language_french"
-        Me.mi_language_french.Size = New System.Drawing.Size(134, 22)
+        Me.mi_language_french.Size = New System.Drawing.Size(152, 22)
         Me.mi_language_french.Text = "French"
         '
         'mi_language_portuguese
         '
         Me.mi_language_portuguese.Image = Global.FlashcatUSB.My.Resources.Resources.portugal
         Me.mi_language_portuguese.Name = "mi_language_portuguese"
-        Me.mi_language_portuguese.Size = New System.Drawing.Size(134, 22)
+        Me.mi_language_portuguese.Size = New System.Drawing.Size(152, 22)
         Me.mi_language_portuguese.Text = "Portuguese"
         '
         'mi_language_russian
         '
         Me.mi_language_russian.Image = Global.FlashcatUSB.My.Resources.Resources.russia
         Me.mi_language_russian.Name = "mi_language_russian"
-        Me.mi_language_russian.Size = New System.Drawing.Size(134, 22)
+        Me.mi_language_russian.Size = New System.Drawing.Size(152, 22)
         Me.mi_language_russian.Text = "Russian"
         '
         'mi_language_chinese
         '
         Me.mi_language_chinese.Image = Global.FlashcatUSB.My.Resources.Resources.china
         Me.mi_language_chinese.Name = "mi_language_chinese"
-        Me.mi_language_chinese.Size = New System.Drawing.Size(134, 22)
+        Me.mi_language_chinese.Size = New System.Drawing.Size(152, 22)
         Me.mi_language_chinese.Text = "Chinese"
         '
         'mi_language_italian
         '
         Me.mi_language_italian.Image = Global.FlashcatUSB.My.Resources.Resources.Italy
         Me.mi_language_italian.Name = "mi_language_italian"
-        Me.mi_language_italian.Size = New System.Drawing.Size(134, 22)
+        Me.mi_language_italian.Size = New System.Drawing.Size(152, 22)
         Me.mi_language_italian.Text = "Italian"
         '
         'FlashStatus
@@ -557,6 +557,13 @@ Partial Class MainForm
         Me.TabStatus.Size = New System.Drawing.Size(459, 297)
         Me.TabStatus.TabIndex = 0
         Me.TabStatus.Text = "  Status  "
+        '
+        'statuspage_progress
+        '
+        Me.statuspage_progress.Location = New System.Drawing.Point(3, 282)
+        Me.statuspage_progress.Name = "statuspage_progress"
+        Me.statuspage_progress.Size = New System.Drawing.Size(450, 12)
+        Me.statuspage_progress.TabIndex = 8
         '
         'pb_logo
         '
@@ -740,7 +747,7 @@ Partial Class MainForm
         Me.TabMultiDevice.Location = New System.Drawing.Point(4, 22)
         Me.TabMultiDevice.Name = "TabMultiDevice"
         Me.TabMultiDevice.Padding = New System.Windows.Forms.Padding(3)
-        Me.TabMultiDevice.Size = New System.Drawing.Size(459, 310)
+        Me.TabMultiDevice.Size = New System.Drawing.Size(459, 297)
         Me.TabMultiDevice.TabIndex = 2
         Me.TabMultiDevice.Text = "  Multi-device  "
         '
@@ -886,7 +893,7 @@ Partial Class MainForm
         Me.TabMach1.Location = New System.Drawing.Point(4, 22)
         Me.TabMach1.Name = "TabMach1"
         Me.TabMach1.Padding = New System.Windows.Forms.Padding(3)
-        Me.TabMach1.Size = New System.Drawing.Size(459, 310)
+        Me.TabMach1.Size = New System.Drawing.Size(459, 297)
         Me.TabMach1.TabIndex = 3
         Me.TabMach1.Text = "  Mach1 Development  "
         '
@@ -978,13 +985,6 @@ Partial Class MainForm
         Me.cmdMach1DnTest.TabIndex = 0
         Me.cmdMach1DnTest.Text = "Read from MCU"
         Me.cmdMach1DnTest.UseVisualStyleBackColor = True
-        '
-        'statuspage_progress
-        '
-        Me.statuspage_progress.Location = New System.Drawing.Point(3, 282)
-        Me.statuspage_progress.Name = "statuspage_progress"
-        Me.statuspage_progress.Size = New System.Drawing.Size(450, 12)
-        Me.statuspage_progress.TabIndex = 8
         '
         'MainForm
         '

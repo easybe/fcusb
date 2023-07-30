@@ -171,7 +171,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             page_addr = Math.Floor(logical_address / MyFlashDevice.EXT_PAGE_SIZE)
             page_offset = logical_address - (page_addr * MyFlashDevice.EXT_PAGE_SIZE)
         ElseIf (memory_area = FlashArea.All) Then   'we need to adjust large address to logical address
-            page_size = MyFlashDevice.EXT_PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE
+            page_size = MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE
             Dim full_page_size As UInt32 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE)
             page_addr = Math.Floor(logical_address / full_page_size)
             page_offset = logical_address - (page_addr * full_page_size)
@@ -502,7 +502,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                     SPIBUS_WriteRead(op_setup, read_packet)
                     Select Case memory_area
                         Case FlashArea.Main
-                            Dim sub_index As UInt16 = (page_offset / nand_layout.Layout_Main) 'the sub block we are in			
+                            Dim sub_index As UInt16 = Math.Floor(page_offset / nand_layout.Layout_Main) 'the sub block we are in			
                             Dim adj_offset As UInt16 = (sub_index * logical_block) + (page_offset Mod nand_layout.Layout_Main)
                             sub_index += 1
                             Do While Not (adj_offset = page_size_tot)
@@ -521,7 +521,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                                 page_addr += 1
                             End If
                         Case FlashArea.OOB
-                            Dim sub_index As UInt16 = (page_offset / nand_layout.Layout_Spare) + 1 'the sub block we are in			
+                            Dim sub_index As UInt16 = Math.Floor(page_offset / nand_layout.Layout_Spare) + 1 'the sub block we are in			
                             Dim adj_offset As UInt16 = ((sub_index * logical_block) - nand_layout.Layout_Spare) + (page_offset Mod nand_layout.Layout_Spare)
                             sub_index += 1
                             Do While Not ((adj_offset - nand_layout.Layout_Main) = page_size_tot)
@@ -633,6 +633,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     Private Function SetupPacket_NAND(ByVal page_addr As UInt32, ByVal page_offset As UInt16, ByVal Count As UInt32, ByVal area As FlashArea) As Byte()
         Dim nand_layout As NANDLAYOUT_STRUCTURE = NANDLAYOUT_Get(MyFlashDevice)
         Dim spare_size As UInt16 = MyFlashDevice.EXT_PAGE_SIZE
+        If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then area = FlashArea.All
         Dim setup_data(19) As Byte
         setup_data(0) = CByte(page_addr And 255)
         setup_data(1) = CByte((page_addr >> 8) And 255)

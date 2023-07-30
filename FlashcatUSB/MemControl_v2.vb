@@ -525,7 +525,7 @@ Public Class MemControl_v2
                 Me.AddExtendedArea(available_pages, d.PAGE_SIZE, d.EXT_PAGE_SIZE, pages_per_block)
             End If
         ElseIf Me.ParentMemDevice.FlashType = FlashMemory.MemoryType.SLC_NAND Then
-            Dim d As FlashMemory.NAND_Flash = DirectCast(FCUSB.EXT_IF.MyFlashDevice, FlashMemory.NAND_Flash)
+            Dim d As FlashMemory.SLC_NAND_Flash = DirectCast(FCUSB.EXT_IF.MyFlashDevice, FlashMemory.SLC_NAND_Flash)
             Dim pages_per_block As UInt32 = (d.BLOCK_SIZE / d.PAGE_SIZE)
             Dim available_pages As UInt32 = FCUSB.NAND_IF.MAPPED_PAGES
             Me.FlashAvailable = FCUSB.EXT_IF.DeviceSize
@@ -908,7 +908,13 @@ Public Class MemControl_v2
                         RaiseEvent WriteConsole(String.Format(RM.GetString("mc_mem_converting_format"), "S-REC"))
                         Dim data() As Byte = Utilities.FileIO.ReadBytes(read_params.FileName.FullName)
                         If data IsNot Nothing AndAlso data.Length > 0 Then
-                            data = Utilities.SREC_FromBin(data, read_params.FileName.Name, 0)
+                            Dim data_size As Integer = 8
+                            If MySettings.SREC_BITMODE = 0 Then
+                                data_size = 8
+                            ElseIf MySettings.SREC_BITMODE = 1 Then
+                                data_size = 16
+                            End If
+                            data = Utilities.SREC_FromBin(data, read_params.FileName.Name, 0, data_size)
                             Utilities.FileIO.WriteBytes(data, read_params.FileName.FullName)
                         End If
                     End If
@@ -1264,7 +1270,13 @@ Public Class MemControl_v2
                 RaiseEvent SetStatus(String.Format(RM.GetString("mc_mem_incorrect_format"), "S-REC"))
                 Exit Sub
             End If
-            Dim b() As Byte = Utilities.SREC_ToBin(hex_data, Nothing, Nothing)
+            Dim data_size As Integer = 8
+            If MySettings.SREC_BITMODE = 0 Then
+                data_size = 8
+            ElseIf MySettings.SREC_BITMODE = 1 Then
+                data_size = 16
+            End If
+            Dim b() As Byte = Utilities.SREC_ToBin(hex_data, "", 0, data_size)
             x.DataStream = New IO.MemoryStream
             x.DataStream.Write(b, 0, b.Length)
             RaiseEvent WriteConsole(String.Format(RM.GetString("mc_mem_open_file_write"), x.FileName.Name, "S-REC", Format(hex_data.Length, "#,###")))

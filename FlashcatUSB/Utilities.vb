@@ -1978,15 +1978,15 @@ Namespace Utilities
             End Try
             Return False
         End Function
-        'Converts binary data to SREC file format
-        Public Function SREC_FromBin(ByVal input() As Byte, ByVal header_name As String, ByVal start_addr As UInt32) As Byte()
+        'Converts binary data to SREC file format (data_width=8 or data_width=16)
+        Public Function SREC_FromBin(ByVal input() As Byte, ByVal header_name As String, ByVal start_addr As UInt32, ByVal data_width As Integer) As Byte()
             Try
                 Dim addr_size As Integer = 16 ' 16/24/32
                 Dim record_count As UInt32 = 0 'Number S1/S2/S3 records
                 Dim lines As New List(Of String)
                 If header_name = "" Then header_name = "no_name.srec"
                 Dim header_bytes() As Byte = Bytes.FromString(header_name)
-                lines.Add(SREC_CreateLine("S0", 0, 16, Bytes.ToHexString(header_bytes)))
+                lines.Add(SREC_CreateLine("S0", 0, 16, Bytes.ToHexString(header_bytes), data_width))
                 Dim bytes_left As UInt32 = input.Length
                 If bytes_left <= &HFFFF Then
                     addr_size = 16
@@ -1998,33 +1998,33 @@ Namespace Utilities
                 Dim arr_ptr As UInt32 = 0
                 Do Until bytes_left = 0
                     record_count += 1
-                    Dim arr_size As Integer = Math.Min(bytes_left, 16) '16 bytes per record (highest compatibility)
+                    Dim arr_size As UInt32 = Math.Min(bytes_left, 16 * (data_width / 8)) '16 bytes per record (highest compatibility)
                     bytes_left = bytes_left - arr_size
                     Dim block(arr_size - 1) As Byte
                     Array.Copy(input, arr_ptr, block, 0, block.Length)
                     Dim hex_line As String = Bytes.ToHexString(block)
                     Select Case addr_size
                         Case 16
-                            lines.Add(SREC_CreateLine("S1", arr_ptr, addr_size, hex_line))
+                            lines.Add(SREC_CreateLine("S1", arr_ptr, addr_size, hex_line, data_width))
                         Case 24
-                            lines.Add(SREC_CreateLine("S2", arr_ptr, addr_size, hex_line))
+                            lines.Add(SREC_CreateLine("S2", arr_ptr, addr_size, hex_line, data_width))
                         Case 32
-                            lines.Add(SREC_CreateLine("S3", arr_ptr, addr_size, hex_line))
+                            lines.Add(SREC_CreateLine("S3", arr_ptr, addr_size, hex_line, data_width))
                     End Select
                     arr_ptr += arr_size
                 Loop
                 If record_count <= &HFFFF Then
-                    lines.Add(SREC_CreateLine("S5", record_count, 16))
+                    lines.Add(SREC_CreateLine("S5", record_count, 16, "", data_width))
                 Else
-                    lines.Add(SREC_CreateLine("S6", record_count, 24))
+                    lines.Add(SREC_CreateLine("S6", record_count, 24, "", data_width))
                 End If
                 Select Case addr_size
                     Case 16
-                        lines.Add(SREC_CreateLine("S9", start_addr, addr_size))
+                        lines.Add(SREC_CreateLine("S9", start_addr, addr_size, "", data_width))
                     Case 24
-                        lines.Add(SREC_CreateLine("S8", start_addr, addr_size))
+                        lines.Add(SREC_CreateLine("S8", start_addr, addr_size, "", data_width))
                     Case 32
-                        lines.Add(SREC_CreateLine("S7", start_addr, addr_size))
+                        lines.Add(SREC_CreateLine("S7", start_addr, addr_size, "", data_width))
                 End Select
                 Dim file_out() As String = lines.ToArray
                 Dim data_out() As Byte = Bytes.FromCharStringArray(file_out)
@@ -2036,8 +2036,8 @@ Namespace Utilities
                 Return Nothing
             End Try
         End Function
-        'Converts SREC file format to binary (returns nothing on error)
-        Public Function SREC_ToBin(ByVal input() As Byte, ByRef header_name As String, ByRef start_addr As UInt32) As Byte()
+        'Converts SREC file format to binary (returns nothing on error) (data_width=8 or data_width=16)
+        Public Function SREC_ToBin(ByVal input() As Byte, ByRef header_name As String, ByRef start_addr As UInt32, ByVal data_width As Integer) As Byte()
             header_name = ""
             start_addr = 0
             Dim MB_ONE As UInt32 = 1048576 '1 Megabyte
@@ -2051,7 +2051,7 @@ Namespace Utilities
                         Dim header_line_body As String = lines(i).Substring(8, lines(i).Length - 10)
                         header_name = Bytes.ToChrString(Bytes.FromHexString(header_line_body))
                     Case "S1" '16-bit addr with DATA
-                        Dim offset As UInt32 = HexToUInt(lines(i).Substring(4, 4))
+                        Dim offset As UInt32 = HexToUInt(lines(i).Substring(4, 4)) * (data_width / 8)
                         Dim data_line As String = lines(i).Substring(8, lines(i).Length - 10)
                         Dim data() As Byte = Bytes.FromHexString(data_line)
                         If (offset + data.Length) > highest_byte_addr Then highest_byte_addr = (offset + data.Length)
@@ -2060,8 +2060,8 @@ Namespace Utilities
                         End If
                         Array.Copy(data, 0, buffer, offset, data.Length)
                     Case "S2" '24-bit addrwith DATA
-                        Dim offset As UInt32 = HexToUInt(lines(i).Substring(4, 6))
-                        Dim data_line As String = lines(i).Substring(8, lines(i).Length - 12)
+                        Dim offset As UInt32 = HexToUInt(lines(i).Substring(4, 6)) * (data_width / 8)
+                        Dim data_line As String = lines(i).Substring(10, lines(i).Length - 12)
                         Dim data() As Byte = Bytes.FromHexString(data_line)
                         If (offset + data.Length) > highest_byte_addr Then highest_byte_addr = (offset + data.Length)
                         If (highest_byte_addr > buffer.Length) Then
@@ -2069,8 +2069,8 @@ Namespace Utilities
                         End If
                         Array.Copy(data, 0, buffer, offset, data.Length)
                     Case "S3" '32-bit addr with DATA
-                        Dim offset As UInt32 = HexToUInt(lines(i).Substring(4, 8))
-                        Dim data_line As String = lines(i).Substring(8, lines(i).Length - 14)
+                        Dim offset As UInt32 = HexToUInt(lines(i).Substring(4, 8)) * (data_width / 8)
+                        Dim data_line As String = lines(i).Substring(12, lines(i).Length - 14)
                         Dim data() As Byte = Bytes.FromHexString(data_line)
                         If (offset + data.Length) > highest_byte_addr Then highest_byte_addr = (offset + data.Length)
                         If (highest_byte_addr > buffer.Length) Then
@@ -2104,8 +2104,11 @@ Namespace Utilities
                 Else
                     Return False
                 End If
+                Dim line_len_entire As Integer = (line.Length / 2) - 2
                 line = line.Substring(2) 'Remove the first two
                 Dim line_crc As Byte = HexToInt(line.Substring(line.Length - 2))
+                Dim line_len_seg As Byte = HexToInt(line.Substring(0, 2))
+                If Not line_len_entire = line_len_seg Then Return False
                 line = line.Substring(0, line.Length - 2)
                 Dim d() As Byte = Bytes.FromHexString(line)
                 If Not d(0) = d.Length Then Return False 'Checks line length byte
@@ -2120,8 +2123,11 @@ Namespace Utilities
             Return False
         End Function
         'Converts a line into SREC line with RECORD/LEN/INPUT/CRC
-        Private Function SREC_CreateLine(record As String, addr As UInt32, size As UInt32, Optional input As String = "") As String
+        Private Function SREC_CreateLine(record As String, addr As UInt32, size As UInt32, input As String, data_width As Integer) As String
             Dim line_out As String = ""
+            If addr <> 0 Then
+                addr = addr / (data_width / 8)
+            End If
             Select Case size
                 Case 16
                     line_out = Hex(addr).PadLeft(4, "0") & input

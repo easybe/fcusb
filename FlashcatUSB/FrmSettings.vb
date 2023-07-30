@@ -156,6 +156,7 @@ Public Class FrmSettings
         cb_s93_devices.SelectedIndex = MySettings.S93_DEVICE_INDEX
         cb_s93_org.SelectedIndex = MySettings.S93_DEVICE_ORG
         cb_retry_write.SelectedIndex = (MySettings.VERIFY_COUNT - 1)
+        cbSrec.SelectedIndex = MySettings.SREC_BITMODE
         'BETA VERSION ONLY - DISABLE THESE
         MyTabs.TabPages.Remove(TP_JTAG)
     End Sub
@@ -335,6 +336,8 @@ Public Class FrmSettings
         MySettings.VERIFY_COUNT = cb_retry_write.SelectedIndex + 1
         MySettings.S93_DEVICE_INDEX = cb_s93_devices.SelectedIndex
         MySettings.S93_DEVICE_ORG = cb_s93_org.SelectedIndex
+        
+        MySettings.SREC_BITMODE = cbSrec.SelectedIndex
     End Sub
 
     Private Sub CustomDevice_LoadSettings()
@@ -365,7 +368,7 @@ Public Class FrmSettings
         Select Case CUSTOM_SPI_DEV.ERASE_SIZE
             Case 0 'Erase not required
                 cb_erase_size.SelectedIndex = 0
-            Case FlashMemory.Kb032
+            Case FlashMemory.Kb016
                 cb_erase_size.SelectedIndex = 1
             Case FlashMemory.Kb064
                 cb_erase_size.SelectedIndex = 2
@@ -922,6 +925,8 @@ Public Class FrmSettings
         End Try
         txt_ecc_location.Text = "0x" & Hex(MySettings.ECC_Location).PadLeft(2, "0")
     End Sub
+
+
 
 
 #End Region
