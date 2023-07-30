@@ -18,23 +18,23 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 582
+    Public Const Build As Integer = 585
 
-    Private Const PRO_PCB4_FW As Single = 1.16F 'This is the embedded firmware version for pro
+    Private Const PRO_PCB4_FW As Single = 1.18F 'This is the embedded firmware version for pro
     Private Const PRO_PCB5_FW As Single = 1.02F 'This is the embedded firmware version for pro
-    Private Const MACH1_PCB2_FW As Single = 2.1F 'Firmware version for Mach1
-    Private Const XPORT_PCB1_FW As Single = 4.53F 'XPORT PCB 1.x
-    Private Const XPORT_PCB2_FW As Single = 5.08F 'XPORT PCB 2.x
+    Private Const MACH1_PCB2_FW As Single = 2.12F 'Firmware version for Mach1
+    Private Const XPORT_PCB1_FW As Single = 4.54F 'XPORT PCB 1.x
+    Private Const XPORT_PCB2_FW As Single = 5.09F 'XPORT PCB 2.x
     Private Const CLASSIC_FW As Single = 4.49F 'Min revision allowed for classic (PCB 2.x)
 
-    Private Const CPLD_SPI_3V3 As UInt32 = &HCD330002UI 'ID CODE FOR SPI (3.3v)
-    Private Const CPLD_SPI_1V8 As UInt32 = &HCD180002UI 'ID CODE FOR JTAG (1.8v)
+    Private Const CPLD_SPI_3V3 As UInt32 = &HCD330003UI 'ID CODE FOR SPI (3.3v)
+    Private Const CPLD_SPI_1V8 As UInt32 = &HCD180003UI 'ID CODE FOR JTAG (1.8v)
     Private Const CPLD_I2C As UInt32 = &HBD330002UI 'ID CODE FOR I2C (3.3v)
     Private Const CPLD_JTAG As UInt32 = &HCD330101UI 'ID CODE FOR JTAG (3.3v)
     Private Const CPLD_QSPI_3V3 As UInt32 = &HCD330121UI 'ID CODE FOR JTAG (3.3v)
     Private Const CPLD_QSPI_1V8 As UInt32 = &HCD180121UI 'ID CODE FOR JTAG (1.8v)
-    Private Const MACH1_FGPA_3V3 As UInt32 = &HAF330004UI
-    Private Const MACH1_FGPA_1V8 As UInt32 = &HAF180004UI
+    Private Const MACH1_FGPA_3V3 As UInt32 = &HAF330005UI
+    Private Const MACH1_FGPA_1V8 As UInt32 = &HAF180005UI
     Public AppIsClosing As Boolean = False
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
     Public WithEvents ScriptEngine As New FcScriptEngine
@@ -1173,6 +1173,8 @@ Public Module MainApp
         Public Property NAND_BadBlockMarkers As BadBlockMarker
         Public Property NAND_MismatchSkip As Boolean = True
         Public Property NAND_Layout As NandMemLayout = NandMemLayout.Separated
+        Public Property NAND_Speed As NandMemSpeed = NandMemSpeed._20MHz
+
         'NAND ECC Settings
         Public Property ECC_READ_ENABLED As Boolean
         Public Property ECC_WRITE_ENABLED As Boolean
@@ -1230,6 +1232,7 @@ Public Module MainApp
             Me.NAND_BadBlockMarkers = GetRegistryValue("NAND_BadBlockMarker", (BadBlockMarker._1stByte_FirstPage Or BadBlockMarker._1stByte_SecondPage Or BadBlockMarker._1stByte_LastPage))
             Me.NAND_MismatchSkip = GetRegistryValue("NAND_Mismatch", True)
             Me.NAND_Layout = GetRegistryValue("NAND_Layout", NandMemLayout.Separated)
+            Me.NAND_Speed = GetRegistryValue("NAND_Speed", NandMemSpeed._20MHz)
             Me.ECC_READ_ENABLED = GetRegistryValue("ECC_READ", False)
             Me.ECC_WRITE_ENABLED = GetRegistryValue("ECC_WRITE", False)
             Me.ECC_Algorithum = GetRegistryValue("ECC_ALG", 0)
@@ -1275,6 +1278,7 @@ Public Module MainApp
             SetRegistryValue("NAND_BadBlockMarker", NAND_BadBlockMarkers)
             SetRegistryValue("NAND_Mismatch", NAND_MismatchSkip)
             SetRegistryValue("NAND_Layout", NAND_Layout)
+            SetRegistryValue("NAND_Speed", NAND_Speed)
             SetRegistryValue("Language", LanguageName)
             SetRegistryValue("ECC_READ", Me.ECC_READ_ENABLED)
             SetRegistryValue("ECC_WRITE", Me.ECC_WRITE_ENABLED)
@@ -1341,6 +1345,28 @@ Public Module MainApp
             Combined = 2 'We want to see all data 
             Segmented = 3 'Main is spread across the entire page with spare area after each 512 byte chunks
         End Enum
+
+        Public Enum NandMemSpeed As Integer
+            _20MHz = 0
+            _10MHz = 1
+            _5MHz = 2
+            _1MHz = 3
+        End Enum
+
+        Public Shared Function NandMemSpeedToString(speed As NandMemSpeed) As String
+            Select Case speed
+                Case NandMemSpeed._20MHz
+                    Return "20MHz"
+                Case NandMemSpeed._10MHz
+                    Return "10MHz"
+                Case NandMemSpeed._5MHz
+                    Return "5MHz"
+                Case NandMemSpeed._1MHz
+                    Return "1MHz"
+                Case Else
+                    Return "ERROR"
+            End Select
+        End Function
 
         Public Enum JTAG_TCK_FREQ As Integer
             _10MHZ = 1
@@ -2008,14 +2034,18 @@ Public Module MainApp
                         End If
                     ElseIf (usb_dev.EXT_IF.MyAdapter = MEM_PROTOCOL.NAND_X8_ASYNC) Then
                         If usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
-                            Connected_Event(usb_dev, MemoryType.NAND, "NAND X8 Flash", 524288) '262144
+                            Connected_Event(usb_dev, MemoryType.NAND, "NAND X8 Flash", 524288)
                         Else
                             Connected_Event(usb_dev, MemoryType.NAND, "NAND X8 Flash", 65536)
                         End If
                     ElseIf (usb_dev.EXT_IF.MyAdapter = MEM_PROTOCOL.FWH) Then
                         Connected_Event(usb_dev, MemoryType.FWH_NOR, "FWH Flash", 4096)
                     Else
-                        Connected_Event(usb_dev, MemoryType.PARALLEL_NOR, "NOR Flash", 16384)
+                        If usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
+                            Connected_Event(usb_dev, MemoryType.PARALLEL_NOR, "NOR Flash", 262144)
+                        Else
+                            Connected_Event(usb_dev, MemoryType.PARALLEL_NOR, "NOR Flash", 16384)
+                        End If
                     End If
                 Case DeviceStatus.NotSupported
                     GUI.SetStatus(RM.GetString("mem_not_supported")) '"Flash memory detected but not found in Flash library"

@@ -366,7 +366,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                     If Me.MULTI_DIE Then sector_start_addr = GetAddressForMultiDie(Logical_Address, 0, 0)
                     EXPIO_EraseSector(sector_start_addr)
                     EXPIO_VPP_DISABLE()
-                    If nor_device.DELAY_MODE = MFP_DELAY.DQ7 Or nor_device.DELAY_MODE = MFP_DELAY.SR1 Or nor_device.DELAY_MODE = MFP_DELAY.SR2 Then
+                    If nor_device.DELAY_MODE = MFP_DELAY.SR1 Or nor_device.DELAY_MODE = MFP_DELAY.SR2 Then
                         FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT) 'Calls the assigned WAIT function (uS, mS, SR, DQ7)
                         FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
                     Else
@@ -420,13 +420,15 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                         ReturnValue = WriteBulk_NOR(logical_address, data)
                     End If
                     If (Not ReturnValue) Then Return False
+                    If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 AndAlso nor_device.WriteMode = MFP_PRG.BypassMode Then
+                        Utilities.Sleep(300) 'Board is too fast! We need a delay between writes (i.e. AM29LV160B)
+                    End If
+                    FCUSB.USB_WaitForComplete()
                     logical_address += data.Length
                     DataToWrite -= data.Length
-                    FCUSB.USB_WaitForComplete()
                 Next
                 If nor_device.DELAY_MODE = MFP_DELAY.DQ7 Or nor_device.DELAY_MODE = MFP_DELAY.SR1 Or nor_device.DELAY_MODE = MFP_DELAY.SR2 Then
-                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT) 'Calls the assigned WAIT function (uS, mS, SR, DQ7)
-                    FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
+                    EXPIO_WAIT()
                 Else
                     Utilities.Sleep(DirectCast(MyFlashDevice, P_NOR).SOFTWARE_DELAY)
                 End If
@@ -496,7 +498,8 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
 
     Public Sub WaitForReady() Implements MemoryDeviceUSB.WaitUntilReady
         If MyFlashDevice.FLASH_TYPE = MemoryType.NAND Then
-            EXPIO_WAIT()
+            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT)
+            FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
         ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
             Utilities.Sleep(100) 'Some flash devices have registers, some rely on delays
         ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.FWH_NOR Then
@@ -664,7 +667,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
 
     Private Function NAND_GetSR() As Byte
         Dim result_data(0) As Byte
-        Dim result As Boolean = FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.EXPIO_NAND_SR, result_data)
+        Dim result As Boolean = FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_NAND_SR, result_data)
         Return result_data(0) 'E0 11100000
     End Function
 
@@ -679,15 +682,15 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
 #End Region
 
 #Region "EPROM / OTP"
-    'Private Property EPROM_X16_MODE As Boolean
+
     Public Function EPROM_Init() As Boolean
         MyFlashDevice = Nothing
         If EPROM_Detect(True) Then 'X16
-            Me.MyAdapter = MEM_PROTOCOL.NOR_X16
+            Me.MyAdapter = MEM_PROTOCOL.EPROM_X16
             EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.EPROM_X16)
             RaiseEvent PrintConsole("Device mode set to EPROM (16-bit)")
         ElseIf EPROM_Detect(False) Then 'X8
-            Me.MyAdapter = MEM_PROTOCOL.NOR_X8
+            Me.MyAdapter = MEM_PROTOCOL.EPROM_X8
             EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.EPROM_X8)
             RaiseEvent PrintConsole("Device mode set to EPROM (8-bit)")
         Else
@@ -706,7 +709,6 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     End Function
 
     Public Function EPROM_Detect(X16_MODE As Boolean) As Boolean
-        'Me.EPROM_X16_MODE = X16_MODE
         If X16_MODE Then
             EXPIO_SETUP_USB(MEM_PROTOCOL.EPROM_X16)
         Else
@@ -719,7 +721,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         HardwareControl(EXPIO_CTRL.WE_LOW)
         HardwareControl(EXPIO_CTRL.VPP_12V)
         HardwareControl(EXPIO_CTRL.RELAY_ON)
-        Utilities.Sleep(100)
+        Utilities.Sleep(150)
         Dim setup_data() As Byte = GetSetupPacket_NOR(0, 4, 0)
         FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, IDENT_DATA, 0)
         If (IDENT_DATA(0) = 0) Or (IDENT_DATA(0) = 255) Then
@@ -777,6 +779,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
             HardwareControl(EXPIO_CTRL.VPP_0V)
         End If
         HardwareControl(EXPIO_CTRL.WE_LOW)
+        Utilities.Sleep(100)
         Dim data_out() As Byte = ReadBulk_NOR(logical_address, data_count)
         HardwareControl(EXPIO_CTRL.WE_HIGH)
         HardwareControl(EXPIO_CTRL.VPP_0V)
@@ -784,15 +787,9 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     End Function
 
     Private Function EPROM_WriteData(logical_address As UInt32, data_to_write() As Byte, Params As WriteParameters) As Boolean
-        Dim M27C160 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &HB1, 0, MemoryType.OTP_EPROM)
-        HardwareControl(EXPIO_CTRL.WE_HIGH)
-        If MyFlashDevice Is M27C160 Then
-            HardwareControl(EXPIO_CTRL.OE_HIGH)
-        End If
-        HardwareControl(EXPIO_CTRL.VPP_12V)
-        Utilities.Sleep(100)
+        Dim PacketSize As UInt32 = 1024
         Try
-            Dim PacketSize As UInt32 = 1024
+            Dim M27C160 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &HB1, 0, MemoryType.OTP_EPROM)
             Dim BytesWritten As UInt32 = 0
             Dim DataToWrite As UInt32 = data_to_write.Length
             Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / PacketSize)) 'Calcuates iterations
@@ -800,26 +797,83 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                 If Params.AbortOperation Then Return False
                 Dim BufferSize As Integer = DataToWrite
                 If (BufferSize > PacketSize) Then BufferSize = PacketSize
-                Dim data(BufferSize - 1) As Byte
-                Array.Copy(data_to_write, (i * PacketSize), data, 0, data.Length)
-                Dim ReturnValue As Boolean = WriteBulk_NOR(logical_address, data)
-                If (Not ReturnValue) Then Return False
-                Utilities.Sleep(10)
-                logical_address += data.Length
-                DataToWrite -= data.Length
-                BytesWritten += data.Length
-                FCUSB.USB_WaitForComplete()
+                Dim data_packet(BufferSize - 1) As Byte
+                Array.Copy(data_to_write, (i * PacketSize), data_packet, 0, data_packet.Length)
+                HardwareControl(EXPIO_CTRL.WE_HIGH)
+                If MyFlashDevice Is M27C160 Then HardwareControl(EXPIO_CTRL.OE_HIGH)
+                HardwareControl(EXPIO_CTRL.VPP_12V)
+                Utilities.Sleep(150)
+                Dim result As Boolean = WriteBulk_NOR(logical_address, data_packet)
+                Utilities.Sleep(25)
+                If (Not result) Then Return False
+                Dim data_clone() As Byte = EPROM_ReadData(logical_address, PacketSize)
+                If MyAdapter = MEM_PROTOCOL.EPROM_X16 Then
+                    Dim fix As New List(Of eeprom_rewrite_word)
+                    Dim data_written() As UInt16 = ByteToWordArray(data_packet)
+                    Dim data_read() As UInt16 = ByteToWordArray(data_clone)
+                    Dim phy_addr As UInt32 = logical_address >> 1
+                    For x = 0 To data_written.Length - 1
+                        If Not data_read(x) = data_written(x) Then
+                            Dim opposite_byte As UInt16 = Not data_read(x)
+                            If (opposite_byte And data_written(x)) = 0 Then
+                                fix.Add(New eeprom_rewrite_word With {.address = phy_addr + x, .data = data_written(x)})
+                            Else
+                                RaiseEvent PrintConsole("EPROM: error, programming error at address: 0x" & ((phy_addr + x) * 2).ToString.PadLeft(8, "0"))
+                                Return False
+                            End If
+                        End If
+                    Next
+                    If (fix.Count > 0) Then
+                        RaiseEvent PrintConsole("EPROM: " & fix.Count & " words need to be reburned")
+                        'Reburn and verify here
+                    End If
+                Else 'X8
+                    Dim fix As New List(Of eeprom_rewrite_byte)
+                    Dim phy_addr As UInt32 = logical_address
+                    For x = 0 To data_packet.Length - 1
+                        If Not data_clone(x) = data_packet(x) Then
+                            Dim opposite_byte As UInt16 = Not data_clone(x)
+                            If (opposite_byte And data_packet(x)) = 0 Then
+                                fix.Add(New eeprom_rewrite_byte With {.address = phy_addr + x, .data = data_packet(x)})
+                            Else
+                                RaiseEvent PrintConsole("EPROM: error, programming error at address: 0x" & ((phy_addr + x) * 2).ToString.PadLeft(8, "0"))
+                                Return False
+                            End If
+                        End If
+                    Next
+                    If (fix.Count > 0) Then
+                        RaiseEvent PrintConsole("EPROM: " & fix.Count & " bytes need to be reburned")
+                        'Reburn and verify here
+                    End If
+                End If
+                logical_address += data_packet.Length
+                DataToWrite -= data_packet.Length
+                BytesWritten += data_packet.Length
             Next
         Catch ex As Exception
         End Try
-        If MyFlashDevice Is M27C160 Then
-            HardwareControl(EXPIO_CTRL.VPP_5V)
-            HardwareControl(EXPIO_CTRL.OE_LOW)
-        Else
-            HardwareControl(EXPIO_CTRL.VPP_0V)
-        End If
         Return True
     End Function
+
+    Private Function ByteToWordArray(byte_arr() As Byte) As UInt16()
+        Dim out(byte_arr.Length / 2 - 1) As UInt16
+        Dim ptr As Integer = 0
+        For i = 0 To out.Length - 1
+            out(i) = CUShort(byte_arr(ptr + 1)) << 8 Or byte_arr(ptr)
+            ptr += 2
+        Next
+        Return out
+    End Function
+
+    Private Structure eeprom_rewrite_word
+        Dim address As UInt32
+        Dim data As UInt16
+    End Structure
+
+    Private Structure eeprom_rewrite_byte
+        Dim address As UInt32
+        Dim data As Byte
+    End Structure
 
 #End Region
 
@@ -863,7 +917,16 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     Private Function EXPIO_SETUP_USB(mode As MEM_PROTOCOL) As Boolean
         Try
             Dim result_data(0) As Byte
-            Dim setup_data As UInt32 = mode Or (10 << 16)
+            Dim setup_data As UInt32 = mode
+            If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+                If mode = MEM_PROTOCOL.NAND_X16_ASYNC Then
+                    setup_data = setup_data Or (MySettings.NAND_Speed << 16)
+                    RaiseEvent PrintConsole("NAND clock speed set to: " & FlashcatSettings.NandMemSpeedToString(MySettings.NAND_Speed))
+                ElseIf mode = MEM_PROTOCOL.NAND_X8_ASYNC Then
+                    setup_data = setup_data Or (MySettings.NAND_Speed << 16)
+                    RaiseEvent PrintConsole("NAND clock speed set to: " & FlashcatSettings.NandMemSpeedToString(MySettings.NAND_Speed))
+                End If
+            End If
             Dim result As Boolean = FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_INIT, result_data, setup_data)
             If Not result Then Return False
             If (result_data(0) = &H17) Then 'Extension port returns 0x17 if it can communicate with the MCP23S17
@@ -1035,6 +1098,13 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Me.CURRENT_WRITE_MODE = E_EXPIO_WRITEDATA.Standard
         Return ident
     End Function
+
+    Private Sub EXPIO_WAIT()
+        Utilities.Sleep(10)
+        FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT)
+        FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
+    End Sub
+
     '(X8/X16 DEVICES)
     Private Sub EXPIO_EraseSector_Standard(addr As UInt32)
         'Write Unlock Cycles
@@ -1138,12 +1208,6 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         End If
         Return False
     End Function
-
-    Private Sub EXPIO_WAIT()
-        Utilities.Sleep(10) 'Checks READ/BUSY# pin
-        FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT)
-        FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
-    End Sub
     'This is used to write data (8/16 bit) to the EXTIO IO (parallel NOR) port. CMD ADDRESS
     Public Function WriteCommandData(cmd_addr As UInt32, cmd_data As UInt16) As Boolean
         Dim addr_data(5) As Byte
@@ -1153,7 +1217,12 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         addr_data(3) = CByte(cmd_addr And 255)
         addr_data(4) = CByte((cmd_data >> 8) And 255)
         addr_data(5) = CByte(cmd_data And 255)
-        Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRCMDDATA, addr_data)
+        If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.LOAD_PAYLOAD, addr_data)
+            Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRCMDDATA)
+        Else
+            Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRCMDDATA, addr_data)
+        End If
     End Function
 
     Public Function WriteMemoryAddress(mem_addr As UInt32, mem_data As UInt16) As UInt16
@@ -1164,7 +1233,12 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         addr_data(3) = CByte(mem_addr And 255)
         addr_data(4) = CByte((mem_data >> 8) And 255)
         addr_data(5) = CByte(mem_data And 255)
-        Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRMEMDATA, addr_data)
+        If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.LOAD_PAYLOAD, addr_data)
+            Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRMEMDATA)
+        Else
+            Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRMEMDATA, addr_data)
+        End If
     End Function
 
     Public Function ReadMemoryAddress(mem_addr As UInt32) As UInt16
@@ -1192,8 +1266,6 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                 LAST_DETECT = Me.FLASH_IDENT
             End If
         End If
-        'REMOVE WHEN TESTED
-        If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then Return False
         Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NOR_X16)
         If Me.FLASH_IDENT.Successful Then
             Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, Me.FLASH_IDENT.ID2, MemoryType.PARALLEL_NOR)
@@ -1519,7 +1591,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Return Nothing
     End Function
 
-    Private Function WriteBulk_NOR(ByVal address As UInt32, ByVal data_out() As Byte) As Boolean
+    Private Function WriteBulk_NOR(address As UInt32, data_out() As Byte) As Boolean
         Try
             Dim setup_data() As Byte = GetSetupPacket_NOR(address, data_out.Length, MyFlashDevice.PAGE_SIZE)
             Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USBREQ.EXPIO_WRITEDATA, setup_data, data_out, 0)
@@ -1630,6 +1702,11 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     Public Sub PARALLEL_PORT_TEST()
         SetStatus("Performing parallel I/O output test")
         EXPIO_SETUP_USB(MEM_PROTOCOL.NOR_X16)
+        WriteCommandData(&HFFFFFFFFUI, &HFFFF)
+        HardwareControl(EXPIO_CTRL.OE_HIGH)
+        HardwareControl(EXPIO_CTRL.CE_HIGH)
+        HardwareControl(EXPIO_CTRL.WE_HIGH)
+        Utilities.Sleep(500)
         WriteCommandData(0, 0)
         Utilities.Sleep(500)
         HardwareControl(EXPIO_CTRL.VPP_5V)

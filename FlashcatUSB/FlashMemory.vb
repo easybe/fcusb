@@ -84,10 +84,12 @@ Namespace FlashMemory
         None = 0
         uS = 1 'Wait for uS delay cycles (set HARDWARE_DELAY to specify cycles)
         mS = 2 'Wait for mS delay cycles (set HARDWARE_DELAY to specify cycles)
-        SR1 = 3 'Wait for Status-Register (0x555=0x70,[sr>>7],EXIT), used by Spansion
+        SR1 = 3 'Wait for Status-Register (0x555=0x70,[sr>>7],EXIT), used by Spansion/Cypress
         SR2 = 4 'Wait for Status-Register (0x5555=0xAA,0x2AAA=0x55,0x5555=0x70,[sr>>7])
         DQ7 = 5 'Wait for DQ7 to equal last byte written (lower byte for X16)
-        RYRB = 6 'Wait for RY/BY pin to be HIGH
+        NAND = 6 'Used by NAND mode
+        HF = 7 'Used by HYPERFLASH
+        RYRB = 8 'Wait for RY/BY pin to be HIGH
     End Enum
 
     Public Enum MICROWIRE_ORG
@@ -259,7 +261,7 @@ Namespace FlashMemory
         Public Property ERASE_REQUIRED As Boolean = True Implements Device.ERASE_REQUIRED
         Public Property WriteMode As MFP_PRG = MFP_PRG.Standard 'This indicates the perfered programing method
         Public Property RESET_ENABLED As Boolean = True 'Indicates if we will call reset/read mode op code
-        Public Property HARDWARE_DELAY As UInt16 = 10 'Number of hardware uS to wait between write operations
+        Public Property HARDWARE_DELAY As UInt16 = 10 'Number of hardware uS/mS to wait between write operations
         Public Property SOFTWARE_DELAY As UInt16 = 100 'Number of software ms to wait between write operations
         Public Property ERASE_DELAY As UInt16 = 250 'Number of ms to wait after an erase operation
         Public Property DELAY_MODE As MFP_DELAY = MFP_DELAY.uS
@@ -1394,8 +1396,8 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("AMD AM29LV800(B)", &H1, &H225B, Mb008, VCC_IF.X16_3V, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("AMD AM29F800(T)", &H1, &H22D6, Mb008, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("AMD AM29F800(B)", &H1, &H2258, Mb008, VCC_IF.X16_3V, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("AMD AM29LV160B(T)", &H1, &H22C4, Mb016, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.BypassMode, MFP_DELAY.uS)) 'Set HWDELAY to 25 (CV)
-            FlashDB.Add(New P_NOR("AMD AM29LV160B(B)", &H1, &H2249, Mb016, VCC_IF.X16_3V, BLKLYT.Four_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS)) 'Set HWDELAY to 25
+            FlashDB.Add(New P_NOR("AMD AM29LV160B(T)", &H1, &H22C4, Mb016, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.BypassMode, MFP_DELAY.uS)) '(CV)
+            FlashDB.Add(New P_NOR("AMD AM29LV160B(B)", &H1, &H2249, Mb016, VCC_IF.X16_3V, BLKLYT.Four_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("AMD AM29DL322G(T)", &H1, &H2255, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("AMD AM29DL322G(B)", &H1, &H2256, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("AMD AM29DL323G(T)", &H1, &H2250, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
@@ -1513,17 +1515,17 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("Cypress S29GL128N", &H1, &H227E, Mb128, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2101) With {.PAGE_SIZE = 32})
             FlashDB.Add(New P_NOR("Cypress S29GL256N", &H1, &H227E, Mb256, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.PAGE_SIZE = 32}) '(CHIP-VAULT)
             FlashDB.Add(New P_NOR("Cypress S29GL512N", &H1, &H227E, Mb512, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2301) With {.PAGE_SIZE = 32})
-            FlashDB.Add(New P_NOR("Cypress S29GL128S", &H1, &H227E, Mb128, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2101) With {.PAGE_SIZE = 512}) '(CHIP-VAULT) BGA-64
-            FlashDB.Add(New P_NOR("Cypress S29GL256S", &H1, &H227E, Mb256, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.PAGE_SIZE = 512})
-            FlashDB.Add(New P_NOR("Cypress S29GL512S", &H1, &H227E, Mb512, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2301) With {.PAGE_SIZE = 512})
-            FlashDB.Add(New P_NOR("Cypress S29GL128P", &H1, &H227E, Mb128, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2101) With {.PAGE_SIZE = 64}) '(CHIP-VAULT)
-            FlashDB.Add(New P_NOR("Cypress S29GL256P", &H1, &H227E, Mb256, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.PAGE_SIZE = 64})
-            FlashDB.Add(New P_NOR("Cypress S29GL512P", &H1, &H227E, Mb512, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2301) With {.PAGE_SIZE = 64})
+            FlashDB.Add(New P_NOR("Cypress S29GL128S", &H1, &H227E, Mb128, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H2101) With {.PAGE_SIZE = 512}) '(CHIP-VAULT) BGA-64
+            FlashDB.Add(New P_NOR("Cypress S29GL256S", &H1, &H227E, Mb256, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H2201) With {.PAGE_SIZE = 512})
+            FlashDB.Add(New P_NOR("Cypress S29GL512S", &H1, &H227E, Mb512, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H2301) With {.PAGE_SIZE = 512})
+            FlashDB.Add(New P_NOR("Cypress S29GL128P", &H1, &H227E, Mb128, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H2101) With {.PAGE_SIZE = 64}) '(CHIP-VAULT)
+            FlashDB.Add(New P_NOR("Cypress S29GL256P", &H1, &H227E, Mb256, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H2201) With {.PAGE_SIZE = 64})
+            FlashDB.Add(New P_NOR("Cypress S29GL512P", &H1, &H227E, Mb512, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H2301) With {.PAGE_SIZE = 64})
             FlashDB.Add(New P_NOR("Cypress S29GL512T", &H1, &H227E, Mb512, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H2301) With {.PAGE_SIZE = 512})
-            FlashDB.Add(New P_NOR("Cypress S29GL01GS", &H1, &H227E, Gb001, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2401) With {.PAGE_SIZE = 512})
-            FlashDB.Add(New P_NOR("Cypress S29GL01GP", &H1, &H227E, Gb001, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2801) With {.PAGE_SIZE = 64})
+            FlashDB.Add(New P_NOR("Cypress S29GL01GS", &H1, &H227E, Gb001, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H2401) With {.PAGE_SIZE = 512})
+            FlashDB.Add(New P_NOR("Cypress S29GL01GP", &H1, &H227E, Gb001, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H2801) With {.PAGE_SIZE = 64})
             FlashDB.Add(New P_NOR("Cypress S29GL01GT", &H1, &H227E, Gb001, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H2801) With {.PAGE_SIZE = 512}) '(CHIP-VAULT)
-            FlashDB.Add(New P_NOR("Cypress S70GL02G", &H1, &H227E, Gb002, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H4801) With {.PAGE_SIZE = 512})
+            FlashDB.Add(New P_NOR("Cypress S70GL02G", &H1, &H227E, Gb002, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H4801) With {.PAGE_SIZE = 512}) '(CHIP-VAULT)
             'ST Microelectronics (now numonyx)
             FlashDB.Add(New P_NOR("ST M29F080A", &H20, &HF1, Mb008, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
 
@@ -1796,6 +1798,7 @@ Namespace FlashMemory
             FlashDB.Add(New P_NAND("Samsung K9F2G08U0M", &HEC, &HDA8015UI, Gb004, 2048, 64, Mb001, VCC_IF.X8_3V)) 'K9K4G08U1M = 2X DIE
             FlashDB.Add(New P_NAND("Samsung K9G8G08U0B", &HEC, &HD314A564UI, Gb001, 2048, 64, Mb002, VCC_IF.X8_3V)) '2-bit/cell
             FlashDB.Add(New P_NAND("Samsung K9W8G08U1M", &HEC, &HDCC11554UI, Gb004, 2048, 64, Mb001, VCC_IF.X8_3V)) 'CV
+            FlashDB.Add(New P_NAND("Samsung K9F4G08U0A", &HEC, &HDC109554UI, Gb004, 2048, 64, Mb001, VCC_IF.X8_3V))
             FlashDB.Add(New P_NAND("Samsung K9F4G08U0B", &HEC, &HDC109554UI, Gb004, 2048, 64, Mb001, VCC_IF.X8_3V)) 'SLC (CV) ECC: Hamming (1-bit)
             FlashDB.Add(New P_NAND("Samsung K9GAG08U0E", &HEC, &HD5847250UI, Gb016, 8192, 436, Mb008, VCC_IF.X8_3V)) 'MLC 2-bit (CV) ECC: 24bit / 1KB
             FlashDB.Add(New P_NAND("Samsung K9GAG08U0M", &HEC, &HD514B674UI, Gb016, 4096, 128, Mb004, VCC_IF.X8_3V))
@@ -1830,14 +1833,15 @@ Namespace FlashMemory
             FlashDB.Add(New P_NAND("Hynix H27S4G6F2D", &HAD, &HBC905554UI, Gb004, 2048, 64, Mb001, VCC_IF.X16_1V8))
             FlashDB.Add(New P_NAND("Hynix H27UCG8T2FTR", &HAD, &HDE14AB42UI, Gb064, 8192, 640, Mb002, VCC_IF.X8_3V))
             'Spansion SLC 34 series
-            FlashDB.Add(New P_NAND("Cypress S34ML01G2", &H1, &HF1801DUI, Gb001, 2048, 64, Mb001, VCC_IF.X8_3V)) '<--CV (BGA-63)
-            FlashDB.Add(New P_NAND("Cypress S34ML02G2", &H1, &HDA909546UI, Gb002, 2048, 128, Mb001, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Cypress S34ML04G2", &H1, &HDC909556UI, Gb004, 2048, 128, Mb001, VCC_IF.X8_3V))
             FlashDB.Add(New P_NAND("Cypress S34ML01G1", &H1, &HF1001DUI, Gb001, 2048, 64, Mb001, VCC_IF.X8_3V))
             FlashDB.Add(New P_NAND("Cypress S34ML02G1", &H1, &HDA9095UI, Gb002, 2048, 64, Mb001, VCC_IF.X8_3V))
             FlashDB.Add(New P_NAND("Cypress S34ML04G1", &H1, &HDC9095UI, Gb004, 2048, 64, Mb001, VCC_IF.X8_3V))
-
-
+            FlashDB.Add(New P_NAND("Cypress S34ML01G2", &H1, &HF1801DUI, Gb001, 2048, 64, Mb001, VCC_IF.X8_3V)) '<--CV (BGA-63)
+            FlashDB.Add(New P_NAND("Cypress S34ML02G2", &H1, &HDA909546UI, Gb002, 2048, 128, Mb001, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Cypress S34ML04G2", &H1, &HDC909556UI, Gb004, 2048, 128, Mb001, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Cypress S34ML01G2", &H1, &HC1805DUI, Gb001, 2048, 64, Mb001, VCC_IF.X16_3V))
+            FlashDB.Add(New P_NAND("Cypress S34ML02G2", &H1, &HCA90D546UI, Gb002, 2048, 128, Mb001, VCC_IF.X16_3V))
+            FlashDB.Add(New P_NAND("Cypress S34ML04G2", &H1, &HCC90D556UI, Gb004, 2048, 128, Mb001, VCC_IF.X16_3V))
             FlashDB.Add(New P_NAND("Cypress S34MS01G200", &H1, &HA18015UI, Gb004, 2048, 64, Mb001, VCC_IF.X8_1V8))
             FlashDB.Add(New P_NAND("Cypress S34MS02G200", &H1, &HAA901546UI, Gb004, 2048, 64, Mb001, VCC_IF.X8_1V8))
             FlashDB.Add(New P_NAND("Cypress S34MS04G200", &H1, &HAC901556UI, Gb004, 2048, 64, Mb001, VCC_IF.X8_1V8))

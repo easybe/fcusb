@@ -10,7 +10,7 @@ Imports FlashcatUSB.MemoryInterface
 Public Class FcScriptEngine
     Implements IDisposable
 
-    Private Const Build As Integer = 305
+    Private Const Build As Integer = 306
     Private script_is_running As Boolean = False
     Private CmdFunctions As New ScriptCmd
     Private CurrentScript As New ScriptFile
@@ -740,11 +740,10 @@ Public Class FcScriptEngine
             Dim arg_builder As New Text.StringBuilder
             Dim in_quote As Boolean = False
             Dim in_param As Boolean = False
-            Dim add_clear As Boolean
             For i = 0 To argument_line.Length - 1
                 Dim c As Char = CChar(argument_line.Substring(i, 1))
                 arg_builder.Append(c)
-                add_clear = False
+                Dim add_clear As Boolean = False
                 If in_quote Then
                     If c.Equals(""""c) Then in_quote = False
                 ElseIf in_param Then
@@ -758,7 +757,7 @@ Public Class FcScriptEngine
                             in_quote = True
                         Case ","c
                             add_clear = True
-                            arg_builder.Remove(i, 1)
+                            arg_builder.Remove(arg_builder.Length - 1, 1) 'Remove last item
                     End Select
                 End If
                 If add_clear Then
@@ -3236,10 +3235,12 @@ Public Class FcScriptEngine
             End If
             Dim mem_sector As UInt32 = arguments(0).Value
             mem_device.EraseSector(mem_sector)
+            Dim target_addr As Long = mem_device.GetSectorBaseAddress(mem_sector, FlashMemory.FlashArea.Main)
+            Dim target_area As String = "0x" & Hex(target_addr).PadLeft(8, "0") & " to 0x" & Hex(target_addr + mem_device.GetSectorSize(mem_sector, FlashMemory.FlashArea.Main) - 1).PadLeft(8, "0")
             If mem_device.NoErrors Then
-                RaiseEvent WriteConsole("Successfully erased sector index: " & mem_sector)
+                RaiseEvent WriteConsole("Successfully erased sector index: " & mem_sector & " (" & target_area & ")")
             Else
-                RaiseEvent WriteConsole("Failed to erase sector index: " & mem_sector)
+                RaiseEvent WriteConsole("Failed to erase sector index: " & mem_sector & " (" & target_area & ")")
             End If
             mem_device.GuiControl.RefreshView()
             mem_device.ReadMode()

@@ -100,6 +100,7 @@ Public Class FrmSettings
             Case FlashcatSettings.NandMemLayout.Segmented
                 rb_mainspare_segmented.Checked = True
         End Select
+        cbNAND_Speed.SelectedIndex = MySettings.NAND_Speed
         SetupSpiEeprom()
         Setup_I2C_SWI_tab()
         If USBCLIENT.HW_MODE = FCUSB_BOARD.NotConnected Then
@@ -282,6 +283,7 @@ Public Class FrmSettings
         MySettings.SPI_EEPROM = cb_spi_eeprom.SelectedIndex
         MySettings.SPI_NAND_DISABLE_ECC = cb_spinand_disable_ecc.Checked
         MySettings.NAND_Verify = cb_nand_image_readverify.Checked
+        MySettings.NAND_Speed = cbNAND_Speed.SelectedIndex
         MySettings.ECC_READ_ENABLED = cb_ECC_ReadEnable.Checked
         MySettings.ECC_WRITE_ENABLED = cb_ECC_WriteEnable.Checked
         MySettings.ECC_Separate = cb_ecc_seperate.Checked

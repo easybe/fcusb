@@ -141,6 +141,8 @@ Partial Class FrmSettings
         Me.Label17 = New System.Windows.Forms.Label()
         Me.Label20 = New System.Windows.Forms.Label()
         Me.cb_multi_ce = New System.Windows.Forms.ComboBox()
+        Me.cbNAND_Speed = New System.Windows.Forms.ComboBox()
+        Me.Label2 = New System.Windows.Forms.Label()
         Me.MyTabs.SuspendLayout()
         Me.TP_SPI.SuspendLayout()
         Me.group_custom.SuspendLayout()
@@ -989,6 +991,8 @@ Partial Class FrmSettings
         '
         'gb_nand_general
         '
+        Me.gb_nand_general.Controls.Add(Me.cbNAND_Speed)
+        Me.gb_nand_general.Controls.Add(Me.Label2)
         Me.gb_nand_general.Controls.Add(Me.cb_nand_image_readverify)
         Me.gb_nand_general.Controls.Add(Me.cb_spinand_disable_ecc)
         Me.gb_nand_general.Controls.Add(Me.cb_mismatch)
@@ -1432,6 +1436,25 @@ Partial Class FrmSettings
         Me.cb_multi_ce.Size = New System.Drawing.Size(83, 21)
         Me.cb_multi_ce.TabIndex = 45
         '
+        'cbNAND_Speed
+        '
+        Me.cbNAND_Speed.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cbNAND_Speed.FormattingEnabled = True
+        Me.cbNAND_Speed.Items.AddRange(New Object() {"20 MHz", "10 MHz", "5 MHz", "1 MHz"})
+        Me.cbNAND_Speed.Location = New System.Drawing.Point(385, 43)
+        Me.cbNAND_Speed.Name = "cbNAND_Speed"
+        Me.cbNAND_Speed.Size = New System.Drawing.Size(103, 21)
+        Me.cbNAND_Speed.TabIndex = 4
+        '
+        'Label2
+        '
+        Me.Label2.AutoSize = True
+        Me.Label2.Location = New System.Drawing.Point(385, 24)
+        Me.Label2.Name = "Label2"
+        Me.Label2.Size = New System.Drawing.Size(103, 13)
+        Me.Label2.TabIndex = 5
+        Me.Label2.Text = "Mach¹ NAND speed"
+        '
         'FrmSettings
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -1602,4 +1625,6 @@ Partial Class FrmSettings
     Friend WithEvents cb_swi_a1 As CheckBox
     Friend WithEvents cb_swi_a2 As CheckBox
     Friend WithEvents lbl_s93_size As Label
+    Friend WithEvents cbNAND_Speed As ComboBox
+    Friend WithEvents Label2 As Label
 End Class

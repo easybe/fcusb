@@ -122,13 +122,13 @@ Namespace USB
                         End If
                         SPI_MODE_BYTE = 0
                         Select Case mode
-                            Case SPI.SPIBUS_MODE.SPI_MODE_0
+                            Case SPIBUS_MODE.SPI_MODE_0
                                 SPI_MODE_BYTE = 0
-                            Case SPI.SPIBUS_MODE.SPI_MODE_1
+                            Case SPIBUS_MODE.SPI_MODE_1
                                 SPI_MODE_BYTE = &H4
-                            Case SPI.SPIBUS_MODE.SPI_MODE_2
+                            Case SPIBUS_MODE.SPI_MODE_2
                                 SPI_MODE_BYTE = &H8
-                            Case SPI.SPIBUS_MODE.SPI_MODE_3
+                            Case SPIBUS_MODE.SPI_MODE_3
                                 SPI_MODE_BYTE = &HC
                         End Select
                         Dim clock_byte As Byte = &H80
@@ -919,6 +919,8 @@ Namespace USB
         LOGIC_3V3 = &HC3  'Turns on 3.3V and then LOGIC
         LOGIC_VERSION_GET = &HC4  'returns the LOGIC version from the Flash
         LOGIC_VERSION_SET = &HC5  'Writes the LOGIC to the Flash
+        SPI_REPEAT = &HC6
+        EPROM_RESULT = &HC7
     End Enum
 
     Public Enum EXPIO_CTRL As Byte

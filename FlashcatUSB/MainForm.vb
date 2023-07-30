@@ -2323,7 +2323,7 @@ Public Class MainForm
         Try
             Dim left_part As String = "FlashcatUSB (Build " & Build & ")"
             If MySettings.LICENSED_TO.Equals("") Then
-                Me.Text = left_part & " - NOT LICENSED"
+                Me.Text = left_part & " - Personal Use Only"
             Else
                 If MySettings.LICENSE_EXP.Date.Year = 1 Then
                     Me.Text = left_part & " - Licensed to " & MySettings.LICENSED_TO

@@ -135,8 +135,81 @@ Public Class ISC_LOGIC_PROG
         End Try
         Return Nothing
     End Function
-
+    'Fast! This will load an entire bitstream into the FPGA in 3 seconds.
     Public Function SSPI_ProgramBitstream(logic() As Byte) As Boolean
+        Dim bytes_left As Integer = logic.Length
+        WriteConsole("Programming FPGA with bitstream (" & String.Format(bytes_left, "#,###") & " bytes)")
+        RaiseEvent SetProgress(0)
+        Dim status As SSPI_Status = SSPI_ReadStatus()
+        If status.BUSY_FLAG Then
+            WriteConsole("Error: FPGA device is busy") : Return False
+        End If
+        SSPI_WriteRead(ISC_ENABLE)
+        status = SSPI_ReadStatus()
+        If (status.FAIL_FLAG) Or (Not status.CFG_IF_ENABLED) Then
+            WriteConsole("Error: unable to enabling configuration interface") : Return False
+        End If
+        Dim erase_attemps As Integer = 0
+        Dim erase_failed As Boolean
+        Do
+            erase_failed = False
+            SSPI_WriteRead(ISC_ERASE)
+            SSPI_Wait()
+            status = SSPI_ReadStatus()
+            If (status.FAIL_FLAG Or (Not status.CHECK_STATUS = SSPI_Status.CFG_CHECK_STATUS.No_error)) Then
+                Utilities.Sleep(200)
+                erase_failed = True
+                erase_attemps += 1
+                If erase_attemps = 3 Then
+                    WriteConsole("Error: logic erase command failed") : Return False
+                End If
+            End If
+        Loop While erase_failed
+        SSPI_WriteRead(LSC_INITADDRESS)
+        Dim spi_size As Integer = (Math.Ceiling(logic.Length / MACHXO2_PAGE_SIZE) * 4) + logic.Length
+        Dim spi_buffer(spi_size - 1) As Byte
+        Dim buffer_ptr As Integer = 0
+        Dim logic_ptr As Integer = 0
+        While (bytes_left > 0)
+            Dim data_count As Integer = Math.Min(bytes_left, MACHXO2_PAGE_SIZE)
+            Array.Copy(LSC_PROGINCRNV, 0, spi_buffer, buffer_ptr, LSC_PROGINCRNV.Length)
+            buffer_ptr += LSC_PROGINCRNV.Length
+            Array.Copy(logic, logic_ptr, spi_buffer, buffer_ptr, data_count)
+            buffer_ptr += data_count
+            logic_ptr += data_count
+            bytes_left -= data_count
+        End While
+        bytes_left = spi_buffer.Length
+        buffer_ptr = 0
+        While (bytes_left > 0)
+            Dim data_count As Integer = Math.Min(bytes_left, (MACHXO2_PAGE_SIZE + LSC_PROGINCRNV.Length) * 128) '128 pages
+            Dim buffer_out(data_count - 1) As Byte
+            Array.Copy(spi_buffer, buffer_ptr, buffer_out, 0, buffer_out.Length)
+            Dim setup As UInt32 = ((MACHXO2_PAGE_SIZE + LSC_PROGINCRNV.Length) << 16) Or data_count
+            Dim result As Boolean = sel_usb_dev.USB_SETUP_BULKOUT(USBREQ.SPI_REPEAT, Nothing, buffer_out, setup)
+            If Not result Then Return False
+            sel_usb_dev.USB_WaitForComplete()
+            bytes_left -= data_count
+            buffer_ptr += data_count
+            Dim percent_done As Integer = ((spi_buffer.Length - bytes_left) / spi_buffer.Length) * 100
+            If (percent_done > 100) Then percent_done = 100
+            RaiseEvent SetProgress(percent_done)
+        End While
+        SSPI_WriteRead(ISC_PROGRAMDONE)
+        SSPI_Wait()
+        RaiseEvent SetProgress(100)
+        status = SSPI_ReadStatus()
+        If Not status.DONE_FLAG Then Return False
+        SSPI_WriteRead(LSC_REFRESH)
+        status = SSPI_ReadStatus()
+        If (Not status.BUSY_FLAG) AndAlso status.CHECK_STATUS = SSPI_Status.CFG_CHECK_STATUS.No_error Then
+            Return True
+        Else
+            Return False
+        End If
+    End Function
+    'This uses just internal SPI. The new version above does it via hardware buffer and is better.
+    Public Function SSPI_ProgramBitstream_Legacy(logic() As Byte) As Boolean
         Dim bytes_left As Integer = logic.Length
         WriteConsole("Programming FPGA with bitstream (" & String.Format(bytes_left, "#,###") & " bytes)")
         RaiseEvent SetProgress(0)

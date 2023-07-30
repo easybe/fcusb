@@ -346,10 +346,10 @@ Public Class MemoryInterface
                         Dim percent_done As Single = CSng((i / Loops) * 100) 'Calulate % done
                         Params.Status.UpdatePercent.DynamicInvoke(CInt(percent_done))
                     End If
-                    Params.Timer = New Stopwatch
-                    Params.Timer.Start()
+                    Dim packet_timer As New Stopwatch
+                    packet_timer.Start()
                     read_buffer = ReadFlash(FlashAddress, BytesCountToRead, Params.Memory_Area)
-                    Params.Timer.Stop()
+                    packet_timer.Stop()
                     If Params.AbortOperation OrElse (Not Me.NoErrors) OrElse read_buffer Is Nothing Then Return False
                     BytesTransfered += BytesCountToRead
                     data_stream.Write(read_buffer, 0, BytesCountToRead)
@@ -359,14 +359,12 @@ Public Class MemoryInterface
                         Try
                             Threading.Thread.CurrentThread.Join(10) 'Pump a message
                             If Params.Status.UpdateSpeed IsNot Nothing Then
-                                Dim bytes_per_second As UInt32 = Math.Round(BytesCountToRead / (Params.Timer.ElapsedMilliseconds / 1000))
+                                Dim bytes_per_second As UInt32 = Math.Round(BytesCountToRead / (packet_timer.ElapsedMilliseconds / 1000))
                                 Dim speed_text As String = UpdateSpeed_GetText(bytes_per_second)
                                 Params.Status.UpdateSpeed.DynamicInvoke(speed_text)
                             End If
                             data_stream.Flush()
                         Catch ex As Exception
-                        Finally
-                            Params.Timer.Start()
                         End Try
                     End If
                 Next
@@ -458,16 +456,18 @@ Public Class MemoryInterface
                 Dim packet_data(PacketSize - 1) As Byte
                 data_stream.Read(packet_data, 0, PacketSize) 'Reads data from the stream
                 Params.Timer.Start()
+                Dim write_result As Boolean
                 If FlashType = MemoryType.OTP_EPROM Then
-                    FCUSB.EXT_IF.WriteData(Params.Address, packet_data, Params)
+                    write_result = FCUSB.EXT_IF.WriteData(Params.Address, packet_data, Params)
                 ElseIf FlashType = MemoryType.SERIAL_SWI Then
-                    FCUSB.SWI_IF.WriteData(Params.Address, packet_data, Params)
+                    write_result = FCUSB.SWI_IF.WriteData(Params.Address, packet_data, Params)
                 End If
                 Params.Timer.Stop()
+                If Not write_result Then Return False
                 If Params.AbortOperation Then Return False
                 If Not Me.NoErrors Then Return False
                 Threading.Thread.CurrentThread.Join(10) 'Pump a message
-                If Params.Verify Then 'Verify is enabled and we are monitoring this
+                If Params.Verify AndAlso FlashType = MemoryType.SERIAL_SWI Then 'Verify is enabled and we are monitoring this
                     If Params.Status.UpdateOperation IsNot Nothing Then Params.Status.UpdateOperation.DynamicInvoke(3) 'VERIFY IMG
                     If Params.Status.UpdateTask IsNot Nothing Then
                         Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_data"))
@@ -568,7 +568,11 @@ Public Class MemoryInterface
                         If (FlashType = MemoryType.NAND) OrElse (FlashType = MemoryType.SERIAL_NAND) Then
                             If MySettings.NAND_MismatchSkip Then 'Bad block
                                 If (i = TotalSectors - 1) Then Return False 'No more blocks to write
-                                data_stream.Position -= SectorData.Length 'We are going to re-write these bytes to the next block
+                                If (Params.Address = 0) Then
+                                    data_stream.Position = 0
+                                Else
+                                    data_stream.Position -= SectorData.Length 'We are going to re-write these bytes to the next block
+                                End If
                                 Params.Address += SectorData.Length 'and to this base address
                             Else
                                 Return False
