@@ -207,7 +207,7 @@ Public Class HF_Port : Implements MemoryDeviceUSB
 
     Private Function EXPIO_SETUP_READIDENT(ByVal mode As E_EXPIO_IDENT) As Boolean
         Try
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_MODE_IDENT, Nothing, mode)
+            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_IDENT, Nothing, mode)
             Threading.Thread.Sleep(25)
             Return result
         Catch ex As Exception
@@ -217,7 +217,7 @@ Public Class HF_Port : Implements MemoryDeviceUSB
 
     Private Function EXPIO_SETUP_CHIPERASE(ByVal mode As E_EXPIO_CHIPERASE) As Boolean
         Try
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_MODE_ERCHP, Nothing, mode)
+            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_ERCHP, Nothing, mode)
             Threading.Thread.Sleep(25)
             Return result
         Catch ex As Exception
@@ -227,7 +227,7 @@ Public Class HF_Port : Implements MemoryDeviceUSB
 
     Private Function EXPIO_SETUP_ERASESECTOR(ByVal mode As E_EXPIO_SECTOR) As Boolean
         Try
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_MODE_ERSCR, Nothing, mode)
+            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_ERSCR, Nothing, mode)
             Threading.Thread.Sleep(25)
             Return result
         Catch ex As Exception

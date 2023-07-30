@@ -153,7 +153,6 @@ Namespace USB
                             clock_byte = &H1 'SPI_CLOCK_FOSC_16
                     End Select
                     Dim spiConf As UInt16 = CUShort(clock_byte Or SPI_MODE_BYTE Or SPI_ORDER_BYTE)
-                    'USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, CUInt(spiConf) << 16)
                     USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, CUInt(spiConf))
                 End If
             End Sub
@@ -975,7 +974,7 @@ Namespace USB
         Classic_XPORT 'xPORT firmware
         Classic_SWI 'Single-wire interface
         Professional 'Professional (PCB 4.x)
-        Mach1
+        Mach1 '(PCB 2.x)
     End Enum
 
 End Namespace

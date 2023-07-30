@@ -7,6 +7,7 @@
 Namespace JTAG
 
     Public Class SVF_Player
+        Public Property ExitStateMachine As Boolean = True
         Public Property IgnoreErrors As Boolean = False 'If set to true, this player will not stop executing on a readback error
         Public Property Current_Hertz As Integer = 1000000 'Default of 1 MHz
         Public Property Actual_Hertz As Integer = 500000 '500kHz
@@ -213,7 +214,7 @@ Namespace JTAG
                     Case Else
                 End Select
             Next
-            RaiseEvent GotoState(JTAG_MACHINE_STATE.TestLogicReset)
+            If ExitStateMachine Then RaiseEvent GotoState(JTAG_MACHINE_STATE.TestLogicReset)
             Return True
         End Function
 
@@ -250,7 +251,7 @@ Namespace JTAG
                         LOOP_CACHE.Add(line)
                     End If
                 Next
-                RaiseEvent GotoState(JTAG_MACHINE_STATE.TestLogicReset)
+                If ExitStateMachine Then RaiseEvent GotoState(JTAG_MACHINE_STATE.TestLogicReset)
                 Return True
             Catch ex As Exception
                 Return False

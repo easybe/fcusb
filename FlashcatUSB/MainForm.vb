@@ -8,7 +8,6 @@ Public Class MainForm
 
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         GUI = Me
-        Me.Text = "FlashcatUSB Software (Build " & Build & ")"
         Me.MinimumSize = Me.Size
         Me.MyTabs.DrawMode = TabDrawMode.OwnerDrawFixed
         MyTabs.TabPages.Remove(TabMultiDevice)
@@ -25,6 +24,7 @@ Public Class MainForm
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "SLC NAND memory (x8)", FlashDatabase.PartCount(MemoryType.NAND)))
         statuspage_progress.Visible = False
         Language_Setup()
+        License_Init()
     End Sub
 
 #Region "Language"
@@ -988,6 +988,13 @@ Public Class MainForm
                         mi_create_img.Enabled = False
                         mi_write_img.Enabled = False
                         mi_nand_map.Enabled = False
+                        Exit Sub 'Accept the above
+                    ElseIf mem_instance.FlashType = MemoryType.HYPERFLASH Then
+                        mi_erase_tool.Enabled = True
+                        mi_create_img.Enabled = False
+                        mi_write_img.Enabled = False
+                        mi_nand_map.Enabled = False
+                        mi_cfi_info.Enabled = False
                         Exit Sub 'Accept the above
                     End If
                 End If
@@ -2475,5 +2482,32 @@ Public Class MainForm
         End Try
     End Sub
 
+#Region "License"
+
+    Private Sub mi_license_menu_Click(sender As Object, e As EventArgs) Handles mi_license_menu.Click
+        Dim n As New FrmLicense
+        n.ShowDialog()
+        License_Init()
+    End Sub
+
+    Private Sub License_Init()
+        Try
+            Dim left_part As String = "FlashcatUSB (Build " & Build & ")"
+            If MySettings.LICENSED_TO.Equals("") Then
+                Me.Text = left_part & " - PERSONAL USE ONLY"
+            Else
+                If MySettings.LICENSE_EXP.Date.Year = 1 Then
+                    Me.Text = left_part & " - Licensed to " & MySettings.LICENSED_TO
+                ElseIf Date.Compare(DateTime.Now, MySettings.LICENSE_EXP.Date) > 0 Then
+                    Me.Text = left_part & " - LICENSE EXPIRED!"
+                Else
+                    Me.Text = left_part & " - Licensed to " & MySettings.LICENSED_TO
+                End If
+            End If
+        Catch ex As Exception
+        End Try
+    End Sub
+
+#End Region
 
 End Class

@@ -83,12 +83,12 @@ Public Class FrmUSBPerformance
 
     Private Sub SpeedTest()
         Dim mb_count As Integer = 100 * (MB_DN_INDEX + 1)
-        SetStatus("Reading " & mb_count & "MB data from FCUSB device")
+        SetStatus("Reading " & mb_count & "MB data from device over USB")
         SAM3U_SpeedTest_Read()
         If Not IS_ERROR Then
             SetProgress(0)
             Utilities.Sleep(1000)
-            SetStatus("Writing " & mb_count & "MB data to FCUSB device")
+            SetStatus("Writing " & mb_count & "MB data to device over USB")
             SAM3U_SpeedTest_Write()
         End If
         TestComplete()

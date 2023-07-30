@@ -18,11 +18,10 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 566
+    Public Const Build As Integer = 568
     Public PRO3_CURRENT_FW As Single = 1.31F 'This is the embedded firmware version for pro
     Public PRO4_CURRENT_FW As Single = 1.09F 'This is the embedded firmware version for pro
-    Public MACH1_PCB1_FW As Single = 1.07F 'Firmware version for Mach1
-    Public MACH1_PCB2_FW As Single = 2.02F 'Firmware version for Mach1
+    Public MACH1_PCB2_FW As Single = 2.04F 'Firmware version for Mach1
     Public CLASSIC_CURRENT_FW_SPI As Single = 4.45F 'Min revision allowed for classic, xport
     Public CLASSIC_CURRENT_FW_JTAG As Single = 7.13F 'Min version for JTAG support
     Public CLASSIC_CURRENT_FW_SWI As Single = 1.02F 'Min version for JTAG support
@@ -36,8 +35,8 @@ Public Module MainApp
     Public Const CPLD_NAND_3V3 As UInt32 = &HAD330002UI 'ID CODE FOR NAND_X8 (3.3v)
     Public Const CPLD_HF_1V8 As UInt32 = &HAD180101UI 'ID CODE FOR HF (1.8v)
     Public Const CPLD_HF_3V3 As UInt32 = &HAD330101UI 'ID CODE FOR HF (3.3v)
-    Public Const FGPA_3V3 As UInt32 = &HAF330001UI
-    Public Const FGPA_1V8 As UInt32 = &HAF330001UI
+    Public Const FGPA_3V3 As UInt32 = &HAF330002UI
+    Public Const FGPA_1V8 As UInt32 = &HAF330002UI
     Public AppIsClosing As Boolean = False
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
     Public WithEvents ScriptEngine As New FcScriptEngine
@@ -50,7 +49,6 @@ Public Module MainApp
     Public IS_DEBUG_VER As Boolean = False
 
     Sub Main(ByVal Args() As String)
-
         Try 'This makes it only allow one instance
             Dim created As Boolean = False
             FcMutex = New Mutex(False, "FCUSB", created)
@@ -1163,36 +1161,48 @@ Public Module MainApp
         Public Property SREC_BITMODE As Integer '0=8-bit,1=16-bit
         'JTAG
         Public Property JTAG_SPEED As JTAG_TCK_FREQ
+        'License
+        Public Property LICENSE_KEY As String
+        Public Property LICENSED_TO As String
+        Public Property LICENSE_EXP As DateTime
 
         Sub New()
             LoadLanguageSettings()
-            MUTLI_NOR = GetRegistryValue("MULTI_NOR", False)
-            MULTI_CE = GetRegistryValue("MULTI_CE", 5)
-            VOLT_SELECT = GetRegistryValue("VOLTAGE", USB.Voltage.V3_3)
-            OPERATION_MODE = CInt(GetRegistryValue("OPERATION", "1")) 'Default is normal
-            VERIFY_WRITE = GetRegistryValue("VERIFY", True)
-            VERIFY_COUNT = GetRegistryValue("VERIFY_COUNT", 2)
-            BIT_ENDIAN = BitEndianMode.BigEndian32
-            BIT_SWAP = BitSwapMode.None
-            SPI_CLOCK_MAX = GetRegistryValue("SPI_CLOCK_MAX", 10000000)
-            SPI_BIT_ORDER = GetRegistryValue("SPI_ORDER", SPI_ORDER.SPI_ORDER_MSB_FIRST)
-            SPI_FASTREAD = GetRegistryValue("SPI_FASTREAD", False)
-            SPI_BIT_ORDER = GetRegistryValue("SPI_ORDER", SPI_ORDER.SPI_ORDER_MSB_FIRST)
-            SPI_MODE = GetRegistryValue("SPI_MODE", SPI_CLOCK_POLARITY.SPI_MODE_0)
-            SPI_EEPROM = GetRegistryValue("SPI_EEPROM", SPI_EEPROM.None)
-            SPI_AUTO = GetRegistryValue("SPI_AUTO", True)
-            SPI_NAND_DISABLE_ECC = GetRegistryValue("SPI_NAND_ECC", False)
-            SPI_QUAD_SPEED = GetRegistryValue("SPI_QUAD_SPEED", SQI_SPEED.MHZ_10)
-            I2C_ADDRESS = CByte(GetRegistryValue("I2C_ADDR", CInt(&HA0)))
-            I2C_SPEED = GetRegistryValue("I2C_SPEED", I2C_SPEED_MODE._400kHz)
-            I2C_SIZE = GetRegistryValue("I2C_SIZE", 0)
-            SWI_ADDRESS = CByte(GetRegistryValue("SWI_ADDR", CInt(&H0)))
-            NAND_Preserve = GetRegistryValue("NAND_Preserve", True)
-            NAND_Verify = GetRegistryValue("NAND_Verify", False)
-            NAND_BadBlockManager = GetRegistryValue("NAND_BadBlockMode", BadBlockMode.Disabled)
-            NAND_BadBlockMarkers = GetRegistryValue("NAND_BadBlockMarker", (BadBlockMarker._1stByte_FirstPage Or BadBlockMarker._1stByte_SecondPage Or BadBlockMarker._1stByte_LastPage))
-            NAND_MismatchSkip = GetRegistryValue("NAND_Mismatch", True)
-            NAND_Layout = GetRegistryValue("NAND_Layout", NandMemLayout.Separated)
+            Me.LICENSE_KEY = GetRegistryValue("LICENSE_KEY", "")
+            Dim date_str As String = GetRegistryValue("LICENSE_DATE", "01/01/0001")
+            Me.LICENSED_TO = GetRegistryValue("LICENSE_NAME", "")
+            If date_str.Equals("01/01/0001") Then
+                Me.LICENSE_EXP = New DateTime
+            Else
+                Me.LICENSE_EXP = DateTime.Parse(date_str)
+            End If
+            Me.MUTLI_NOR = GetRegistryValue("MULTI_NOR", False)
+            Me.MULTI_CE = GetRegistryValue("MULTI_CE", 5)
+            Me.VOLT_SELECT = GetRegistryValue("VOLTAGE", USB.Voltage.V3_3)
+            Me.OPERATION_MODE = CInt(GetRegistryValue("OPERATION", "1")) 'Default is normal
+            Me.VERIFY_WRITE = GetRegistryValue("VERIFY", True)
+            Me.VERIFY_COUNT = GetRegistryValue("VERIFY_COUNT", 2)
+            Me.BIT_ENDIAN = BitEndianMode.BigEndian32
+            Me.BIT_SWAP = BitSwapMode.None
+            Me.SPI_CLOCK_MAX = GetRegistryValue("SPI_CLOCK_MAX", 10000000)
+            Me.SPI_BIT_ORDER = GetRegistryValue("SPI_ORDER", SPI_ORDER.SPI_ORDER_MSB_FIRST)
+            Me.SPI_FASTREAD = GetRegistryValue("SPI_FASTREAD", False)
+            Me.SPI_BIT_ORDER = GetRegistryValue("SPI_ORDER", SPI_ORDER.SPI_ORDER_MSB_FIRST)
+            Me.SPI_MODE = GetRegistryValue("SPI_MODE", SPI_CLOCK_POLARITY.SPI_MODE_0)
+            Me.SPI_EEPROM = GetRegistryValue("SPI_EEPROM", SPI_EEPROM.None)
+            Me.SPI_AUTO = GetRegistryValue("SPI_AUTO", True)
+            Me.SPI_NAND_DISABLE_ECC = GetRegistryValue("SPI_NAND_ECC", False)
+            Me.SPI_QUAD_SPEED = GetRegistryValue("SPI_QUAD_SPEED", SQI_SPEED.MHZ_10)
+            Me.I2C_ADDRESS = CByte(GetRegistryValue("I2C_ADDR", CInt(&HA0)))
+            Me.I2C_SPEED = GetRegistryValue("I2C_SPEED", I2C_SPEED_MODE._400kHz)
+            Me.I2C_SIZE = GetRegistryValue("I2C_SIZE", 0)
+            Me.SWI_ADDRESS = CByte(GetRegistryValue("SWI_ADDR", CInt(&H0)))
+            Me.NAND_Preserve = GetRegistryValue("NAND_Preserve", True)
+            Me.NAND_Verify = GetRegistryValue("NAND_Verify", False)
+            Me.NAND_BadBlockManager = GetRegistryValue("NAND_BadBlockMode", BadBlockMode.Disabled)
+            Me.NAND_BadBlockMarkers = GetRegistryValue("NAND_BadBlockMarker", (BadBlockMarker._1stByte_FirstPage Or BadBlockMarker._1stByte_SecondPage Or BadBlockMarker._1stByte_LastPage))
+            Me.NAND_MismatchSkip = GetRegistryValue("NAND_Mismatch", True)
+            Me.NAND_Layout = GetRegistryValue("NAND_Layout", NandMemLayout.Separated)
             Me.ECC_READ_ENABLED = GetRegistryValue("ECC_READ", False)
             Me.ECC_WRITE_ENABLED = GetRegistryValue("ECC_WRITE", False)
             Me.ECC_Algorithum = GetRegistryValue("ECC_ALG", 0)
@@ -1211,6 +1221,9 @@ Public Module MainApp
         End Sub
 
         Public Sub Save()
+            SetRegistryValue("LICENSE_KEY", Me.LICENSE_KEY)
+            SetRegistryValue("LICENSE_NAME", Me.LICENSED_TO)
+            SetRegistryValue("LICENSE_DATE", Me.LICENSE_EXP.ToShortDateString)
             SetRegistryValue("MULTI_NOR", Me.MUTLI_NOR)
             SetRegistryValue("MULTI_CE", Me.MULTI_CE)
             SetRegistryValue("VOLTAGE", VOLT_SELECT)
@@ -1771,18 +1784,12 @@ Public Module MainApp
                     MySettings.OPERATION_MODE = DeviceMode.NOR_NAND
                 End If
                 If usb_dev.USB_IsBootloaderMode() Then
-                    If Utilities.StringToSingle(fw_str).ToString.StartsWith("5.") Then
-                        FCUSBPRO_Bootloader(usb_dev, "Mach1_v2_Source.bin")
-                    Else
-                        FCUSBPRO_Bootloader(usb_dev, "Mach1_Source.bin") 'PCB 1.0
-                    End If
+                    FCUSBPRO_Bootloader(usb_dev, "Mach1_v2_Source.bin")
                     Exit Sub
                 End If
                 GUI.PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Mach¹", fw_str}))
                 Dim AvrVerSng As Single = Utilities.StringToSingle(fw_str)
-                If AvrVerSng = MACH1_PCB1_FW Then
-                ElseIf AvrVerSng = MACH1_PCB2_FW Then
-                Else
+                If Not AvrVerSng = MACH1_PCB2_FW Then
                     FCUSBPRO_RebootToBootloader(usb_dev)
                     Exit Sub
                 End If
@@ -2026,7 +2033,7 @@ Public Module MainApp
             usb_dev.HF_IF.DeviceInit()
             Select Case usb_dev.HF_IF.MyFlashStatus
                 Case DeviceStatus.Supported
-                    Connected_Event(usb_dev, MemoryType.HYPERFLASH, "NOR Flash", 65536)
+                    Connected_Event(usb_dev, MemoryType.HYPERFLASH, "NOR Flash", 262144)
                 Case DeviceStatus.NotSupported
                     GUI.SetStatus(RM.GetString("mem_not_supported")) '"Flash memory detected but not found in Flash library"
                 Case DeviceStatus.NotDetected
@@ -2304,7 +2311,7 @@ Public Module MainApp
     Private Sub FCUSBPRO_Bootloader(ByVal usb_dev As FCUSB_DEVICE, ByVal board_firmware As String)
         Dim fw_ver As Single = 0
         If usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
-            fw_ver = MACH1_PCB1_FW
+            fw_ver = MACH1_PCB2_FW
         ElseIf usb_dev.HWBOARD = FCUSB_BOARD.Professional Then
             fw_ver = PRO4_CURRENT_FW
         End If

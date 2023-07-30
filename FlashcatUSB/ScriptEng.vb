@@ -107,6 +107,7 @@ Public Class FcScriptEngine
         JTAG_CMD.Add("state", {CmdParam.String}, New ScriptFunction(AddressOf c_jtag_state))
         JTAG_CMD.Add("graycode", {CmdParam.Integer, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_jtag_graycode))
         JTAG_CMD.Add("setdelay", {CmdParam.Integer, CmdParam.Integer}, New ScriptFunction(AddressOf c_jtag_setdelay)) 'Legacy support
+        JTAG_CMD.Add("exitstate", {CmdParam.Bool}, New ScriptFunction(AddressOf c_jtag_exitstate)) 'SVF player option
         CmdFunctions.AddNest(JTAG_CMD)
         Dim BCM_CMD As New ScriptCmd("BCM")
         BCM_CMD.Add("init", {CmdParam.Integer}, New ScriptFunction(AddressOf c_bcm_init))
@@ -3701,6 +3702,21 @@ Public Class FcScriptEngine
             End Select
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.SetDelay function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_jtag_exitstate(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Dim exit_state As Boolean = arguments(0).Value
+            USBCLIENT.FCUSB(Index).JTAG_IF.JSP.ExitStateMachine = exit_state
+            If exit_state Then
+                RaiseEvent WriteConsole("SVF exit to test-logic-reset enabled")
+            Else
+                RaiseEvent WriteConsole("SVF exit to test-logic-reset disabled")
+            End If
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "JTAG.ExitState function exception"}
         End Try
         Return Nothing
     End Function

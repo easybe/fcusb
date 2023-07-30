@@ -32,6 +32,7 @@ Partial Class MainForm
         Me.mi_repeat = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_refresh = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator2 = New System.Windows.Forms.ToolStripSeparator()
+        Me.mi_license_menu = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_exit = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_menu = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_settings = New System.Windows.Forms.ToolStripMenuItem()
@@ -143,7 +144,7 @@ Partial Class MainForm
         '
         'mi_main_menu
         '
-        Me.mi_main_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_detect, Me.ToolStripSeparator1, Me.mi_usb_performance, Me.ToolStripSeparator6, Me.mi_repeat, Me.mi_refresh, Me.ToolStripSeparator2, Me.mi_exit})
+        Me.mi_main_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_detect, Me.ToolStripSeparator1, Me.mi_usb_performance, Me.ToolStripSeparator6, Me.mi_repeat, Me.mi_refresh, Me.ToolStripSeparator2, Me.mi_license_menu, Me.mi_exit})
         Me.mi_main_menu.Name = "mi_main_menu"
         Me.mi_main_menu.Size = New System.Drawing.Size(46, 20)
         Me.mi_main_menu.Text = "Main"
@@ -193,6 +194,13 @@ Partial Class MainForm
         '
         Me.ToolStripSeparator2.Name = "ToolStripSeparator2"
         Me.ToolStripSeparator2.Size = New System.Drawing.Size(209, 6)
+        '
+        'mi_license_menu
+        '
+        Me.mi_license_menu.Image = Global.FlashcatUSB.My.Resources.Resources.Key_go
+        Me.mi_license_menu.Name = "mi_license_menu"
+        Me.mi_license_menu.Size = New System.Drawing.Size(212, 22)
+        Me.mi_license_menu.Text = "License"
         '
         'mi_exit
         '
@@ -389,21 +397,21 @@ Partial Class MainForm
         '
         Me.mi_script_selected.Image = Global.FlashcatUSB.My.Resources.Resources.config
         Me.mi_script_selected.Name = "mi_script_selected"
-        Me.mi_script_selected.Size = New System.Drawing.Size(152, 22)
+        Me.mi_script_selected.Size = New System.Drawing.Size(144, 22)
         Me.mi_script_selected.Text = "Select script"
         '
         'mi_script_load
         '
         Me.mi_script_load.Image = Global.FlashcatUSB.My.Resources.Resources.openfile
         Me.mi_script_load.Name = "mi_script_load"
-        Me.mi_script_load.Size = New System.Drawing.Size(152, 22)
+        Me.mi_script_load.Size = New System.Drawing.Size(144, 22)
         Me.mi_script_load.Text = "Load script"
         '
         'mi_script_unload
         '
         Me.mi_script_unload.Image = Global.FlashcatUSB.My.Resources.Resources.clear_x
         Me.mi_script_unload.Name = "mi_script_unload"
-        Me.mi_script_unload.Size = New System.Drawing.Size(152, 22)
+        Me.mi_script_unload.Size = New System.Drawing.Size(144, 22)
         Me.mi_script_unload.Text = "Unload script"
         '
         'mi_tools_menu
@@ -1028,4 +1036,5 @@ Partial Class MainForm
     Friend WithEvents mi_mode_quad As ToolStripMenuItem
     Friend WithEvents mi_langauge_german As ToolStripMenuItem
     Friend WithEvents mi_cfi_info As ToolStripMenuItem
+    Friend WithEvents mi_license_menu As ToolStripMenuItem
 End Class

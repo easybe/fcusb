@@ -107,6 +107,12 @@
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="ECC.vb" />
+    <Compile Include="FrmLicense.Designer.vb">
+      <DependentUpon>FrmLicense.vb</DependentUpon>
+    </Compile>
+    <Compile Include="FrmLicense.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Parallel_NOR_NAND.vb" />
     <Compile Include="FlashMemory.vb" />
     <Compile Include="FrmSettings.designer.vb">
@@ -253,6 +259,9 @@
     <EmbeddedResource Include="DropPanelList.resx">
       <DependentUpon>DropPanelList.vb</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="FrmLicense.resx">
+      <DependentUpon>FrmLicense.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="FrmSettings.resx">
       <DependentUpon>FrmSettings.vb</DependentUpon>
     </EmbeddedResource>
@@ -341,20 +350,13 @@
   <ItemGroup>
     <None Include="app.config" />
     <EmbeddedResource Include="firmware\PCB4_I2C.svf" />
-    <EmbeddedResource Include="firmware\Mach1_Source.bin" />
-    <EmbeddedResource Include="firmware\MACH1_NAND_3V3.svf" />
-    <EmbeddedResource Include="firmware\MACH1_NAND_1V8.svf" />
     <EmbeddedResource Include="firmware\JTAG_3V3.svf" />
-    <EmbeddedResource Include="firmware\MACH1_HF_1V8.svf" />
-    <EmbeddedResource Include="firmware\MACH1_HF_3V3.svf" />
     <EmbeddedResource Include="firmware\arm_spi.bin" />
     <EmbeddedResource Include="firmware\PCB4_QUAD_3V3.svf" />
     <EmbeddedResource Include="firmware\PCB4_QUAD_1V8.svf" />
     <EmbeddedResource Include="firmware\PCB4_BL_1.02.bin" />
     <EmbeddedResource Include="firmware\PCB4_BL_APP.bin" />
     <EmbeddedResource Include="firmware\MACH1_PCB2_3V3.svf" />
-    <EmbeddedResource Include="firmware\MACH1_QSPI_3V3.svf" />
-    <EmbeddedResource Include="firmware\MACH1_QSPI_1V8.svf" />
     <EmbeddedResource Include="firmware\Mach1_v2_Source.bin" />
     <EmbeddedResource Include="firmware\MACH1_PCB2_1V8.svf" />
     <None Include="My Project\app.manifest" />
@@ -482,6 +484,7 @@
     <None Include="images\spain_sel.png" />
     <None Include="images\edit_file.png" />
     <None Include="images\tsop48.png" />
+    <None Include="images\Key_go.png" />
     <Content Include="Main.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />

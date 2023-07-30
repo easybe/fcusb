@@ -90,7 +90,7 @@ Namespace JTAG
                     tdo32 = ARM_APACC(&H400000C4, 0, ARM_RnW.WR)
                     tdo32 = ARM_APACC(&HB70007, ARM_AP_REG.DRW, ARM_RnW.RD)
                     tdo32 = ARM_APACC(&H7, ARM_AP_REG.DRW, ARM_RnW.RD)
-                    tdo32 = ARM_APACC(&H7, ARM_AP_REG.DRW, ARM_RnW.RD) 'OUT: (0x8E43F882)
+                    tdo32 = ARM_APACC(&H7, ARM_AP_REG.DRW, ARM_RnW.RD) 'OUT: (0x8E43F882) 
                     tdo32 = ARM_DPACC(&H0, ARM_DP_REG.ADDR, ARM_RnW.WR) '(0x00000000)
                     tdo32 = ARM_APACC(&H400000C4, 0, ARM_RnW.WR)
                     tdo32 = ARM_APACC(&HB70007, ARM_AP_REG.TAR, ARM_RnW.WR)
@@ -125,48 +125,7 @@ Namespace JTAG
 
                     'Find ROM base (0xE00FB000)
 
-                    'Now within this table, find the M7 PPB ROM
-                    'CCR.DC = 1 //<--- disable data cache
 
-                    'Enable debug mode and halt the processor
-                    'DHCSR.C_DEBUGEN = 1
-                    'DHCSR.C_HALT = 1
-
-                    '0xE000ED30 DFSR	RW 0x00000000
-                    '0xE000EDF0 DHCSR	RW 0x00000000 Debug Halting Control And Status Register
-                    '0xE000EDF4 DCRSR 	WO - Debug Core Register Selector Register
-                    '0xE000EDF8 DCRDR 	RW - Debug Core Register Data Register
-                    '0xE000EDFC DEMCR 	RW 0x00000000 Debug Exception And Monitor Control Register
-
-                    ''The external tool can follow the same instructions outlined in Section 2.3.4 to write the
-                    ''Debug Run Control Register (DRCR) to halt the CPU into debug state.
-                    'ARM_DPACC_WR(0, ARM_DP_REG.ADDR)
-                    'ARM_APACC(&H43000012UI, ARM_AP_REG.CTRL_STAT, ARM_RnW.WR) '(SProt.Ignore)|(Prot.Default)|(AUTO_INC.SINGLE)|(RW_SIZE.32BIT)
-                    'Example of writing to cpu
-                    'ARM_APACC(&H8000000UI, ARM_AP_REG.TAR, ARM_RnW.WR) 'Set transfer address to '0x08000000
-                    'ARM_APACC(&H11111111UI, ARM_AP_REG.DRW, ARM_RnW.WR) 'Perform write to 0x08000000
-                    'ARM_APACC(&H22222222UI, ARM_AP_REG.DRW, ARM_RnW.WR) 'Perform write to 0x08000004
-                    ''Write to memory using CPU execution
-                    ''Str R0, [R1];
-                    ''R0=0x11111111
-                    ''R1=0x08000000
-                    'ARM_DPACC_WR(&H1000000UI, ARM_DP_REG.ADDR) 'Select APB-AP and bank 0
-                    ''0x80001080 is the address for DTRRX register in the CPU 's debug component
-                    ''All CoreSight debug components are memory mapped according to the ROM table.
-                    ''0x80000000+0x1000+0x80
-                    'ARM_APACC(&H80001080UI, ARM_AP_REG.TAR, ARM_RnW.WR) 'DTRRX REG
-                    ''Set the APB-AP data to write:
-                    'ARM_APACC(&H11111111UI, ARM_AP_REG.DRW, ARM_RnW.WR) 'Writes 0x011111111 to DTRRX
-                    ''Execute CPU instruction to move the data in DTRRX register to R0 register:
-                    ''0x80001084 is the address for ITR register in the CPU's debug component
-                    'ARM_APACC(&H80001084UI, ARM_AP_REG.TAR, ARM_RnW.WR)
-                    ''MRC p14,0,r0,c0,c5,0
-                    'ARM_APACC(&HEE100E15UI, ARM_AP_REG.DRW, ARM_RnW.WR)
-                    ''Do this again, for R1 (check DTRRXfull first!)
-                    'ARM_APACC(&H80001080UI, ARM_AP_REG.TAR, ARM_RnW.WR) 'DTRRX REG
-                    'ARM_APACC(&H8000000UI, ARM_AP_REG.DRW, ARM_RnW.WR) 'Writes 0x8000000UI to DTRRX
-                    'ARM_APACC(&H80001084UI, ARM_AP_REG.TAR, ARM_RnW.WR) 'ITR REG
-                    'ARM_APACC(&HEE100E15UI, ARM_AP_REG.DRW, ARM_RnW.WR) 'ARM opcode to execute
                 End If
                 'DEBUG ######################
 

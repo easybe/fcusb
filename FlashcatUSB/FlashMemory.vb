@@ -1110,8 +1110,8 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("BOYAMICRO BY25Q128A", Mb128, &H68, &H4018))
 
             'SUPPORTED EEPROM SPI DEVICES:
-            FlashDB.Add(New SPI_NOR_FLASH("Atmel AT25128B", 16384, 64))
-            FlashDB.Add(New SPI_NOR_FLASH("Atmel AT25256B", 32768, 64))
+            FlashDB.Add(New SPI_NOR_FLASH("Atmel AT25128B", 16384, 64)) 'Same as AT25128A
+            FlashDB.Add(New SPI_NOR_FLASH("Atmel AT25256B", 32768, 64)) 'Same as AT25256A
             FlashDB.Add(New SPI_NOR_FLASH("Atmel AT25512", 65536, 128))
             FlashDB.Add(New SPI_NOR_FLASH("ST M95010", 128, 16))
             FlashDB.Add(New SPI_NOR_FLASH("ST M95020", 256, 16))
@@ -1280,6 +1280,8 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Atmel AT49BV/LV16X", &H1F, &HC0, Mb016, MFP_IF.X16_3V, MFP_BLKLYT.Two_Top, MFP_PRG.Standard, MFP_DELAY.uS)) 'Supports Single Pulse Byte/ Word Program
             FlashDB.Add(New MFP_Flash("Atmel AT49BV/LV16XT", &H1F, &HC2, Mb016, MFP_IF.X16_3V, MFP_BLKLYT.Two_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
             'MXIC
+            FlashDB.Add(New MFP_Flash("MXIC MX29F800T", &HC2, &H22D6, Mb008, MFP_IF.X16_5V, MFP_BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS)) 'SO44 CV
+            FlashDB.Add(New MFP_Flash("MXIC MX29F800B", &HC2, &H2258, Mb008, MFP_IF.X16_5V, MFP_BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("MXIC MX29F1610", &HC2, &HF7, Mb016, MFP_IF.X16_5V, MFP_BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 6}) 'SO44 (datasheet says F1, chip reports F7)
             FlashDB.Add(New MFP_Flash("MXIC MX29L3211", &HC2, &HF9, Mb032, MFP_IF.X16_3V, MFP_BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.SR2) With {.PAGE_SIZE = 64}) 'Actualy supports up to 256 bytes
             FlashDB.Add(New MFP_Flash("MXIC MX29LV040", &HC2, &H4F, Mb004, MFP_IF.X8_3V, MFP_BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.uS))
@@ -1294,8 +1296,7 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("MXIC MX29LV640ET", &HC2, &H22C9, Mb064, MFP_IF.X16_3V, MFP_BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS) With {.HARDWARE_DELAY = 0})
             FlashDB.Add(New MFP_Flash("MXIC MX29LV640EB", &HC2, &H22CB, Mb064, MFP_IF.X16_3V, MFP_BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS) With {.HARDWARE_DELAY = 0})
             FlashDB.Add(New MFP_Flash("MXIC MX29GL128F", &HC2, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2101) With {.HARDWARE_DELAY = 6})
-            FlashDB.Add(New MFP_Flash("MXIC MX29F800T", &HC2, &H22D6, Mb008, MFP_IF.X16_5V, MFP_BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS)) 'SO44 CV
-            FlashDB.Add(New MFP_Flash("MXIC MX29F800B", &HC2, &H2258, Mb008, MFP_IF.X16_5V, MFP_BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
+            FlashDB.Add(New MFP_Flash("MXIC MX29GL256F", &HC2, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.HARDWARE_DELAY = 6})
             'Cypress / Spansion
             'http://www.cypress.com/file/177976/download   S29GLxxxS
             'http://www.cypress.com/file/219926/download   S29GLxxxP
@@ -1333,7 +1334,6 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Cypress S29GL064M", &H1, &H227E, Mb064, MFP_IF.X16_3V, MFP_BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.SR1, &H1301))
             FlashDB.Add(New MFP_Flash("Cypress S29GL128M", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLYT.Mb001_Uni, MFP_PRG.Standard, MFP_DELAY.SR1, &H1200))
             FlashDB.Add(New MFP_Flash("Cypress S29GL256M", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLYT.Mb001_Uni, MFP_PRG.Standard, MFP_DELAY.SR1, &H1201))
-
             FlashDB.Add(New MFP_Flash("Cypress S29GL032N", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLYT.Kb512_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H1D00) With {.PAGE_SIZE = 32})
             FlashDB.Add(New MFP_Flash("Cypress S29GL064N", &H1, &H227E, Mb064, MFP_IF.X16_3V, MFP_BLKLYT.Kb512_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &HC01) With {.PAGE_SIZE = 32})
             FlashDB.Add(New MFP_Flash("Cypress S29GL128N", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2101) With {.PAGE_SIZE = 32})
@@ -1449,6 +1449,8 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Hynix HY29LV320T", &HAD, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("Hynix HY29LV320B", &HAD, &H227D, Mb032, MFP_IF.X16_3V, MFP_BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
             'Fujitsu
+            FlashDB.Add(New MFP_Flash("Fujitsu MBM29F400TA", &H4, &H2223, Mb004, MFP_IF.X16_5V, MFP_BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS))
+            FlashDB.Add(New MFP_Flash("Fujitsu MBM29F400BA", &H4, &H22AB, Mb004, MFP_IF.X16_5V, MFP_BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("Fujitsu MBM29LV200TC", &H4, &H223B, Mb002, MFP_IF.X16_3V, MFP_BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("Fujitsu MBM29LV200BC", &H4, &H22BF, Mb002, MFP_IF.X16_3V, MFP_BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("Fujitsu MBM29LV400TC", &H4, &H22B9, Mb004, MFP_IF.X16_3V, MFP_BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS))
@@ -1477,7 +1479,6 @@ Namespace FlashMemory
             'Good ID list at: http://www.usbdev.ru/databases/flashlist/flcbm93e98s98p98e/
             'And : http://www.linux-mtd.infradead.org/nand-data/nanddata.html
             'And: http://aitendo2.sakura.ne.jp/aitendo_data/product_img2/product_img/aitendo-kit/USB-MEM/MW8209/Flash_suport_091120.pdf
-
             'Micron SLC 8x NAND devices
             FlashDB.Add(New SLC_NAND_Flash("Micron NAND128W3A", &H20, &H732073, Mb128, 512, 16, Kb128, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Micron NAND256R3A", &H20, &H352035, Mb256, 512, 16, Kb128, ND_IF.X8_3V))
@@ -1486,6 +1487,7 @@ Namespace FlashMemory
             FlashDB.Add(New SLC_NAND_Flash("Micron NAND512W3A", &H20, &H762076, Mb512, 512, 16, Kb128, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Micron NAND01GR3A", &H20, &H392039, Gb001, 512, 16, Kb128, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Micron NAND01GW3A", &H20, &H792079, Gb001, 512, 16, Kb128, ND_IF.X8_3V))
+            FlashDB.Add(New SLC_NAND_Flash("Micron NAND01GW3B", &H20, &HF1001D20UI, Gb001, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Micron NAND04GW3B", &H20, &HDC1095, Gb004, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Micron NAND04GW3B", &H20, &HDC1095, Gb004, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Micron NAND04GW3B", &H20, &HDC1095, Gb004, 2048, 64, Mb001, ND_IF.X8_3V))
