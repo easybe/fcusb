@@ -16,6 +16,8 @@ Public Class JTAG_IF
     Public TAP As JTAG_STATE_CONTROLLER 'JTAG state machine
     Public WithEvents JSP As New JTAG.SVF_Player(Me) 'SVF / XSVF Parser and player
 
+    Public Property VIA_CPLD As Boolean = False
+
     Sub New(ByVal parent_if As FCUSB_DEVICE)
         FCUSB = parent_if
         TAP = Nothing
@@ -914,7 +916,11 @@ Public Class JTAG_IF
     'Attempts to auto-detect a JTAG device on the TAP, returns the IR Length of the device
     Private Function TAP_Detect() As UInt32
         Dim chipiddata(3) As Byte
-        If Not FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_DETECT, chipiddata) Then Return 0 'Error
+        If Me.VIA_CPLD Then
+            If Not FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.CPLD_JTAG_DETECT, chipiddata) Then Return 0 'Error
+        Else
+            If Not FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_DETECT, chipiddata) Then Return 0 'Error
+        End If
         Dim dint As UInteger = BitConverter.ToUInt32(chipiddata, 0)
         If (Utilities.HWeight32(dint) <> 1) Then Return 0
         Dim ir As UInt32 = 0
@@ -929,7 +935,11 @@ Public Class JTAG_IF
         Try
             Me.IR_LEN = IRLen
             Dim setup_data As UInt32 = (IRLen << 16)
-            Return FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_SETIRLEN, Nothing, setup_data)
+            If Me.VIA_CPLD Then
+                Return FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.CPLD_JTAG_SETIRLEN, Nothing, setup_data)
+            Else
+                Return FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_SETIRLEN, Nothing, setup_data)
+            End If
         Catch ex As Exception
             Return False
         End Try
@@ -957,7 +967,11 @@ Public Class JTAG_IF
             Dim ctrl_data As UInt32 = (CUInt(packet_bits) << 16) 'Sets the bit_count
             ctrl_data = ctrl_data Or (packet_size And 255) 'We want to write this number of bytes
             If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, setup_data, setup_data.Length) Then Return Nothing 'Preloads our TDI/TMS data
-            If Not FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_SHIFTDATA, tdo, ctrl_data) Then Return Nothing 'Shifts data and reads result
+            If Me.VIA_CPLD Then
+                If Not FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.CPLD_JTAG_SHIFTDATA, tdo, ctrl_data) Then Return Nothing 'Shifts data and reads result
+            Else
+                If Not FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_SHIFTDATA, tdo, ctrl_data) Then Return Nothing 'Shifts data and reads result
+            End If
             tdobytecollector.Add(tdo)
             pointer += packet_size
             BytesLeft -= packet_size
@@ -1001,6 +1015,17 @@ Public Class JTAG_IF
         Catch ex As Exception
         End Try
     End Sub
+
+    Public Sub Tap_Toggle(ByVal count As UInt32)
+        Dim toggle_result As Boolean = False
+        If Me.VIA_CPLD Then
+            toggle_result = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.CPLD_JTAG_TOGGLE, Nothing, count) 'Toggles the clock
+        Else
+            toggle_result = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_TOGGLE, Nothing, count) 'Toggles the clock
+        End If
+        FCUSB.USB_WaitForComplete()
+    End Sub
+
     'Selects a ir-reg, then selects the data-reg and shifts data to and from it
     Public Function ScanRegister(ByVal IR As UInt32, ByVal dr_bit_count As UInt16, Optional ByVal preload() As Byte = Nothing) As Byte()
         Dim byte_count As UInt16 = Math.Ceiling(dr_bit_count / 8)

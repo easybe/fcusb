@@ -24,6 +24,7 @@ Public Class MainForm
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Parallel NOR memory (x8/x16)", FlashDatabase.PartCount(MemoryType.PARALLEL_NOR)))
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "SLC NAND memory (x8)", FlashDatabase.PartCount(MemoryType.SLC_NAND)))
         mi_mode_1wire.Visible = False
+        statuspage_progress.Visible = False
         mi_mode_mach1.Enabled = False
         Language_Setup()
     End Sub
@@ -111,12 +112,31 @@ Public Class MainForm
 #End Region
 
 #Region "Status System"
+    Delegate Sub cbStatusPageProgress(ByVal percent As Integer)
     Delegate Sub cbSetConnectionStatus(ByVal usb_dev As FCUSB_DEVICE)
     Delegate Sub cbUpdateStatusMessage(ByVal Label As String, ByVal Msg As String)
     Delegate Sub cbRemoveStatusMessage(ByVal Label As String)
     Delegate Sub cbClearStatusMessage()
 
     Private StatusMessageControls() As Control 'Holds the label that the form displays
+
+    Public Sub SetStatusPageProgress(ByVal percent As Integer)
+        If Me.InvokeRequired Then
+            Dim d As New cbStatusPageProgress(AddressOf SetStatusPageProgress)
+            Me.Invoke(d, New Object() {percent})
+        Else
+            If (percent > 100) Then percent = 100
+            If (percent = 100) Then
+                Me.statuspage_progress.Value = 0
+                Me.statuspage_progress.Visible = False
+            Else
+                Me.statuspage_progress.Value = percent
+                Me.statuspage_progress.Visible = True
+            End If
+            'Me.Refresh()
+            'Application.DoEvents()
+        End If
+    End Sub
 
     Public Sub UpdateStatusMessage(ByVal Label As String, ByVal Msg As String)
         If Me.InvokeRequired Then
@@ -683,6 +703,10 @@ Public Class MainForm
         mi_1V8.Checked = False
         mi_3V3.Checked = False
         mi_5V0.Checked = False
+        mi_1V8.Visible = False
+        mi_3V3.Visible = False
+        mi_5V0.Visible = False
+        mi_vcc_seperator.Visible = False
         Select Case VCC_OPTION
             Case USB.Voltage.V1_8
                 mi_1V8.Checked = True
@@ -715,6 +739,9 @@ Public Class MainForm
             mi_verify.Enabled = True
             mi_bit_swapping.Enabled = True
             mi_endian.Enabled = True
+            mi_1V8.Enabled = True
+            mi_3V3.Enabled = True
+            mi_5V0.Enabled = True
         End If
         mi_mode_spi.Checked = False
         mi_mode_spieeprom.Checked = False
@@ -730,7 +757,6 @@ Public Class MainForm
         mi_bitswap_8bit.Checked = False
         mi_bitswap_16bit.Checked = False
         mi_bitswap_32bit.Checked = False
-        Enable_VCC_Menu(False)
         Select Case MySettings.BIT_SWAP
             Case BitSwapMode.None
                 mi_bitswap_none.Checked = True
@@ -756,7 +782,7 @@ Public Class MainForm
                 mi_bitendian_little_8.Checked = True
         End Select
         Enable_Mode_Menu(False)
-        If USBCLIENT.HW_MODE = FCUSB_BOARD.Professional Then
+        If USBCLIENT.HW_MODE = FCUSB_BOARD.Pro_PCB3 Then
             mi_mode_spi.Enabled = True
             mi_mode_spieeprom.Enabled = True
             mi_mode_spi_nand.Enabled = True
@@ -766,7 +792,21 @@ Public Class MainForm
             mi_mode_1wire.Enabled = True
             mi_mode_3wire.Enabled = True
             mi_mode_jtag.Enabled = True 'We now support JTAG!
-            Enable_VCC_Menu(True)
+            mi_1V8.Visible = True
+            mi_3V3.Visible = True
+            mi_5V0.Visible = True
+            mi_vcc_seperator.Visible = True
+        ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Pro_PCB4 Then
+            mi_mode_spi.Enabled = True
+            mi_mode_spi_nand.Enabled = True
+            mi_mode_spieeprom.Enabled = True
+            mi_mode_3wire.Enabled = True
+            mi_mode_extio.Enabled = True
+            mi_mode_eprom_otp.Enabled = True
+            mi_1V8.Visible = True
+            mi_3V3.Visible = True
+            mi_vcc_seperator.Visible = True
+            If VCC_OPTION = USB.Voltage.V5_0 Then VCC_Enable3V3() 'PCB 4.0 does not support 5V mode
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Classic_XPORT Then
             mi_mode_spi.Enabled = True
             mi_mode_spieeprom.Enabled = True
@@ -798,29 +838,20 @@ Public Class MainForm
             mi_mode_mach1.Enabled = True
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Classic_BL Then
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.NotConnected Then
-            Enable_VCC_Menu(True)
             Enable_Mode_Menu(True)
             mi_mode_mach1.Enabled = False
         End If
-        If MySettings.I2C_SIZE = 0 Then
+        If mi_mode_i2c.Enabled AndAlso MySettings.I2C_SIZE = 0 Then
             mi_mode_i2c.Enabled = False
-        Else
-            mi_mode_i2c.Enabled = True
         End If
-        If MySettings.OTP_MFG = 0 Then
+        If mi_mode_eprom_otp.Enabled AndAlso MySettings.OTP_MFG = 0 Then
             mi_mode_eprom_otp.Enabled = False
-        Else
-            mi_mode_eprom_otp.Enabled = True
         End If
-        If MySettings.SPI_EEPROM = SPI_EEPROM.None Then
+        If mi_mode_spieeprom.Enabled AndAlso MySettings.SPI_EEPROM = SPI_EEPROM.None Then
             mi_mode_spieeprom.Enabled = False
-        Else
-            mi_mode_spieeprom.Enabled = True
         End If
-        If MySettings.S93_DEVICE_INDEX = 0 Then
+        If mi_mode_3wire.Enabled AndAlso MySettings.S93_DEVICE_INDEX = 0 Then
             mi_mode_3wire.Enabled = False
-        Else
-            mi_mode_3wire.Enabled = True
         End If
         Select Case MySettings.OPERATION_MODE
             Case FlashcatSettings.DeviceMode.SPI
@@ -844,18 +875,6 @@ Public Class MainForm
             Case FlashcatSettings.DeviceMode.Mach1
                 mi_mode_mach1.Checked = True
         End Select
-    End Sub
-
-    Private Sub Enable_VCC_Menu(ByVal enabled As Boolean)
-        If enabled Then
-            mi_1V8.Enabled = True
-            mi_3V3.Enabled = True
-            mi_5V0.Enabled = True
-        Else
-            mi_1V8.Enabled = False
-            mi_3V3.Enabled = False
-            mi_5V0.Enabled = False
-        End If
     End Sub
 
     Private Sub Enable_Mode_Menu(ByVal enabled As Boolean)
@@ -1110,7 +1129,7 @@ Public Class MainForm
             For Each dev In USBCLIENT.FCUSB
                 If dev.IS_CONNECTED Then
                     If dev.SPI_NOR_IF.PORT_SELECT = SPI.SPI_Programmer.SPIBUS_PORT.Port_A Then
-                        Dim clock_mhz As UInt32 = GetCurrentSpiClock(dev)
+                        Dim clock_mhz As UInt32 = GetSpiClock(dev.HWBOARD, MySettings.SPI_CLOCK_MAX)
                         Dim clock_str As String = (clock_mhz / 1000000).ToString & " MHz"
                         GUI.PrintConsole(String.Format(RM.GetString("spi_set_clock"), clock_str)) 'Now set clock to user selected value
                         dev.USB_SPI_SETSPEED(SPI.SPI_Programmer.SPIBUS_PORT.Port_A, clock_mhz)
@@ -1278,37 +1297,65 @@ Public Class MainForm
     End Sub
 
     Private Sub mi_1V8_Click(sender As Object, e As EventArgs) Handles mi_1V8.Click
-        mi_1V8.Checked = True
-        mi_3V3.Checked = False
-        mi_5V0.Checked = False
-        MySettings.VOLT_SELECT = USB.Voltage.V1_8
-        USBCLIENT.USB_VCC_1V8()
-        VCC_OPTION = USB.Voltage.V1_8
-        MySettings.Save()
-        PrintConsole(String.Format(RM.GetString("voltage_set_to"), "1.8v"))
+        VCC_Enable1V8()
     End Sub
 
     Private Sub mi_3V3_Click(sender As Object, e As EventArgs) Handles mi_3V3.Click
-        mi_1V8.Checked = False
-        mi_3V3.Checked = True
-        mi_5V0.Checked = False
-        MySettings.VOLT_SELECT = USB.Voltage.V3_3
-        USBCLIENT.USB_VCC_3V()
-        VCC_OPTION = USB.Voltage.V3_3
-        MySettings.Save()
-        PrintConsole(String.Format(RM.GetString("voltage_set_to"), "3.3v"))
+        VCC_Enable3V3()
     End Sub
 
     Private Sub mi_5V0_Click(sender As Object, e As EventArgs) Handles mi_5V0.Click
-        mi_1V8.Checked = False
-        mi_3V3.Checked = False
-        mi_5V0.Checked = True
-        MySettings.VOLT_SELECT = USB.Voltage.V5_0
-        USBCLIENT.USB_VCC_5V()
-        VCC_OPTION = USB.Voltage.V5_0
-        MySettings.Save()
-        PrintConsole(String.Format(RM.GetString("voltage_set_to"), "5.0v"))
+        VCC_Enable5V()
     End Sub
+
+    Private Sub VCC_Enable1V8()
+        Try
+            mi_1V8.Checked = True
+            mi_3V3.Checked = False
+            mi_5V0.Checked = False
+            MySettings.VOLT_SELECT = USB.Voltage.V1_8
+            USBCLIENT.USB_VCC_1V8()
+            VCC_OPTION = USB.Voltage.V1_8
+            MySettings.Save()
+            PrintConsole(String.Format(RM.GetString("voltage_set_to"), "1.8v"))
+            Dim t As New Threading.Thread(AddressOf FCUSBPRO_CPLD_UpdateAll)
+            t.Name = "tdCPLDUpdate"
+            t.Start()
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub VCC_Enable3V3()
+        Try
+            mi_1V8.Checked = False
+            mi_3V3.Checked = True
+            mi_5V0.Checked = False
+            MySettings.VOLT_SELECT = USB.Voltage.V3_3
+            USBCLIENT.USB_VCC_3V()
+            VCC_OPTION = USB.Voltage.V3_3
+            MySettings.Save()
+            PrintConsole(String.Format(RM.GetString("voltage_set_to"), "3.3v"))
+            Dim t As New Threading.Thread(AddressOf FCUSBPRO_CPLD_UpdateAll)
+            t.Name = "tdCPLDUpdate"
+            t.Start()
+        Catch ex As Exception
+        End Try
+    End Sub
+
+    Private Sub VCC_Enable5V()
+        Try
+            mi_1V8.Checked = False
+            mi_3V3.Checked = False
+            mi_5V0.Checked = True
+            MySettings.VOLT_SELECT = USB.Voltage.V5_0
+            USBCLIENT.USB_VCC_5V()
+            VCC_OPTION = USB.Voltage.V5_0
+            MySettings.Save()
+            PrintConsole(String.Format(RM.GetString("voltage_set_to"), "5.0v"))
+        Catch ex As Exception
+        End Try
+    End Sub
+
 
     Private Sub mi_detect_Click(sender As Object, e As EventArgs) Handles mi_detect.Click
         detect_event()
@@ -2188,9 +2235,12 @@ Public Class MainForm
     End Sub
 
     Private Function IsAnyDeviceBusy() As Boolean
+        If USBCLIENT.HW_UPDATING Then Return True
         For i = 0 To MEM_IF.DeviceCount - 1
             If MEM_IF.GetDevice(i).IsBusy Or MEM_IF.GetDevice(i).IsTaskRunning Then Return True
-            If MEM_IF.GetDevice(i).GuiControl.IN_OPERATION Then Return True
+            If MEM_IF.GetDevice(i).GuiControl IsNot Nothing Then
+                If MEM_IF.GetDevice(i).GuiControl.IN_OPERATION Then Return True
+            End If
         Next
         Return False
     End Function
@@ -2344,6 +2394,7 @@ Public Class MainForm
         Else
             pbMachProgress.Value = 0
             cmdMach1DnTest.Enabled = True
+            cmdMach1UpTest.Enabled = True
         End If
     End Sub
 
@@ -2359,20 +2410,31 @@ Public Class MainForm
     Private Sub cmdMach1DnTest_Click(sender As Object, e As EventArgs) Handles cmdMach1DnTest.Click
         MB_DN_INDEX = cbMachDownloadSize.SelectedIndex
         cmdMach1DnTest.Enabled = False
-        Dim t As New Threading.Thread(AddressOf Mach1DnTest)
-        t.Start()
+        Dim t As New Threading.Thread(AddressOf SAM3U_SpeedTest_Read)
+        t.Start(MachDev)
     End Sub
 
-    Private Sub Mach1DnTest()
+    Private Sub cmdMach1UpTest_Click(sender As Object, e As EventArgs) Handles cmdMach1UpTest.Click
+        MB_DN_INDEX = cbMachDownloadSize.SelectedIndex
+        cmdMach1UpTest.Enabled = False
+        Dim t As New Threading.Thread(AddressOf SAM3U_SpeedTest_Write)
+        t.Start(MachDev)
+    End Sub
+
+    Public Sub SAM3U_SpeedTest_Read(ByVal usb_dev As FCUSB_DEVICE)
         Dim t As New Stopwatch
         Dim mb_count As Integer = 100 * (MB_DN_INDEX + 1)
         Dim data_count As UInt32 = 1048576
         Dim data_test(data_count - 1) As Byte
         Dim read_counter As Integer = 0
-        SetStatus("Starting transfer of " & mb_count & "MB")
+        MsgBox("Starting transfer of " & mb_count & "MB (Reading)")
         t.Start()
         Do
-            Dim result As Boolean = MachDev.USB_SETUP_BULKIN(&HA1, Nothing, data_test, data_test.Length)
+            Dim result As Boolean = usb_dev.USB_SETUP_BULKIN(USB.USBREQ.SAM3U_TEST_READ, Nothing, data_test, data_test.Length)
+            If Not result Then
+                MsgBox("Error on USB Bulk In operation")
+                Exit Sub
+            End If
             read_counter += 1
             Mach1Progress(CSng(read_counter / mb_count) * 100)
             If (read_counter) = mb_count Then Exit Do
@@ -2381,7 +2443,33 @@ Public Class MainForm
         Dim bytesRead As UInt32 = (data_count * mb_count)
         Dim speed_str As String = Format(Math.Round(bytesRead / (t.ElapsedMilliseconds / 1000)), "#,###") & " Bytes/s"
         Dim msg_out As String = "Successfully transfered " & mb_count & "MB in " & t.Elapsed.TotalSeconds & " seconds (" & speed_str & ")"
-        SetStatus(msg_out)
+        MsgBox(msg_out)
+        Mach1TestComplete()
+    End Sub
+
+    Public Sub SAM3U_SpeedTest_Write(ByVal usb_dev As FCUSB_DEVICE)
+        Dim t As New Stopwatch
+        Dim mb_count As Integer = 100 * (MB_DN_INDEX + 1)
+        Dim data_count As UInt32 = 1048576
+        Dim data_test(data_count - 1) As Byte
+        Dim read_counter As Integer = 0
+        MsgBox("Starting transfer of " & mb_count & "MB (Writing)")
+        t.Start()
+        Do
+            Dim result As Boolean = usb_dev.USB_SETUP_BULKOUT(USB.USBREQ.SAM3U_TEST_WRITE, Nothing, data_test, data_test.Length)
+            If Not result Then
+                MsgBox("Error on USB Bulk Out operation")
+                Exit Sub
+            End If
+            read_counter += 1
+            Mach1Progress(CSng(read_counter / mb_count) * 100)
+            If (read_counter) = mb_count Then Exit Do
+        Loop
+        t.Stop()
+        Dim bytesRead As UInt32 = (data_count * mb_count)
+        Dim speed_str As String = Format(Math.Round(bytesRead / (t.ElapsedMilliseconds / 1000)), "#,###") & " Bytes/s"
+        Dim msg_out As String = "Successfully transfered " & mb_count & "MB in " & t.Elapsed.TotalSeconds & " seconds (" & speed_str & ")"
+        MsgBox(msg_out)
         Mach1TestComplete()
     End Sub
 
@@ -2412,6 +2500,7 @@ Public Class MainForm
         Try
             RemoveHandler MachDev.EJ_IF.JSP.Progress, AddressOf Mach1Progress
             AddHandler MachDev.EJ_IF.JSP.Progress, AddressOf Mach1Progress
+            MachDev.EJ_IF.ResetTAP()
             MachDev.EJ_IF.JSP.RunFile_SVF(mach1_svf_file)
             CpldUpdateStatus()
             Mach1Progress(0)

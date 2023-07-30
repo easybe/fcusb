@@ -45,7 +45,7 @@ Partial Class MainForm
         Me.mi_bitendian_big_16 = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_bitendian_little_16 = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_bitendian_little_8 = New System.Windows.Forms.ToolStripMenuItem()
-        Me.ToolStripSeparator9 = New System.Windows.Forms.ToolStripSeparator()
+        Me.mi_vcc_seperator = New System.Windows.Forms.ToolStripSeparator()
         Me.mi_1V8 = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_3V3 = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_5V0 = New System.Windows.Forms.ToolStripMenuItem()
@@ -86,7 +86,7 @@ Partial Class MainForm
         Me.MyTabs = New System.Windows.Forms.TabControl()
         Me.TabStatus = New System.Windows.Forms.TabPage()
         Me.pb_logo = New System.Windows.Forms.PictureBox()
-        Me.TableLayoutPanel2 = New System.Windows.Forms.TableLayoutPanel()
+        Me.status_panel = New System.Windows.Forms.TableLayoutPanel()
         Me.sm7 = New System.Windows.Forms.Label()
         Me.sm6 = New System.Windows.Forms.Label()
         Me.sm5 = New System.Windows.Forms.Label()
@@ -117,6 +117,7 @@ Partial Class MainForm
         Me.cmd_gang_erase = New System.Windows.Forms.Button()
         Me.cmd_gang_write = New System.Windows.Forms.Button()
         Me.TabMach1 = New System.Windows.Forms.TabPage()
+        Me.cmdMach1UpTest = New System.Windows.Forms.Button()
         Me.cmdMach1CpldOn = New System.Windows.Forms.Button()
         Me.cmdMach1CpldOff = New System.Windows.Forms.Button()
         Me.Label4 = New System.Windows.Forms.Label()
@@ -126,12 +127,13 @@ Partial Class MainForm
         Me.Label1 = New System.Windows.Forms.Label()
         Me.cbMachDownloadSize = New System.Windows.Forms.ComboBox()
         Me.cmdMach1DnTest = New System.Windows.Forms.Button()
+        Me.statuspage_progress = New System.Windows.Forms.ProgressBar()
         Me.MenuStrip1.SuspendLayout()
         Me.FlashStatus.SuspendLayout()
         Me.MyTabs.SuspendLayout()
         Me.TabStatus.SuspendLayout()
         CType(Me.pb_logo, System.ComponentModel.ISupportInitialize).BeginInit()
-        Me.TableLayoutPanel2.SuspendLayout()
+        Me.status_panel.SuspendLayout()
         Me.TabConsole.SuspendLayout()
         Me.TabMultiDevice.SuspendLayout()
         Me.GroupBox1.SuspendLayout()
@@ -197,7 +199,7 @@ Partial Class MainForm
         '
         'mi_mode_menu
         '
-        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.ToolStripSeparator9, Me.mi_1V8, Me.mi_3V3, Me.mi_5V0, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_3wire, Me.mi_mode_extio, Me.mi_mode_eprom_otp, Me.mi_mode_jtag, Me.mi_mode_mach1})
+        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.mi_vcc_seperator, Me.mi_1V8, Me.mi_3V3, Me.mi_5V0, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_3wire, Me.mi_mode_extio, Me.mi_mode_eprom_otp, Me.mi_mode_jtag, Me.mi_mode_mach1})
         Me.mi_mode_menu.Name = "mi_mode_menu"
         Me.mi_mode_menu.Size = New System.Drawing.Size(50, 20)
         Me.mi_mode_menu.Text = "Mode"
@@ -284,10 +286,10 @@ Partial Class MainForm
         Me.mi_bitendian_little_8.Size = New System.Drawing.Size(186, 22)
         Me.mi_bitendian_little_8.Text = "Little Endian (8-bits)"
         '
-        'ToolStripSeparator9
+        'mi_vcc_seperator
         '
-        Me.ToolStripSeparator9.Name = "ToolStripSeparator9"
-        Me.ToolStripSeparator9.Size = New System.Drawing.Size(179, 6)
+        Me.mi_vcc_seperator.Name = "mi_vcc_seperator"
+        Me.mi_vcc_seperator.Size = New System.Drawing.Size(179, 6)
         '
         'mi_1V8
         '
@@ -516,7 +518,7 @@ Partial Class MainForm
         'FlashStatus
         '
         Me.FlashStatus.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FlashStatusLabel})
-        Me.FlashStatus.Location = New System.Drawing.Point(0, 349)
+        Me.FlashStatus.Location = New System.Drawing.Point(0, 350)
         Me.FlashStatus.Name = "FlashStatus"
         Me.FlashStatus.Size = New System.Drawing.Size(469, 22)
         Me.FlashStatus.TabIndex = 1
@@ -540,18 +542,19 @@ Partial Class MainForm
         Me.MyTabs.Location = New System.Drawing.Point(2, 24)
         Me.MyTabs.Name = "MyTabs"
         Me.MyTabs.SelectedIndex = 0
-        Me.MyTabs.Size = New System.Drawing.Size(467, 322)
+        Me.MyTabs.Size = New System.Drawing.Size(467, 323)
         Me.MyTabs.TabIndex = 2
         '
         'TabStatus
         '
         Me.TabStatus.BackColor = System.Drawing.SystemColors.Control
+        Me.TabStatus.Controls.Add(Me.statuspage_progress)
         Me.TabStatus.Controls.Add(Me.pb_logo)
-        Me.TabStatus.Controls.Add(Me.TableLayoutPanel2)
+        Me.TabStatus.Controls.Add(Me.status_panel)
         Me.TabStatus.Location = New System.Drawing.Point(4, 22)
         Me.TabStatus.Name = "TabStatus"
         Me.TabStatus.Padding = New System.Windows.Forms.Padding(3)
-        Me.TabStatus.Size = New System.Drawing.Size(459, 296)
+        Me.TabStatus.Size = New System.Drawing.Size(459, 297)
         Me.TabStatus.TabIndex = 0
         Me.TabStatus.Text = "  Status  "
         '
@@ -561,38 +564,38 @@ Partial Class MainForm
             Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.pb_logo.BackgroundImage = Global.FlashcatUSB.My.Resources.Resources.logo_ec
         Me.pb_logo.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center
-        Me.pb_logo.Location = New System.Drawing.Point(3, 190)
+        Me.pb_logo.Location = New System.Drawing.Point(3, 179)
         Me.pb_logo.Name = "pb_logo"
         Me.pb_logo.Size = New System.Drawing.Size(450, 100)
         Me.pb_logo.TabIndex = 7
         Me.pb_logo.TabStop = False
         '
-        'TableLayoutPanel2
+        'status_panel
         '
-        Me.TableLayoutPanel2.ColumnCount = 1
-        Me.TableLayoutPanel2.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle())
-        Me.TableLayoutPanel2.Controls.Add(Me.sm7, 0, 7)
-        Me.TableLayoutPanel2.Controls.Add(Me.sm6, 0, 6)
-        Me.TableLayoutPanel2.Controls.Add(Me.sm5, 0, 5)
-        Me.TableLayoutPanel2.Controls.Add(Me.sm4, 0, 4)
-        Me.TableLayoutPanel2.Controls.Add(Me.sm3, 0, 3)
-        Me.TableLayoutPanel2.Controls.Add(Me.sm2, 0, 2)
-        Me.TableLayoutPanel2.Controls.Add(Me.sm1, 0, 1)
-        Me.TableLayoutPanel2.Controls.Add(Me.lblStatus, 0, 0)
-        Me.TableLayoutPanel2.Location = New System.Drawing.Point(2, 10)
-        Me.TableLayoutPanel2.Name = "TableLayoutPanel2"
-        Me.TableLayoutPanel2.RowCount = 9
-        Me.TableLayoutPanel2.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
-        Me.TableLayoutPanel2.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
-        Me.TableLayoutPanel2.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
-        Me.TableLayoutPanel2.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
-        Me.TableLayoutPanel2.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
-        Me.TableLayoutPanel2.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
-        Me.TableLayoutPanel2.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
-        Me.TableLayoutPanel2.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
-        Me.TableLayoutPanel2.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
-        Me.TableLayoutPanel2.Size = New System.Drawing.Size(450, 165)
-        Me.TableLayoutPanel2.TabIndex = 5
+        Me.status_panel.ColumnCount = 1
+        Me.status_panel.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle())
+        Me.status_panel.Controls.Add(Me.sm7, 0, 7)
+        Me.status_panel.Controls.Add(Me.sm6, 0, 6)
+        Me.status_panel.Controls.Add(Me.sm5, 0, 5)
+        Me.status_panel.Controls.Add(Me.sm4, 0, 4)
+        Me.status_panel.Controls.Add(Me.sm3, 0, 3)
+        Me.status_panel.Controls.Add(Me.sm2, 0, 2)
+        Me.status_panel.Controls.Add(Me.sm1, 0, 1)
+        Me.status_panel.Controls.Add(Me.lblStatus, 0, 0)
+        Me.status_panel.Location = New System.Drawing.Point(2, 10)
+        Me.status_panel.Name = "status_panel"
+        Me.status_panel.RowCount = 9
+        Me.status_panel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
+        Me.status_panel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
+        Me.status_panel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
+        Me.status_panel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
+        Me.status_panel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
+        Me.status_panel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
+        Me.status_panel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
+        Me.status_panel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
+        Me.status_panel.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20.0!))
+        Me.status_panel.Size = New System.Drawing.Size(450, 165)
+        Me.status_panel.TabIndex = 5
         '
         'sm7
         '
@@ -670,7 +673,7 @@ Partial Class MainForm
         Me.TabConsole.Location = New System.Drawing.Point(4, 22)
         Me.TabConsole.Name = "TabConsole"
         Me.TabConsole.Padding = New System.Windows.Forms.Padding(3)
-        Me.TabConsole.Size = New System.Drawing.Size(459, 296)
+        Me.TabConsole.Size = New System.Drawing.Size(459, 297)
         Me.TabConsole.TabIndex = 1
         Me.TabConsole.Text = "  Console  "
         '
@@ -679,7 +682,7 @@ Partial Class MainForm
         Me.cmd_console_copy.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.cmd_console_copy.FlatStyle = System.Windows.Forms.FlatStyle.Popup
         Me.cmd_console_copy.Image = Global.FlashcatUSB.My.Resources.Resources.clipboard_ico
-        Me.cmd_console_copy.Location = New System.Drawing.Point(408, 271)
+        Me.cmd_console_copy.Location = New System.Drawing.Point(408, 272)
         Me.cmd_console_copy.Name = "cmd_console_copy"
         Me.cmd_console_copy.Size = New System.Drawing.Size(22, 22)
         Me.cmd_console_copy.TabIndex = 9
@@ -690,7 +693,7 @@ Partial Class MainForm
         Me.cmd_console_clear.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.cmd_console_clear.FlatStyle = System.Windows.Forms.FlatStyle.Popup
         Me.cmd_console_clear.Image = Global.FlashcatUSB.My.Resources.Resources.clear_x
-        Me.cmd_console_clear.Location = New System.Drawing.Point(382, 271)
+        Me.cmd_console_clear.Location = New System.Drawing.Point(382, 272)
         Me.cmd_console_clear.Name = "cmd_console_clear"
         Me.cmd_console_clear.Size = New System.Drawing.Size(22, 22)
         Me.cmd_console_clear.TabIndex = 8
@@ -701,7 +704,7 @@ Partial Class MainForm
         Me.cmdSaveLog.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.cmdSaveLog.FlatStyle = System.Windows.Forms.FlatStyle.Popup
         Me.cmdSaveLog.Image = CType(resources.GetObject("cmdSaveLog.Image"), System.Drawing.Image)
-        Me.cmdSaveLog.Location = New System.Drawing.Point(434, 271)
+        Me.cmdSaveLog.Location = New System.Drawing.Point(434, 272)
         Me.cmdSaveLog.Name = "cmdSaveLog"
         Me.cmdSaveLog.Size = New System.Drawing.Size(22, 22)
         Me.cmdSaveLog.TabIndex = 7
@@ -711,7 +714,7 @@ Partial Class MainForm
         '
         Me.txtInput.Anchor = CType(((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left) _
             Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.txtInput.Location = New System.Drawing.Point(3, 273)
+        Me.txtInput.Location = New System.Drawing.Point(3, 274)
         Me.txtInput.Name = "txtInput"
         Me.txtInput.Size = New System.Drawing.Size(373, 20)
         Me.txtInput.TabIndex = 6
@@ -737,7 +740,7 @@ Partial Class MainForm
         Me.TabMultiDevice.Location = New System.Drawing.Point(4, 22)
         Me.TabMultiDevice.Name = "TabMultiDevice"
         Me.TabMultiDevice.Padding = New System.Windows.Forms.Padding(3)
-        Me.TabMultiDevice.Size = New System.Drawing.Size(459, 296)
+        Me.TabMultiDevice.Size = New System.Drawing.Size(459, 310)
         Me.TabMultiDevice.TabIndex = 2
         Me.TabMultiDevice.Text = "  Multi-device  "
         '
@@ -870,6 +873,7 @@ Partial Class MainForm
         'TabMach1
         '
         Me.TabMach1.BackColor = System.Drawing.SystemColors.Control
+        Me.TabMach1.Controls.Add(Me.cmdMach1UpTest)
         Me.TabMach1.Controls.Add(Me.cmdMach1CpldOn)
         Me.TabMach1.Controls.Add(Me.cmdMach1CpldOff)
         Me.TabMach1.Controls.Add(Me.Label4)
@@ -882,9 +886,18 @@ Partial Class MainForm
         Me.TabMach1.Location = New System.Drawing.Point(4, 22)
         Me.TabMach1.Name = "TabMach1"
         Me.TabMach1.Padding = New System.Windows.Forms.Padding(3)
-        Me.TabMach1.Size = New System.Drawing.Size(459, 296)
+        Me.TabMach1.Size = New System.Drawing.Size(459, 310)
         Me.TabMach1.TabIndex = 3
         Me.TabMach1.Text = "  Mach1 Development  "
+        '
+        'cmdMach1UpTest
+        '
+        Me.cmdMach1UpTest.Location = New System.Drawing.Point(229, 36)
+        Me.cmdMach1UpTest.Name = "cmdMach1UpTest"
+        Me.cmdMach1UpTest.Size = New System.Drawing.Size(118, 27)
+        Me.cmdMach1UpTest.TabIndex = 11
+        Me.cmdMach1UpTest.Text = "Write to MCU"
+        Me.cmdMach1UpTest.UseVisualStyleBackColor = True
         '
         'cmdMach1CpldOn
         '
@@ -943,9 +956,9 @@ Partial Class MainForm
         Me.Label1.AutoSize = True
         Me.Label1.Location = New System.Drawing.Point(24, 19)
         Me.Label1.Name = "Label1"
-        Me.Label1.Size = New System.Drawing.Size(75, 13)
+        Me.Label1.Size = New System.Drawing.Size(66, 13)
         Me.Label1.TabIndex = 2
-        Me.Label1.Text = "Download test"
+        Me.Label1.Text = "Transfer test"
         '
         'cbMachDownloadSize
         '
@@ -961,16 +974,23 @@ Partial Class MainForm
         '
         Me.cmdMach1DnTest.Location = New System.Drawing.Point(105, 36)
         Me.cmdMach1DnTest.Name = "cmdMach1DnTest"
-        Me.cmdMach1DnTest.Size = New System.Drawing.Size(84, 27)
+        Me.cmdMach1DnTest.Size = New System.Drawing.Size(118, 27)
         Me.cmdMach1DnTest.TabIndex = 0
-        Me.cmdMach1DnTest.Text = "Start"
+        Me.cmdMach1DnTest.Text = "Read from MCU"
         Me.cmdMach1DnTest.UseVisualStyleBackColor = True
+        '
+        'statuspage_progress
+        '
+        Me.statuspage_progress.Location = New System.Drawing.Point(3, 282)
+        Me.statuspage_progress.Name = "statuspage_progress"
+        Me.statuspage_progress.Size = New System.Drawing.Size(450, 12)
+        Me.statuspage_progress.TabIndex = 8
         '
         'MainForm
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(469, 371)
+        Me.ClientSize = New System.Drawing.Size(469, 372)
         Me.Controls.Add(Me.MyTabs)
         Me.Controls.Add(Me.FlashStatus)
         Me.Controls.Add(Me.MenuStrip1)
@@ -985,8 +1005,8 @@ Partial Class MainForm
         Me.MyTabs.ResumeLayout(False)
         Me.TabStatus.ResumeLayout(False)
         CType(Me.pb_logo, System.ComponentModel.ISupportInitialize).EndInit()
-        Me.TableLayoutPanel2.ResumeLayout(False)
-        Me.TableLayoutPanel2.PerformLayout()
+        Me.status_panel.ResumeLayout(False)
+        Me.status_panel.PerformLayout()
         Me.TabConsole.ResumeLayout(False)
         Me.TabConsole.PerformLayout()
         Me.TabMultiDevice.ResumeLayout(False)
@@ -1007,7 +1027,7 @@ Partial Class MainForm
     Friend WithEvents MyTabs As TabControl
     Friend WithEvents TabStatus As TabPage
     Friend WithEvents pb_logo As PictureBox
-    Friend WithEvents TableLayoutPanel2 As TableLayoutPanel
+    Friend WithEvents status_panel As TableLayoutPanel
     Friend WithEvents sm7 As Label
     Friend WithEvents sm6 As Label
     Friend WithEvents sm5 As Label
@@ -1054,7 +1074,7 @@ Partial Class MainForm
     Friend WithEvents mi_bitendian_big_32 As ToolStripMenuItem
     Friend WithEvents mi_bitendian_little_8 As ToolStripMenuItem
     Friend WithEvents mi_bitendian_little_16 As ToolStripMenuItem
-    Friend WithEvents ToolStripSeparator9 As ToolStripSeparator
+    Friend WithEvents mi_vcc_seperator As ToolStripSeparator
     Friend WithEvents mi_mode_1wire As ToolStripMenuItem
     Friend WithEvents mi_tools_menu As ToolStripMenuItem
     Friend WithEvents mi_create_img As ToolStripMenuItem
@@ -1103,4 +1123,6 @@ Partial Class MainForm
     Friend WithEvents cmdMach1CpldOff As Button
     Friend WithEvents Label4 As Label
     Friend WithEvents mi_mode_3wire As ToolStripMenuItem
+    Friend WithEvents cmdMach1UpTest As Button
+    Friend WithEvents statuspage_progress As ProgressBar
 End Class

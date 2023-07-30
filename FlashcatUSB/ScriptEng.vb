@@ -125,26 +125,8 @@ Public Class FcScriptEngine
         CmdFunctions.Add("ask", {CmdParam.String}, New ScriptFunction(AddressOf c_ask))
         CmdFunctions.Add("endian", {CmdParam.String}, New ScriptFunction(AddressOf c_endian))
         CmdFunctions.Add("abort", Nothing, New ScriptFunction(AddressOf c_abort))
-        CmdFunctions.Add("samsung_cs2", Nothing, New ScriptFunction(AddressOf c_samsung_cs2))
         'CmdFunctions.Add("debug", Nothing, New ScriptFunction(AddressOf c_debug))
     End Sub
-
-    Private Function c_samsung_cs2(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
-        Try
-            Dim e_port As ExtPort = USBCLIENT.FCUSB(Index).EXT_IF
-            If e_port IsNot Nothing AndAlso e_port.MyFlashDevice IsNot Nothing Then
-                e_port.EXPIO_SETUP_WRITEADDRESS(ExtPort.E_EXPIO_WRADDR.Parallel_CS2)
-                Dim dev As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
-                dev.GuiControl.RefreshView()
-                RaiseEvent WriteConsole("Enabled CS2# (A22) for dual-die access")
-            Else
-                RaiseEvent WriteConsole("Unable to change CS2# (Flash device not loaded)")
-            End If
-        Catch ex As Exception
-            RaiseEvent WriteConsole("Error executing console command: samsung_cs2")
-        End Try
-        Return Nothing
-    End Function
 
     Private Function c_debug(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         'Dim J As JTAG_IF = USBCLIENT.FCUSB(Index).EJ_IF
@@ -3120,7 +3102,8 @@ Public Class FcScriptEngine
     Private Function c_spi_clock(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
         Try
             Dim clock_int As UInt32 = arguments(0).Value
-            SetSpiClockSpeed(clock_int, USBCLIENT.FCUSB(Index))
+            MySettings.SPI_CLOCK_MAX = clock_int
+            If MySettings.SPI_CLOCK_MAX < 1000000 Then MySettings.SPI_CLOCK_MAX = 1000000
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "SPI.Clock function exception"}
         End Try

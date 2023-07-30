@@ -633,4 +633,5 @@ Public Class JTAG_STATE_CONTROLLER
         Return TDO_OUT
     End Function
 
+
 End Class

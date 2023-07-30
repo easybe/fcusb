@@ -310,8 +310,7 @@ Public Class MemoryInterface
                     Params.Status.UpdateTask.DynamicInvoke(rd_label)
                 End If
                 Params.Timer = New Stopwatch
-                Params.Timer.Start()
-                Dim BytesRemaining As Integer = Params.Count
+                Dim BytesRemaining As UInt32 = Params.Count
                 For i = 1 To Loops
                     Dim BytesCountToRead As UInt32 = BytesRemaining
                     If (BytesCountToRead > BlockSize) Then BytesCountToRead = BlockSize
@@ -324,7 +323,9 @@ Public Class MemoryInterface
                         Dim percent_done As Single = CSng((i / Loops) * 100) 'Calulate % done
                         Params.Status.UpdatePercent.DynamicInvoke(CInt(percent_done))
                     End If
+                    Params.Timer.Start()
                     b = ReadFlash(FlashAddress, BytesCountToRead, Params.Memory_Area)
+                    Params.Timer.Stop()
                     If Params.AbortOperation Then Return False
                     If Not Me.NoErrors Then Return False
                     If b Is Nothing Then Return False 'ERROR
@@ -333,7 +334,6 @@ Public Class MemoryInterface
                     BytesRead += BytesCountToRead 'Increment location address
                     BytesRemaining -= BytesCountToRead
                     If i = 1 OrElse i = Loops OrElse (i Mod 4 = 0) Then
-                        Params.Timer.Stop()
                         Try
                             Threading.Thread.CurrentThread.Join(10) 'Pump a message
                             If Params.Status.UpdateSpeed IsNot Nothing Then

@@ -479,7 +479,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Try
             Dim bytes_left As UInt32 = data_count
             Dim data_out(data_count - 1) As Byte
-            If (FCUSB.HWBOARD = FCUSB_BOARD.Professional) Then 'Hardware-enabled routine
+            If (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB3) OrElse (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB4) Then 'Hardware-enabled routine
                 Dim setup() As Byte = SetupPacket_NAND(page_addr, page_offset, data_count, memory_area)
                 Dim param As UInt32 = Utilities.BoolToInt(MyFlashDevice.PLANE_SELECT)
                 Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.SPINAND_READFLASH, setup, data_out, param)
@@ -577,10 +577,11 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             End If
             CreatePageAligned(MyFlashDevice, main_data, oob_data)
             Dim pages_to_write As UInt32 = page_aligned.Length / page_size_tot
-            If (FCUSB.HWBOARD = FCUSB_BOARD.Professional) Then
+            If (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB3) OrElse (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB4) Then
                 Dim array_ptr As UInt32 = 0
                 Do Until pages_to_write = 0
-                    Dim count As UInt32 = Math.Min(5, pages_to_write) 'Write up to 4 pages (fcusb pro buffer has 12KB total)
+                    Dim max_page_count As Integer = 8192 / MyFlashDevice.PAGE_SIZE
+                    Dim count As UInt32 = Math.Min(max_page_count, pages_to_write) 'Write up to 4 pages (fcusb pro buffer has 12KB total)
                     Dim packet((count * page_size_tot) - 1) As Byte
                     Array.Copy(page_aligned, array_ptr, packet, 0, packet.Length)
                     array_ptr += packet.Length

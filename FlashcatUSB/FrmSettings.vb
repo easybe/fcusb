@@ -3,6 +3,7 @@ Imports FlashcatUSB.ECC_LIB
 
 Public Class FrmSettings
     Private otp_devices As New List(Of FlashMemory.OTP_EPROM)
+    Private one_mhz As UInt32 = 1000000
 
     Sub New()
         ' This call is required by the designer.
@@ -14,52 +15,34 @@ Public Class FrmSettings
     Private Sub FrmSettings_Load(sender As Object, e As EventArgs) Handles Me.Load
         Language_setup()
         Me.MyTabs.DrawMode = TabDrawMode.OwnerDrawFixed
+        If MySettings.MUTLI_NOR Then
+            cb_multi_ce.SelectedIndex = 1
+        Else
+            cb_multi_ce.SelectedIndex = 0
+        End If
+        cb_ce_select.SelectedIndex = (MySettings.MULTI_CE)
         cb_sym_width.Enabled = False
-        cb_spi_pro_clock.Items.Clear()
-        cb_spi_pro_clock.Items.Add("5MHz")
-        cb_spi_pro_clock.Items.Add("8MHz")
-        cb_spi_pro_clock.Items.Add("10MHz")
-        cb_spi_pro_clock.Items.Add("12MHz")
-        cb_spi_pro_clock.Items.Add("15MHz")
-        cb_spi_pro_clock.Items.Add("20MHz")
-        cb_spi_pro_clock.Items.Add("24MHz")
-        cb_spi_pro_clock.Items.Add("30MHz")
-        Select Case MySettings.SPI_CLOCK_PRO
-            Case SPI.SPI_CLOCK_SPEED.MHZ_5
-                cb_spi_pro_clock.SelectedIndex = 0
-            Case SPI.SPI_CLOCK_SPEED.MHZ_8
-                cb_spi_pro_clock.SelectedIndex = 1
-            Case SPI.SPI_CLOCK_SPEED.MHZ_10
-                cb_spi_pro_clock.SelectedIndex = 2
-            Case SPI.SPI_CLOCK_SPEED.MHZ_12
-                cb_spi_pro_clock.SelectedIndex = 3
-            Case SPI.SPI_CLOCK_SPEED.MHZ_15
-                cb_spi_pro_clock.SelectedIndex = 4
-            Case SPI.SPI_CLOCK_SPEED.MHZ_20
-                cb_spi_pro_clock.SelectedIndex = 5
-            Case SPI.SPI_CLOCK_SPEED.MHZ_24
-                cb_spi_pro_clock.SelectedIndex = 6
-            Case SPI.SPI_CLOCK_SPEED.MHZ_30
-                cb_spi_pro_clock.SelectedIndex = 7
-            Case Else
-                cb_spi_pro_clock.SelectedIndex = 2
-        End Select
-        cb_spi_clock.Items.Clear()
-        cb_spi_clock.Items.Add("1MHz")
-        cb_spi_clock.Items.Add("2MHz")
-        cb_spi_clock.Items.Add("4MHz")
-        cb_spi_clock.Items.Add("8MHz")
-        Select Case MySettings.SPI_CLOCK_CLASSIC
-            Case SPI.SPI_CLOCK_SPEED.MHZ_1
+        Select Case MySettings.SPI_CLOCK_MAX
+            Case (one_mhz)
                 cb_spi_clock.SelectedIndex = 0
-            Case SPI.SPI_CLOCK_SPEED.MHZ_2
+            Case (one_mhz * 2)
                 cb_spi_clock.SelectedIndex = 1
-            Case SPI.SPI_CLOCK_SPEED.MHZ_4
+            Case (one_mhz * 4)
                 cb_spi_clock.SelectedIndex = 2
-            Case SPI.SPI_CLOCK_SPEED.MHZ_8
+            Case (one_mhz * 8)
                 cb_spi_clock.SelectedIndex = 3
+            Case (one_mhz * 12)
+                cb_spi_clock.SelectedIndex = 4
+            Case (one_mhz * 16)
+                cb_spi_clock.SelectedIndex = 5
+            Case (one_mhz * 24)
+                cb_spi_clock.SelectedIndex = 6
+            Case (one_mhz * 32)
+                cb_spi_clock.SelectedIndex = 7
+            Case (one_mhz * 48)
+                cb_spi_clock.SelectedIndex = 8
             Case Else
-                cb_spi_clock.SelectedIndex = 3
+                cb_spi_clock.SelectedIndex = 4
         End Select
         If MySettings.SPI_FASTREAD Then
             rb_fastread_op.Checked = True
@@ -114,10 +97,8 @@ Public Class FrmSettings
         SetupSpiEeprom()
         Setup_i2C()
         If USBCLIENT.HW_MODE = FCUSB_BOARD.NotConnected Then
-        ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Professional Then
-            cb_spi_clock.Enabled = False
+        ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Pro_PCB3) OrElse (USBCLIENT.HW_MODE = FCUSB_BOARD.Pro_PCB4) Then
         Else
-            cb_spi_pro_clock.Enabled = False
             rb_speed_100khz.Enabled = False
             rb_speed_1mhz.Enabled = False
             rb_speed_400khz.Checked = True
@@ -220,33 +201,31 @@ Public Class FrmSettings
     End Sub
 
     Private Sub FrmSettings_Closing(sender As Object, e As CancelEventArgs) Handles Me.Closing
-        Select Case cb_spi_pro_clock.SelectedIndex
-            Case 0
-                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_5
-            Case 1
-                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_8
-            Case 2
-                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_10
-            Case 3
-                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_12
-            Case 4
-                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_15
-            Case 5
-                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_20
-            Case 6
-                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_24
-            Case 7
-                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_30
-        End Select
+        If cb_multi_ce.SelectedIndex = 0 Then
+            MySettings.MUTLI_NOR = False
+        Else
+            MySettings.MUTLI_NOR = True
+        End If
+        MySettings.MULTI_CE = (cb_ce_select.SelectedIndex)
         Select Case cb_spi_clock.SelectedIndex
             Case 0
-                MySettings.SPI_CLOCK_CLASSIC = SPI.SPI_CLOCK_SPEED.MHZ_1
+                MySettings.SPI_CLOCK_MAX = (one_mhz)
             Case 1
-                MySettings.SPI_CLOCK_CLASSIC = SPI.SPI_CLOCK_SPEED.MHZ_2
+                MySettings.SPI_CLOCK_MAX = (one_mhz * 2)
             Case 2
-                MySettings.SPI_CLOCK_CLASSIC = SPI.SPI_CLOCK_SPEED.MHZ_4
+                MySettings.SPI_CLOCK_MAX = (one_mhz * 4)
             Case 3
-                MySettings.SPI_CLOCK_CLASSIC = SPI.SPI_CLOCK_SPEED.MHZ_8
+                MySettings.SPI_CLOCK_MAX = (one_mhz * 8)
+            Case 4
+                MySettings.SPI_CLOCK_MAX = (one_mhz * 12)
+            Case 5
+                MySettings.SPI_CLOCK_MAX = (one_mhz * 16)
+            Case 6
+                MySettings.SPI_CLOCK_MAX = (one_mhz * 24)
+            Case 7
+                MySettings.SPI_CLOCK_MAX = (one_mhz * 32)
+            Case 8
+                MySettings.SPI_CLOCK_MAX = (one_mhz * 48)
         End Select
         MySettings.SPI_FASTREAD = rb_fastread_op.Checked
         CustomDevice_SaveSettings()
@@ -943,6 +922,7 @@ Public Class FrmSettings
         End Try
         txt_ecc_location.Text = "0x" & Hex(MySettings.ECC_Location).PadLeft(2, "0")
     End Sub
+
 
 #End Region
 

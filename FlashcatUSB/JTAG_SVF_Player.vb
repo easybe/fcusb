@@ -238,7 +238,6 @@ Namespace JTAG
                         If Not IgnoreErrors Then Return False
                     End If
                     MY_JTAG.TAP.GotoState(ENDIR)
-
                 ElseIf line.ToUpper.StartsWith("SDR ") Then
                     Dim line_svf As New svf_param(line)
                     Dim TDO() As Byte = Nothing
@@ -354,9 +353,13 @@ Namespace JTAG
                 If Not IsNumeric(Params(Counter)) Then Exit Sub
                 Dim wait_time As Decimal = Decimal.Parse(Params(Counter), Globalization.NumberStyles.Float) 'GetDoubleFromExpString(Params(Counter))
                 Select Case Params(Counter + 1).Trim.ToUpper
-                    Case "TCK"
-                        Dim ticks As Integer = CInt(wait_time)
-                        MY_JTAG.TAP.ShiftOut(Nothing, ticks, False)
+                    Case "TCK" 'Toggle test-clock
+                        Dim ticks As UInt32 = CUInt(wait_time)
+                        If MY_JTAG.FCUSB.HWBOARD = FCUSB_BOARD.Classic_JTAG Then
+                            MY_JTAG.TAP.ShiftOut(Nothing, ticks, False)
+                        Else
+                            MY_JTAG.Tap_Toggle(ticks) 'New boards can toggle via a command
+                        End If
                     Case "SCK" 'Toggle system-clock
                         Threading.Thread.Sleep(wait_time)
                     Case "SEC"

@@ -93,7 +93,7 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
             setup_data(6) = ((flash_offset >> 8) And 255)
             setup_data(7) = (flash_offset And 255)
             Dim data_out(data_count - 1) As Byte
-            result = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.S93_READEEPROM, setup_data, data_out)
+            result = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.S93_READEEPROM, setup_data, data_out, 0)
             If Not result Then Return Nothing
             Return data_out
         Catch ex As Exception

@@ -60,8 +60,6 @@ Partial Class FrmSettings
         Me.RadioUseSpiAuto = New System.Windows.Forms.RadioButton()
         Me.GroupBox1 = New System.Windows.Forms.GroupBox()
         Me.cb_spi_quad = New System.Windows.Forms.CheckBox()
-        Me.cb_spi_pro_clock = New System.Windows.Forms.ComboBox()
-        Me.Label16 = New System.Windows.Forms.Label()
         Me.cb_spi_eeprom = New System.Windows.Forms.ComboBox()
         Me.Label3 = New System.Windows.Forms.Label()
         Me.lbl_read_cmd = New System.Windows.Forms.Label()
@@ -123,6 +121,8 @@ Partial Class FrmSettings
         Me.lbl_nandecc_biterror = New System.Windows.Forms.Label()
         Me.TP_GEN = New System.Windows.Forms.TabPage()
         Me.GroupBox3 = New System.Windows.Forms.GroupBox()
+        Me.Label20 = New System.Windows.Forms.Label()
+        Me.cb_multi_ce = New System.Windows.Forms.ComboBox()
         Me.Label19 = New System.Windows.Forms.Label()
         Me.cb_s93_org = New System.Windows.Forms.ComboBox()
         Me.Label18 = New System.Windows.Forms.Label()
@@ -131,6 +131,7 @@ Partial Class FrmSettings
         Me.cb_otp_device_list = New System.Windows.Forms.ComboBox()
         Me.Label17 = New System.Windows.Forms.Label()
         Me.cb_retry_write = New System.Windows.Forms.ComboBox()
+        Me.cb_ce_select = New System.Windows.Forms.ComboBox()
         Me.MyTabs.SuspendLayout()
         Me.TP_SPI.SuspendLayout()
         Me.group_custom.SuspendLayout()
@@ -533,8 +534,6 @@ Partial Class FrmSettings
         'GroupBox1
         '
         Me.GroupBox1.Controls.Add(Me.cb_spi_quad)
-        Me.GroupBox1.Controls.Add(Me.cb_spi_pro_clock)
-        Me.GroupBox1.Controls.Add(Me.Label16)
         Me.GroupBox1.Controls.Add(Me.cb_spi_eeprom)
         Me.GroupBox1.Controls.Add(Me.Label3)
         Me.GroupBox1.Controls.Add(Me.lbl_read_cmd)
@@ -559,29 +558,11 @@ Partial Class FrmSettings
         Me.cb_spi_quad.Text = "Enable SQI mode (QUAD-SPI)"
         Me.cb_spi_quad.UseVisualStyleBackColor = True
         '
-        'cb_spi_pro_clock
-        '
-        Me.cb_spi_pro_clock.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cb_spi_pro_clock.FormattingEnabled = True
-        Me.cb_spi_pro_clock.Location = New System.Drawing.Point(157, 34)
-        Me.cb_spi_pro_clock.Name = "cb_spi_pro_clock"
-        Me.cb_spi_pro_clock.Size = New System.Drawing.Size(77, 21)
-        Me.cb_spi_pro_clock.TabIndex = 6
-        '
-        'Label16
-        '
-        Me.Label16.AutoSize = True
-        Me.Label16.Location = New System.Drawing.Point(157, 18)
-        Me.Label16.Name = "Label16"
-        Me.Label16.Size = New System.Drawing.Size(78, 13)
-        Me.Label16.TabIndex = 7
-        Me.Label16.Text = "SPI clock (Pro)"
-        '
         'cb_spi_eeprom
         '
         Me.cb_spi_eeprom.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_spi_eeprom.FormattingEnabled = True
-        Me.cb_spi_eeprom.Location = New System.Drawing.Point(298, 34)
+        Me.cb_spi_eeprom.Location = New System.Drawing.Point(157, 34)
         Me.cb_spi_eeprom.Name = "cb_spi_eeprom"
         Me.cb_spi_eeprom.Size = New System.Drawing.Size(156, 21)
         Me.cb_spi_eeprom.TabIndex = 4
@@ -589,7 +570,7 @@ Partial Class FrmSettings
         'Label3
         '
         Me.Label3.AutoSize = True
-        Me.Label3.Location = New System.Drawing.Point(297, 18)
+        Me.Label3.Location = New System.Drawing.Point(156, 18)
         Me.Label3.Name = "Label3"
         Me.Label3.Size = New System.Drawing.Size(108, 13)
         Me.Label3.TabIndex = 5
@@ -608,9 +589,10 @@ Partial Class FrmSettings
         '
         Me.cb_spi_clock.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_spi_clock.FormattingEnabled = True
+        Me.cb_spi_clock.Items.AddRange(New Object() {"1Mhz", "2Mhz", "4Mhz", "8Mhz", "12Mhz", "16Mhz", "24Mhz", "32MHz", "48MHz"})
         Me.cb_spi_clock.Location = New System.Drawing.Point(15, 34)
         Me.cb_spi_clock.Name = "cb_spi_clock"
-        Me.cb_spi_clock.Size = New System.Drawing.Size(77, 21)
+        Me.cb_spi_clock.Size = New System.Drawing.Size(90, 21)
         Me.cb_spi_clock.TabIndex = 0
         '
         'rb_fastread_op
@@ -640,9 +622,9 @@ Partial Class FrmSettings
         Me.Label1.AutoSize = True
         Me.Label1.Location = New System.Drawing.Point(15, 18)
         Me.Label1.Name = "Label1"
-        Me.Label1.Size = New System.Drawing.Size(53, 13)
+        Me.Label1.Size = New System.Drawing.Size(112, 13)
         Me.Label1.TabIndex = 1
-        Me.Label1.Text = "SPI clock"
+        Me.Label1.Text = "Maximum clock speed"
         '
         'TP_JTAG
         '
@@ -1223,6 +1205,9 @@ Partial Class FrmSettings
         '
         'GroupBox3
         '
+        Me.GroupBox3.Controls.Add(Me.cb_ce_select)
+        Me.GroupBox3.Controls.Add(Me.Label20)
+        Me.GroupBox3.Controls.Add(Me.cb_multi_ce)
         Me.GroupBox3.Controls.Add(Me.Label19)
         Me.GroupBox3.Controls.Add(Me.cb_s93_org)
         Me.GroupBox3.Controls.Add(Me.Label18)
@@ -1233,10 +1218,29 @@ Partial Class FrmSettings
         Me.GroupBox3.Controls.Add(Me.cb_retry_write)
         Me.GroupBox3.Location = New System.Drawing.Point(6, 6)
         Me.GroupBox3.Name = "GroupBox3"
-        Me.GroupBox3.Size = New System.Drawing.Size(507, 188)
+        Me.GroupBox3.Size = New System.Drawing.Size(507, 238)
         Me.GroupBox3.TabIndex = 1
         Me.GroupBox3.TabStop = False
         Me.GroupBox3.Text = "General"
+        '
+        'Label20
+        '
+        Me.Label20.AutoSize = True
+        Me.Label20.Location = New System.Drawing.Point(19, 188)
+        Me.Label20.Name = "Label20"
+        Me.Label20.Size = New System.Drawing.Size(153, 13)
+        Me.Label20.TabIndex = 46
+        Me.Label20.Text = "Multi-chip select (Parallel NOR)"
+        '
+        'cb_multi_ce
+        '
+        Me.cb_multi_ce.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_multi_ce.FormattingEnabled = True
+        Me.cb_multi_ce.Items.AddRange(New Object() {"Disabled", "Enabled"})
+        Me.cb_multi_ce.Location = New System.Drawing.Point(19, 206)
+        Me.cb_multi_ce.Name = "cb_multi_ce"
+        Me.cb_multi_ce.Size = New System.Drawing.Size(83, 21)
+        Me.cb_multi_ce.TabIndex = 45
         '
         'Label19
         '
@@ -1299,9 +1303,9 @@ Partial Class FrmSettings
         Me.Label17.AutoSize = True
         Me.Label17.Location = New System.Drawing.Point(19, 29)
         Me.Label17.Name = "Label17"
-        Me.Label17.Size = New System.Drawing.Size(109, 13)
+        Me.Label17.Size = New System.Drawing.Size(112, 13)
         Me.Label17.TabIndex = 40
-        Me.Label17.Text = "Re-attemp write verify"
+        Me.Label17.Text = "Re-attempt write verify"
         '
         'cb_retry_write
         '
@@ -1312,6 +1316,16 @@ Partial Class FrmSettings
         Me.cb_retry_write.Name = "cb_retry_write"
         Me.cb_retry_write.Size = New System.Drawing.Size(117, 21)
         Me.cb_retry_write.TabIndex = 39
+        '
+        'cb_ce_select
+        '
+        Me.cb_ce_select.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_ce_select.FormattingEnabled = True
+        Me.cb_ce_select.Items.AddRange(New Object() {"A18", "A19", "A20", "A21", "A22", "A23", "A24"})
+        Me.cb_ce_select.Location = New System.Drawing.Point(108, 206)
+        Me.cb_ce_select.Name = "cb_ce_select"
+        Me.cb_ce_select.Size = New System.Drawing.Size(63, 21)
+        Me.cb_ce_select.TabIndex = 47
         '
         'FrmSettings
         '
@@ -1421,8 +1435,6 @@ Partial Class FrmSettings
     Friend WithEvents cb_addr_size As ComboBox
     Friend WithEvents cbEN4B As CheckBox
     Friend WithEvents Label13 As Label
-    Friend WithEvents cb_spi_pro_clock As ComboBox
-    Friend WithEvents Label16 As Label
     Friend WithEvents gb_block_layout As GroupBox
     Friend WithEvents rb_mainspare_segmented As RadioButton
     Friend WithEvents rb_mainspare_default As RadioButton
@@ -1467,4 +1479,7 @@ Partial Class FrmSettings
     Friend WithEvents cb_s93_devices As ComboBox
     Friend WithEvents Label19 As Label
     Friend WithEvents cb_s93_org As ComboBox
+    Friend WithEvents Label20 As Label
+    Friend WithEvents cb_multi_ce As ComboBox
+    Friend WithEvents cb_ce_select As ComboBox
 End Class
