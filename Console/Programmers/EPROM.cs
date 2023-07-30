@@ -91,17 +91,14 @@ public class EPROM_Programmer : MemoryDeviceUSB {
         OTP_EPROM M27C1001 = (OTP_EPROM)MainApp.FlashDatabase.FindDevice(0x20, 0x5, 0, MemoryType.OTP_EPROM);
         if (object.ReferenceEquals(MyFlashDevice, M27C160)) {
             this.HardwareControl(FCUSB_HW_CTRL.VPP_5V);
-            this.HardwareControl(FCUSB_HW_CTRL.OE_LOW);
             this.HardwareControl(FCUSB_HW_CTRL.VPP_ENABLE); // Must enable VPP for BYTEvpp=HIGH(5V)
         } else if (object.ReferenceEquals(MyFlashDevice, M27C1001)) {
             this.HardwareControl(FCUSB_HW_CTRL.VPP_0V);
-            this.HardwareControl(FCUSB_HW_CTRL.OE_LOW);
             this.HardwareControl(FCUSB_HW_CTRL.VPP_DISABLE);
         } else {
             this.HardwareControl(FCUSB_HW_CTRL.VPP_0V);
             this.HardwareControl(FCUSB_HW_CTRL.VPP_DISABLE);
         }
-
         this.HardwareControl(FCUSB_HW_CTRL.WE_LOW);
         Utilities.Sleep(100);
         var data_out = ReadBulk((uint)flash_offset, (uint)data_count);
@@ -116,17 +113,17 @@ public class EPROM_Programmer : MemoryDeviceUSB {
             uint PacketSize = 2048U;
             OTP_EPROM M27C160 = (OTP_EPROM)MainApp.FlashDatabase.FindDevice(0x20, 0xB1, 0, MemoryType.OTP_EPROM);
             OTP_EPROM M27C801 = (OTP_EPROM)MainApp.FlashDatabase.FindDevice(0x20, 0x42, 0, MemoryType.OTP_EPROM);
-            OTP_EPROM M27C1001 = (OTP_EPROM)MainApp.FlashDatabase.FindDevice(0x20, 0x5, 0, MemoryType.OTP_EPROM);
+            OTP_EPROM M27C1001 = (OTP_EPROM)MainApp.FlashDatabase.FindDevice(0x20, 0x05, 0, MemoryType.OTP_EPROM);
+            OTP_EPROM AM27C020 = (OTP_EPROM)MainApp.FlashDatabase.FindDevice(0x01, 0x97, 0, MemoryType.OTP_EPROM);
             uint BytesWritten = 0U;
             uint DataToWrite = (uint)data_to_write.Length;
             int Loops = (int)Math.Ceiling(DataToWrite / (double)PacketSize); // Calcuates iterations
             this.HardwareControl(FCUSB_HW_CTRL.WE_HIGH);
             this.HardwareControl(FCUSB_HW_CTRL.VPP_12V);
             this.HardwareControl(FCUSB_HW_CTRL.VPP_ENABLE);
-            if (object.ReferenceEquals(MyFlashDevice, M27C160))
-                this.HardwareControl(FCUSB_HW_CTRL.OE_HIGH);
-            if (object.ReferenceEquals(MyFlashDevice, M27C1001))
-                this.HardwareControl(FCUSB_HW_CTRL.OE_HIGH);
+            if (object.ReferenceEquals(MyFlashDevice, M27C160)) { this.HardwareControl(FCUSB_HW_CTRL.OE_HIGH); }
+            if (object.ReferenceEquals(MyFlashDevice, M27C1001)) { this.HardwareControl(FCUSB_HW_CTRL.OE_HIGH); }
+            if (object.ReferenceEquals(MyFlashDevice, AM27C020)) { this.HardwareControl(FCUSB_HW_CTRL.OE_HIGH); }
             Utilities.Sleep(200);
             for (int i = 0, loopTo = Loops - 1; i <= loopTo; i++) {
                 if (Params.AbortOperation)

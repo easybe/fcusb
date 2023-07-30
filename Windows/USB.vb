@@ -435,7 +435,7 @@ Namespace USB
                 Else
                     result = USBHANDLE.ControlTransfer(usbSetupPacket, buffer_out, buffer_out.Length, bytes_xfer)
                 End If
-                Utilities.Sleep(4)
+                Utilities.Sleep(5)
                 Return result
             Catch ex As Exception
                 Return False

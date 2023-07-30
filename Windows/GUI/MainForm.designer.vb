@@ -111,6 +111,7 @@ Partial Class MainForm
         Me.cmdSaveLog = New System.Windows.Forms.Button()
         Me.txtInput = New System.Windows.Forms.TextBox()
         Me.ConsoleBox = New System.Windows.Forms.ListBox()
+        Me.mi_jtag_menu = New System.Windows.Forms.ToolStripMenuItem()
         Me.MenuBar.SuspendLayout()
         Me.FlashStatus.SuspendLayout()
         Me.MyTabs.SuspendLayout()
@@ -122,7 +123,7 @@ Partial Class MainForm
         '
         'MenuBar
         '
-        Me.MenuBar.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_main_menu, Me.mi_mode_menu, Me.mi_script_menu, Me.mi_tools_menu, Me.mi_Language})
+        Me.MenuBar.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_main_menu, Me.mi_mode_menu, Me.mi_jtag_menu, Me.mi_script_menu, Me.mi_tools_menu, Me.mi_Language})
         Me.MenuBar.Location = New System.Drawing.Point(0, 0)
         Me.MenuBar.Name = "MenuBar"
         Me.MenuBar.Size = New System.Drawing.Size(548, 24)
@@ -402,21 +403,21 @@ Partial Class MainForm
         '
         Me.mi_script_selected.Image = Global.FlashcatUSB.My.Resources.Resources.config
         Me.mi_script_selected.Name = "mi_script_selected"
-        Me.mi_script_selected.Size = New System.Drawing.Size(144, 22)
+        Me.mi_script_selected.Size = New System.Drawing.Size(180, 22)
         Me.mi_script_selected.Text = "Select script"
         '
         'mi_script_load
         '
         Me.mi_script_load.Image = Global.FlashcatUSB.My.Resources.Resources.openfile
         Me.mi_script_load.Name = "mi_script_load"
-        Me.mi_script_load.Size = New System.Drawing.Size(144, 22)
+        Me.mi_script_load.Size = New System.Drawing.Size(180, 22)
         Me.mi_script_load.Text = "Load script"
         '
         'mi_script_unload
         '
         Me.mi_script_unload.Image = Global.FlashcatUSB.My.Resources.Resources.clear_x
         Me.mi_script_unload.Name = "mi_script_unload"
-        Me.mi_script_unload.Size = New System.Drawing.Size(144, 22)
+        Me.mi_script_unload.Size = New System.Drawing.Size(180, 22)
         Me.mi_script_unload.Text = "Unload script"
         '
         'mi_tools_menu
@@ -778,6 +779,12 @@ Partial Class MainForm
         Me.ConsoleBox.Size = New System.Drawing.Size(527, 264)
         Me.ConsoleBox.TabIndex = 1
         '
+        'mi_jtag_menu
+        '
+        Me.mi_jtag_menu.Name = "mi_jtag_menu"
+        Me.mi_jtag_menu.Size = New System.Drawing.Size(44, 20)
+        Me.mi_jtag_menu.Text = "JTAG"
+        '
         'MainForm
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -894,4 +901,5 @@ Partial Class MainForm
     Friend WithEvents mi_mode_mmc As ToolStripMenuItem
     Friend WithEvents mi_mode_fwh As ToolStripMenuItem
     Friend WithEvents mi_mode_pnand As ToolStripMenuItem
+    Friend WithEvents mi_jtag_menu As ToolStripMenuItem
 End Class

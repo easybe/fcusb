@@ -93,11 +93,9 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
         Dim M27C1001 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &H5, 0, MemoryType.OTP_EPROM)
         If MyFlashDevice Is M27C160 Then
             HardwareControl(FCUSB_HW_CTRL.VPP_5V)
-            HardwareControl(FCUSB_HW_CTRL.OE_LOW)
             HardwareControl(FCUSB_HW_CTRL.VPP_ENABLE) 'Must enable VPP for BYTEvpp=HIGH(5V)
         ElseIf MyFlashDevice Is M27C1001 Then
             HardwareControl(FCUSB_HW_CTRL.VPP_0V)
-            HardwareControl(FCUSB_HW_CTRL.OE_LOW)
             HardwareControl(FCUSB_HW_CTRL.VPP_DISABLE)
         Else
             HardwareControl(FCUSB_HW_CTRL.VPP_0V)
@@ -114,18 +112,15 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
 
     Public Function WriteData(flash_offset As Long, data_to_write() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
         Try
-            Dim PacketSize As UInt32 = 2048
-            Dim M27C160 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &HB1, 0, MemoryType.OTP_EPROM)
-            Dim M27C801 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &H42, 0, MemoryType.OTP_EPROM)
-            Dim M27C1001 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &H5, 0, MemoryType.OTP_EPROM)
+            Dim EPROM_DEV As OTP_EPROM = DirectCast(MyFlashDevice, OTP_EPROM)
             Dim BytesWritten As UInt32 = 0
             Dim DataToWrite As UInt32 = data_to_write.Length
+            Dim PacketSize As UInt32 = 2048
             Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / PacketSize)) 'Calcuates iterations
             HardwareControl(FCUSB_HW_CTRL.WE_HIGH)
             HardwareControl(FCUSB_HW_CTRL.VPP_12V)
             HardwareControl(FCUSB_HW_CTRL.VPP_ENABLE)
-            If (MyFlashDevice Is M27C160) Then HardwareControl(FCUSB_HW_CTRL.OE_HIGH)
-            If (MyFlashDevice Is M27C1001) Then HardwareControl(FCUSB_HW_CTRL.OE_HIGH)
+            If EPROM_DEV.WR_OE_HIGH Then HardwareControl(FCUSB_HW_CTRL.OE_HIGH)
             Utilities.Sleep(200)
             For i As Integer = 0 To Loops - 1
                 If Params.AbortOperation Then Return False
@@ -141,7 +136,7 @@ Public Class EPROM_Programmer : Implements MemoryDeviceUSB
             Next
             HardwareControl(FCUSB_HW_CTRL.VPP_0V)
             HardwareControl(FCUSB_HW_CTRL.VPP_DISABLE)
-            If (MyFlashDevice Is M27C160) Then HardwareControl(FCUSB_HW_CTRL.OE_LOW)
+            HardwareControl(FCUSB_HW_CTRL.OE_LOW)
         Catch ex As Exception
         End Try
         Return True

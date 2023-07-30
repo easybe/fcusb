@@ -187,16 +187,16 @@ Namespace FlashcatScript
         Friend Function ExecuteCommand(cmd_line As String) As Boolean
             Me.ABORT_SCRIPT = False
             Dim scripe_line As New ScriptElement(Me)
-            scripe_line.Parse(cmd_line, True)
-            If (scripe_line.HAS_ERROR) Then
-                RaiseEvent PrintConsole("Error: " & scripe_line.ERROR_MSG)
+            Dim result As ParseResult = scripe_line.Parse(cmd_line, True)
+            If result.IsError Then
+                RaiseEvent PrintConsole("Error: " & result.ErrorMsg)
                 Return False
-            Else
-                If Not ExecuteScriptElement(scripe_line, Nothing) Then
-                    RaiseEvent PrintConsole("Error: " & scripe_line.ERROR_MSG)
-                End If
             End If
-            Return True
+            result = ExecuteScriptElement(scripe_line, Nothing)
+            If result.IsError Then
+                RaiseEvent PrintConsole("Error: " & result.ErrorMsg)
+            End If
+            Return True 'No error!
         End Function
         'Unloads any current script
         Friend Function Unload() As Boolean
@@ -284,9 +284,12 @@ Namespace FlashcatScript
                 For i = 0 To e.Length - 1
                     Select Case e(i).ElementType
                         Case ScriptFileElementType.ELEMENT
-                            ExecuteScriptElement(e(i), params.exit_task)
-                            params.err_reason = DirectCast(e(i), ScriptElement).ERROR_MSG
-                            If Not params.err_reason = "" Then params.err_line = e(i).INDEX : Return False
+                            Dim result As ParseResult = ExecuteScriptElement(e(i), params.exit_task)
+                            If result.IsError Then
+                                params.err_reason = result.ErrorMsg
+                                params.err_line = e(i).INDEX
+                                Return False
+                            End If
                             If params.exit_task = ExitMode.LeaveScript Then Return True
                         Case ScriptFileElementType.FOR_LOOP
                             Dim se As ScriptLoop = e(i)
@@ -313,8 +316,8 @@ Namespace FlashcatScript
                         Case ScriptFileElementType.IF_CONDITION
                             Dim se As ScriptCondition = e(i)
                             Dim test_condition As ScriptVariable = se.CONDITION.Compile(params.exit_task)
-                            If test_condition Is Nothing OrElse se.CONDITION.HAS_ERROR Then
-                                params.err_reason = se.CONDITION.ERROR_MSG
+                            If test_condition Is Nothing OrElse test_condition.Data.VarType = DataType.FncError Then
+                                params.err_reason = test_condition.Data.Value
                                 params.err_line = se.INDEX
                                 Return False
                             End If
@@ -370,24 +373,25 @@ Namespace FlashcatScript
             Return True
         End Function
 
-        Friend Function ExecuteScriptElement(e As ScriptElement, ByRef exit_task As ExitMode) As Boolean
+        Friend Function ExecuteScriptElement(e As ScriptElement, ByRef exit_task As ExitMode) As ParseResult
             Try
                 Dim sv As ScriptVariable = e.Compile(exit_task)
-                If e.HAS_ERROR Then Return False
-                If sv Is Nothing Then Return True 'Compiled successfully but no value to save
+                If sv Is Nothing Then Return New ParseResult
+                If sv.Data.VarType = DataType.FncError Then Return New ParseResult(sv.Data.Value)
+                If sv Is Nothing Then Return New ParseResult 'Compiled successfully but no value to save
                 If (Not e.TARGET_NAME = "") AndAlso Not e.TARGET_OPERATION = TargetOper.NONE Then
                     If (Not e.TARGET_VAR = "") Then
                         If CurrentVars.IsVariable(e.TARGET_VAR) AndAlso CurrentVars.GetVariable(e.TARGET_VAR).Data.VarType = DataType.UInteger Then
                             e.TARGET_INDEX = CurrentVars.GetVariable(e.TARGET_VAR).Value 'Gets the variable and assigns it to the index
                         Else
-                            e.ERROR_MSG = "Target index is not an integer or integer variable" : Return False
+                            Return New ParseResult("Target index is not an integer or integer variable")
                         End If
                     End If
                     If (e.TARGET_INDEX > -1) Then 'We are assinging this result to an index within a data array
                         Dim current_var As ScriptVariable = CurrentVars.GetVariable(e.TARGET_NAME)
-                        If current_var Is Nothing Then e.ERROR_MSG = "Target index used on a variable that does not exist" : Return False
-                        If current_var.Data.VarType = DataType.NULL Then e.ERROR_MSG = "Target index used on a variable that does not yet exist" : Return False
-                        If Not current_var.Data.VarType = DataType.Data Then e.ERROR_MSG = "Target index used on a variable that is not a DATA array" : Return False
+                        If current_var Is Nothing Then Return New ParseResult("Target index used on a variable that does not exist")
+                        If current_var.Data.VarType = DataType.NULL Then Return New ParseResult("Target index used on a variable that does not yet exist")
+                        If Not current_var.Data.VarType = DataType.Data Then Return New ParseResult("Target index used on a variable that is not a DATA array")
                         Dim data_out() As Byte = current_var.Value
                         If sv.Data.VarType = DataType.UInteger Then
                             Dim byte_out As Byte = CByte(CUInt(sv.Value) And 255)
@@ -402,7 +406,7 @@ Namespace FlashcatScript
                         Dim var_op As OperandOper = OperandOper.NOTSPECIFIED
                         Select Case e.TARGET_OPERATION
                             Case TargetOper.EQ
-                                CurrentVars.SetVariable(new_var) : Return True
+                                CurrentVars.SetVariable(new_var) : Return New ParseResult()
                             Case TargetOper.ADD
                                 var_op = OperandOper.ADD
                             Case TargetOper.SUB
@@ -414,18 +418,17 @@ Namespace FlashcatScript
                         ElseIf Not existing_var.Data.VarType = new_var.Data.VarType Then
                             CurrentVars.SetVariable(new_var)
                         Else
-                            Dim result_var As ScriptVariable = CompileSVars(existing_var, new_var, var_op, e.ERROR_MSG)
-                            If Not e.ERROR_MSG.Equals("") Then Return False
+                            Dim result_var As ScriptVariable = CompileSVars(existing_var, new_var, var_op)
+                            If result_var.Data.VarType = DataType.FncError Then Return New ParseResult(result_var.Data.Value)
                             Dim compiled_var As New ScriptVariable(e.TARGET_NAME, result_var.Data.VarType)
                             compiled_var.Value = result_var.Value
                             CurrentVars.SetVariable(compiled_var)
                         End If
                     End If
                 End If
-                Return True
+                Return New ParseResult()
             Catch ex As Exception
-                e.ERROR_MSG = "General purpose error"
-                Return False
+                Return New ParseResult("General purpose error")
             End Try
         End Function
 
@@ -457,7 +460,6 @@ Namespace FlashcatScript
             Else
                 Return Nothing
             End If
-            Return event_result
         End Function
 
         Friend Function GetScriptEvent(input As String) As ScriptEvent
@@ -484,57 +486,6 @@ Namespace FlashcatScript
         Public Sub PrintInformation()
             RaiseEvent PrintConsole("FlashcatUSB Script Engine build: " & Build)
         End Sub
-
-
-
-
-
-#Region "Progress Callbacks"
-        'Private ScriptBar As ProgressBar 'Our one and only progress bar
-        'Private Delegate Sub UpdateFunction_Progress(percent As Integer)
-        'Private Delegate Sub UpdateFunction_Status(txt As String)
-        'Private Delegate Sub UpdateFunction_Base(addr As Long)
-        'Private Property PROGRESS_BASE As UInt32 = 0 'Address we have a operation at
-
-        'Private Sub ProgressUpdateBase(addr As UInt32)
-        '    Try
-        '        Me.PROGRESS_BASE = addr
-        '    Catch ex As Exception
-        '    End Try
-        'End Sub
-        ''Sets the status bar on the GUI (if one exists)
-        'Private Sub ProgressUpdate_Percent(percent As Integer)
-        '    Try
-        '        If GUI IsNot Nothing Then
-        '            If ScriptBar IsNot Nothing Then
-        '                If GUI.InvokeRequired Then
-        '                    Dim d As New UpdateFunction_Progress(AddressOf ProgressUpdate_Percent)
-        '                    GUI.Invoke(d, New Object() {percent})
-        '                Else
-        '                    If (percent > 100) Then percent = 100
-        '                    ScriptBar.Value = percent
-        '                End If
-        '            End If
-        '        End If
-        '    Catch ex As Exception
-        '    End Try
-        'End Sub
-
-        'Private Sub ProgressUpdate_Status(msg As String)
-        '    RaiseEvent SetStatus(msg)
-        'End Sub
-
-
-
-
-
-
-#End Region
-
-
-
-
-
 
 #Region "User control handlers"
         Private UserTabCount As UInt32
@@ -915,7 +866,6 @@ Namespace FlashcatScript
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, DataType.Integer)
             sv.Value = size_value
             Return sv
-            Return Nothing
         End Function
 
         Friend Function c_mem_write(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
@@ -1011,7 +961,6 @@ Namespace FlashcatScript
             Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
             If mem_device Is Nothing Then
                 Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device not connected"}
-                Return Nothing
             End If
             Dim FlashAddress As Int32 = arguments(0).Value
             Dim FlashLen As Int32 = arguments(1).Value
@@ -1038,7 +987,6 @@ Namespace FlashcatScript
             Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
             If mem_device Is Nothing Then
                 Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device not connected"}
-                Return Nothing
             End If
             Dim sector_count As Int32 = CInt(mem_device.GetSectorCount)
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, DataType.Integer)
@@ -1050,7 +998,6 @@ Namespace FlashcatScript
             Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
             If mem_device Is Nothing Then
                 Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device not connected"}
-                Return Nothing
             End If
             Dim sector_int As Int32 = arguments(0).Value
             Dim sector_size As Int32 = CInt(mem_device.GetSectorSize(sector_int))
@@ -1063,7 +1010,6 @@ Namespace FlashcatScript
             Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
             If mem_device Is Nothing Then
                 Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device not connected"}
-                Return Nothing
             End If
             Dim mem_sector As Int32 = arguments(0).Value
             mem_device.EraseSector(mem_sector)
@@ -1083,7 +1029,6 @@ Namespace FlashcatScript
             Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
             If mem_device Is Nothing Then
                 Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device not connected"}
-                Return Nothing
             End If
             Try
                 MEM_IF.GetDevice(Index).DisableGuiControls()
@@ -1312,7 +1257,6 @@ Namespace FlashcatScript
                 sv.Value = MAIN_FCUSB.SQI_NOR_IF.ReadStatusRegister(bytes_to_read)
             End If
             Return sv
-            Return Nothing
         End Function
 
         Friend Function c_spi_setsr(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
@@ -1379,7 +1323,7 @@ Namespace FlashcatScript
 
         Friend Function c_jtag_config(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
             If arguments.Length = 1 Then
-                Select Case arguments(0).Value.ToUpper
+                Select Case CStr(arguments(0).Value).ToUpper
                     Case "MIPS"
                         MAIN_FCUSB.JTAG_IF.Configure(JTAG.PROCESSOR.MIPS)
                     Case "ARM"
@@ -1394,8 +1338,17 @@ Namespace FlashcatScript
         End Function
 
         Friend Function c_jtag_select(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
-            Select_JTAG_Device(arguments(0).Value)
-            Return Nothing
+            If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
+                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
+            End If
+            Dim select_index As Integer = arguments(0).Value
+            If MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
+                MAIN_FCUSB.JTAG_IF.Chain_Select(Index)
+                Return New ScriptVariable(CurrentVars.GetNewName, DataType.Bool, True)
+            Else
+                RaiseEvent PrintConsole("JTAG chain is not valid, not all devices have BSDL loaded")
+            End If
+            Return New ScriptVariable(CurrentVars.GetNewName, DataType.Bool, False)
         End Function
 
         Friend Function c_jtag_print(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
@@ -1499,7 +1452,7 @@ Namespace FlashcatScript
 
         Friend Function c_jtag_runsvf(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
             If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not valid"}
+                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
             End If
             ProgressBar_Percent(0)
             RemoveHandler MAIN_FCUSB.JTAG_IF.JSP.Progress, AddressOf ProgressBar_Percent
@@ -1522,7 +1475,7 @@ Namespace FlashcatScript
 
         Friend Function c_jtag_runxsvf(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
             If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not valid"}
+                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
             End If
             ProgressBar_Percent(0)
             RemoveHandler MAIN_FCUSB.JTAG_IF.JSP.Progress, AddressOf ProgressBar_Percent
@@ -1544,7 +1497,7 @@ Namespace FlashcatScript
 
         Friend Function c_jtag_shiftdr(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
             If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not valid"}
+                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
             End If
             Dim exit_mode As Boolean = True
             Dim data_in() As Byte = arguments(0).Value
@@ -1559,7 +1512,7 @@ Namespace FlashcatScript
 
         Friend Function c_jtag_shiftir(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
             If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not valid"}
+                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
             End If
             Dim exit_mode As Boolean = True
             Dim data_in() As Byte = arguments(0).Value
@@ -1571,7 +1524,7 @@ Namespace FlashcatScript
 
         Friend Function c_jtag_shiftout(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
             If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not valid"}
+                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
             End If
             Dim tdi_data() As Byte = arguments(0).Value
             Dim bit_count As Integer = arguments(1).Value
@@ -1586,7 +1539,7 @@ Namespace FlashcatScript
 
         Friend Function c_jtag_tapreset(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
             If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not valid"}
+                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
             End If
             MAIN_FCUSB.JTAG_IF.Reset_StateMachine()
             Return Nothing
@@ -1594,7 +1547,7 @@ Namespace FlashcatScript
 
         Friend Function c_jtag_write32(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
             If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not valid"}
+                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
             End If
             Dim addr32 As UInt32 = arguments(0).Value
             Dim data As UInt32 = arguments(1).Value
@@ -1604,7 +1557,7 @@ Namespace FlashcatScript
 
         Friend Function c_jtag_read32(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
             If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not valid"}
+                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
             End If
             Dim addr32 As UInt32 = arguments(0).Value
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, DataType.UInteger)
@@ -1614,7 +1567,7 @@ Namespace FlashcatScript
 
         Friend Function c_jtag_state(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
             If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not valid"}
+                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
             End If
             Dim state_str As String = arguments(0).Value
             Select Case state_str.ToUpper
@@ -2119,9 +2072,7 @@ Namespace FlashcatScript
 
 #End Region
 
-
 #End Region
-
 
     End Class
 
@@ -2213,27 +2164,42 @@ Namespace FlashcatScript
         Public goto_label As String
     End Class
 
+    Public Class ParseResult
+        Public ErrorMsg As String
+        Public ReadOnly Property IsError As Boolean
+
+        Sub New()
+            Me.IsError = False
+        End Sub
+
+        Sub New(error_msg As String)
+            Me.ErrorMsg = error_msg
+            Me.IsError = True
+        End Sub
+
+    End Class
+
     Friend Class ScriptElementOperand
         Private MyParent As Processor
         Public OPERANDS As New List(Of ScriptElementOperandEntry)
-        Public Property ERROR_MSG As String = ""
 
-        Sub New(oParent As Processor, oper_text As String)
+        Public ParsingResult As ParseResult
+
+        Sub New(oParent As Processor)
+            Me.ParsingResult = New ParseResult() 'No Error
             Me.MyParent = oParent
-            Parse(oper_text.Trim)
         End Sub
 
-        Private Sub Parse(text_input As String)
+        Friend Function Parse(text_input As String) As ParseResult
+            text_input = text_input.Trim()
             Do Until text_input.Equals("")
                 If text_input.StartsWith("(") Then
                     Dim sub_section As String = FeedParameter(text_input)
                     Dim x As New ScriptElementOperandEntry(MyParent, ScriptElementDataType.SubItems)
-                    x.SubOperands = New ScriptElementOperand(MyParent, sub_section)
-                    If (x.SubOperands.ERROR_MSG = "") Then
-                        OPERANDS.Add(x)
-                    Else
-                        Me.ERROR_MSG = x.SubOperands.ERROR_MSG : Exit Sub
-                    End If
+                    x.SubOperands = New ScriptElementOperand(MyParent)
+                    Dim result As ParseResult = x.SubOperands.Parse(sub_section)
+                    If result.IsError Then Return result
+                    OPERANDS.Add(x)
                 Else
                     Dim main_element As String = FeedElement(text_input)
                     If MyParent.CmdFunctions.IsScriptFunction(main_element) Then
@@ -2268,24 +2234,23 @@ Namespace FlashcatScript
                         OPERANDS.Add(New ScriptElementOperandEntry(MyParent, DataType.NULL))
                     ElseIf IsVariableArgument(main_element) Then
                         OPERANDS.Add(New ScriptElementOperandEntry(MyParent, ScriptElementDataType.Variable) With {.FUNC_NAME = main_element})
+                    ElseIf main_element.Equals("") Then
+                        Return New ParseResult("Unknown function or command: " & text_input)
                     Else
-                        If main_element.Equals("") Then
-                            Me.ERROR_MSG = "Unknown function or command: " & text_input : Exit Sub
-                        Else
-                            Me.ERROR_MSG = "Unknown function or command: " & main_element : Exit Sub
-                        End If
+                        Return New ParseResult("Unknown function or command: " & main_element)
                     End If
                     If (Not text_input.Equals("")) Then
                         Dim oper_seperator As OperandOper = OperandOper.NOTSPECIFIED
                         If FeedOperator(text_input, oper_seperator) Then
                             OPERANDS.Add(New ScriptElementOperandEntry(MyParent, ScriptElementDataType.Operator) With {.Oper = oper_seperator})
                         Else
-                            Me.ERROR_MSG = "Invalid operator" : Exit Sub
+                            Return New ParseResult("Invalid operator")
                         End If
                     End If
                 End If
             Loop
-        End Sub
+            Return New ParseResult() 'No Error
+        End Function
         'For $1 $2 etc.
         Private Function IsVariableArgument(input As String) As Boolean
             If Not input.StartsWith("$") Then Return False
@@ -2301,7 +2266,7 @@ Namespace FlashcatScript
             ParseToFunctionAndSub(to_parse, new_fnc.FUNC_NAME, new_fnc.FUNC_SUB, new_fnc.FUNC_IND, arguments)
             If (Not arguments.Equals("")) Then
                 new_fnc.FUNC_ARGS = ParseArguments(arguments)
-                If Not Me.ERROR_MSG.Equals("") Then Return Nothing
+                If Me.ParsingResult.IsError Then Return Nothing
             End If
             Return new_fnc
         End Function
@@ -2312,7 +2277,7 @@ Namespace FlashcatScript
             ParseToFunctionAndSub(to_parse, new_evnt.FUNC_NAME, Nothing, Nothing, arguments)
             If (Not arguments = "") Then
                 new_evnt.FUNC_ARGS = ParseArguments(arguments)
-                If Not Me.ERROR_MSG = "" Then Return Nothing
+                If Me.ParsingResult.IsError Then Return Nothing
             End If
             Return new_evnt
         End Function
@@ -2325,7 +2290,7 @@ Namespace FlashcatScript
             new_Var.FUNC_NAME = var_name
             If (Not arguments = "") Then
                 new_Var.FUNC_ARGS = ParseArguments(arguments)
-                If Not Me.ERROR_MSG = "" Then Return Nothing
+                If Me.ParsingResult.IsError Then Return Nothing
             End If
             Return new_Var
         End Function
@@ -2356,17 +2321,22 @@ Namespace FlashcatScript
                     End Select
                 End If
                 If add_clear Then
-                    Dim n As New ScriptElementOperand(MyParent, arg_builder.ToString)
-                    If Not n.ERROR_MSG.Equals("") Then Me.ERROR_MSG = n.ERROR_MSG : Return Nothing
+                    Dim n As New ScriptElementOperand(MyParent)
+                    Dim result As ParseResult = n.Parse(arg_builder.ToString)
+                    If result.IsError Then
+
+                        Return Nothing
+                    End If
                     argument_list.Add(n) : arg_builder.Clear()
                 End If
             Next
             If (arg_builder.Length > 0) Then
-                Dim n As New ScriptElementOperand(MyParent, arg_builder.ToString)
-                If Not n.ERROR_MSG.Equals("") Then Me.ERROR_MSG = n.ERROR_MSG : Return Nothing
+                Dim n As New ScriptElementOperand(MyParent)
+                Me.ParsingResult = n.Parse(arg_builder.ToString)
+                If Me.ParsingResult.IsError Then Return Nothing
                 argument_list.Add(n)
             End If
-            Return argument_list.ToArray
+            Return argument_list.ToArray()
         End Function
 
         Friend Function CompileToVariable(ByRef exit_task As ExitMode) As ScriptVariable
@@ -2375,16 +2345,13 @@ Namespace FlashcatScript
             Dim arg_count As Integer = OPERANDS.Count
             Dim x As Integer = 0
             Do While (x < arg_count)
-                Dim new_var As ScriptVariable = Nothing
                 If OPERANDS(x).EntryType = ScriptElementDataType.Operator Then
-                    Me.ERROR_MSG = "Expected value to compute" : Return Nothing
+                    Return CreateError("Expected value to compute")
                 End If
-                new_var = OPERANDS(x).Compile(exit_task)
-                If Not OPERANDS(x).ERROR_MSG = "" Then Me.ERROR_MSG = OPERANDS(x).ERROR_MSG : Return Nothing
+                Dim new_var As ScriptVariable = OPERANDS(x).Compile(exit_task)
+                If new_var IsNot Nothing AndAlso new_var.Data.VarType = DataType.FncError Then Return new_var
                 If (Not current_oper = OperandOper.NOTSPECIFIED) Then
-                    Dim result_var As ScriptVariable = CompileSVars(current_var, new_var, current_oper, Me.ERROR_MSG)
-                    If Not Me.ERROR_MSG = "" Then Return Nothing
-                    current_var = result_var
+                    current_var = CompileSVars(current_var, new_var, current_oper)
                 Else
                     current_var = new_var
                 End If
@@ -2393,9 +2360,11 @@ Namespace FlashcatScript
                     If Not OPERANDS(x).Oper = OperandOper.NOTSPECIFIED Then
                         current_oper = OPERANDS(x).Oper
                         x += 1
-                        If Not (x < arg_count) Then Me.ERROR_MSG = "Statement ended in an operand operation" : Return Nothing
+                        If Not (x < arg_count) Then
+                            Return CreateError("Statement ended in an operand operation")
+                        End If
                     Else
-                        Me.ERROR_MSG = "Expected an operand operation" : Return Nothing
+                        Return CreateError("Expected an operand operation")
                     End If
                 End If
             Loop
@@ -2422,7 +2391,6 @@ Namespace FlashcatScript
         Public Property FUNC_IND As String 'Index for a given function (integer or variable)
         Public Property FUNC_ARGS As ScriptElementOperand()
         Public Property FUNC_DATA As DataTypeObject = Nothing
-        Public Property ERROR_MSG As String = ""
 
         Sub New(oParent As Processor, entry_t As ScriptElementDataType)
             Me.EntryType = entry_t
@@ -2512,14 +2480,14 @@ Namespace FlashcatScript
                         If Me.FUNC_ARGS IsNot Nothing Then
                             For i = 0 To Me.FUNC_ARGS.Length - 1
                                 Dim ret As ScriptVariable = Me.FUNC_ARGS(i).CompileToVariable(exit_task)
-                                If Not Me.FUNC_ARGS(i).ERROR_MSG = "" Then Me.ERROR_MSG = Me.FUNC_ARGS(i).ERROR_MSG : Return Nothing
+                                If ret.Data.VarType = DataType.FncError Then Return ret
                                 If ret IsNot Nothing Then input_vars.Add(ret)
                             Next
                         End If
                         Dim args_var() As ScriptVariable = input_vars.ToArray
-                        If Not CheckFunctionArguments(fnc_params, args_var) Then Return Nothing
+                        Dim result As ParseResult = CheckFunctionArguments(fnc_params, args_var)
+                        If result.IsError Then Return CreateError(result.ErrorMsg)
                         Try
-                            Me.ERROR_MSG = ""
                             Dim func_index As UInt32 = 0
                             If IsNumeric(Me.FUNC_IND) Then
                                 func_index = CUInt(FUNC_IND)
@@ -2532,42 +2500,35 @@ Namespace FlashcatScript
                                 ElseIf v.Data.VarType = DataType.UInteger Then
                                     func_index = CUInt(MyParent.CurrentVars.GetVariable(Me.FUNC_IND).Value)
                                 Else
-                                    Me.ERROR_MSG = "Index " & Me.FUNC_IND & " must be either an Integer or UInteger" : Return Nothing
+                                    Return CreateError("Index " & Me.FUNC_IND & " must be either an Integer or UInteger")
                                 End If
                             Else
-                                Me.ERROR_MSG = "Unable to evaluate index: " & Me.FUNC_IND : Return Nothing
+                                Return CreateError("Unable to evaluate index: " & Me.FUNC_IND)
                             End If
-                            Dim result As ScriptVariable = Nothing
+                            Dim dynamic_result As ScriptVariable = Nothing
                             Try
-                                result = fnc.DynamicInvoke(args_var, func_index)
+                                dynamic_result = fnc.DynamicInvoke(args_var, func_index)
                             Catch ex As Exception
-                                result = New ScriptVariable("ERROR", DataType.FncError)
-                                result.Value = FUNC_NAME & " function exception"
+                                Return CreateError(FUNC_NAME & " function exception")
                             End Try
-                            If result Is Nothing Then Return Nothing
-                            If result.Data.VarType = DataType.FncError Then
-                                Me.ERROR_MSG = result.Value : Return Nothing
-                            End If
-                            Return result
+                            Return dynamic_result
                         Catch ex As Exception
-                            Me.ERROR_MSG = "Error executing function: " & Me.FUNC_NAME
+                            Return CreateError("Error executing function: " & Me.FUNC_NAME)
                         End Try
                     Else
-                        Me.ERROR_MSG = "Unknown function or sub procedure"
+                        Return CreateError("Unknown function or sub procedure")
                     End If
                 Case ScriptElementDataType.Event
                     Dim input_vars As New List(Of ScriptVariable)
                     If Me.FUNC_ARGS IsNot Nothing Then
                         For i = 0 To Me.FUNC_ARGS.Length - 1
                             Dim ret As ScriptVariable = Me.FUNC_ARGS(i).CompileToVariable(exit_task)
-                            If Not Me.FUNC_ARGS(i).ERROR_MSG = "" Then Me.ERROR_MSG = Me.FUNC_ARGS(i).ERROR_MSG : Return Nothing
+                            If ret.Data.VarType = DataType.FncError Then Return ret
                             If ret IsNot Nothing Then input_vars.Add(ret)
                         Next
                     End If
                     Dim se As ScriptEvent = MyParent.GetScriptEvent(Me.FUNC_NAME)
-                    If se Is Nothing Then
-                        Me.ERROR_MSG = "Event does not exist: " & Me.FUNC_NAME : Return Nothing
-                    End If
+                    If se Is Nothing Then Return CreateError("Event does not exist: " & Me.FUNC_NAME)
                     Dim n_sv As ScriptVariable = MyParent.ExecuteScriptEvent(se, input_vars.ToArray, exit_task)
                     Return n_sv
                 Case ScriptElementDataType.Variable
@@ -2586,20 +2547,18 @@ Namespace FlashcatScript
                                 End If
                             End If
                         Catch ex As Exception
-                            Me.ERROR_MSG = "Error processing variable index value"
+                            Return CreateError("Error processing variable index value")
                         End Try
                     Else
                         Return n_sv
                     End If
                 Case ScriptElementDataType.SubItems
-                    Dim output_vars As ScriptVariable = SubOperands.CompileToVariable(exit_task)
-                    If Not SubOperands.ERROR_MSG = "" Then Me.ERROR_MSG = SubOperands.ERROR_MSG : Return Nothing
-                    Return output_vars
+                    Return SubOperands.CompileToVariable(exit_task)
             End Select
             Return Nothing
         End Function
 
-        Private Function CheckFunctionArguments(fnc_params() As CmdPrm, ByRef my_vars() As ScriptVariable) As Boolean
+        Private Function CheckFunctionArguments(fnc_params() As CmdPrm, ByRef my_vars() As ScriptVariable) As ParseResult
             Dim var_count As UInt32 = 0
             If my_vars Is Nothing OrElse my_vars.Length = 0 Then
                 var_count = 0
@@ -2607,46 +2566,45 @@ Namespace FlashcatScript
                 var_count = my_vars.Length
             End If
             If fnc_params Is Nothing AndAlso (Not var_count = 0) Then
-                Me.ERROR_MSG = "Function " & Me.GetFuncString & ": arguments supplied but none are allowed"
-                Return False
+                Return New ParseResult("Function " & Me.GetFuncString & ": arguments supplied but none are allowed")
             ElseIf fnc_params IsNot Nothing Then
                 For i = 0 To fnc_params.Length - 1
                     Select Case fnc_params(i)
                         Case CmdPrm.Integer
                             If (i >= var_count) Then
-                                Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires an Integer type parameter" : Return Nothing
+                                Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires an Integer type parameter")
                             Else
                                 If (my_vars(i).Data.VarType = DataType.UInteger) Then 'We can possibly auto convert data type
                                     Dim auto_con As UInt32 = CUInt(my_vars(i).Value)
                                     If auto_con <= Int32.MaxValue Then my_vars(i) = New ScriptVariable(my_vars(i).Name, DataType.Integer, CInt(auto_con))
                                 End If
                                 If Not my_vars(i).Data.VarType = DataType.Integer Then
-                                    Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an Integer but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType) : Return Nothing
+                                    Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an Integer but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType))
                                 End If
                             End If
                         Case CmdPrm.UInteger
                             If (i >= var_count) Then
-                                Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires an UInteger type parameter" : Return Nothing
+                                Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires an UInteger type parameter")
                             Else
                                 If (my_vars(i).Data.VarType = DataType.Integer) Then 'We can possibly auto convert data type
                                     Dim auto_con As Integer = CInt(my_vars(i).Value)
                                     If (auto_con >= 0) Then my_vars(i) = New ScriptVariable(my_vars(i).Name, DataType.UInteger, CUInt(auto_con))
                                 End If
                                 If (Not my_vars(i).Data.VarType = DataType.UInteger) Then
-                                    Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an UInteger but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType) : Return Nothing
+                                    Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an UInteger but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType))
                                 End If
                             End If
                         Case CmdPrm.String
                             If (i >= var_count) Then
-                                Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires a String type parameter" : Return Nothing
+                                Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires a String type parameter")
                             Else
                                 If Not my_vars(i).Data.VarType = DataType.String Then
-                                    Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs a String but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType) : Return Nothing
+                                    Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs a String but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType))
                                 End If
                             End If
                         Case CmdPrm.Data
                             If (i >= var_count) Then
-                                Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires a Data type parameter" : Return Nothing
+                                Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires a Data type parameter")
                             Else
                                 If my_vars(i).Data.VarType = DataType.Data Then
                                 ElseIf my_vars(i).Data.VarType = DataType.UInteger Then
@@ -2654,20 +2612,20 @@ Namespace FlashcatScript
                                     c.Value = Utilities.Bytes.FromUInt32(my_vars(i).Value)
                                     my_vars(i) = c
                                 Else
-                                    Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an Data but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType) : Return Nothing
+                                    Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an Data but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType))
                                 End If
                             End If
                         Case CmdPrm.Bool
                             If (i >= var_count) Then
-                                Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires a Bool type parameter" : Return Nothing
+                                Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires a Bool type parameter")
                             Else
                                 If Not my_vars(i).Data.VarType = DataType.Bool Then
-                                    Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an Bool but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType) : Return Nothing
+                                    Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an Bool but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType))
                                 End If
                             End If
                         Case CmdPrm.Any
                             If (i >= var_count) Then
-                                Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires a parameter" : Return Nothing
+                                Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " requires a parameter")
                             End If
                         Case CmdPrm.Integer_Optional
                             If Not (i >= var_count) Then 'Only check if we have supplied this argument
@@ -2676,7 +2634,7 @@ Namespace FlashcatScript
                                     If auto_con <= Int32.MaxValue Then my_vars(i) = New ScriptVariable(my_vars(i).Name, DataType.Integer, CInt(auto_con))
                                 End If
                                 If Not my_vars(i).Data.VarType = DataType.Integer Then
-                                    Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an Integer but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType) : Return Nothing
+                                    Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an Integer but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType))
                                 End If
                             End If
                         Case CmdPrm.UInteger_Optional
@@ -2686,39 +2644,39 @@ Namespace FlashcatScript
                                     If (auto_con >= 0) Then my_vars(i) = New ScriptVariable(my_vars(i).Name, DataType.UInteger, CUInt(auto_con))
                                 End If
                                 If Not my_vars(i).Data.VarType = DataType.UInteger Then
-                                    Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an UInteger but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType) : Return Nothing
+                                    Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an UInteger but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType))
                                 End If
                             End If
                         Case CmdPrm.String_Optional
                             If Not (i >= var_count) Then 'Only check if we have supplied this argument
                                 If Not my_vars(i).Data.VarType = DataType.String Then
-                                    Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an String but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType) : Return Nothing
+                                    Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs an String but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType))
                                 End If
                             End If
                         Case CmdPrm.Data_Optional
                             If Not (i >= var_count) Then 'Only check if we have supplied this argument
                                 If Not my_vars(i).Data.VarType = DataType.Data Then
-                                    Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs Data but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType) : Return Nothing
+                                    Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs Data but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType))
                                 End If
                             End If
                         Case CmdPrm.Bool_Optional
                             If Not (i >= var_count) Then 'Only check if we have supplied this argument
                                 If Not my_vars(i).Data.VarType = DataType.Bool Then
-                                    Me.ERROR_MSG = "Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs Bool but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType) : Return Nothing
+                                    Return New ParseResult("Function " & Me.GetFuncString & ": argument " & (i + 1) & " inputs Bool but was supplied a " & GetDataTypeString(my_vars(i).Data.VarType))
                                 End If
                             End If
                         Case CmdPrm.Any_Optional
                     End Select
                 Next
             End If
-            Return True
+            Return New ParseResult
         End Function
 
         Friend Function GetFuncString() As String
-            If Not FUNC_SUB = "" Then
-                Return FUNC_NAME & "." & FUNC_SUB
+            If String.IsNullOrEmpty(FUNC_SUB) Then
+                Return Me.FUNC_NAME
             Else
-                Return FUNC_NAME
+                Return Me.FUNC_NAME & "." & Me.FUNC_SUB
             End If
         End Function
 
@@ -2737,7 +2695,7 @@ Namespace FlashcatScript
             TheScript.Clear()
         End Sub
 
-        Friend Function LoadFile(oParent As FlashcatScript.Processor, lines() As String, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As Boolean
+        Friend Function LoadFile(oParent As Processor, lines() As String, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As Boolean
             TheScript.Clear()
             MyParent = oParent
             Dim line_index(lines.Length - 1) As UInt32
@@ -2811,18 +2769,18 @@ Namespace FlashcatScript
                             If s Is Nothing OrElse Not ErrorMsg = "" Then Return Nothing
                             Processed.Add(s)
                         Else
-                            Dim normal As New ScriptElement(MyParent)
-                            normal.INDEX = line_index(line_pointer)
-                            normal.Parse(cmd_line, True)
-                            If normal.HAS_ERROR Then
-                                ErrorMsg = normal.ERROR_MSG
+                            Dim s As New ScriptElement(MyParent)
+                            s.INDEX = line_index(line_pointer)
+                            Dim result As ParseResult = s.Parse(cmd_line, True)
+                            If result.IsError Then
+                                ErrorMsg = result.ErrorMsg
                                 ErrInd = line_index(line_pointer)
                                 Return Nothing
                             End If
-                            If Not normal.TARGET_NAME = "" Then 'This element creates a new variable
-                                MyParent.CurrentVars.AddExpected(normal.TARGET_NAME)
+                            If Not s.TARGET_NAME = "" Then 'This element creates a new variable
+                                MyParent.CurrentVars.AddExpected(s.TARGET_NAME)
                             End If
-                            Processed.Add(normal)
+                            Processed.Add(s)
                         End If
                     End If
                     line_pointer += 1
@@ -2838,9 +2796,10 @@ Namespace FlashcatScript
         Friend Function CreateIfCondition(ByRef Pointer As Integer, lines() As String, ind() As UInt32, ByRef ErrInd As UInt32, ByRef ErrorMsg As String) As ScriptLineElement
             Dim this_if As New ScriptCondition(Me.MyParent) 'Also loads NOT modifier
             this_if.INDEX = ind(Pointer)
-            If Not this_if.Parse(lines(Pointer)) Then
+            Dim result As ParseResult = this_if.Parse(lines(Pointer))
+            If result.IsError Then
                 ErrInd = ind(Pointer)
-                ErrorMsg = this_if.ERROR_MSG
+                ErrorMsg = result.ErrorMsg
                 Return Nothing
             End If
             If this_if.CONDITION Is Nothing Then
@@ -2898,8 +2857,8 @@ Namespace FlashcatScript
         Friend Function CreateForLoop(ByRef Pointer As Integer, lines() As String, ind() As UInt32, ByRef ErrInd As UInt32, ByRef ErrorMsg As String) As ScriptLineElement
             Dim this_for As New ScriptLoop(Me.MyParent) 'Also loads NOT modifier
             this_for.INDEX = ind(Pointer)
-            Dim success As Boolean = this_for.Parse(lines(Pointer))
-            If Not success Then
+            Dim success As ParseResult = this_for.Parse(lines(Pointer))
+            If success.IsError Then
                 ErrInd = ind(Pointer)
                 ErrorMsg = "FOR LOOP statement is not valid"
                 Return Nothing
@@ -3039,9 +2998,6 @@ Namespace FlashcatScript
     End Class
 
 
-
-
-
 #Region "Enumerators"
 
     Friend Enum ExitMode
@@ -3177,6 +3133,8 @@ Namespace FlashcatScript
                         Return False
                     Case DataType.Data
                         Return InternalData
+                    Case DataType.FncError
+                        Return Utilities.Bytes.ToChrString(Me.InternalData)
                     Case Else
                         Return Nothing
                 End Select
@@ -3198,12 +3156,13 @@ Namespace FlashcatScript
                         End If
                     Case DataType.Data
                         Me.InternalData = new_value
+                    Case DataType.FncError
+                        Me.InternalData = Utilities.Bytes.FromChrString(CStr(new_value))
                 End Select
             End Set
         End Property
 
     End Class
-
 
 
 #Region "ScriptLineElements"
@@ -3303,12 +3262,6 @@ Namespace FlashcatScript
     Friend Class ScriptElement
         Inherits ScriptLineElement
 
-        Public ReadOnly Property HAS_ERROR As Boolean
-            Get
-                If ERROR_MSG.Equals("") Then Return False Else Return True
-            End Get
-        End Property
-        Public Property ERROR_MSG As String = ""
         Friend Property TARGET_OPERATION As TargetOper = TargetOper.NONE 'What to do with the compiled variable
         Friend Property TARGET_NAME As String = "" 'This is the name of the variable to create
         Friend Property TARGET_INDEX As Integer = -1 'For DATA arrays, this is the index within the array
@@ -3321,32 +3274,31 @@ Namespace FlashcatScript
             MyBase.ElementType = ScriptFileElementType.ELEMENT
         End Sub
 
-        Friend Function Parse(to_parse As String, parse_target As Boolean) As Boolean
+        Friend Function Parse(to_parse As String, parse_target As Boolean) As ParseResult
             to_parse = to_parse.Trim
-            If parse_target Then LoadTarget(to_parse)
-            Me.OPERLIST = New ScriptElementOperand(MyBase.MyParent, to_parse)
-            If (Not OPERLIST.ERROR_MSG.Equals("")) Then
-                Me.ERROR_MSG = OPERLIST.ERROR_MSG
-                Return False
+            If parse_target Then
+                Dim result As ParseResult = LoadTarget(to_parse)
+                If result.IsError Then Return result
             End If
-            Return True
+            Me.OPERLIST = New ScriptElementOperand(MyBase.MyParent)
+            Return Me.OPERLIST.Parse(to_parse)
         End Function
         'This parses the initial string to check for a var assignment
-        Private Sub LoadTarget(ByRef to_parse As String)
+        Private Function LoadTarget(ByRef to_parse As String) As ParseResult
             Dim str_out As String = ""
             For i = 0 To to_parse.Length - 1
                 If ((to_parse.Length - i) > 2) AndAlso to_parse.Substring(i, 2) = "==" Then 'This is a compare
-                    Exit Sub
+                    Return New ParseResult
                 ElseIf ((to_parse.Length - i) > 2) AndAlso to_parse.Substring(i, 2) = "+=" Then
                     TARGET_OPERATION = TargetOper.ADD
                     TARGET_NAME = str_out.Trim
                     to_parse = to_parse.Substring(i + 2).Trim
-                    Exit Sub
+                    Return New ParseResult
                 ElseIf ((to_parse.Length - i) > 2) AndAlso to_parse.Substring(i, 2) = "-=" Then
                     TARGET_OPERATION = TargetOper.SUB
                     TARGET_NAME = str_out.Trim
                     to_parse = to_parse.Substring(i + 2).Trim
-                    Exit Sub
+                    Return New ParseResult
                 ElseIf to_parse.Substring(i, 1) = "=" Then
                     TARGET_OPERATION = TargetOper.EQ
                     Dim input As String = str_out.Trim
@@ -3362,40 +3314,39 @@ Namespace FlashcatScript
                             TARGET_INDEX = -1
                             TARGET_VAR = arg
                         Else
-                            Me.ERROR_MSG = "Target index must be able to evaluate to an integer"
+                            Return New ParseResult("Target index must be able to evaluate to an integer")
                         End If
                     End If
-                    Exit Sub
+                    Return New ParseResult
                 ElseIf to_parse.Substring(i, 1) = "." Then
-                    Exit Sub
+                    Return New ParseResult
                 ElseIf to_parse.Substring(i, 1) = """" Then
-                    Exit Sub
+                    Return New ParseResult
                 ElseIf to_parse.Substring(i, 1) = ">" Then
-                    Exit Sub
+                    Return New ParseResult
                 ElseIf to_parse.Substring(i, 1) = "<" Then
-                    Exit Sub
+                    Return New ParseResult
                 ElseIf to_parse.Substring(i, 1) = "+" Then
-                    Exit Sub
+                    Return New ParseResult
                 ElseIf to_parse.Substring(i, 1) = "-" Then
-                    Exit Sub
+                    Return New ParseResult
                 ElseIf to_parse.Substring(i, 1) = "/" Then
-                    Exit Sub
+                    Return New ParseResult
                 ElseIf to_parse.Substring(i, 1) = "*" Then
-                    Exit Sub
+                    Return New ParseResult
                 ElseIf to_parse.Substring(i, 1) = "&" Then
-                    Exit Sub
+                    Return New ParseResult
                 ElseIf to_parse.Substring(i, 1) = "|" Then
-                    Exit Sub
+                    Return New ParseResult
                 Else
                     str_out &= to_parse.Substring(i, 1)
                 End If
             Next
-        End Sub
+            Return New ParseResult
+        End Function
 
         Friend Function Compile(ByRef exit_task As ExitMode) As ScriptVariable
-            Dim sv As ScriptVariable = OPERLIST.CompileToVariable(exit_task)
-            Me.ERROR_MSG = OPERLIST.ERROR_MSG
-            Return sv
+            Return OPERLIST.CompileToVariable(exit_task)
         End Function
 
         Public Overrides Function ToString() As String
@@ -3425,14 +3376,12 @@ Namespace FlashcatScript
         Public IF_MAIN() As ScriptLineElement 'Elements to execute if condition is true
         Public IF_ELSE() As ScriptLineElement 'And if FALSE 
 
-        Public ERROR_MSG As String = ""
-
         Sub New(oParent As Processor)
             MyBase.New(oParent)
             MyBase.ElementType = ScriptFileElementType.IF_CONDITION
         End Sub
 
-        Friend Function Parse(input As String) As Boolean
+        Friend Function Parse(input As String) As ParseResult
             Try
                 If input.ToUpper.StartsWith("IF ") Then input = input.Substring(3).Trim
                 Me.NOT_MODIFIER = False 'Indicates the not modifier is being used
@@ -3441,12 +3390,9 @@ Namespace FlashcatScript
                     input = input.Substring(3).Trim
                 End If
                 CONDITION = New ScriptElement(MyBase.MyParent)
-                CONDITION.Parse(input, False)
-                Me.ERROR_MSG = CONDITION.ERROR_MSG
-                If Not Me.ERROR_MSG = "" Then Return False
-                Return True
+                Return CONDITION.Parse(input, False)
             Catch ex As Exception
-                Return False
+                Return New ParseResult("Exception in If Condition")
             End Try
         End Function
 
@@ -3473,31 +3419,33 @@ Namespace FlashcatScript
             MyBase.ElementType = ScriptFileElementType.FOR_LOOP
         End Sub
 
-        Friend Function Parse(input As String) As Boolean
+        Friend Function Parse(next_part As String) As ParseResult
             Try
-                If input.ToUpper.StartsWith("FOR ") Then input = input.Substring(4).Trim
-                If input.StartsWith("(") AndAlso input.EndsWith(")") Then
-                    input = input.Substring(1, input.Length - 2)
-                    Me.VAR_NAME = FeedWord(input, {"="})
-                    If Me.VAR_NAME = "" Then Return False
-                    input = input.Substring(1).Trim
-                    Dim first_part As String = FeedElement(input)
-                    input = input.Trim
-                    If input = "" Then Return False 'More info needed
-                    Dim to_part As String = FeedElement(input)
-                    input = input.Trim
-                    If input = "" Then Return False 'More info needed
-                    If Not to_part.ToUpper = "TO" Then Return False
-                    LOOPSTART_OPER = New ScriptElementOperand(MyBase.MyParent, first_part)
-                    LOOPSTOP_OPER = New ScriptElementOperand(MyBase.MyParent, input)
-                    If (Not LOOPSTART_OPER.ERROR_MSG = "") Then Return False
-                    If (Not LOOPSTOP_OPER.ERROR_MSG = "") Then Return False
-                    Return True
+                If next_part.ToUpper.StartsWith("FOR ") Then next_part = next_part.Substring(4).Trim
+                If next_part.StartsWith("(") AndAlso next_part.EndsWith(")") Then
+                    next_part = next_part.Substring(1, next_part.Length - 2)
+                    Me.VAR_NAME = FeedWord(next_part, {"="})
+                    If Me.VAR_NAME = "" Then Return New ParseResult("For Loop syntax is invalid")
+                    next_part = next_part.Substring(1).Trim
+                    Dim first_part As String = FeedElement(next_part)
+                    next_part = next_part.Trim
+                    If next_part = "" Then Return New ParseResult("For Loop syntax is invalid")
+                    Dim to_part As String = FeedElement(next_part)
+                    next_part = next_part.Trim
+                    If next_part = "" Then Return New ParseResult("For Loop syntax is invalid")
+                    If Not to_part.ToUpper = "TO" Then Return New ParseResult("For Loop syntax is invalid")
+                    LOOPSTART_OPER = New ScriptElementOperand(MyBase.MyParent)
+                    LOOPSTOP_OPER = New ScriptElementOperand(MyBase.MyParent)
+                    Dim p1 As ParseResult = LOOPSTART_OPER.Parse(first_part)
+                    Dim p2 As ParseResult = LOOPSTOP_OPER.Parse(next_part)
+                    If p1.IsError Then Return p1
+                    If p2.IsError Then Return p2
+                    Return New ParseResult() 'Should we return an error?
                 Else
-                    Return False
+                    Return New ParseResult("For Loop syntax is invalid")
                 End If
             Catch ex As Exception
-                Return False
+                Return New ParseResult("Exception in For Loop")
             End Try
         End Function
         'Compiles the FROM TO variables
@@ -3526,7 +3474,7 @@ Namespace FlashcatScript
     Friend Class ScriptLabel
         Inherits ScriptLineElement
 
-        Sub New(oParent As FlashcatScript.Processor)
+        Sub New(oParent As Processor)
             MyBase.New(oParent)
             MyBase.ElementType = ScriptFileElementType.LABEL
         End Sub
@@ -3544,7 +3492,7 @@ Namespace FlashcatScript
 
         Friend Property TO_LABEL As String
 
-        Sub New(oParent As FlashcatScript.Processor)
+        Sub New(oParent As Processor)
             MyBase.New(oParent)
             MyBase.ElementType = ScriptFileElementType.GOTO
         End Sub
@@ -3560,7 +3508,7 @@ Namespace FlashcatScript
 
         Friend Property MODE As ExitMode
 
-        Sub New(oParent As FlashcatScript.Processor)
+        Sub New(oParent As Processor)
             MyBase.New(oParent)
             MyBase.ElementType = ScriptFileElementType.EXIT
         End Sub
@@ -3594,25 +3542,19 @@ Namespace FlashcatScript
 
         Private OPERLIST As ScriptElementOperand
 
-        Sub New(oParent As FlashcatScript.Processor)
+        Sub New(oParent As Processor)
             MyBase.New(oParent)
             MyBase.ElementType = ScriptFileElementType.RETURN
         End Sub
 
-        Friend Function Parse(to_parse As String) As Boolean
+        Friend Function Parse(to_parse As String) As ParseResult
             to_parse = to_parse.Trim
-            OPERLIST = New ScriptElementOperand(MyBase.MyParent, to_parse)
-            If (Not OPERLIST.ERROR_MSG = "") Then
-                Me.ERROR_MSG = OPERLIST.ERROR_MSG
-                Return False
-            End If
-            Return True
+            OPERLIST = New ScriptElementOperand(MyBase.MyParent)
+            Return OPERLIST.Parse(to_parse)
         End Function
 
         Friend Function Compile(ByRef exit_task As ExitMode) As ScriptVariable
-            Dim sv As ScriptVariable = OPERLIST.CompileToVariable(exit_task)
-            Me.ERROR_MSG = OPERLIST.ERROR_MSG
-            Return sv
+            Return OPERLIST.CompileToVariable(exit_task)
         End Function
 
         Public Overrides Function ToString() As String
@@ -3624,7 +3566,7 @@ Namespace FlashcatScript
     Friend Class ScriptEvent
         Inherits ScriptLineElement
 
-        Sub New(oParent As FlashcatScript.Processor)
+        Sub New(oParent As Processor)
             MyBase.New(oParent)
             MyBase.ElementType = ScriptFileElementType.EVENT
         End Sub
@@ -3641,6 +3583,10 @@ Namespace FlashcatScript
 #End Region
 
     Friend Module Tools
+
+        Friend Function CreateError(error_msg) As ScriptVariable
+            Return New ScriptVariable("ERROR", DataType.FncError, error_msg)
+        End Function
 
         Friend Function GetDataTypeString(input As DataType) As String
             Select Case input
@@ -3821,11 +3767,11 @@ Namespace FlashcatScript
             Return True
         End Function
         'Compiles two variables, returns a string if there is an error
-        Friend Function CompileSVars(var1 As ScriptVariable, var2 As ScriptVariable, oper As OperandOper, ByRef error_reason As String) As ScriptVariable
+        Friend Function CompileSVars(var1 As ScriptVariable, var2 As ScriptVariable, oper As OperandOper) As ScriptVariable
             Try
                 If oper = OperandOper.AND Or oper = OperandOper.OR Then
                     If Not var1.Data.VarType = DataType.Bool Then
-                        error_reason = "OR / AND bitwise operators only valid for Bool data types" : Return Nothing
+                        Return CreateError("OR / AND bitwise operators only valid for Bool data types")
                     End If
                 End If
                 Select Case oper
@@ -3837,7 +3783,7 @@ Namespace FlashcatScript
                                 ElseIf var2.Data.VarType = DataType.UInteger Then
                                     Return New ScriptVariable("RESULT", DataType.Integer, CInt(var1.Value) + CUInt(var2.Value))
                                 Else
-                                    error_reason = "Operand data type mismatch" : Return Nothing
+                                    Return CreateError("Operand data type mismatch")
                                 End If
                             Case DataType.UInteger
                                 If var2.Data.VarType = DataType.UInteger Then
@@ -3845,7 +3791,7 @@ Namespace FlashcatScript
                                 ElseIf var2.Data.VarType = DataType.UInteger Then
                                     Return New ScriptVariable("RESULT", DataType.UInteger, CUInt(var1.Value) + CInt(var2.Value))
                                 Else
-                                    error_reason = "Operand data type mismatch" : Return Nothing
+                                    Return CreateError("Operand data type mismatch")
                                 End If
                             Case DataType.String
                                 Dim new_result As New ScriptVariable("RESULT", DataType.String)
@@ -3854,12 +3800,14 @@ Namespace FlashcatScript
                                 ElseIf var2.Data.VarType = DataType.String Then
                                     new_result.Value = CStr(var1.Value) & CStr(var2.Value)
                                 Else
-                                    error_reason = "Operand data type mismatch" : Return Nothing
+                                    Return CreateError("Operand data type mismatch")
                                 End If
                                 Return new_result
                             Case DataType.Data
                                 Dim new_result As New ScriptVariable("RESULT", DataType.Data)
-                                If Not var1.Data.VarType = var2.Data.VarType Then error_reason = "Operand data type mismatch" : Return Nothing
+                                If Not var1.Data.VarType = var2.Data.VarType Then
+                                    Return CreateError("Operand data type mismatch")
+                                End If
                                 Dim data1() As Byte = var1.Value
                                 Dim data2() As Byte = var2.Value
                                 Dim new_size As Integer = data1.Length + data2.Length
@@ -3869,7 +3817,7 @@ Namespace FlashcatScript
                                 new_result.Value = new_data
                                 Return new_result
                             Case DataType.Bool
-                                error_reason = "Add operand not valid for Bool data type" : Return Nothing
+                                Return CreateError("Add operand not valid for Bool data type")
                         End Select
                     Case OperandOper.SUB
                         Select Case var1.Data.VarType
@@ -3879,7 +3827,7 @@ Namespace FlashcatScript
                                 ElseIf var2.Data.VarType = DataType.UInteger Then
                                     Return New ScriptVariable("RESULT", DataType.Integer, CInt(var1.Value) - CUInt(var2.Value))
                                 Else
-                                    error_reason = "Operand data type mismatch" : Return Nothing
+                                    Return CreateError("Operand data type mismatch")
                                 End If
                             Case DataType.UInteger
                                 If var2.Data.VarType = DataType.UInteger Then
@@ -3887,17 +3835,17 @@ Namespace FlashcatScript
                                 ElseIf var2.Data.VarType = DataType.UInteger Then
                                     Return New ScriptVariable("RESULT", DataType.UInteger, CUInt(var1.Value) - CInt(var2.Value))
                                 Else
-                                    error_reason = "Operand data type mismatch" : Return Nothing
+                                    Return CreateError("Operand data type mismatch")
                                 End If
                             Case Else
                                 Dim new_result As New ScriptVariable("RESULT", DataType.UInteger)
-                                If Not var1.Data.VarType = var2.Data.VarType Then error_reason = "Operand data type mismatch" : Return Nothing
-                                If (Not var1.Data.VarType = DataType.UInteger) Then error_reason = "Subtract operand only valid for Integer data type" : Return Nothing
+                                If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
+                                If (Not var1.Data.VarType = DataType.UInteger) Then Return CreateError("Subtract operand only valid for Integer data type")
                                 new_result.Value = CUInt(var1.Value) - CUInt(var2.Value)
                                 Return new_result
                         End Select
                     Case OperandOper.DIV
-                        If Not var1.Data.VarType = var2.Data.VarType Then error_reason = "Operand data type mismatch" : Return Nothing
+                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
                         If var1.Data.VarType = DataType.Integer Then
                             Dim new_result As New ScriptVariable("RESULT", DataType.Integer)
                             new_result.Value = CInt(var1.Value) / CInt(var2.Value)
@@ -3907,10 +3855,10 @@ Namespace FlashcatScript
                             new_result.Value = CUInt(var1.Value) / CUInt(var2.Value)
                             Return new_result
                         Else
-                            error_reason = "Division operand only valid for Integer or UInteger data type" : Return Nothing
+                            Return CreateError("Division operand only valid for Integer or UInteger data type")
                         End If
                     Case OperandOper.MULT
-                        If Not var1.Data.VarType = var2.Data.VarType Then error_reason = "Operand data type mismatch" : Return Nothing
+                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
                         If var1.Data.VarType = DataType.Integer Then
                             Dim new_result As New ScriptVariable("RESULT", DataType.Integer)
                             new_result.Value = CInt(var1.Value) * CInt(var2.Value)
@@ -3920,32 +3868,32 @@ Namespace FlashcatScript
                             new_result.Value = CUInt(var1.Value) * CUInt(var2.Value)
                             Return new_result
                         Else
-                            error_reason = "Mulitple operand only valid for Integer or UInteger data type" : Return Nothing
+                            Return CreateError("Mulitple operand only valid for Integer or UInteger data type")
                         End If
                     Case OperandOper.S_LEFT
                         Dim new_result As New ScriptVariable("RESULT", DataType.Integer)
-                        If Not var1.Data.VarType = var2.Data.VarType Then error_reason = "Operand data type mismatch" : Return Nothing
-                        If (Not var1.Data.VarType = DataType.Integer) Then error_reason = "Shift-left operand only valid for Integer data type" : Return Nothing
+                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
+                        If (Not var1.Data.VarType = DataType.Integer) Then Return CreateError("Shift-left operand only valid for Integer data type")
                         Dim shift_value As Int32 = var2.Value
-                        If shift_value > 31 Then error_reason = "Shift-left value is greater than 31-bits" : Return Nothing
+                        If shift_value > 31 Then Return CreateError("Shift-left value is greater than 31-bits")
                         new_result.Value = CUInt(var1.Value) << shift_value
                         Return new_result
                     Case OperandOper.S_RIGHT
                         Dim new_result As New ScriptVariable("RESULT", DataType.Integer)
-                        If Not var1.Data.VarType = var2.Data.VarType Then error_reason = "Operand data type mismatch" : Return Nothing
-                        If (Not var1.Data.VarType = DataType.Integer) Then error_reason = "Shift-right operand only valid for Integer data type" : Return Nothing
+                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
+                        If (Not var1.Data.VarType = DataType.Integer) Then Return CreateError("Shift-right operand only valid for Integer data type")
                         Dim shift_value As Int32 = var2.Value
-                        If shift_value > 31 Then error_reason = "Shift-right value is greater than 31-bits" : Return Nothing
+                        If shift_value > 31 Then Return CreateError("Shift-right value is greater than 31-bits")
                         new_result.Value = CUInt(var1.Value) >> shift_value
                         Return new_result
                     Case OperandOper.AND 'We already checked to make sure these are BOOL
                         Dim new_result As New ScriptVariable("RESULT", DataType.Bool)
-                        If Not var1.Data.VarType = var2.Data.VarType Then error_reason = "Operand data type mismatch" : Return Nothing
+                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
                         new_result.Value = CBool(var1.Value) And CBool(var2.Value)
                         Return new_result
                     Case OperandOper.OR 'We already checked to make sure these are BOOL
                         Dim new_result As New ScriptVariable("RESULT", DataType.Bool)
-                        If Not var1.Data.VarType = var2.Data.VarType Then error_reason = "Operand data type mismatch" : Return Nothing
+                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
                         new_result.Value = CBool(var1.Value Or var2.Value)
                         Return new_result
                     Case OperandOper.IS 'Boolean compare operators
@@ -3964,7 +3912,7 @@ Namespace FlashcatScript
                                 result = True
                             End If
                         Else
-                            If Not var1.Data.VarType = var2.Data.VarType Then error_reason = "Operand data type mismatch" : Return Nothing
+                            If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
                             If var1.Data.VarType = DataType.String Then
                                 Dim s1 As String = CStr(var1.Value)
                                 Dim s2 As String = CStr(var2.Value)
@@ -3992,29 +3940,29 @@ Namespace FlashcatScript
                         Return new_result
                     Case OperandOper.LESS_THAN 'Boolean compare operators 
                         Dim new_result As New ScriptVariable("RESULT", DataType.Bool)
-                        If Not var1.Data.VarType = var2.Data.VarType Then error_reason = "Operand data type mismatch" : Return Nothing
+                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
                         If (var1.Data.VarType = DataType.Integer) Then
                             new_result.Value = (CInt(var1.Value) < CInt(var2.Value))
                         ElseIf (var1.Data.VarType = DataType.UInteger) Then
                             new_result.Value = (CUInt(var1.Value) < CUInt(var2.Value))
                         Else
-                            error_reason = "Less-than compare operand only valid for Integer/UInteger data type" : Return Nothing
+                            Return CreateError("Less-than compare operand only valid for Integer/UInteger data type")
                         End If
                         Return new_result
                     Case OperandOper.GRT_THAN 'Boolean compare operators
                         Dim new_result As New ScriptVariable("RESULT", DataType.Bool)
-                        If Not var1.Data.VarType = var2.Data.VarType Then error_reason = "Operand data type mismatch" : Return Nothing
+                        If Not var1.Data.VarType = var2.Data.VarType Then Return CreateError("Operand data type mismatch")
                         If (var1.Data.VarType = DataType.Integer) Then
                             new_result.Value = (CInt(var1.Value) > CInt(var2.Value))
                         ElseIf (var1.Data.VarType = DataType.UInteger) Then
                             new_result.Value = (CUInt(var1.Value) > CUInt(var2.Value))
                         Else
-                            error_reason = "Greater-than compare operand only valid for Integer/UInteger data type" : Return Nothing
+                            Return CreateError("Greater-than compare operand only valid for Integer/UInteger data type")
                         End If
                         Return new_result
                 End Select
             Catch ex As Exception
-                error_reason = "Error compiling operands"
+                Return CreateError("Error compiling operands")
             End Try
             Return Nothing
         End Function

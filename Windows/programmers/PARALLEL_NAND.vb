@@ -418,6 +418,7 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
 
     Public Function ReadBulk(page_addr As UInt32, page_offset As UInt16, count As UInt32, memory_area As FlashArea) As Byte()
         Try
+            Dim NAND_PACKET As UInt32 = 1
             Dim result As Boolean
             If NAND_ECC IsNot Nothing AndAlso (memory_area = FlashArea.Main) Then 'We need to auto-correct data uisng ECC
                 Dim page_count As UInt32 = Math.Ceiling((count + page_offset) / MyFlashDevice.PAGE_SIZE) 'Number of complete pages and OOB to read and correct
@@ -425,11 +426,11 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
                 Dim total_oob_bytes As UInt32 = (page_count * MyFlashDevice.PAGE_EXT)
                 Dim main_area_data(total_main_bytes - 1) As Byte 'Data from the main page
                 Dim setup_data() As Byte = GetSetupPacket(page_addr, 0, main_area_data.Length, FlashArea.Main)
-                result = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, main_area_data, 1)
+                result = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, main_area_data, NAND_PACKET)
                 If Not result Then Return Nothing
                 Dim oob_area_data(total_oob_bytes - 1) As Byte 'Data from the spare page, containing flags, metadata and ecc data
                 setup_data = GetSetupPacket(page_addr, 0, oob_area_data.Length, FlashArea.OOB)
-                result = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, oob_area_data, 1)
+                result = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, oob_area_data, NAND_PACKET)
                 If Not result Then Return Nothing
                 Dim ecc_data() As Byte = NAND_ECC.GetEccFromSpare(oob_area_data, MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT) 'This strips out the ecc data from the spare area
                 ECC_LAST_RESULT = NAND_ECC.ReadData(main_area_data, ecc_data) 'This processes the flash data (512 bytes at a time) and corrects for any errors using the ECC
@@ -443,8 +444,10 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
             Else 'Normal read from device
                 Dim data_out(count - 1) As Byte 'Bytes we want to read
                 Dim setup_data() As Byte = GetSetupPacket(page_addr, page_offset, count, memory_area)
-                result = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, data_out, 1)
-                If Not result Then Return Nothing
+                result = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, data_out, NAND_PACKET)
+                If Not result Then
+                    Return Nothing
+                End If
                 Return data_out
             End If
         Catch ex As Exception
@@ -528,7 +531,7 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
                 TX_NAND_ADDRSIZE = 5 '2Gbit+
             End If
         End If
-        Dim setup_data(21) As Byte '18 bytes total
+        Dim setup_data(21) As Byte '22 bytes total
         setup_data(0) = CByte(page_addr And 255)
         setup_data(1) = CByte((page_addr >> 8) And 255)
         setup_data(2) = CByte((page_addr >> 16) And 255)

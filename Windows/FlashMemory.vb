@@ -241,7 +241,10 @@ Namespace FlashMemory
         Public Property IS_BLANK As Boolean = False 'On init, do blank check
         Public Property HARDWARE_DELAY As UInt16 = 50 'uS wait after each word program
 
-        Sub New(f_name As String, vcc As VCC_IF, MFG As Byte, ID1 As UInt16, f_size As UInt32, word_write As UInt16)
+        Public Property WR_OE_HIGH As Boolean = True 'Most devices use OE HIGH during write operations
+
+
+        Sub New(f_name As String, vcc As VCC_IF, MFG As Byte, ID1 As UInt16, f_size As UInt32)
             Me.NAME = f_name
             Me.IFACE = vcc
             Me.MFG_CODE = MFG
@@ -1880,12 +1883,12 @@ Namespace FlashMemory
             FlashDB.Add(New P_NAND("ST NAND01GR4B", &H20, &HB1UI, 2048, 64, 64, 1024, VCC_IF.X16_1V8)) '1Gb
             FlashDB.Add(New P_NAND("ST NAND01GW4B", &H20, &HC1UI, 2048, 64, 64, 1024, VCC_IF.X16_3V)) '1Gb
             FlashDB.Add(New P_NAND("ST NAND02GR3B", &H20, &HAAUI, 2048, 64, 64, 2048, VCC_IF.X8_1V8)) '2Gb
-            FlashDB.Add(New P_NAND("ST NAND02GW3B", &H20, &HDA801520UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
+            FlashDB.Add(New P_NAND("ST NAND02GW3B", &H20, &HDA8015UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
             FlashDB.Add(New P_NAND("ST NAND02GR4B", &H20, &HBAUI, 2048, 64, 64, 2048, VCC_IF.X16_1V8)) '2Gb
             FlashDB.Add(New P_NAND("ST NAND02GW4B", &H20, &HCAUI, 2048, 64, 64, 2048, VCC_IF.X16_3V)) '2Gb
-            FlashDB.Add(New P_NAND("ST NAND04GW3B", &H20, &HDC109520UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("ST NAND04GW3B", &H20, &HDC809520UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("ST NAND08GW3B", &H20, &HD3C19520UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("ST NAND04GW3B", &H20, &HDC8095UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("ST NAND04GW3B", &H20, &HDC1095UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("ST NAND08GW3B", &H20, &HD3C195UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
             'Micron devices
             FlashDB.Add(New P_NAND("Micron MT29F1G08ABAEA", &H2C, &HF1809504UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
             FlashDB.Add(New P_NAND("Micron MT29F1G08ABBEA", &H2C, &HA1801504UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
@@ -1986,7 +1989,8 @@ Namespace FlashMemory
             FlashDB.Add(New P_NAND("MXIC MX30UF2G28AB", &HC2, &HAA901507UI, 2048, 112, 64, 1024, VCC_IF.X8_1V8))
             FlashDB.Add(New P_NAND("MXIC MX30LF4G18AC", &HC2, &HDC909556UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
             FlashDB.Add(New P_NAND("MXIC MX30UF4G18AB", &HC2, &HAC901556UI, 2048, 64, 64, 4096, VCC_IF.X8_1V8))
-            FlashDB.Add(New P_NAND("MXIC MX30LF4G28AB", &HC2, &HDC909507UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("MXIC MX30LF2G28AB", &HC2, &HDC909507UI, 2048, 112, 64, 2048, VCC_IF.X8_3V)) '2-plane (8-bit ECC)
+            FlashDB.Add(New P_NAND("MXIC MX30LF4G28AB", &HC2, &HDC909557UI, 2048, 112, 64, 4096, VCC_IF.X8_3V)) '2-plane (8-bit ECC)
             FlashDB.Add(New P_NAND("MXIC MX30LF4GE8AB", &HC2, &HDC9095D6UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
             FlashDB.Add(New P_NAND("MXIC MX30UF4G28AB", &HC2, &HAC901557UI, 2048, 112, 64, 2048, VCC_IF.X8_1V8))
             FlashDB.Add(New P_NAND("MXIC MX60LF8G18AC", &HC2, &HD3D1955AUI, 2048, 64, 64, 8192, VCC_IF.X8_3V))
@@ -2011,6 +2015,7 @@ Namespace FlashMemory
             FlashDB.Add(New P_NAND("Samsung K9W8G08U1M", &HEC, &HDCC11554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
             FlashDB.Add(New P_NAND("Samsung K9F4G08U0A", &HEC, &HDC109554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
             FlashDB.Add(New P_NAND("Samsung K9F4G08U0B", &HEC, &HDC109554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9F4G08U0B", &HEC, &HDC109555UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
             FlashDB.Add(New P_NAND("Samsung K9GAG08U0E", &HEC, &HD5847250UI, 8192, 436, 128, 2076, VCC_IF.X8_3V)) '16Gb
             FlashDB.Add(New P_NAND("Samsung K9GAG08U0M", &HEC, &HD514B674UI, 4096, 128, 128, 4096, VCC_IF.X8_3V)) '16Gb
             FlashDB.Add(New P_NAND("Samsung K9K8G08U0A", &HEC, &HD3519558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V))
@@ -2102,6 +2107,7 @@ Namespace FlashMemory
             FlashDB.Add(New P_NAND("FORESEE FS33ND01GS1", &HEC, &HF1009542UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
             FlashDB.Add(New P_NAND("Zentel A5U1GA31ATS", &H92, &HF1809540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb (ESMT branded)
             FlashDB.Add(New P_NAND("ESMT F59L1G81MA", &HC8, &HD1809540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("ESMT F59L1G81MB", &HC8, &HD1809540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
             FlashDB.Add(New P_NAND("ESMT F59L1G81LA", &HC8, &HD1809542UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
             FlashDB.Add(New P_NAND("ESMT F59L2G81A", &HC8, &HDA909544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
 
@@ -2110,22 +2116,47 @@ Namespace FlashMemory
         End Sub
 
         Private Sub OTP_Database()
-            FlashDB.Add(New OTP_EPROM("ATMEL AT27C010", VCC_IF.X8_5V_12VPP, &H1E, &H5, Mb001, 60))
-            FlashDB.Add(New OTP_EPROM("ATMEL AT27C020", VCC_IF.X8_5V_12VPP, &H1E, &H86, Mb002, 60))
-            FlashDB.Add(New OTP_EPROM("ATMEL AT27C040", VCC_IF.X8_5V_12VPP, &H1E, &HB, Mb004, 60))
-            FlashDB.Add(New OTP_EPROM("ATMEL AT27C516", VCC_IF.X16_5V_12VPP, &H1E, &HF2, Kb512, 60))
-            FlashDB.Add(New OTP_EPROM("ATMEL AT27C1024", VCC_IF.X16_5V_12VPP, &H1E, &HF1, Mb001, 60))
-            FlashDB.Add(New OTP_EPROM("ATMEL AT27C2048", VCC_IF.X16_5V_12VPP, &H1E, &HF7, Mb002, 60))
-            FlashDB.Add(New OTP_EPROM("ATMEL AT27C4096", VCC_IF.X16_5V_12VPP, &H1E, &HF4, Mb004, 60))
-            FlashDB.Add(New OTP_EPROM("ST M27C1024", VCC_IF.X16_5V_12VPP, &H20, &H8C, Mb001, 60))
-            FlashDB.Add(New OTP_EPROM("ST M27C256B", VCC_IF.X8_5V_12VPP, &H20, &H8D, Kb256, 60))
-            FlashDB.Add(New OTP_EPROM("ST M27C512", VCC_IF.X8_5V_12VPP, &H20, &H3D, Kb512, 60))
-            FlashDB.Add(New OTP_EPROM("ST M27C1001", VCC_IF.X8_5V_12VPP, &H20, &H5, Mb001, 60))
-            FlashDB.Add(New OTP_EPROM("ST M27C2001", VCC_IF.X8_5V_12VPP, &H20, &H61, Mb002, 60))
-            FlashDB.Add(New OTP_EPROM("ST M27C4001", VCC_IF.X8_5V_12VPP, &H20, &H41, Mb004, 60))
-            FlashDB.Add(New OTP_EPROM("ST M27C801", VCC_IF.X8_5V_12VPP, &H20, &H42, Mb008, 60))
-            FlashDB.Add(New OTP_EPROM("ST M27C160", VCC_IF.X16_5V_12VPP, &H20, &HB1, Mb016, 60)) 'DIP42,SO44,PLCC44
-            FlashDB.Add(New OTP_EPROM("ST M27C322", VCC_IF.X16_5V_12VPP, &H20, &H34, Mb032, 60)) 'DIP42
+            FlashDB.Add(New OTP_EPROM("AMD AM27C64", VCC_IF.X8_5V_12VPP, &H1, &H15, Kb064))
+            FlashDB.Add(New OTP_EPROM("AMD AM27C128", VCC_IF.X8_5V_12VPP, &H1, &H16, Kb128))
+            FlashDB.Add(New OTP_EPROM("AMD AM27C256", VCC_IF.X8_5V_12VPP, &H1, &H10, Kb256))
+            FlashDB.Add(New OTP_EPROM("AMD AM27C512", VCC_IF.X8_5V_12VPP, &H1, &H91, Kb512))
+            FlashDB.Add(New OTP_EPROM("AMD AM27C010", VCC_IF.X8_5V_12VPP, &H1, &HE, Mb001))
+            FlashDB.Add(New OTP_EPROM("AMD AM27C020", VCC_IF.X8_5V_12VPP, &H1, &H97, Mb002))
+            FlashDB.Add(New OTP_EPROM("AMD AM27C040", VCC_IF.X8_5V_12VPP, &H1, &H9B, Mb004))
+            FlashDB.Add(New OTP_EPROM("AMD AM27C080", VCC_IF.X8_5V_12VPP, &H1, &H1C, Mb008))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C010", VCC_IF.X8_5V_12VPP, &H1E, &H5, Mb001))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C020", VCC_IF.X8_5V_12VPP, &H1E, &H86, Mb002))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C040", VCC_IF.X8_5V_12VPP, &H1E, &HB, Mb004))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C080", VCC_IF.X8_5V_12VPP, &H1E, &H8A, Mb008))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C512", VCC_IF.X16_5V_12VPP, &H1E, &HF2, Kb512))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C1024", VCC_IF.X16_5V_12VPP, &H1E, &HF1, Mb001))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C2048", VCC_IF.X16_5V_12VPP, &H1E, &HF7, Mb002))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C4096", VCC_IF.X16_5V_12VPP, &H1E, &HF4, Mb004))
+            FlashDB.Add(New OTP_EPROM("Intel M27C64", VCC_IF.X8_5V_12VPP, &H89, &H7, Kb064))
+            FlashDB.Add(New OTP_EPROM("Intel M27128A", VCC_IF.X8_5V_12VPP, &H89, &H89, Kb064))
+            FlashDB.Add(New OTP_EPROM("MX 27C1000", VCC_IF.X8_5V_12VPP, &HC2, &HE, Mb001))
+            FlashDB.Add(New OTP_EPROM("MX 27C1001", VCC_IF.X8_5V_12VPP, &HC2, &HF, Mb001))
+            FlashDB.Add(New OTP_EPROM("MX 27C2000", VCC_IF.X8_5V_12VPP, &HC2, &H20, Mb002))
+            FlashDB.Add(New OTP_EPROM("MX 27C4000", VCC_IF.X8_5V_12VPP, &HC2, &H40, Mb004))
+            FlashDB.Add(New OTP_EPROM("ST M27C64A", VCC_IF.X8_5V_12VPP, &H9B, &H8, Kb064))
+            FlashDB.Add(New OTP_EPROM("ST M27C256B", VCC_IF.X8_5V_12VPP, &H20, &H8D, Kb256))
+            FlashDB.Add(New OTP_EPROM("ST M27C512", VCC_IF.X8_5V_12VPP, &H20, &H3D, Kb512))
+            FlashDB.Add(New OTP_EPROM("ST M27C1024", VCC_IF.X16_5V_12VPP, &H20, &H8C, Mb001))
+            FlashDB.Add(New OTP_EPROM("ST M27C1001", VCC_IF.X8_5V_12VPP, &H20, &H5, Mb001))
+            FlashDB.Add(New OTP_EPROM("ST M27C2001", VCC_IF.X8_5V_12VPP, &H20, &H61, Mb002))
+            FlashDB.Add(New OTP_EPROM("ST M27C4001", VCC_IF.X8_5V_12VPP, &H20, &H41, Mb004))
+            FlashDB.Add(New OTP_EPROM("ST M27C801", VCC_IF.X8_5V_12VPP, &H20, &H42, Mb008))
+            FlashDB.Add(New OTP_EPROM("ST M27C160", VCC_IF.X16_5V_12VPP, &H20, &HB1, Mb016))
+            FlashDB.Add(New OTP_EPROM("ST M27C300", VCC_IF.X8_5V_12VPP, &H20, &H32, Mb032))
+            FlashDB.Add(New OTP_EPROM("ST M27C322", VCC_IF.X16_5V_12VPP, &H20, &H34, Mb032))
+            FlashDB.Add(New OTP_EPROM("TI TMS27C32", VCC_IF.X8_5V_12VPP, &H97, &H8, Kb032))
+            FlashDB.Add(New OTP_EPROM("TI TMS27C64", VCC_IF.X8_5V_12VPP, &H97, &H7, Kb064))
+            FlashDB.Add(New OTP_EPROM("TI TMS27C128", VCC_IF.X8_5V_12VPP, &H97, &H83, Kb128))
+            FlashDB.Add(New OTP_EPROM("TI TMS27C256", VCC_IF.X8_5V_12VPP, &H97, &H4, Kb256))
+            FlashDB.Add(New OTP_EPROM("TI TMS27C512", VCC_IF.X8_5V_12VPP, &H97, &H85, Kb512))
+            FlashDB.Add(New OTP_EPROM("TI TMS27C010", VCC_IF.X8_5V_12VPP, &H97, &HD6, Mb001))
+            FlashDB.Add(New OTP_EPROM("TI TMS27C020", VCC_IF.X8_5V_12VPP, &H97, &H32, Mb002))
+            FlashDB.Add(New OTP_EPROM("TI TMS27C040", VCC_IF.X8_5V_12VPP, &H97, &H50, Mb004))
         End Sub
 
         Private Sub FWH_Database()

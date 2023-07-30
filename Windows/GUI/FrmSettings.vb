@@ -778,9 +778,9 @@ Public Class FrmSettings
         ECC_Features_EnableEvent()
     End Sub
 
-    Private Function ECC_CreateLV(e As ECC_Configuration_Entry) As ListViewItem
+    Private Function ECC_CreateLV(ecc_entry As ECC_Configuration_Entry) As ListViewItem
         Dim AlgorithmStr As String = ""
-        Select Case e.Algorithm
+        Select Case ecc_entry.Algorithm
             Case ecc_algorithum.hamming
                 AlgorithmStr = "Hamming"
             Case ecc_algorithum.reedsolomon
@@ -789,21 +789,21 @@ Public Class FrmSettings
                 AlgorithmStr = "Binary BHC"
         End Select
         Dim lv As New ListViewItem
-        lv.SubItems.Add(e.PageSize.ToString)
-        lv.SubItems.Add(e.SpareSize.ToString)
+        lv.SubItems.Add(ecc_entry.PageSize.ToString)
+        lv.SubItems.Add(ecc_entry.SpareSize.ToString)
         lv.SubItems.Add(AlgorithmStr)
-        lv.SubItems.Add(e.BitError)
-        If e.Algorithm = ecc_algorithum.reedsolomon Then
-            lv.SubItems.Add(e.SymSize.ToString)
+        lv.SubItems.Add(ecc_entry.BitError)
+        If ecc_entry.Algorithm = ecc_algorithum.reedsolomon Then
+            lv.SubItems.Add(ecc_entry.SymSize.ToString)
         Else
             lv.SubItems.Add("")
         End If
-        If e.ReverseData Then
+        If ecc_entry.ReverseData Then
             lv.SubItems.Add("True")
         Else
             lv.SubItems.Add("False")
         End If
-        lv.Tag = Me
+        lv.Tag = ecc_entry
         Return lv
     End Function
 

@@ -24,6 +24,7 @@ Public Class MainForm
         Language_Setup()
         MyForm_LicenseInit()
         mi_mode_mmc.Visible = False
+        mi_jtag_menu.Visible = False
     End Sub
 
 #Region "Language"
@@ -494,7 +495,7 @@ Public Class MainForm
     End Sub
 
     Public Function GetUserTab(ind As Integer) As TabPage
-        Dim MyObj As String = "IND:" & CStr(ind)
+        Dim MyObj As String = "IND:" & ind.ToString()
         Dim tP As TabPage
         For Each tP In MyTabs.Controls
             If tP.Name = MyObj Then Return tP
@@ -1372,6 +1373,7 @@ Public Class MainForm
     Private Sub DetectDeviceEvent()
         MyLastOperation = Nothing
         MyLastMemoryDevice = Nothing
+        mi_jtag_menu.Visible = False
         ClearStatusMessage()
         ScriptEngine.Unload() 'Unloads the device script and any objects/tabs
         RemoveStatusMessage(RM.GetString("gui_active_script"))
@@ -2162,7 +2164,9 @@ Public Class MainForm
 
     Public Sub USBDeviceConnected(usb_dev As FCUSB_DEVICE)
         Dim mode As DeviceMode = MySettings.OPERATION_MODE
-        If (mode = DeviceMode.SPI) Then
+        If usb_dev.HWBOARD = FCUSB_BOARD.ATMEL_DFU Then
+            UpdateStatusMessage(RM.GetString("device_mode"), "DFU bootloader mode")
+        ElseIf (mode = DeviceMode.SPI) Then
             UpdateStatusMessage(RM.GetString("device_mode"), "Serial Programmable Interface (SPI)")
         ElseIf (mode = DeviceMode.SQI) Then
             UpdateStatusMessage(RM.GetString("device_mode"), "Serial Programmable Interface (SQI)")
@@ -2210,6 +2214,114 @@ Public Class MainForm
         DetectDevice(usb_dev, GetDeviceParamsFromSettings())
     End Sub
 
+    Private Sub JTAG_Init(usb_dev As FCUSB_DEVICE)
+        ScriptEngine.CURRENT_DEVICE_MODE = MySettings.OPERATION_MODE
+        If usb_dev.HasLogic Then
+            usb_dev.JTAG_IF.TCK_SPEED = MySettings.JTAG_SPEED
+        Else
+            usb_dev.JTAG_IF.TCK_SPEED = JTAG.JTAG_SPEED._1MHZ
+        End If
+        If usb_dev.JTAG_IF.Init() Then
+            MainApp.PrintConsole(RM.GetString("jtag_setup"))
+            UpdateStatusMessage(RM.GetString("device_mode"), "JTAG")
+            Dim l As New List(Of String)
+            For Each item In usb_dev.JTAG_IF.Devices
+                l.Add(item.ToString())
+            Next
+            JTAGMenu_SetItems(l.ToArray())
+            JTAG_Select(0)
+        Else
+            Dim error_msg As String = RM.GetString("jtag_failed_to_connect")
+            SetStatus(error_msg)
+            UpdateStatusMessage(RM.GetString("device_mode"), error_msg)
+            MainApp.PrintConsole(error_msg)
+        End If
+    End Sub
+
+    Private Delegate Sub cbJTAGMenu_SetItems(device_list() As String)
+    Private Delegate Sub cbJTAGMenu_CheckIndex(index As Integer)
+
+    Private Sub JTAGMenu_SetItems(device_list() As String)
+        If Me.InvokeRequired Then
+            Dim n As New cbJTAGMenu_SetItems(AddressOf JTAGMenu_SetItems)
+            Me.Invoke(n, {device_list})
+        Else
+            mi_jtag_menu.Visible = True
+            mi_jtag_menu.DropDownItems.Clear()
+            If device_list IsNot Nothing AndAlso device_list.Length > 0 Then
+                For i = 0 To device_list.Length - 1
+                    Dim t As New ToolStripMenuItem
+                    t.Text = device_list(i)
+                    t.Tag = i
+                    AddHandler t.Click, AddressOf JTAG_device_OnClick
+                    mi_jtag_menu.DropDownItems.Add(t)
+                Next
+            End If
+        End If
+    End Sub
+
+    Private Sub JTAGMenu_CheckIndex(index As Integer)
+        If Me.InvokeRequired Then
+            Dim n As New cbJTAGMenu_CheckIndex(AddressOf JTAGMenu_CheckIndex)
+            Me.Invoke(n, {index})
+        Else
+            Dim c As ToolStripItemCollection = mi_jtag_menu.DropDownItems
+            For i = 0 To c.Count - 1
+                Dim tsi As ToolStripMenuItem = c(i)
+                If i = index Then
+                    tsi.Checked = True
+                Else
+                    tsi.Checked = False
+                End If
+            Next
+        End If
+    End Sub
+
+    Private Sub JTAG_device_OnClick(sender As Object, e As EventArgs)
+        Dim tsi As ToolStripMenuItem = sender
+        If tsi.Checked Then Exit Sub
+        Dim new_index As Integer = tsi.Tag
+        JTAG_Select(new_index)
+    End Sub
+    'Selects a device on a JTAG chain
+    Private Function JTAG_Select(index As Integer) As Boolean
+        If MAIN_FCUSB Is Nothing Then
+            PrintConsole("Error: can not select JTAG device (FlashcatUSB not connected)")
+            Return False
+        End If
+        If (MAIN_FCUSB.JTAG_IF.Devices.Count > 0) AndAlso (index < MAIN_FCUSB.JTAG_IF.Devices.Count) Then
+            If MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
+                MAIN_FCUSB.JTAG_IF.Chain_Select(index)
+                JTAGMenu_CheckIndex(index)
+                JTAG_LoadDefaultScript()
+                Return True
+            Else
+                PrintConsole("JTAG chain is not valid, not all devices have BSDL loaded")
+            End If
+        Else
+            PrintConsole("JTAG chain contains no devices")
+        End If
+        Return False
+    End Function
+
+    Private Sub JTAG_LoadDefaultScript()
+        Try
+            If GUI IsNot Nothing Then
+                GUI.UnloadActiveScript()
+                GUI.RemoveStatusMessage("Device")
+            Else
+                ScriptEngine.Unload()
+            End If
+            Dim index As Integer = MAIN_FCUSB.JTAG_IF.Chain_SelectedIndex
+            If (Not (MAIN_FCUSB.JTAG_IF.Devices(index).IDCODE = 0)) Then
+                GUI.UpdateStatusMessage("Device", MAIN_FCUSB.JTAG_IF.Devices(index).ToString())
+                GUI.LoadScripts(MAIN_FCUSB.JTAG_IF.Devices(index).IDCODE)
+            End If
+        Catch ex As Exception
+            PrintConsole("Unable to load default script for JTAG device")
+        End Try
+    End Sub
+
     Private Function GetDeviceParamsFromSettings() As DetectParams
         Dim params As DetectParams
         params.OPER_MODE = MySettings.OPERATION_MODE
@@ -2235,6 +2347,7 @@ Public Class MainForm
             If (MAIN_FCUSB Is Nothing) Then
                 statuspage_progress.Value = 0
                 statuspage_progress.Visible = False
+                mi_jtag_menu.Visible = False
                 Me.lblStatus.Text = RM.GetString("gui_fcusb_disconnected")
                 ClearStatusMessage()
                 ScriptEngine.Unload() 'Unloads the device script and any objects/tabs

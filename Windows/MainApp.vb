@@ -15,8 +15,8 @@ Public Module MainApp
     Public GUI As MainForm
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
     Public MySettings As New FlashcatSettings
-    Public Const FC_BUILD As Integer = 615
-    Private Const PRO_PCB5_FW As Single = 1.09F 'This is the embedded firmware version for pro
+    Public Const FC_BUILD As Integer = 617
+    Private Const PRO_PCB5_FW As Single = 1.1F 'This is the embedded firmware version for pro
     Private Const MACH1_PCB2_FW As Single = 2.22F 'Firmware version for Mach1
     Private Const XPORT_PCB2_FW As Single = 5.21F 'XPORT PCB 2.x
     Private Const CLASSIC_FW As Single = 4.52F 'Min revision allowed for classic (PCB 2.x)
@@ -338,13 +338,14 @@ Public Module MainApp
         MAIN_FCUSB.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(MAIN_FCUSB.HWBOARD, SPI_SPEED.MHZ_1))
         Select Case eeprom.NAME
             Case "Nordic nRF24LE1"
-                MAIN_FCUSB.USB_VCC_ON() : nRF24_mode = True
+                nRF24_mode = True
             Case "Nordic nRF24LU1+ (16KB)"
-                MAIN_FCUSB.USB_VCC_ON() : nRF24_mode = True
+                nRF24_mode = True
             Case "Nordic nRF24LU1+ (32KB)"
-                MAIN_FCUSB.USB_VCC_ON() : nRF24_mode = True
+                nRF24_mode = True
         End Select
         If nRF24_mode Then
+            MAIN_FCUSB.USB_VCC_ON()
             Utilities.Sleep(100)
             MAIN_FCUSB.SPI_NOR_IF.SetProgPin(True) 'Sets PROG.PIN to HIGH
             MAIN_FCUSB.SPI_NOR_IF.SetProgPin(False) 'Sets PROG.PIN to LOW
@@ -592,7 +593,10 @@ Public Module MainApp
 
     Public Function DetectDevice_SPI_EEPROM(usb_dev As FCUSB_DEVICE, Params As DetectParams) As Boolean
         PrintConsole("Initializing SPI EEPROM device mode")
-        If SPIEEPROM_Configure(Params.SPI_EEPROM) Then Return False
+        If Not SPIEEPROM_Configure(Params.SPI_EEPROM) Then
+            PrintConsole("ERROR: SPI EEPROM not configured correctly")
+            Return False
+        End If
         Dim md As MemoryDeviceInstance = Connected_Event(usb_dev, 1024)
         If (Not usb_dev.SPI_NOR_IF.MyFlashDevice.ERASE_REQUIRED) Then
             md.GuiControl.AllowFullErase = False
@@ -781,47 +785,6 @@ Public Module MainApp
         AppIsClosing = True 'Do this last
         Utilities.Sleep(200)
         MySettings.Save()
-    End Sub
-
-    Public Sub JTAG_Init(usb_dev As FCUSB_DEVICE)
-        ScriptEngine.CURRENT_DEVICE_MODE = MySettings.OPERATION_MODE
-        If usb_dev.HasLogic Then
-            usb_dev.JTAG_IF.TCK_SPEED = MySettings.JTAG_SPEED
-        Else
-            usb_dev.JTAG_IF.TCK_SPEED = JTAG.JTAG_SPEED._1MHZ
-        End If
-        If usb_dev.JTAG_IF.Init() Then
-            MainApp.PrintConsole(RM.GetString("jtag_setup"))
-        Else
-            Dim error_msg As String = RM.GetString("jtag_failed_to_connect")
-            GUI.SetStatus(error_msg)
-            GUI.UpdateStatusMessage(RM.GetString("device_mode"), error_msg)
-            MainApp.PrintConsole(error_msg)
-            Exit Sub
-        End If
-        GUI.UpdateStatusMessage(RM.GetString("device_mode"), "JTAG")
-        Select_JTAG_Device(0)
-    End Sub
-
-    Public Sub Select_JTAG_Device(index As Integer)
-        If GUI IsNot Nothing Then
-            GUI.UnloadActiveScript()
-            GUI.RemoveStatusMessage("Device")
-        Else
-            ScriptEngine.Unload()
-        End If
-        If (MAIN_FCUSB.JTAG_IF.Devices.Count > 0) AndAlso (index < MAIN_FCUSB.JTAG_IF.Devices.Count) Then
-            If MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-                MAIN_FCUSB.JTAG_IF.Chain_Select(index)
-                If (Not (MAIN_FCUSB.JTAG_IF.Devices(index).IDCODE = 0)) Then
-                    Dim mfg_part As String = MAIN_FCUSB.JTAG_IF.GetJedecDescription(MAIN_FCUSB.JTAG_IF.Devices(index).IDCODE)
-                    GUI.UpdateStatusMessage("Device", mfg_part)
-                    GUI.LoadScripts(MAIN_FCUSB.JTAG_IF.Devices(index).IDCODE)
-                End If
-            Else
-                PrintConsole("JTAG chain is not valid, not all devices have BSDL loaded")
-            End If
-        End If
     End Sub
 
     Public Function Connected_Event(usb_dev As FCUSB_DEVICE, block_size As UInt32) As MemoryDeviceInstance

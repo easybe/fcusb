@@ -64,11 +64,10 @@
             End If
             UpdateDfuStatusBar(0)
             SetStatus("Programming new AVR firmware over USB")
-            Res = FCUSB.DFU_IF.EraseDevice()
-            If (Not Res) Then
-                SetStatus("FlashcatUSB failed to connect to target board using JTAG") : Exit Sub
+            If (Not FCUSB.DFU_IF.EraseDevice()) Then
+                SetStatus("Error: device erase was not successful") : Exit Sub
             Else
-                PrintConsole("AVR DFU command successful")
+                PrintConsole("AVR device erased successful")
             End If
             Application.DoEvents()
             Threading.Thread.Sleep(250)

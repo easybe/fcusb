@@ -10,7 +10,7 @@ public static class MainApp {
     public static string MyLocation = System.Reflection.Assembly.GetEntryAssembly().Location;
     public static FlashDatabase FlashDatabase = new FlashDatabase();
     public static FlashcatSettings MySettings = new FlashcatSettings();
-    public static double FC_BUILD = 1.03;
+    public static double FC_BUILD = 1.04;
     private const float PRO_PCB5_FW = 1.09f;
     private const float MACH1_PCB2_FW = 2.22f;
     private const float XPORT_PCB2_FW = 5.21f;
@@ -409,24 +409,22 @@ public static class MainApp {
         switch (eeprom.NAME) {
             case "Nordic nRF24LE1":
                 {
-                    MAIN_FCUSB.USB_VCC_ON();
                     nRF24_mode = true;
                     break;
                 }
             case "Nordic nRF24LU1+ (16KB)":
                 {
-                    MAIN_FCUSB.USB_VCC_ON();
                     nRF24_mode = true;
                     break;
                 }
             case "Nordic nRF24LU1+ (32KB)":
                 {
-                    MAIN_FCUSB.USB_VCC_ON();
                     nRF24_mode = true;
                     break;
                 }
         }
         if (nRF24_mode) {
+            MAIN_FCUSB.USB_VCC_ON();
             Thread.Sleep(100);
             MAIN_FCUSB.SPI_NOR_IF.SetProgPin(true); // Sets PROG.PIN to HIGH
             MAIN_FCUSB.SPI_NOR_IF.SetProgPin(false); // Sets PROG.PIN to LOW
@@ -657,8 +655,10 @@ public static class MainApp {
     }
 
     public static bool DetectDevice_SPI_EEPROM(FCUSB_DEVICE usb_dev, DetectParams Params) {
-        if (SPIEEPROM_Configure(Params.SPI_EEPROM))
+        if (!SPIEEPROM_Configure(Params.SPI_EEPROM)) {
+            PrintConsole("ERROR: SPI EEPROM not configured correctly");
             return false;
+        }
         Connected_Event(usb_dev, 1024);
         Utilities.Sleep(100); // Wait for device to be configured
         MainApp.PrintConsole("Configured to use SPI EEPROM device");

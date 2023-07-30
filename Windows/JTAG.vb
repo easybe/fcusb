@@ -1894,8 +1894,7 @@ Namespace JTAG
                         Me.IR_LEADING += J.BSDL.IR_LEN
                         Me.DR_LEADING += 1 'BYPASS REG is always one bit wide
                     Next
-                    Dim jtag_dev_name As String = GetJedecDescription(Devices(device_index).IDCODE)
-                    PrintConsole(String.Format("JTAG index {0} selected: {1} (IR length {2})", device_index, jtag_dev_name, J.BSDL.IR_LEN.ToString))
+                    PrintConsole(String.Format("JTAG index {0} selected: {1} (IR length {2})", device_index, J.ToString(), J.BSDL.IR_LEN.ToString()))
                 End If
             ElseIf (device_index = Me.Devices.Count) Then 'Select all
                 Me.Chain_SelectedIndex = device_index
@@ -2181,63 +2180,11 @@ Namespace JTAG
 
         Public Function BSDL_GetDefinition(jedec_id As UInt32) As BSDL_DEF
             For Each jtag_def In Me.BSDL_DATABASE
-                If jtag_def.ID_JEDEC = (jedec_id And jtag_def.ID_MASK) Then Return jtag_def
-            Next
-            Return Nothing
-        End Function
-
-        Public Function GetJedecDescription(JEDECID As UInt32) As String
-            Dim PARTNU = CUShort((JEDECID And &HFFFF000) >> 12)
-            Dim MANUID = CUShort((JEDECID And &HFFE) >> 1)
-            Dim mfg_name As String = "0x" & Hex(MANUID)
-            Dim part_name As String = "0x" & Hex(PARTNU).PadLeft(4, "0")
-            Select Case MANUID
-                Case 1
-                    mfg_name = "Spansion"
-                Case 4
-                    mfg_name = "Fujitsu"
-                Case 7
-                    mfg_name = "Hitachi"
-                Case 9
-                    mfg_name = "Intel"
-                Case 21
-                    mfg_name = "Philips"
-                Case 31
-                    mfg_name = "Atmel"
-                Case 32
-                    mfg_name = "ST"
-                Case 33
-                    mfg_name = "Lattice"
-                Case 52
-                    mfg_name = "Cypress"
-                Case 53
-                    mfg_name = "DEC"
-                Case 73
-                    mfg_name = "Xilinx"
-                Case 110
-                    mfg_name = "Altera"
-                Case 112 '0x70
-                    mfg_name = "Qualcomm"
-                Case 191 '0xBF
-                    mfg_name = "Broadcom"
-                Case 194
-                    mfg_name = "MXIC"
-                Case 231
-                    mfg_name = "Microsemi"
-                Case 239
-                    mfg_name = "Winbond"
-                Case 336
-                    mfg_name = "Signetics"
-                Case 571 '0x23B
-                    mfg_name = "ARM" 'ARM Ltd.
-            End Select
-            For Each jtag_def In Me.BSDL_DATABASE
-                If jtag_def.ID_JEDEC = JEDECID Then
-                    part_name = jtag_def.PART_NAME
-                    Exit For
+                If Not jtag_def.IDCODE = 0 Then
+                    If jtag_def.ID_JEDEC = (jedec_id And jtag_def.ID_MASK) Then Return jtag_def
                 End If
             Next
-            Return mfg_name & " " & part_name
+            Return Nothing
         End Function
 
         Private Function ARM_CORTEXM7() As BSDL_DEF
@@ -2278,7 +2225,8 @@ Namespace JTAG
         Private Function Xilinx_XC9572XL() As BSDL_DEF
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "XC9572XL"
-            J_DEVICE.ID_JEDEC = &H59604093UI
+            J_DEVICE.ID_JEDEC = &H9604093UI
+            J_DEVICE.ID_MASK = &HFFFFFFFUI
             J_DEVICE.IR_LEN = 8
             J_DEVICE.BS_LEN = 216
             J_DEVICE.IDCODE = &HFE
@@ -2307,6 +2255,7 @@ Namespace JTAG
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "XC2C64A"
             J_DEVICE.ID_JEDEC = &H6E58093UI
+            J_DEVICE.ID_MASK = &HFFF8FFFUI
             J_DEVICE.IR_LEN = 8
             J_DEVICE.BS_LEN = 192
             J_DEVICE.IDCODE = 1
@@ -2385,6 +2334,7 @@ Namespace JTAG
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "BCM3348"
             J_DEVICE.ID_JEDEC = &H334817FUI
+            J_DEVICE.ID_MASK = &HFFFFFFFFUI
             J_DEVICE.IR_LEN = 5
             J_DEVICE.BS_LEN = 0
             J_DEVICE.IDCODE = &H1 'Selects Device Identiﬁcation (ID) register
@@ -2406,6 +2356,7 @@ Namespace JTAG
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "5M570ZT144"
             J_DEVICE.ID_JEDEC = &H20A60DDUI
+            J_DEVICE.ID_MASK = &HFFFFFFFUI
             J_DEVICE.IR_LEN = 10
             J_DEVICE.BS_LEN = 480
             J_DEVICE.IDCODE = 6
@@ -2423,6 +2374,7 @@ Namespace JTAG
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "5M160ZE64"
             J_DEVICE.ID_JEDEC = &H20A50DDUI
+            J_DEVICE.ID_MASK = &HFFFFFFFUI
             J_DEVICE.IR_LEN = 10
             J_DEVICE.BS_LEN = 240
             J_DEVICE.IDCODE = 6
@@ -2440,6 +2392,7 @@ Namespace JTAG
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "EPM7032"
             J_DEVICE.ID_JEDEC = &H70320DDUI
+            J_DEVICE.ID_MASK = &HFFFFFFFUI
             J_DEVICE.IR_LEN = 10
             J_DEVICE.BS_LEN = 1
             J_DEVICE.IDCODE = &H59
@@ -2453,6 +2406,7 @@ Namespace JTAG
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "EPC2L20"
             J_DEVICE.ID_JEDEC = &H10020DDUI
+            J_DEVICE.ID_MASK = &HFFFFFFFUI
             J_DEVICE.IR_LEN = 10
             J_DEVICE.BS_LEN = 24
             J_DEVICE.BYPASS = &H3FF
@@ -2468,6 +2422,7 @@ Namespace JTAG
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "LCMXO2_4000HC"
             J_DEVICE.ID_JEDEC = &H12BC043UI
+            J_DEVICE.ID_MASK = &HFFFFFFFUI
             J_DEVICE.IR_LEN = 8
             J_DEVICE.BS_LEN = 552
             J_DEVICE.IDCODE = &HE0 '0b11100000
@@ -2501,6 +2456,7 @@ Namespace JTAG
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "LCMXO2-7000HC"
             J_DEVICE.ID_JEDEC = &H12BD043UI
+            J_DEVICE.ID_MASK = &HFFFFFFFUI
             J_DEVICE.IR_LEN = 8
             J_DEVICE.BS_LEN = 664
             J_DEVICE.IDCODE = &HE0 '0b11100000
@@ -2534,6 +2490,7 @@ Namespace JTAG
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "LC4032V"
             J_DEVICE.ID_JEDEC = &H1805043UI
+            J_DEVICE.ID_MASK = &HFFFFFFFUI
             J_DEVICE.IR_LEN = 8
             J_DEVICE.BS_LEN = 68
             J_DEVICE.IDCODE = &H16 '00010110
@@ -2567,6 +2524,7 @@ Namespace JTAG
             Dim J_DEVICE As New BSDL_DEF
             J_DEVICE.PART_NAME = "LC4064V"
             J_DEVICE.ID_JEDEC = &H1809043UI
+            J_DEVICE.ID_MASK = &HFFFFFFFUI
             J_DEVICE.IR_LEN = 8
             J_DEVICE.BS_LEN = 68
             J_DEVICE.IDCODE = &H16 '00010110
@@ -2655,6 +2613,15 @@ Namespace JTAG
         Public Property ACCESS As JTAG_MEM_ACCESS
         Public Property IR_LENGTH As Integer 'Loaded from BSDL/single device chain/console command
         Public Property BSDL As BSDL_DEF
+        'Returns the name of this device
+        Public Overrides Function ToString() As String
+            If BSDL Is Nothing Then
+                Return JEDEC_GetManufacturer(Me.IDCODE) & " 0x" & Me.PARTNU.ToString("X")
+            Else
+                Return JEDEC_GetManufacturer(Me.IDCODE) & " " & Me.BSDL.PART_NAME
+            End If
+        End Function
+
     End Class
 
     Public Class BSDL_DEF
@@ -2698,6 +2665,58 @@ Namespace JTAG
         EJTAG_PRACC = 2
         ARM = 3
     End Enum
+
+    Public Module JTAG_TOOLS
+
+        Public Function JEDEC_GetManufacturer(JEDECID As UInt32) As String
+            'Dim PARTNU = CUShort((JEDECID And &HFFFF000) >> 12)
+            Dim MANUID = CUShort((JEDECID And &HFFE) >> 1)
+            Select Case MANUID
+                Case 1
+                    Return "Spansion"
+                Case 4
+                    Return "Fujitsu"
+                Case 7
+                    Return "Hitachi"
+                Case 9
+                    Return "Intel"
+                Case 21
+                    Return "Philips"
+                Case 31
+                    Return "Atmel"
+                Case 32
+                    Return "ST"
+                Case 33
+                    Return "Lattice"
+                Case 52
+                    Return "Cypress"
+                Case 53
+                    Return "DEC"
+                Case 73
+                    Return "Xilinx"
+                Case 110
+                    Return "Altera"
+                Case 112 '0x70
+                    Return "Qualcomm"
+                Case 191 '0xBF
+                    Return "Broadcom"
+                Case 194
+                    Return "MXIC"
+                Case 231
+                    Return "Microsemi"
+                Case 239
+                    Return "Winbond"
+                Case 336
+                    Return "Signetics"
+                Case 571 '0x23B
+                    Return "ARM" 'ARM Ltd.
+                Case Else
+                    Return "Unknown"
+            End Select
+        End Function
+
+    End Module
+
 
 End Namespace
 

@@ -423,14 +423,13 @@ public partial class MemoryInterface
             return false;
         }
 
-        private bool WriteBytes_EPROM(Stream data_stream, WriteParameters Params)
-        {
+        private bool WriteBytes_EPROM(Stream data_stream, WriteParameters Params) {
             WaitUntilReady(); // Some flash devices requires us to wait before sending data
             int FailedAttempts = 0;
             bool ReadResult;
             uint BlockSize = 8192U;
-            while (Params.BytesLeft > 0)
-            {
+            Params.BytesTotal = Params.BytesLeft; //MJ2021 fix for progress calculation (line 1 of 2)
+            while (Params.BytesLeft > 0) {
                 if (Params.AbortOperation)
                     return false;
                 long PacketSize = Params.BytesLeft;
@@ -440,8 +439,7 @@ public partial class MemoryInterface
                     Params.Status.UpdateBase.DynamicInvoke(Params.Address);
                 if (Params.Status.UpdateOperation is object)
                     Params.Status.UpdateOperation.DynamicInvoke(2); // WRITE IMG
-                if (Params.Status.UpdateTask is object)
-                {
+                if (Params.Status.UpdateTask is object) {
                     var packet_size_str = String.Format("{0:n0}", PacketSize);
                     string wr_label = string.Format("Writing memory with {0} bytes", packet_size_str);
                     Params.Status.UpdateTask.DynamicInvoke(wr_label);
@@ -462,38 +460,28 @@ public partial class MemoryInterface
                 {
                     if (Params.Status.UpdateOperation is object)
                         Params.Status.UpdateOperation.DynamicInvoke(3); // VERIFY IMG
-                    if (Params.Status.UpdateTask is object)
-                    {
+                    if (Params.Status.UpdateTask is object) {
                         Params.Status.UpdateTask.DynamicInvoke("Verifying written data");
                     }
                     Thread.Sleep(50);
-                    if (FlashType == MemoryType.OTP_EPROM)
-                    {
+                    if (FlashType == MemoryType.OTP_EPROM) {
                         FCUSB.EPROM_IF.ReadData(Params.Address, BlockSize); // Before we verify, we should read the entire block once
                     }
 
                     ReadResult = WriteBytes_VerifyWrite(Params.Address, packet_data);
-                    if (ReadResult)
-                    {
+                    if (ReadResult) {
                         FailedAttempts = 0;
-                        if (Params.Status.UpdateTask is object)
-                        {
+                        if (Params.Status.UpdateTask is object) {
                             Params.Status.UpdateTask.DynamicInvoke("Data verification was successful");
                             Thread.Sleep(500);
                         }
-                    }
-                    else
-                    {
-                        if (FailedAttempts == this.RetryWriteCount)
-                        {
+                    } else {
+                        if (FailedAttempts == this.RetryWriteCount) {
                             PrintConsole?.Invoke(string.Format("Data verification failed at 0x{0}", Params.Address.ToString("X")));
-                            if (Params.Status.UpdateOperation is object)
-                            {
+                            if (Params.Status.UpdateOperation is object) {
                                 Params.Status.UpdateOperation.DynamicInvoke(5); // ERROR IMG
                             }
-
-                            if (Params.Status.UpdateTask is object)
-                            {
+                            if (Params.Status.UpdateTask is object) {
                                 Params.Status.UpdateTask.DynamicInvoke("Data verification failed!");
                                 Thread.Sleep(1000);
                             }
@@ -503,31 +491,23 @@ public partial class MemoryInterface
                         Thread.Sleep(500);
                     }
                 }
-
                 Params.BytesWritten += PacketSize;
                 Params.BytesLeft -= PacketSize;
                 Params.Address += PacketSize;
-                float percent_done = Params.BytesWritten / Params.BytesTotal * 100f;
-                if (Params.Status.UpdateSpeed is object)
-                {
-                    try
-                    {
+                var percent_done = 100f * Params.BytesWritten / Params.BytesTotal; //MJ 2021 fix for progress calculation line 2 of 2
+                if (Params.Status.UpdateSpeed is object) {
+                    try {
                         var s = ((double)Params.BytesWritten / (Params.Timer.ElapsedMilliseconds / 1000));
                         uint bytes_per_second = (uint)Math.Round(s);
                         string speed_text = UpdateSpeed_GetText((int)bytes_per_second);
                         Params.Status.UpdateSpeed.DynamicInvoke(speed_text);
-                    }
-                    catch
-                    {
+                    } catch {
                     }
                 }
-
-                if (Params.Status.UpdatePercent is object)
-                {
+                if (Params.Status.UpdatePercent is object) {
                     Params.Status.UpdatePercent.DynamicInvoke((int)percent_done);
                 }
             }
-
             return true; // Operation was successful
         }
 
