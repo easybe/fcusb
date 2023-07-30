@@ -17,12 +17,11 @@ Namespace SPI
         Public Property MyFlashStatus As USB.DeviceStatus = USB.DeviceStatus.NotDetected
         Public Property Multi_IO As SPI_IO_MODE = SPI_IO_MODE.SPI 'This flag indicates if the device IO is in dual/quad mode
         Public Property DIE_SELECTED As Integer = 0
-        Public Property SPI_PORTS As Integer 'Number of SPI ports this device supports
+        Public Property SPI_PORTS As Integer = 1 'Number of SPI ports this device supports
         Public Property PORT_SELECT As SPIBUS_PORT = SPIBUS_PORT.Unselected
 
-        Sub New(ByVal parent_if As FCUSB_DEVICE, ByVal SPI_PORT_COUNT As Integer)
+        Sub New(ByVal parent_if As FCUSB_DEVICE)
             FCUSB = parent_if
-            Me.SPI_PORTS = SPI_PORT_COUNT
         End Sub
 
         Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
@@ -32,11 +31,9 @@ Namespace SPI
                 Me.PORT_SELECT = SPIBUS_PORT.Port_A
                 spi_connected = SPI_InitDevice()
             End If
-            If Me.SPI_PORTS > 1 Then
-                If Not spi_connected Then
-                    Me.PORT_SELECT = SPIBUS_PORT.Port_B
-                    spi_connected = SPI_InitDevice()
-                End If
+            If (Me.SPI_PORTS > 1) AndAlso (Not spi_connected) Then
+                Me.PORT_SELECT = SPIBUS_PORT.Port_B
+                spi_connected = SPI_InitDevice()
             End If
             If MySettings.SPI_QUAD Then
                 If Not spi_connected Then
@@ -66,7 +63,7 @@ Namespace SPI
                 RaiseEvent PrintConsole(String.Format(RM.GetString("spi_connected_to_flash_spi"), RDID_Str, REMS_Str))
                 Dim ID1 As UInt16 = (DEVICEID.RDID >> 16)
                 Dim ID2 As UInt16 = (DEVICEID.RDID And &HFFFF)
-                MyFlashDevice = FlashDatabase.FindDevice(DEVICEID.MANU, ID1, ID2, False, MemoryType.SERIAL_NOR, DEVICEID.FMY)
+                MyFlashDevice = FlashDatabase.FindDevice(DEVICEID.MANU, ID1, ID2, MemoryType.SERIAL_NOR, DEVICEID.FMY)
                 If MyFlashDevice IsNot Nothing Then
                     MyFlashStatus = USB.DeviceStatus.Supported
                     LoadDeviceConfigurations() 'Does device settings (4BYTE mode, unlock global block)
@@ -82,7 +79,11 @@ Namespace SPI
                     Return False
                 End If
             Else
-                RaiseEvent PrintConsole(RM.GetString("spi_flash_not_detected"))
+                If Me.PORT_SELECT = SPIBUS_PORT.Port_A Then
+                    RaiseEvent PrintConsole(String.Format(RM.GetString("spi_flash_not_detected"), "A"))
+                ElseIf Me.PORT_SELECT = SPIBUS_PORT.Port_B Then
+                    RaiseEvent PrintConsole(String.Format(RM.GetString("spi_flash_not_detected"), "B"))
+                End If
                 MyFlashStatus = USB.DeviceStatus.NotDetected
                 Return False
             End If

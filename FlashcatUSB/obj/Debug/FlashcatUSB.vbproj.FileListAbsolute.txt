@@ -5,6 +5,7 @@ C:\Users\Admin\Documents\EmbeddedComputers\Source Code\FlashcatUSB\bin\Debug\Lib
 C:\Users\Admin\Documents\EmbeddedComputers\Source Code\Binaries\FlashcatUSB.exe
 C:\Users\Admin\Documents\EmbeddedComputers\Source Code\Binaries\FlashcatUSB.pdb
 C:\Users\Admin\Documents\EmbeddedComputers\Source Code\Binaries\FlashcatUSB.xml
+C:\Users\Admin\Documents\EmbeddedComputers\Source Code\FlashcatUSB\obj\Debug\FlashcatUSB.vbprojResolveAssemblyReference.cache
 C:\Users\Admin\Documents\EmbeddedComputers\Source Code\FlashcatUSB\obj\Debug\FlashcatUSB.DfuControl.resources
 C:\Users\Admin\Documents\EmbeddedComputers\Source Code\FlashcatUSB\obj\Debug\FlashcatUSB.DropPanelList.resources
 C:\Users\Admin\Documents\EmbeddedComputers\Source Code\FlashcatUSB\obj\Debug\FlashcatUSB.FrmSettings.resources
@@ -21,4 +22,3 @@ C:\Users\Admin\Documents\EmbeddedComputers\Source Code\FlashcatUSB\obj\Debug\Fla
 C:\Users\Admin\Documents\EmbeddedComputers\Source Code\FlashcatUSB\obj\Debug\FlashcatUSB.exe
 C:\Users\Admin\Documents\EmbeddedComputers\Source Code\FlashcatUSB\obj\Debug\FlashcatUSB.xml
 C:\Users\Admin\Documents\EmbeddedComputers\Source Code\FlashcatUSB\obj\Debug\FlashcatUSB.pdb
-C:\Users\Admin\Documents\EmbeddedComputers\Source Code\FlashcatUSB\obj\Debug\FlashcatUSB.vbprojResolveAssemblyReference.cache

@@ -879,6 +879,12 @@ Public Class MemControl_v2
                 WritingParams.Status.UpdateTask = New cbStatus_UpdateTask(AddressOf Status_UpdateTask)
                 WritingParams.Status.UpdateSpeed = New cbStatus_UpdateSpeed(AddressOf Status_UpdateSpeed)
                 WritingParams.Status.UpdatePercent = New cbStatus_UpdatePercent(AddressOf Status_UpdatePercent)
+                'Reset current labels
+                Status_UpdateOper(0)
+                Status_UpdateBase(file_out.Offset)
+                Status_UpdateTask("")
+                Status_UpdateSpeed("")
+                Status_UpdatePercent(0)
                 RaiseEvent WriteStream(file_out.DataStream, WritingParams, write_success)
                 file_out.DataStream.Dispose()
                 file_out.DataStream = Nothing

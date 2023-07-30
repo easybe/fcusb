@@ -62,6 +62,7 @@ Namespace FlashMemory
         mS = 2 'Wait for mS delay cycles (set HARDWARE_DELAY to specify cycles)
         SR1 = 3 'Wait for Status-Register (0x555=0x70,[sr>>7],EXIT), used by Spansion
         SR2 = 4 'Wait for Status-Register (0x5555=0xAA,0x2AAA=0x55,0x5555=0x70,[sr>>7])
+        DQ7 = 5 'Wait for DQ7 to equal last byte written (lower byte for X16)
     End Enum
 
     Public Enum MFP_IF
@@ -549,51 +550,51 @@ Namespace FlashMemory
             MFP_Database() 'Adds all of the TSOP/PLCC etc. devices
             NAND_Database() 'Adds all of the SLC NAND (x8) compatible devices
             'Add device specific features
-            Dim MT25QL02GC As SPI_NOR_FLASH = FindDevice(&H20, &HBA22, 0, False, MemoryType.SERIAL_NOR)
+            Dim MT25QL02GC As SPI_NOR_FLASH = FindDevice(&H20, &HBA22, 0, MemoryType.SERIAL_NOR)
             MT25QL02GC.QUAD = SPI_QUADMODE.all_quadio
             MT25QL02GC.VENDOR_SPECIFIC = VENDOR_FEATURE.Micron 'Adds the non-vol tab to the GUI
             MT25QL02GC.SEND_RDFS = True 'Will read the flag-status register after a erase/programer opertion
             MT25QL02GC.CHIP_ERASE = EraseMethod.Micron   'Will erase all of the sectors instead
-            Dim N25Q00A As SPI_NOR_FLASH = FindDevice(&H20, &HBA21, 0, False, MemoryType.SERIAL_NOR)
+            Dim N25Q00A As SPI_NOR_FLASH = FindDevice(&H20, &HBA21, 0, MemoryType.SERIAL_NOR)
             N25Q00A.QUAD = SPI_QUADMODE.all_quadio
             N25Q00A.VENDOR_SPECIFIC = VENDOR_FEATURE.Micron 'Adds the non-vol tab to the GUI
             N25Q00A.SEND_RDFS = True 'Will read the flag-status register after a erase/programer opertion
             N25Q00A.CHIP_ERASE = EraseMethod.Micron  'Will erase all of the sectors instead
-            Dim N25Q512 As SPI_NOR_FLASH = FindDevice(&H20, &HBA20, 0, False, MemoryType.SERIAL_NOR)
+            Dim N25Q512 As SPI_NOR_FLASH = FindDevice(&H20, &HBA20, 0, MemoryType.SERIAL_NOR)
             N25Q512.QUAD = SPI_QUADMODE.all_quadio
             N25Q512.VENDOR_SPECIFIC = VENDOR_FEATURE.Micron 'Adds the non-vol tab to the GUI
             N25Q512.SEND_RDFS = True 'Will read the flag-status register after a erase/programer opertion
             N25Q512.CHIP_ERASE = EraseMethod.Micron 'Will erase all of the sectors instead
-            Dim N25Q256 As SPI_NOR_FLASH = FindDevice(&H20, &HBA19, 0, False, MemoryType.SERIAL_NOR)
+            Dim N25Q256 As SPI_NOR_FLASH = FindDevice(&H20, &HBA19, 0, MemoryType.SERIAL_NOR)
             N25Q256.QUAD = SPI_QUADMODE.all_quadio
             N25Q256.VENDOR_SPECIFIC = VENDOR_FEATURE.Micron 'Adds the non-vol tab to the GUI
             N25Q256.SEND_RDFS = True 'Will read the flag-status register after a erase/programer opertion
-            Dim S25FL116K As SPI_NOR_FLASH = FindDevice(&H1, &H4015, 0, False, MemoryType.SERIAL_NOR)
+            Dim S25FL116K As SPI_NOR_FLASH = FindDevice(&H1, &H4015, 0, MemoryType.SERIAL_NOR)
             S25FL116K.QUAD = SPI_QUADMODE.all_quadio
             S25FL116K.VENDOR_SPECIFIC = VENDOR_FEATURE.Spansion
-            Dim S25FL132K As SPI_NOR_FLASH = FindDevice(&H1, &H4016, 0, False, MemoryType.SERIAL_NOR)
+            Dim S25FL132K As SPI_NOR_FLASH = FindDevice(&H1, &H4016, 0, MemoryType.SERIAL_NOR)
             S25FL132K.QUAD = SPI_QUADMODE.all_quadio
             S25FL132K.VENDOR_SPECIFIC = VENDOR_FEATURE.Spansion
-            Dim S25FL164K As SPI_NOR_FLASH = FindDevice(&H1, &H4017, 0, False, MemoryType.SERIAL_NOR)
+            Dim S25FL164K As SPI_NOR_FLASH = FindDevice(&H1, &H4017, 0, MemoryType.SERIAL_NOR)
             S25FL164K.QUAD = SPI_QUADMODE.all_quadio
             S25FL164K.VENDOR_SPECIFIC = VENDOR_FEATURE.Spansion
 
-            Dim IS25LQ032 As SPI_NOR_FLASH = FindDevice(&H9D, &H4016, 0, False, MemoryType.SERIAL_NOR)
+            Dim IS25LQ032 As SPI_NOR_FLASH = FindDevice(&H9D, &H4016, 0, MemoryType.SERIAL_NOR)
             IS25LQ032.QUAD = SPI_QUADMODE.all_quadio
             IS25LQ032.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
-            Dim IS25LQ016 As SPI_NOR_FLASH = FindDevice(&H9D, &H4015, 0, False, MemoryType.SERIAL_NOR)
+            Dim IS25LQ016 As SPI_NOR_FLASH = FindDevice(&H9D, &H4015, 0, MemoryType.SERIAL_NOR)
             IS25LQ016.QUAD = SPI_QUADMODE.all_quadio
             IS25LQ016.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
-            Dim IS25LP080D As SPI_NOR_FLASH = FindDevice(&H9D, &H6014, 0, False, MemoryType.SERIAL_NOR)
+            Dim IS25LP080D As SPI_NOR_FLASH = FindDevice(&H9D, &H6014, 0, MemoryType.SERIAL_NOR)
             IS25LP080D.QUAD = SPI_QUADMODE.all_quadio
             IS25LP080D.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
-            Dim IS25WP080D As SPI_NOR_FLASH = FindDevice(&H9D, &H7014, 0, False, MemoryType.SERIAL_NOR)
+            Dim IS25WP080D As SPI_NOR_FLASH = FindDevice(&H9D, &H7014, 0, MemoryType.SERIAL_NOR)
             IS25WP080D.QUAD = SPI_QUADMODE.all_quadio
             IS25WP080D.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
-            Dim IS25WP040D As SPI_NOR_FLASH = FindDevice(&H9D, &H7013, 0, False, MemoryType.SERIAL_NOR)
+            Dim IS25WP040D As SPI_NOR_FLASH = FindDevice(&H9D, &H7013, 0, MemoryType.SERIAL_NOR)
             IS25WP040D.QUAD = SPI_QUADMODE.all_quadio
             IS25WP040D.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
-            Dim IS25WP020D As SPI_NOR_FLASH = FindDevice(&H9D, &H7012, 0, False, MemoryType.SERIAL_NOR)
+            Dim IS25WP020D As SPI_NOR_FLASH = FindDevice(&H9D, &H7012, 0, MemoryType.SERIAL_NOR)
             IS25WP020D.QUAD = SPI_QUADMODE.all_quadio
             IS25WP020D.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
 
@@ -1089,10 +1090,10 @@ Namespace FlashMemory
             'Cypress / Spansion
             'http://www.cypress.com/file/177976/download   S29GLxxxS
             'http://www.cypress.com/file/219926/download   S29GLxxxP
-            FlashDB.Add(New MFP_Flash("Cypress S29GL128P", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.uS, &H2100) With {.PAGE_SIZE = 64}) 'We need to test this device
-            FlashDB.Add(New MFP_Flash("Cypress S29GL256P", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.uS, &H2200) With {.PAGE_SIZE = 64})
-            FlashDB.Add(New MFP_Flash("Cypress S29GL512P", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.uS, &H2300) With {.PAGE_SIZE = 64})
-            FlashDB.Add(New MFP_Flash("Cypress S29GL01GP", &H1, &H227E, Gb001, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.uS, &H2800) With {.PAGE_SIZE = 64})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL128", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.uS, &H2100) With {.PAGE_SIZE = 64}) 'We need to test this device
+            FlashDB.Add(New MFP_Flash("Cypress S29GL256", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.uS, &H2200) With {.PAGE_SIZE = 64})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL512", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.uS, &H2300) With {.PAGE_SIZE = 64})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL01G", &H1, &H227E, Gb001, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.uS, &H2800) With {.PAGE_SIZE = 64})
             FlashDB.Add(New MFP_Flash("Cypress S29JL064J", &H1, &H227E, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Dual, MFP_PROG.Standard, MFP_DELAY.SR1, &H201)) 'Dual-boot
             FlashDB.Add(New MFP_Flash("Cypress S29GL032M", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.SR1, &H1C00)) 'Model R0
             FlashDB.Add(New MFP_Flash("Cypress S29GL032M", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.SR1, &H1D00))
@@ -1105,10 +1106,15 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Cypress S29GL064M", &H1, &H227E, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.SR1, &H1301))
             FlashDB.Add(New MFP_Flash("Cypress S29GL128M", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Standard, MFP_DELAY.SR1, &H1200))
             FlashDB.Add(New MFP_Flash("Cypress S29GL256M", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Standard, MFP_DELAY.SR1, &H1201))
-            FlashDB.Add(New MFP_Flash("Cypress S29GL128", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.SR1, &H2101) With {.PAGE_SIZE = 512}) 'S29GL128N S29GL128S
-            FlashDB.Add(New MFP_Flash("Cypress S29GL256", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.SR1, &H2201) With {.PAGE_SIZE = 512}) 'S29GL256N S29GL256S
-            FlashDB.Add(New MFP_Flash("Cypress S29GL512", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.SR1, &H2301) With {.PAGE_SIZE = 512}) 'S29GL512N S29GL512S
-            FlashDB.Add(New MFP_Flash("Cypress S29GL01G", &H1, &H227E, Gb001, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.SR1, &H2801) With {.PAGE_SIZE = 512}) 'S29GL01GS
+            FlashDB.Add(New MFP_Flash("Cypress S29GL128N", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2101) With {.PAGE_SIZE = 32})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL256N", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.PAGE_SIZE = 32}) '(CHIP-VAULT)
+            FlashDB.Add(New MFP_Flash("Cypress S29GL512N", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2301) With {.PAGE_SIZE = 32})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL128P", &H1, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2101) With {.PAGE_SIZE = 64}) '(CHIP-VAULT)
+            FlashDB.Add(New MFP_Flash("Cypress S29GL256P", &H1, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2201) With {.PAGE_SIZE = 64})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL512P", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2301) With {.PAGE_SIZE = 64})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL01GP", &H1, &H227E, Gb001, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2801) With {.PAGE_SIZE = 64})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL512T", &H1, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.SR1, &H2301) With {.PAGE_SIZE = 512})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL01GT", &H1, &H227E, Gb001, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.SR1, &H2801) With {.PAGE_SIZE = 512}) '(CHIP-VAULT)
             FlashDB.Add(New MFP_Flash("Cypress S70GL02G", &H1, &H227E, Gb002, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.SR1, &H4801) With {.PAGE_SIZE = 512})
             'ST Microelectronics (now numonyx)
             FlashDB.Add(New MFP_Flash("ST M29W800AT", &H20, &HD7, Mb008, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS))
@@ -1145,11 +1151,11 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Micron M29W640GL", &H20, &H227E, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.BypassMode, MFP_DELAY.uS, &HC00))
             FlashDB.Add(New MFP_Flash("Micron M29W640GT", &H20, &H227E, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.BypassMode, MFP_DELAY.uS, &H1001))
             FlashDB.Add(New MFP_Flash("Micron M29W640GB", &H20, &H227E, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.BypassMode, MFP_DELAY.uS, &H1000))
-            FlashDB.Add(New MFP_Flash("Micron M29W128GH", &H20, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.BypassMode, MFP_DELAY.uS, &H2201))
-            FlashDB.Add(New MFP_Flash("Micron M29W128GL", &H20, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.BypassMode, MFP_DELAY.uS, &H2200))
-            FlashDB.Add(New MFP_Flash("Micron M29W256GH", &H20, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.BypassMode, MFP_DELAY.uS, &H2201))
-            FlashDB.Add(New MFP_Flash("Micron M29W256GL", &H20, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.BypassMode, MFP_DELAY.uS, &H2200))
-            FlashDB.Add(New MFP_Flash("Micron M29W512G", &H20, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.BypassMode, MFP_DELAY.uS, &H2301))
+            FlashDB.Add(New MFP_Flash("Micron M29W128GH", &H20, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2201)) '(CHIP-VAULT)
+            FlashDB.Add(New MFP_Flash("Micron M29W128GL", &H20, &H227E, Mb128, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2200))
+            FlashDB.Add(New MFP_Flash("Micron M29W256GH", &H20, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2201))
+            FlashDB.Add(New MFP_Flash("Micron M29W256GL", &H20, &H227E, Mb256, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2200))
+            FlashDB.Add(New MFP_Flash("Micron M29W512G", &H20, &H227E, Mb512, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H2301))
             'Sharp
             FlashDB.Add(New MFP_Flash("Sharp LHF00L15", &HB0, &HA1, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb032_NonUni, MFP_PROG.IntelSharp, MFP_DELAY.SR1))
             FlashDB.Add(New MFP_Flash("Sharp LH28F160S3", &HB0, &HD0, Mb016, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.IntelSharp, MFP_DELAY.SR1))
@@ -1313,7 +1319,7 @@ Namespace FlashMemory
             Return atmel_spi
         End Function
 
-        Public Function FindDevice(MFG As Byte, ID1 As UInt16, ID2 As UInt16, X8_MODE As Boolean, DEVICE As MemoryType, Optional FM As Byte = 0) As Device
+        Public Function FindDevice(MFG As Byte, ID1 As UInt16, ID2 As UInt16, DEVICE As MemoryType, Optional FM As Byte = 0) As Device
             Select Case DEVICE
                 Case MemoryType.SLC_NAND
                     For Each flash In FlashDB
@@ -1354,7 +1360,7 @@ Namespace FlashMemory
                     For Each flash In FlashDB
                         If flash.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
                             If flash.MFG_CODE = MFG Then
-                                If X8_MODE Then 'Only checks the LSB of ID1 (and ignore ID2)
+                                If ID2 = 0 Then 'Only checks the LSB of ID1 (and ignore ID2)
                                     If ID1 = (flash.ID1 And 255) Then Return flash
                                 Else
                                     If (flash.ID1 = ID1) Then
@@ -1374,6 +1380,22 @@ Namespace FlashMemory
                     Next
             End Select
             Return Nothing 'Not found
+        End Function
+
+        Public Function FindDevices(MFG As Byte, ID1 As UInt16, ID2 As UInt16, DEVICE As MemoryType) As Device()
+            Dim devices As New List(Of Device)
+            For Each flash In FlashDB
+                If flash.FLASH_TYPE = DEVICE Then
+                    If flash.MFG_CODE = MFG Then
+                        If flash.ID1 = ID1 Then
+                            If ID2 = 0 OrElse ID2 = flash.ID2 Then
+                                devices.Add(flash)
+                            End If
+                        End If
+                    End If
+                End If
+            Next
+            Return devices.ToArray
         End Function
 
         Public Function PartCount(Optional DEVICE As MemoryType = MemoryType.UNSPECIFIED) As UInt32 'Returns the total number of devices

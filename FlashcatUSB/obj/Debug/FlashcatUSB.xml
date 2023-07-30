@@ -1162,6 +1162,16 @@ FlashcatUSB
   Looks up a localized string similar to Memory device erased successfully.
 </summary>
 </member>
+<member name="P:FlashcatUSB.My.Resources.english.mem_erase_failed_at">
+<summary>
+  Looks up a localized string similar to Failed to erase Flash at address: 0x{0} (sector index: {1}).
+</summary>
+</member>
+<member name="P:FlashcatUSB.My.Resources.english.mem_erase_failed_title">
+<summary>
+  Looks up a localized string similar to Flash erase failed.
+</summary>
+</member>
 <member name="P:FlashcatUSB.My.Resources.english.mem_erasing_device">
 <summary>
   Looks up a localized string similar to Erasing Flash memory device... (this may take up to 2 minutes).
@@ -1469,7 +1479,7 @@ FlashcatUSB
 </member>
 <member name="P:FlashcatUSB.My.Resources.english.spi_flash_not_detected">
 <summary>
-  Looks up a localized string similar to Unable to detect compatible SPI device.
+  Looks up a localized string similar to Unable to detect compatible SPI device (Port {0}).
 </summary>
 </member>
 <member name="P:FlashcatUSB.My.Resources.english.spi_flash_page_size">

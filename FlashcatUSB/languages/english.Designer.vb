@@ -2117,6 +2117,24 @@ Namespace My.Resources
         End Property
         
         '''<summary>
+        '''  Looks up a localized string similar to Failed to erase Flash at address: 0x{0} (sector index: {1}).
+        '''</summary>
+        Friend Shared ReadOnly Property mem_erase_failed_at() As String
+            Get
+                Return ResourceManager.GetString("mem_erase_failed_at", resourceCulture)
+            End Get
+        End Property
+        
+        '''<summary>
+        '''  Looks up a localized string similar to Flash erase failed.
+        '''</summary>
+        Friend Shared ReadOnly Property mem_erase_failed_title() As String
+            Get
+                Return ResourceManager.GetString("mem_erase_failed_title", resourceCulture)
+            End Get
+        End Property
+        
+        '''<summary>
         '''  Looks up a localized string similar to Erasing Flash memory device... (this may take up to 2 minutes).
         '''</summary>
         Friend Shared ReadOnly Property mem_erasing_device() As String
@@ -2666,7 +2684,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Unable to detect compatible SPI device.
+        '''  Looks up a localized string similar to Unable to detect compatible SPI device (Port {0}).
         '''</summary>
         Friend Shared ReadOnly Property spi_flash_not_detected() As String
             Get

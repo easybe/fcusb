@@ -16,9 +16,9 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 501
-    Public PRO_CURRENT_FW As Single = 1.18 'This is the embedded firmware version
-    Public CLASSIC_CURRENT_FW As Single = 4.3 'Min revision allowed for classic
+    Public Const Build As Integer = 503
+    Public PRO_CURRENT_FW As Single = 1.19 'This is the embedded firmware version
+    Public CLASSIC_CURRENT_FW As Single = 4.31 'Min revision allowed for classic
     Public AppIsClosing As Boolean = False
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
     Public WithEvents ScriptEngine As New FcScriptEngine
@@ -42,7 +42,6 @@ Public Module MainApp
         End Try
 
         'Args = {"-READ", "-SPI", "-FILE", "Flash.bin"}
-
         'Args = {"-READ", "-SPIEEPROM", "-EEPROM", "M95M02", "-FILE", "Flash.bin"}
         'Args = {"-WRITE", "-SPI", "-FILE", "Flash.bin"}
 
@@ -1687,7 +1686,7 @@ Public Module MainApp
                 End Select
         End Select
         'PRO DOES NOT YET SUPPORT JTAG
-        If MySettings.OPERATION_MODE = DeviceMode.JTAG AndAlso usb_dev.HWBOARD = FCUSB_BOARD.Classic_JTAG Then
+        If MySettings.OPERATION_MODE = DeviceMode.JTAG AndAlso (usb_dev.HWBOARD = FCUSB_BOARD.Professional) Then
             MySettings.OPERATION_MODE = DeviceMode.SPI
         End If
         If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI) Then

@@ -524,7 +524,7 @@
     <value>SPI: Error writing data to USB port</value>
   </data>
   <data name="spi_flash_not_detected" xml:space="preserve">
-    <value>Unable to detect compatible SPI device</value>
+    <value>Unable to detect compatible SPI device (Port {0})</value>
   </data>
   <data name="spi_flash_page_size" xml:space="preserve">
     <value>Page erase size: {0} bytes</value>
@@ -1096,5 +1096,11 @@
   </data>
   <data name="settings_blk_lastpage" xml:space="preserve">
     <value>Last spare page</value>
+  </data>
+  <data name="mem_erase_failed_at" xml:space="preserve">
+    <value>Failed to erase Flash at address: 0x{0} (sector index: {1})</value>
+  </data>
+  <data name="mem_erase_failed_title" xml:space="preserve">
+    <value>Flash erase failed</value>
   </data>
 </root>

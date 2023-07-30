@@ -3048,6 +3048,11 @@ Public Class FcScriptEngine
             End If
             Dim mem_sector As UInt32 = arguments(0).Value
             mem_device.EraseSector(mem_sector)
+            If mem_device.NoErrors Then
+                RaiseEvent WriteConsole("Successfully erased sector index: " & mem_sector)
+            Else
+                RaiseEvent WriteConsole("Failed to erase sector index: " & mem_sector)
+            End If
             mem_device.GuiControl.RefreshView()
             mem_device.ReadMode()
         Catch ex As Exception

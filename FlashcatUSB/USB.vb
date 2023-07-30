@@ -10,7 +10,7 @@ Namespace USB
         Public Event DeviceConnected(ByVal usb_dev As FCUSB_DEVICE)
         Public Event DeviceDisconnected(ByVal usb_dev As FCUSB_DEVICE)
 
-        Private Const BULK_TIMEOUT As Integer = 5000
+        Private Const BULK_TIMEOUT As Integer = 5000000
         Private Const USB_VID_ATMEL As Integer = &H3EB
         Private Const USB_VID_EC As Integer = &H16C0
         Private Const USB_PID_FCUSB_PRO As Integer = &H5E0 'FCUSB 3.x
@@ -49,7 +49,7 @@ Namespace USB
 
             Public USBHANDLE As UsbDevice
 
-            Public SPI_NOR_IF As New SPI_Programmer(Me, 1)
+            Public SPI_NOR_IF As New SPI_Programmer(Me)
             Public SPI_NAND_IF As New SPINAND_Programmer(Me)
             Public EXT_IF As New ExtPort(Me)
             Public EJ_IF As New JTAG_IF(Me) 'Not Yet implementeded yet
@@ -414,18 +414,6 @@ Namespace USB
                     USB_CONTROL_MSG_OUT(USBREQ.VCC_5V)
                 End If
             End Sub
-            'Returns the byte code that is running
-            Public Sub USB_GET_TASK(ByRef ID As Byte)
-                If Me.HWBOARD = FCUSB_BOARD.Professional Then
-                    Try
-                        Dim packet_out(0) As Byte
-                        USB_CONTROL_MSG_IN(USBREQ.GET_TASK, packet_out)
-                        ID = packet_out(0)
-                    Catch ex As Exception
-                        ID = 255
-                    End Try
-                End If
-            End Sub
 
             Public Function USB_IsBootloaderMode() As Boolean
                 If Me.HWBOARD = FCUSB_BOARD.Professional Then
@@ -465,36 +453,34 @@ Namespace USB
             End Function
 
             Public Function USB_WaitForComplete() As Boolean
-                If Me.HWBOARD = FCUSB_BOARD.Professional Then
-                    Dim timeout_counter As Integer
-                    Dim task_id As Byte = 255
-                    Do
-                        Utilities.Sleep(5) 'Prevents slamming the USB port
-                        USB_GET_TASK(task_id)
-                        timeout_counter += 1
-                        If (timeout_counter = 200) Then
-                            Return False
-                        End If
-                    Loop While (task_id > 0)
-                Else
-                    Utilities.Sleep(1) 'Not supported by PCB 2.x
-                End If
+                Dim timeout_counter As Integer
+                Dim task_id As Byte = 255
+                Do
+                    Dim packet_out(0) As Byte
+                    Utilities.Sleep(4) 'Prevents slamming the USB port
+                    USB_CONTROL_MSG_IN(USBREQ.GET_TASK, packet_out)
+                    task_id = packet_out(0)
+                    timeout_counter += 1
+                    If (timeout_counter = 500) Then Return False
+                Loop While (task_id > 0)
                 Return True
             End Function
 
             Public Function LoadFirmwareVersion() As Boolean
                 Try
+                    Me.SPI_NOR_IF.SPI_PORTS = 1
                     Dim USB_PID_FCUSB_JTAG As Integer = &H5DD
                     If (USBHANDLE.UsbRegistryInfo.Vid = USB_VID_ATMEL) Then
                         Me.HWBOARD = FCUSB_BOARD.Classic_BL
                         Me.FW_VERSION = "1.00"
                     ElseIf USBHANDLE.UsbRegistryInfo.Pid = USB_PID_FCUSB_PRO Then
                         Dim b(3) As Byte
-                        If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, b) Then Return ""
+                        If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, b) Then Return False
                         Dim fwstr As String = Utilities.Bytes.ToChrString({b(0), b(1), Asc("."), b(2), b(3)})
                         If fwstr.StartsWith("0") Then fwstr = Mid(fwstr, 2)
                         Me.FW_VERSION = fwstr
                         Me.HWBOARD = FCUSB_BOARD.Professional
+                        Me.SPI_NOR_IF.SPI_PORTS = 2 'Pro has two SPI ports
                         Return True
                     Else
                         Dim buff(3) As Byte
@@ -880,6 +866,7 @@ Namespace USB
         EXPIO_CE_LOW = &H77 'Sets CHIPENABLE to LOW
         EXPIO_DELAY = &H78
         EXPIO_RESET = &H79 'Issue device reset/read mode
+        EXPIO_WAIT = &H7A   'Uses the currently assigned WAIT mode
     End Enum
 
     Public Enum DeviceStatus

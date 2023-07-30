@@ -240,9 +240,7 @@ Public Class MemoryInterface
             Do While Me.IsBusy
                 Threading.Thread.Sleep(5)
                 i += 1
-                If i = 1000 Then
-                    Return False '10 second timeout
-                End If
+                If i = 1000 Then Return False '10 second timeout
             Loop
             Return True
         End Function
@@ -578,6 +576,9 @@ Public Class MemoryInterface
                             Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_erasing_sector"))
                         End If
                         EraseSector(sector, Params.Memory_Area)
+                        If Not Me.NoErrors Then
+                            If Not GetMessageBoxForSectorErase(Params.Address, sector) Then Return False
+                        End If
                     End If
                     If Params.Status.UpdateOperation IsNot Nothing Then
                         Params.Status.UpdateOperation.DynamicInvoke(2) 'WRITE IMG
@@ -630,7 +631,7 @@ Public Class MemoryInterface
                                         Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_failed"))
                                         Utilities.Sleep(1000)
                                     End If
-                                    Return GetMessageBoxForVerify(Params.Address)
+                                    Return GetMessageBoxForVerifyFailed(Params.Address)
                                 End If
                             End If
                             Utilities.Sleep(500)
@@ -670,7 +671,7 @@ Public Class MemoryInterface
             End If
         End Function
 
-        Public Function GetMessageBoxForVerify(ByVal address As Long) As Boolean
+        Public Function GetMessageBoxForVerifyFailed(ByVal address As UInt32) As Boolean
             Dim TitleTxt As String = String.Format(RM.GetString("mem_verify_failed_at"), Hex(address).PadLeft(8, "0"))
             TitleTxt &= vbCrLf & vbCrLf & RM.GetString("mem_ask_continue")
             If MsgBox(TitleTxt, MsgBoxStyle.YesNo, RM.GetString("mem_verify_failed_title")) = MsgBoxResult.No Then
@@ -680,6 +681,15 @@ Public Class MemoryInterface
             End If
         End Function
 
+        Public Function GetMessageBoxForSectorErase(ByVal address As UInt32, ByVal sector_index As Integer) As Boolean
+            Dim TitleTxt As String = String.Format(RM.GetString("mem_erase_failed_at"), Hex(address).PadLeft(8, "0"), sector_index)
+            TitleTxt &= vbCrLf & vbCrLf & RM.GetString("mem_ask_continue")
+            If MsgBox(TitleTxt, MsgBoxStyle.YesNo, RM.GetString("mem_erase_failed_title")) = MsgBoxResult.No Then
+                Return False 'Stop working
+            Else
+                Return True
+            End If
+        End Function
 
 #Region "Protocol Hooks"
 
