@@ -7,25 +7,25 @@
 Imports FlashcatUSB.FlashMemory
 Imports FlashcatUSB.FlashcatSettings
 Imports FlashcatUSB.MemoryInterface
-Imports FlashcatUSB.USB.HostClient
 Imports Microsoft.Win32
 Imports System.Runtime.InteropServices
 Imports System.Threading
 Imports FlashcatUSB.SPI
 Imports FlashcatUSB.USB
-Imports System.Net
 
 Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 602
+    Public Const Build As Integer = 603
 
     Private Const PRO_PCB4_FW As Single = 1.23F 'This is the embedded firmware version for pro
     Private Const PRO_PCB5_FW As Single = 1.06F 'This is the embedded firmware version for pro
-    Private Const MACH1_PCB2_FW As Single = 2.17F 'Firmware version for Mach1
-    Private Const XPORT_PCB1_FW As Single = 4.57F 'XPORT PCB 1.x
-    Private Const XPORT_PCB2_FW As Single = 5.16F 'XPORT PCB 2.x
+    Private Const MACH1_PCB2_FW As Single = 2.18F 'Firmware version for Mach1
+
+    Private Const XPORT_PCB1_FW As Single = 4.58F 'XPORT PCB 1.x
+    Private Const XPORT_PCB2_FW As Single = 5.17F 'XPORT PCB 2.x
+
     Private Const CLASSIC_FW As Single = 4.5F 'Min revision allowed for classic (PCB 2.x)
     Private Const CPLD_SPI_3V3 As UInt32 = &HCD330003UI 'ID CODE FOR SPI (3.3v)
     Private Const CPLD_SPI_1V8 As UInt32 = &HCD180003UI 'ID CODE FOR JTAG (1.8v)
@@ -51,6 +51,7 @@ Public Module MainApp
     Public WithEvents MAIN_FCUSB As FCUSB_DEVICE = Nothing
 
     Public Const IS_DEBUG_VER As Boolean = False
+
 
     Sub Main(Args() As String)
         Try 'This makes it only allow one instance
