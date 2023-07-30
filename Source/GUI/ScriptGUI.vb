@@ -70,6 +70,7 @@ Module ScriptGUI
     End Function
 
     Private Function c_tab_addimage(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
+        Dim ScriptPath As String = (New IO.FileInfo(MyLocation)).DirectoryName & "\Scripts\"
         Dim filen As String = CStr(arguments(1).Value)
         Dim finfo As New IO.FileInfo(ScriptPath & filen)
         If Not finfo.Exists Then PrintConsole("Tab.AddImage, specified image not found: " & filen) : Return Nothing

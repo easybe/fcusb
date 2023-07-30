@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2021 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2023 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB PRODUCTS
 'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
@@ -21,20 +21,23 @@ Public Module MainApp
     Public CURRENT_DEVICE_MODE As DeviceMode
     Public AppIsClosing As Boolean = False
     Public WithEvents ScriptProcessor As New EC_ScriptEngine.Processor
-    Public WithEvents USBCLIENT As New HostClient
-    Public ScriptPath As String
+    Public WithEvents ScriptExt As ScriptExtension
+    Public WithEvents USBCLIENT As HostClient
     Public Platform As String
     Public CUSTOM_SPI_DEV As SPI_NOR
     Private FcMutex As Mutex
     Public WithEvents MEM_IF As New MemoryInterface 'Contains API to access the various memory devices
     Public WithEvents MAIN_FCUSB As FCUSB_DEVICE = Nothing
     Public NAND_LayoutTool As NAND_LAYOUT_TOOL
-
     Public Const IS_DEBUG_VER As Boolean = False
     Public Property DefaultLocation As String = Application.StartupPath
 
-
     Sub Main(ParamArray args() As String)
+        'Dim file() = Utilities.FileIO.ReadBytes("D:\Software\Firmware.bin")
+        'Dim local_file As New IO.FileInfo("D:\Software\Firmware.hex")
+        'Dim output_stream = New IHEX.StreamWriter(New IO.StreamWriter(local_file.Open(IO.FileMode.Create)))
+        'output_stream.Write(file, 0, file.Length)
+        'output_stream.Close()
         Try 'This makes it only allow one instance
             Dim created As Boolean = False
             FcMutex = New Mutex(False, "FCUSB", created)
@@ -46,7 +49,6 @@ Public Module MainApp
             Exit Sub
         End Try
         MyLocation = Reflection.Assembly.GetEntryAssembly().FullName
-        ScriptPath = (New IO.FileInfo(MyLocation)).DirectoryName & "\Scripts\"
         Thread.CurrentThread.CurrentUICulture = Globalization.CultureInfo.CreateSpecificCulture("en-US")
         Thread.CurrentThread.CurrentCulture = Globalization.CultureInfo.CreateSpecificCulture("en-US")
         My.Application.ChangeUICulture("en-US")
@@ -57,12 +59,13 @@ Public Module MainApp
         End If
         LicenseSystem_Init()
         CUSTOM_SPI_DEV = New SPI_NOR("User-defined", VCC_IF.SERIAL_3V, 1048576, 0, 0)
-        If NAND_ECC_CFG Is Nothing Then NAND_ECC_CFG = GenerateLocalEccConfigurations()
+        ECC_LIB.ECC_Init()
         Thread.CurrentThread.Name = "rootApp"
         Platform = Environment.OSVersion.Platform & " (" & Utilities.GetOsBitsString() & ")"
-        ScriptApplication.AddInternalMethods()
+        ScriptExt = New ScriptExtension(ScriptProcessor)
         ScriptGUI.AddInternalMethods()
         GUI = New MainForm
+        USBCLIENT = New HostClient(IS_DEBUG_VER)
         USBCLIENT.StartService()
         Application.Run(GUI)
         AppClosing()
@@ -78,6 +81,10 @@ Public Module MainApp
 
     Public Sub SetStatus(message As String)
         GUI.SetStatus(message)
+    End Sub
+
+    Private Sub ScriptExt_GetSelectedDevce(ByRef usb_dev As FCUSB_DEVICE) Handles ScriptExt.GetSelectedDevce
+        usb_dev = MAIN_FCUSB
     End Sub
 
 
@@ -144,75 +151,6 @@ Public Module MainApp
 
 #End Region
 
-#Region "Error correcting code"
-    Public NAND_ECC_CFG() As ECC_LIB.ECC_Configuration_Entry
-    Public NAND_ECC As ECC_LIB.Engine
-
-    Public Property ECC_LAST_RESULT As ECC_LIB.ECC_DECODE_RESULT = ECC_LIB.ECC_DECODE_RESULT.NoErrors
-    'Returns number of bytes for a given ECC configuration
-    Public Sub ECC_LoadConfiguration(page_size As Integer, spare_size As Integer)
-        NAND_ECC = Nothing
-        If NAND_ECC_CFG Is Nothing OrElse (Not MySettings.ECC_FEATURE_ENABLED) Then Exit Sub
-        PrintConsole("ECC Feature is enabled")
-        For i = 0 To NAND_ECC_CFG.Length - 1
-            If NAND_ECC_CFG(i).IsValid() Then
-                If NAND_ECC_CFG(i).PageSize = page_size AndAlso NAND_ECC_CFG(i).SpareSize = spare_size Then
-                    NAND_ECC = New ECC_LIB.Engine(NAND_ECC_CFG(i).Algorithm, NAND_ECC_CFG(i).BitError, NAND_ECC_CFG(i).SymSize)
-                    NAND_ECC.REVERSE_ARRAY = NAND_ECC_CFG(i).ReverseData
-                    NAND_ECC.ECC_DATA_LOCATION = NAND_ECC_CFG(i).EccRegion
-                    PrintConsole("Compatible profile found at index " & (i + 1).ToString)
-                    Exit Sub
-                End If
-            End If
-        Next
-        PrintConsole("No compatible profile found")
-    End Sub
-
-    Public Function GenerateLocalEccConfigurations() As ECC_LIB.ECC_Configuration_Entry()
-        Dim cfg_list As New List(Of ECC_LIB.ECC_Configuration_Entry)
-
-        Dim n1 As New ECC_LIB.ECC_Configuration_Entry()
-        n1.PageSize = 512
-        n1.SpareSize = 16
-        n1.Algorithm = ECC_LIB.ecc_algorithum.hamming
-        n1.BitError = 1
-        n1.SymSize = 0
-        n1.ReverseData = False
-        n1.AddRegion(&HD)
-
-        Dim n2 As New ECC_LIB.ECC_Configuration_Entry()
-        n2.PageSize = 2048
-        n2.SpareSize = 64
-        n2.Algorithm = ECC_LIB.ecc_algorithum.reedsolomon
-        n2.BitError = 4
-        n2.SymSize = 9
-        n2.ReverseData = False
-        n2.AddRegion(&H7)
-        n2.AddRegion(&H17)
-        n2.AddRegion(&H27)
-        n2.AddRegion(&H37)
-
-        Dim n3 As New ECC_LIB.ECC_Configuration_Entry()
-        n3.PageSize = 2048
-        n3.SpareSize = 128
-        n3.Algorithm = ECC_LIB.ecc_algorithum.bhc
-        n3.BitError = 8
-        n3.SymSize = 0
-        n3.ReverseData = False
-        n3.AddRegion(&H13)
-        n3.AddRegion(&H33)
-        n3.AddRegion(&H53)
-        n3.AddRegion(&H73)
-
-        cfg_list.Add(n1)
-        cfg_list.Add(n2)
-        cfg_list.Add(n3)
-
-        Return cfg_list.ToArray
-    End Function
-
-#End Region
-
 #Region "SPI Settings"
 
     Public Function GetSpiClockString(usb_dev As FCUSB_DEVICE, desired_speed As UInt32) As String
@@ -241,30 +179,9 @@ Public Module MainApp
         Return CType(desired_speed, SQI_SPEED)
     End Function
 
-    Public Function GetDevices_SERIAL_EEPROM() As SPI_NOR()
-        Dim spi_eeprom As New List(Of SPI_NOR)
-        Dim d() As Device = FlashDatabase.GetFlashDevices(MemoryType.SERIAL_NOR)
-        For Each dev As SPI_NOR In d
-            If DirectCast(dev, SPI_NOR).ProgramMode = SPI_PROG.SPI_EEPROM Then
-                spi_eeprom.Add(dev)
-            ElseIf DirectCast(dev, SPI_NOR).ProgramMode = SPI_PROG.Nordic Then
-                spi_eeprom.Add(dev)
-            End If
-        Next
-        Return spi_eeprom.ToArray
-    End Function
-
-    Public Function GetDevices_PARALLEL_EEPROM() As P_NOR()
-        Dim par_ee_list As New List(Of P_NOR)
-        Dim d() As Device = FlashDatabase.GetFlashDevices(MemoryType.PARALLEL_NOR)
-        For Each dev As P_NOR In d
-            If dev.WriteMode = MFP_PRG.EEPROM Then par_ee_list.Add(dev)
-        Next
-        Return par_ee_list.ToArray
-    End Function
-
     Public Function SPIEEPROM_Configure(SPI_IF As SPI_Programmer, eeprom_name As String) As Boolean
-        Dim all_eeprom_devices() As SPI_NOR = GetDevices_SERIAL_EEPROM()
+        Dim all_eeprom_devices() As SPI_NOR = FlashDatabase.GetDevices_SERIAL_EEPROM()
+        Dim FCUSB = SPI_IF.GetUsbDevice()
         Dim eeprom As SPI_NOR = Nothing
         For Each ee_dev In all_eeprom_devices
             If ee_dev.NAME.Equals(eeprom_name) Then
@@ -273,7 +190,7 @@ Public Module MainApp
         Next
         If eeprom Is Nothing Then Return False
         Dim nRF24_mode As Boolean = False
-        SPI_IF.SPIBUS_Setup(GetMaxSpiClock(MAIN_FCUSB.HWBOARD, SPI_SPEED.MHZ_1), MySettings.SPI_MODE)
+        SPI_IF.SPIBUS_Setup(GetMaxSpiClock(FCUSB.HWBOARD, SPI_SPEED.MHZ_1), MySettings.SPI_MODE)
         Select Case eeprom.NAME
             Case "Nordic nRF24LE1"
                 nRF24_mode = True
@@ -283,18 +200,18 @@ Public Module MainApp
                 nRF24_mode = True
         End Select
         If nRF24_mode Then
-            MAIN_FCUSB.USB_VCC_ON(MySettings.VOLT_SELECT)
+            FCUSB.USB_VCC_ON(Voltage.V3_3)
             Utilities.Sleep(100)
             SPI_IF.SetProgPin(True) 'Sets PROG.PIN to HIGH
             SPI_IF.SetProgPin(False) 'Sets PROG.PIN to LOW
             SPI_IF.SetProgPin(True) 'Sets PROG.PIN to HIGH
             Utilities.Sleep(10)
-            If (MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5) Then
-                SPI_IF.SPIBUS_Setup(GetMaxSpiClock(MAIN_FCUSB.HWBOARD, SPI_SPEED.MHZ_8), MySettings.SPI_MODE)
-            ElseIf (MAIN_FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB2) Then
-                SPI_IF.SPIBUS_Setup(GetMaxSpiClock(MAIN_FCUSB.HWBOARD, SPI_SPEED.MHZ_8), MySettings.SPI_MODE)
+            If (FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5) Then
+                SPI_IF.SPIBUS_Setup(GetMaxSpiClock(FCUSB.HWBOARD, SPI_SPEED.MHZ_8), MySettings.SPI_MODE)
+            ElseIf (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB2) Then
+                SPI_IF.SPIBUS_Setup(GetMaxSpiClock(FCUSB.HWBOARD, SPI_SPEED.MHZ_8), MySettings.SPI_MODE)
             Else
-                SPI_IF.SPIBUS_Setup(GetMaxSpiClock(MAIN_FCUSB.HWBOARD, SPI_SPEED.MHZ_8), MySettings.SPI_MODE)
+                SPI_IF.SPIBUS_Setup(GetMaxSpiClock(FCUSB.HWBOARD, SPI_SPEED.MHZ_8), MySettings.SPI_MODE)
             End If
         End If
         SPI_IF.MyFlashDevice = eeprom
@@ -316,7 +233,6 @@ Public Module MainApp
         Else
             Exit Sub
         End If
-        NAND_ECC = Nothing
         MEM_IF.Clear()
         GUI.SetConnectionStatus()
         Dim fw_str As String = usb_dev.FW_VERSION()
@@ -328,9 +244,11 @@ Public Module MainApp
             Case FCUSB_BOARD.Classic
                 PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Classic", fw_str}))
                 If Not FirmwareCheck(usb_dev, CLASSIC_FW) Then Exit Sub
+                Print_PCB_Version(usb_dev)
             Case FCUSB_BOARD.XPORT_PCB2
                 PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB XPORT", fw_str}))
                 If Not FirmwareCheck(usb_dev, XPORT_PCB2_FW) Then Exit Sub
+                Print_PCB_Version(usb_dev)
             Case FCUSB_BOARD.Professional_PCB5
                 If usb_dev.BOOTLOADER() Then
                     Logic.Bootloader_UpdateFirmware(usb_dev, "PCB5_Source.bin") : Exit Sub
@@ -363,13 +281,13 @@ Public Module MainApp
                     PrintConsole("Error: unable to load FPGA bitstream", True)
                     Exit Sub
                 End If
-                If Not Logic.SMC_Integrity_Check() Then
+                If Not Logic.SMC_Integrity_Check(usb_dev) Then
                     PrintConsole("Error: SMC failed integrity check", True)
                     Exit Sub
                 End If
             Case FCUSB_BOARD.Mach1
                 If Not Logic.MACH1_Init(usb_dev, MySettings.OPERATION_MODE, MySettings.VOLT_SELECT) Then Exit Sub
-                If Not Logic.SMC_Integrity_Check() Then
+                If Not Logic.SMC_Integrity_Check(usb_dev) Then
                     PrintConsole("Error: SMC failed integrity check", True)
                     Exit Sub
                 End If
@@ -380,7 +298,6 @@ Public Module MainApp
     Private Sub OnUsbDevice_Disconnected(usb_dev As FCUSB_DEVICE) Handles USBCLIENT.DeviceDisconnected
         If MAIN_FCUSB IsNot usb_dev Then Exit Sub
         MAIN_FCUSB = Nothing
-        NAND_ECC = Nothing
         MEM_IF.Clear() 'Remove all devices that are on this usb port
         Dim fcusb_hardware As String
         If (usb_dev.HWBOARD = FCUSB_BOARD.Professional_PCB5) Then
@@ -409,7 +326,8 @@ Public Module MainApp
     Public Function Connected_Event(PRG_IF As MemoryDeviceUSB, block_size As Integer, Optional access As FlashAccess = FlashAccess.ReadWriteErase) As MemoryDeviceInstance
         Try
             Utilities.Sleep(150) 'Some devices (such as Spansion 128mbit devices) need a delay here
-            Dim dev_inst As MemoryDeviceInstance = MEM_IF.Add(MAIN_FCUSB, PRG_IF, access)
+            Dim FCUSB = PRG_IF.GetUsbDevice()
+            Dim dev_inst As MemoryDeviceInstance = MEM_IF.Add(FCUSB, PRG_IF, access)
             AddHandler dev_inst.PrintConsole, AddressOf MainApp.PrintConsole
             AddHandler dev_inst.SetStatus, AddressOf MainApp.SetStatus
             AddHandler dev_inst.WriteOperationSucceded, AddressOf MainApp.IF_WriteSuccessful
@@ -580,6 +498,48 @@ Public Module MainApp
         my_params.NAND_Layout = MySettings.NAND_Layout
         Return my_params
     End Function
+
+    Public Sub ECC_Init(mem_dev As MemoryDeviceUSB)
+        If ECC_LIB.NAND_ECC_CFG Is Nothing OrElse (Not MySettings.ECC_FEATURE_ENABLED) Then Exit Sub
+        Dim PNAND_IF As PNAND_Programmer = Nothing
+        Dim SNAND_IF As SPINAND_Programmer = Nothing
+        Dim page_size As UInt16 = 0
+        Dim spare_size As UInt16 = 0
+        If mem_dev.GetType() Is GetType(PNAND_Programmer) Then
+            PNAND_IF = CType(mem_dev, PNAND_Programmer)
+            PNAND_IF.ECC_ENG = Nothing
+            page_size = PNAND_IF.MyFlashDevice.PAGE_SIZE
+            spare_size = PNAND_IF.MyFlashDevice.PAGE_EXT
+        ElseIf mem_dev.GetType() Is GetType(SPINAND_Programmer) Then
+            SNAND_IF = CType(mem_dev, SPINAND_Programmer)
+            SNAND_IF.ECC_ENG = Nothing
+            page_size = SNAND_IF.MyFlashDevice.PAGE_SIZE
+            spare_size = SNAND_IF.MyFlashDevice.PAGE_EXT
+        End If
+        PrintConsole("ECC Feature is enabled")
+        For i = 0 To ECC_LIB.NAND_ECC_CFG.Length - 1
+            If ECC_LIB.NAND_ECC_CFG(i).IsValid() Then
+                If ECC_LIB.NAND_ECC_CFG(i).PageSize = page_size AndAlso ECC_LIB.NAND_ECC_CFG(i).SpareSize = spare_size Then
+                    Dim new_ecc As ECC_LIB.Engine = New ECC_LIB.Engine(ECC_LIB.NAND_ECC_CFG(i).Algorithm, ECC_LIB.NAND_ECC_CFG(i).BitError, ECC_LIB.NAND_ECC_CFG(i).SymSize)
+                    new_ecc.REVERSE_ARRAY = ECC_LIB.NAND_ECC_CFG(i).ReverseData
+                    new_ecc.ECC_DATA_LOCATION = ECC_LIB.NAND_ECC_CFG(i).EccRegion
+                    If PNAND_IF IsNot Nothing Then PNAND_IF.ECC_ENG = new_ecc
+                    If SNAND_IF IsNot Nothing Then SNAND_IF.ECC_ENG = new_ecc
+                    PrintConsole("Compatible profile found at index " & (i + 1).ToString)
+                    Exit Sub
+                End If
+            End If
+        Next
+        PrintConsole("No compatible profile found")
+    End Sub
+
+    Private Sub Print_PCB_Version(usb_dev As FCUSB_DEVICE)
+        Dim eeprom(5) As Byte
+        usb_dev.USB_CONTROL_MSG_IN(USBREQ.EEPROM_RD, eeprom, (CUInt(6) << 16))
+        If eeprom(0) = 255 OrElse eeprom(0) = 0 Then Exit Sub
+        Dim pcb_version As String = Utilities.Bytes.ToChrString(eeprom)
+        PrintConsole(String.Format("Hardware version: {0}", pcb_version))
+    End Sub
 
 
 End Module

@@ -1487,7 +1487,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Parallel NOR mode successfully initialized.
+        '''  Looks up a localized string similar to I/O mode successfully initialized.
         '''</summary>
         Friend Shared ReadOnly Property io_mode_initalized() As String
             Get

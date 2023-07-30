@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2021 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2023 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB PRODUCTS
 'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
@@ -227,6 +227,10 @@ Public Class FWH_Programmer : Implements MemoryDeviceUSB
         data_in(8) = CByte(PageSize And 255) 'This is how many bytes to increment between operations
         data_in(9) = CByte((PageSize >> 8) And 255)
         Return data_in
+    End Function
+
+    Public Function GetUsbDevice() As USB.FCUSB_DEVICE Implements MemoryDeviceUSB.GetUsbDevice
+        Return Me.FCUSB
     End Function
 
 End Class

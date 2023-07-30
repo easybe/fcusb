@@ -568,6 +568,10 @@ Namespace SPI
             Utilities.Sleep(10)
         End Sub
 
+        Public Function GetUsbDevice() As FCUSB_DEVICE Implements MemoryDeviceUSB.GetUsbDevice
+            Return Me.FCUSB
+        End Function
+
     End Class
 
     Public Enum MULTI_IO_MODE As Byte

@@ -183,11 +183,11 @@ Public Class MemoryInterface
                 Dim read_buffer() As Byte 'Temp Byte buffer
                 Dim BytesRead As Long = 0 'Number of bytes read from the Flash device
                 If Params.Status.UpdateOperation IsNot Nothing Then
-                    Params.Status.UpdateOperation.DynamicInvoke(1) 'READ IMG
+                    Params.Status.UpdateOperation.DynamicInvoke(Params.Index, 1) 'READ IMG
                 End If
                 If Params.Status.UpdateTask IsNot Nothing Then
                     Dim rd_label As String = String.Format(RM.GetString("mem_reading_memory"), Strings.Format(Params.Count, "#,###"))
-                    Params.Status.UpdateTask.DynamicInvoke(rd_label)
+                    Params.Status.UpdateTask.DynamicInvoke(Params.Index, rd_label)
                 End If
                 Dim BytesRemaining As Long = Params.Count
                 For i = 1 To Loops
@@ -199,11 +199,11 @@ Public Class MemoryInterface
                     End If
                     Dim FlashAddress As Long = Params.Address + BytesRead
                     If Params.Status.UpdateBase IsNot Nothing Then
-                        Params.Status.UpdateBase.DynamicInvoke(FlashAddress)
+                        Params.Status.UpdateBase.DynamicInvoke(Params.Index, FlashAddress)
                     End If
                     If Params.Status.UpdatePercent IsNot Nothing Then
                         Dim percent_done As Single = CSng((i / Loops) * 100) 'Calulate % done
-                        Params.Status.UpdatePercent.DynamicInvoke(CInt(percent_done))
+                        Params.Status.UpdatePercent.DynamicInvoke(Params.Index, CInt(percent_done))
                     End If
                     Dim packet_timer As New Stopwatch
                     packet_timer.Start()
@@ -220,7 +220,7 @@ Public Class MemoryInterface
                                 Dim transfer_seconds As Single = CSng(packet_timer.ElapsedMilliseconds) / 1000
                                 Dim bytes_per_second As UInt32 = CUInt(Math.Round(buffer_size / transfer_seconds))
                                 Dim speed_text As String = UpdateSpeed_GetText(bytes_per_second)
-                                Params.Status.UpdateSpeed.DynamicInvoke(speed_text)
+                                Params.Status.UpdateSpeed.DynamicInvoke(Params.Index, speed_text)
                             End If
                             data_stream.Flush()
                         Catch ex As Exception
@@ -275,11 +275,11 @@ Public Class MemoryInterface
                 If Params.AbortOperation Then Return False
                 Dim PacketSize As Integer = CInt(Params.BytesLeft)
                 If PacketSize > BlockSize Then PacketSize = BlockSize
-                If Params.Status.UpdateBase IsNot Nothing Then Params.Status.UpdateBase.DynamicInvoke(Params.Address)
-                If Params.Status.UpdateOperation IsNot Nothing Then Params.Status.UpdateOperation.DynamicInvoke(2) 'WRITE IMG
+                If Params.Status.UpdateBase IsNot Nothing Then Params.Status.UpdateBase.DynamicInvoke(Params.Index, Params.Address)
+                If Params.Status.UpdateOperation IsNot Nothing Then Params.Status.UpdateOperation.DynamicInvoke(Params.Index, 2) 'WRITE IMG
                 If Params.Status.UpdateTask IsNot Nothing Then
                     Dim wr_label As String = String.Format(RM.GetString("mem_writing_memory"), Format(PacketSize, "#,###"))
-                    Params.Status.UpdateTask.DynamicInvoke(wr_label)
+                    Params.Status.UpdateTask.DynamicInvoke(Params.Index, wr_label)
                 End If
                 Dim packet_data(PacketSize - 1) As Byte
                 data_stream.Read(packet_data, 0, CInt(PacketSize)) 'Reads data from the stream
@@ -291,9 +291,9 @@ Public Class MemoryInterface
                 If Not Me.NoErrors Then Return False
                 Threading.Thread.CurrentThread.Join(10) 'Pump a message
                 If Params.Verify AndAlso FlashType = MemoryType.SERIAL_SWI Then 'Verify is enabled and we are monitoring this
-                    If Params.Status.UpdateOperation IsNot Nothing Then Params.Status.UpdateOperation.DynamicInvoke(3) 'VERIFY IMG
+                    If Params.Status.UpdateOperation IsNot Nothing Then Params.Status.UpdateOperation.DynamicInvoke(Params.Index, 3) 'VERIFY IMG
                     If Params.Status.UpdateTask IsNot Nothing Then
-                        Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_data"))
+                        Params.Status.UpdateTask.DynamicInvoke(Params.Index, RM.GetString("mem_verify_data"))
                     End If
                     MainApp.DoEvents()
                     Utilities.Sleep(50)
@@ -304,7 +304,7 @@ Public Class MemoryInterface
                     If ReadResult Then
                         FailedAttempts = 0
                         If Params.Status.UpdateTask IsNot Nothing Then
-                            Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_okay"))
+                            Params.Status.UpdateTask.DynamicInvoke(Params.Index, RM.GetString("mem_verify_okay"))
                             MainApp.DoEvents()
                             Utilities.Sleep(500)
                         End If
@@ -312,10 +312,10 @@ Public Class MemoryInterface
                         If FailedAttempts = Me.RetryWriteCount Then
                             RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(Params.Address)))
                             If Params.Status.UpdateOperation IsNot Nothing Then
-                                Params.Status.UpdateOperation.DynamicInvoke(5) 'ERROR IMG
+                                Params.Status.UpdateOperation.DynamicInvoke(Params.Index, 5) 'ERROR IMG
                             End If
                             If Params.Status.UpdateTask IsNot Nothing Then
-                                Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_failed"))
+                                Params.Status.UpdateTask.DynamicInvoke(Params.Index, RM.GetString("mem_verify_failed"))
                                 Utilities.Sleep(1000)
                                 MainApp.DoEvents()
                             End If
@@ -333,12 +333,12 @@ Public Class MemoryInterface
                     Try
                         Dim bytes_per_second As UInt32 = CUInt(Math.Round(Params.BytesWritten / (Params.Timer.ElapsedMilliseconds / 1000)))
                         Dim speed_text As String = UpdateSpeed_GetText(bytes_per_second)
-                        Params.Status.UpdateSpeed.DynamicInvoke(speed_text)
+                        Params.Status.UpdateSpeed.DynamicInvoke(Params.Index, speed_text)
                     Catch ex As Exception
                     End Try
                 End If
                 If Params.Status.UpdatePercent IsNot Nothing Then
-                    Params.Status.UpdatePercent.DynamicInvoke(CInt(percent_done))
+                    Params.Status.UpdatePercent.DynamicInvoke(Params.Index, CInt(percent_done))
                 End If
             End While
             Return True 'Operation was successful
@@ -382,10 +382,10 @@ Public Class MemoryInterface
                         If Params.Status.UpdateSpeed IsNot Nothing Then
                             Dim bytes_per_second As UInt32 = CUInt(Math.Round(Params.BytesWritten / (Params.Timer.ElapsedMilliseconds / 1000)))
                             Dim speed_text As String = UpdateSpeed_GetText(bytes_per_second)
-                            Params.Status.UpdateSpeed.DynamicInvoke(speed_text)
+                            Params.Status.UpdateSpeed.DynamicInvoke(Params.Index, speed_text)
                         End If
                         If Params.Status.UpdatePercent IsNot Nothing Then
-                            Params.Status.UpdatePercent.DynamicInvoke(CInt(percent_done))
+                            Params.Status.UpdatePercent.DynamicInvoke(Params.Index, CInt(percent_done))
                         End If
                     Else
                         If (FlashType = MemoryType.PARALLEL_NAND) OrElse (FlashType = MemoryType.SERIAL_NAND) Then
@@ -420,14 +420,14 @@ Public Class MemoryInterface
                     data_stream.Read(packet_data, 0, PacketSize) 'Reads data from the stream
                     If Params.Status.UpdateTask IsNot Nothing Then
                         Dim wr_label As String = String.Format(RM.GetString("mem_writing_memory"), Format(PacketSize, "#,###"))
-                        Params.Status.UpdateTask.DynamicInvoke(wr_label)
+                        Params.Status.UpdateTask.DynamicInvoke(Params.Index, wr_label)
                         MainApp.DoEvents()
                     End If
                     If Params.Status.UpdateOperation IsNot Nothing Then
-                        Params.Status.UpdateOperation.DynamicInvoke(2) 'WRITE IMG
+                        Params.Status.UpdateOperation.DynamicInvoke(Params.Index, 2) 'WRITE IMG
                     End If
                     If Params.Status.UpdateBase IsNot Nothing Then
-                        Params.Status.UpdateBase.DynamicInvoke(Params.Address)
+                        Params.Status.UpdateBase.DynamicInvoke(Params.Index, Params.Address)
                     End If
                     Params.Timer.Start()
                     Dim i2c_result As Boolean = Me.MEM_IF.WriteData(Params.Address, packet_data)
@@ -439,26 +439,26 @@ Public Class MemoryInterface
                     Dim write_result As Boolean = True
                     If Params.Verify Then
                         If Params.Status.UpdateTask IsNot Nothing Then
-                            Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_data"))
+                            Params.Status.UpdateTask.DynamicInvoke(Params.Index, RM.GetString("mem_verify_data"))
                             MainApp.DoEvents()
                         End If
                         If Params.Status.UpdateOperation IsNot Nothing Then
-                            Params.Status.UpdateOperation.DynamicInvoke(3) 'VERIFY IMG
+                            Params.Status.UpdateOperation.DynamicInvoke(Params.Index, 3) 'VERIFY IMG
                         End If
                         write_result = WriteBytes_VerifyWrite(Params.Address, packet_data)
                         If write_result Then
                             If Params.Status.UpdateTask IsNot Nothing Then
-                                Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_okay"))
+                                Params.Status.UpdateTask.DynamicInvoke(Params.Index, RM.GetString("mem_verify_okay"))
                                 MainApp.DoEvents()
                                 Utilities.Sleep(500)
                             End If
                         Else 'Write failed
                             RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(Params.Address)))
                             If Params.Status.UpdateOperation IsNot Nothing Then
-                                Params.Status.UpdateOperation.DynamicInvoke(5) 'ERROR IMG
+                                Params.Status.UpdateOperation.DynamicInvoke(Params.Index, 5) 'ERROR IMG
                             End If
                             If Params.Status.UpdateTask IsNot Nothing Then
-                                Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_failed"))
+                                Params.Status.UpdateTask.DynamicInvoke(Params.Index, RM.GetString("mem_verify_failed"))
                                 Utilities.Sleep(1000)
                                 MainApp.DoEvents()
                             End If
@@ -472,10 +472,10 @@ Public Class MemoryInterface
                         If Params.Status.UpdateSpeed IsNot Nothing Then
                             Dim bytes_per_second As UInt32 = CUInt(Math.Round(BytesTransfered / (Params.Timer.ElapsedMilliseconds / 1000)))
                             Dim speed_text As String = UpdateSpeed_GetText(bytes_per_second)
-                            Params.Status.UpdateSpeed.DynamicInvoke(speed_text)
+                            Params.Status.UpdateSpeed.DynamicInvoke(Params.Index, speed_text)
                         End If
                         If Params.Status.UpdatePercent IsNot Nothing Then
-                            Params.Status.UpdatePercent.DynamicInvoke(CInt(percent_done))
+                            Params.Status.UpdatePercent.DynamicInvoke(Params.Index, CInt(percent_done))
                         End If
                     Else 'Write/verification failed
                         Return False
@@ -504,15 +504,15 @@ Public Class MemoryInterface
                 Dim FailedAttempts As Integer = 0
                 Dim ReadResult As Boolean
                 Do
-                    If Params.Status.UpdateBase IsNot Nothing Then Params.Status.UpdateBase.DynamicInvoke(Params.Address)
+                    If Params.Status.UpdateBase IsNot Nothing Then Params.Status.UpdateBase.DynamicInvoke(Params.Index, Params.Address)
                     If Params.AbortOperation Then Return False
                     If Not Me.NoErrors Then Return False
                     If Params.EraseSector Then
                         If Params.Status.UpdateOperation IsNot Nothing Then
-                            Params.Status.UpdateOperation.DynamicInvoke(4) 'ERASE IMG
+                            Params.Status.UpdateOperation.DynamicInvoke(Params.Index, 4) 'ERASE IMG
                         End If
                         If Params.Status.UpdateTask IsNot Nothing Then
-                            Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_erasing_sector"))
+                            Params.Status.UpdateTask.DynamicInvoke(Params.Index, RM.GetString("mem_erasing_sector"))
                         End If
                         EraseSector(sector)
                         If Not Me.NoErrors Then
@@ -521,21 +521,21 @@ Public Class MemoryInterface
                         End If
                     End If
                     If Params.Status.UpdateOperation IsNot Nothing Then
-                        Params.Status.UpdateOperation.DynamicInvoke(2) 'WRITE IMG
+                        Params.Status.UpdateOperation.DynamicInvoke(Params.Index, 2) 'WRITE IMG
                     End If
                     If Params.Status.UpdateTask IsNot Nothing Then
                         Dim wr_label As String = String.Format(RM.GetString("mem_writing_memory"), Format(data.Length, "#,###"))
-                        Params.Status.UpdateTask.DynamicInvoke(wr_label)
+                        Params.Status.UpdateTask.DynamicInvoke(Params.Index, wr_label)
                     End If
                     WriteSector(sector, data, Params)
                     If Params.AbortOperation Then Return False
                     If Not Me.NoErrors Then Return False
                     If Params.Verify Then 'Verify is enabled and we are monitoring this
                         If Params.Status.UpdateOperation IsNot Nothing Then
-                            Params.Status.UpdateOperation.DynamicInvoke(3) 'VERIFY IMG
+                            Params.Status.UpdateOperation.DynamicInvoke(Params.Index, 3) 'VERIFY IMG
                         End If
                         If Params.Status.UpdateTask IsNot Nothing Then
-                            Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_data"))
+                            Params.Status.UpdateTask.DynamicInvoke(Params.Index, RM.GetString("mem_verify_data"))
                         End If
                         MainApp.DoEvents()
                         If (Me.FlashType = MemoryType.PARALLEL_NOR) Then
@@ -547,12 +547,12 @@ Public Class MemoryInterface
                         If ReadResult Then
                             FailedAttempts = 0
                             If Params.Status.UpdateTask IsNot Nothing Then
-                                Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_okay"))
+                                Params.Status.UpdateTask.DynamicInvoke(Params.Index, RM.GetString("mem_verify_okay"))
                             End If
                         Else
                             If FailedAttempts = Me.RetryWriteCount Then
                                 If (FlashType = FlashMemory.MemoryType.PARALLEL_NAND) Then
-                                    Dim PNAND_IF As PARALLEL_NAND = CType(Me.MEM_IF, PARALLEL_NAND)
+                                    Dim PNAND_IF As PNAND_Programmer = CType(Me.MEM_IF, PNAND_Programmer)
                                     Dim n_dev As P_NAND = PNAND_IF.MyFlashDevice
                                     Dim pages_per_block As Integer = (n_dev.Block_Size \ n_dev.PAGE_SIZE)
                                     Dim page_addr As Integer = NAND_LayoutTool.GetNandPageAddress(n_dev, Params.Address, PNAND_IF.MemoryArea)
@@ -570,10 +570,10 @@ Public Class MemoryInterface
                                 Else
                                     RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(Params.Address)))
                                     If Params.Status.UpdateOperation IsNot Nothing Then
-                                        Params.Status.UpdateOperation.DynamicInvoke(5) 'ERROR IMG
+                                        Params.Status.UpdateOperation.DynamicInvoke(Params.Index, 5) 'ERROR IMG
                                     End If
                                     If Params.Status.UpdateTask IsNot Nothing Then
-                                        Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_failed"))
+                                        Params.Status.UpdateTask.DynamicInvoke(Params.Index, RM.GetString("mem_verify_failed"))
                                         Utilities.Sleep(1000)
                                     End If
                                     If (FlashType = FlashMemory.MemoryType.OTP_EPROM) Then Return False 'We can not erase twice
@@ -648,8 +648,6 @@ Public Class MemoryInterface
         Public Sub ReadMode()
             If Me.MEM_IF.GetType() Is GetType(BSR_Programmer) Then
                 DirectCast(Me.MEM_IF, BSR_Programmer).ResetDevice()
-            ElseIf Me.MEM_IF.GetType() Is GetType(LINK_Programmer) Then
-                DirectCast(Me.MEM_IF, LINK_Programmer).ResetDevice()
             Else
                 Select Case Me.FlashType
                     Case MemoryType.PARALLEL_NOR
@@ -858,7 +856,7 @@ Public Class MemoryInterface
             Case DeviceMode.PNOR, DeviceMode.P_EEPROM
                 PROG_IF = New PARALLEL_NOR(usb_dev)
             Case DeviceMode.PNAND
-                PROG_IF = New PARALLEL_NAND(usb_dev)
+                PROG_IF = New PNAND_Programmer(usb_dev)
             Case DeviceMode.FWH
                 PROG_IF = New FWH_Programmer(usb_dev)
             Case DeviceMode.EPROM

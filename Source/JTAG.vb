@@ -4,7 +4,6 @@
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'ACKNOWLEDGEMENT: USB driver functionality provided by LibUsbDotNet (sourceforge.net/projects/libusbdotnet)
 
-Imports System.Net.Mime.MediaTypeNames
 Imports FlashcatUSB.FlashMemory
 
 Namespace JTAG
@@ -1777,6 +1776,7 @@ Namespace JTAG
         Private Sub BSDL_Init()
             PrintAddedToDB = False
             BSDL_DATABASE.Clear()
+            Dim ScriptPath As String = (New IO.FileInfo(MyLocation)).DirectoryName & "\Scripts\"
             Dim script_io As New IO.DirectoryInfo(ScriptPath)
             Dim fn_out As New IO.DirectoryInfo(script_io.Parent.FullName & "\JTAG_BSDL\")
             If fn_out.Exists Then
@@ -1794,6 +1794,7 @@ Namespace JTAG
         End Sub
 
         Private Sub WriteBSDL(bsdl_name As String, d As BSDL_DEF)
+            Dim ScriptPath As String = (New IO.FileInfo(MyLocation)).DirectoryName & "\Scripts\"
             Dim script_io As New IO.DirectoryInfo(ScriptPath)
             Dim fn_out As New IO.DirectoryInfo(script_io.Parent.FullName & "\JTAG_BSDL\")
             Dim fnname As String = fn_out.FullName & bsdl_name & ".fcs"

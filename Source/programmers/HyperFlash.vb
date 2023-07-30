@@ -301,5 +301,8 @@ Public Class HF_Programmer : Implements MemoryDeviceUSB
         Return (CUShort(data_out(1)) << 8) Or data_out(0)
     End Function
 
+    Public Function GetUsbDevice() As USB.FCUSB_DEVICE Implements MemoryDeviceUSB.GetUsbDevice
+        Return Me.FCUSB
+    End Function
 
 End Class

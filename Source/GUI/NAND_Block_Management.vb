@@ -47,8 +47,8 @@ Public Class NAND_Block_Management
     Private Sub NAND_Block_Management_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.MinimumSize = Me.Size
         Me.MaximumSize = New Size(Me.Size.Width, 5000)
-        If NAND_IF.GetType().Equals(GetType(PARALLEL_NAND)) Then
-            Dim PNAND_IF As PARALLEL_NAND = CType(NAND_IF, PARALLEL_NAND)
+        If NAND_IF.GetType().Equals(GetType(PNAND_Programmer)) Then
+            Dim PNAND_IF As PNAND_Programmer = CType(NAND_IF, PNAND_Programmer)
             MyMap = PNAND_IF.BlockManager.MAP
         ElseIf NAND_IF.GetType().Equals(GetType(SPINAND_Programmer)) Then
             Dim SNAND_IF As SPINAND_Programmer = CType(NAND_IF, SPINAND_Programmer)
@@ -289,8 +289,8 @@ Public Class NAND_Block_Management
                 Do 'Write block up to 3 times
                     ValidBlock = True
                     Dim verify_data() As Byte = Nothing
-                    If NAND_IF.GetType().Equals(GetType(PARALLEL_NAND)) Then
-                        Dim PNAND_IF As PARALLEL_NAND = CType(NAND_IF, PARALLEL_NAND)
+                    If NAND_IF.GetType().Equals(GetType(PNAND_Programmer)) Then
+                        Dim PNAND_IF As PNAND_Programmer = CType(NAND_IF, PNAND_Programmer)
                         PNAND_IF.SectorErase_Physical(block_info.PagePhysical)
                         PNAND_IF.WritePages_Physical(block_info.PagePhysical, test_data, FlashMemory.FlashArea.All)
                         Utilities.Sleep(20)
@@ -308,8 +308,8 @@ Public Class NAND_Block_Management
                     End If
                     If ValidBlock Then Exit Do
                 Loop While (ErrorCount < 3)
-                If NAND_IF.GetType().Equals(GetType(PARALLEL_NAND)) Then
-                    Dim PNAND_IF As PARALLEL_NAND = CType(NAND_IF, PARALLEL_NAND)
+                If NAND_IF.GetType().Equals(GetType(PNAND_Programmer)) Then
+                    Dim PNAND_IF As PNAND_Programmer = CType(NAND_IF, PNAND_Programmer)
                     PNAND_IF.SectorErase_Physical(block_info.PagePhysical)
                 ElseIf NAND_IF.GetType().Equals(GetType(SPINAND_Programmer)) Then
                     Dim SNAND_IF As SPINAND_Programmer = CType(NAND_IF, SPINAND_Programmer)
@@ -345,8 +345,8 @@ Public Class NAND_Block_Management
                             If second_page Is Nothing Then ReDim second_page(PAGE_SIZE_TOTAL - 1) : Utilities.FillByteArray(second_page, 255)
                             second_page(oob_area + 5) = 0
                         End If
-                        If NAND_IF.GetType().Equals(GetType(PARALLEL_NAND)) Then
-                            Dim PNAND_IF As PARALLEL_NAND = CType(NAND_IF, PARALLEL_NAND)
+                        If NAND_IF.GetType().Equals(GetType(PNAND_Programmer)) Then
+                            Dim PNAND_IF As PNAND_Programmer = CType(NAND_IF, PNAND_Programmer)
                             If first_page IsNot Nothing Then
                                 PNAND_IF.SectorWrite(block_info.PagePhysical, first_page)
                             End If

@@ -1487,7 +1487,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to La carte Parallèle NOR Mode a été initialisée correctement.
+        '''  Looks up a localized string similar to La carte I/O Mode a été initialisée correctement.
         '''</summary>
         Friend Shared ReadOnly Property io_mode_initalized() As String
             Get

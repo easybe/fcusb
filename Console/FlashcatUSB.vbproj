@@ -1,0 +1,102 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>FlashcatUSB</RootNamespace>
+    <TargetFramework>net6.0</TargetFramework>
+    <StartupObject>FlashcatUSB.MainApp</StartupObject>
+    <AssemblyName>fcusb_console</AssemblyName>
+    <SignAssembly>false</SignAssembly>
+    <DelaySign>false</DelaySign>
+    <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DefineConstants>ECC_INCLUDED = False</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DefineConstants>ECC_INCLUDED = False</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Source\AppClasses.vb" Link="Shared\AppClasses.vb" />
+    <Compile Include="..\Source\ArrayExtension.vb" Link="Shared\ArrayExtension.vb" />
+    <Compile Include="..\Source\CFI.vb" Link="Shared\CFI.vb" />
+    <Compile Include="..\Source\Configuration.vb" Link="Shared\Configuration.vb" />
+    <Compile Include="..\Source\DetectDevice.vb" Link="Shared\DetectDevice.vb" />
+    <Compile Include="..\Source\ECC.vb" Link="Shared\ECC.vb" />
+    <Compile Include="..\Source\Enum.vb" Link="Shared\Enum.vb" />
+    <Compile Include="..\Source\FileFormat_IHEX.vb" Link="Shared\FileFormat_IHEX.vb" />
+    <Compile Include="..\Source\FileFormat_SREC.vb" Link="Shared\FileFormat_SREC.vb" />
+    <Compile Include="..\Source\Firmware.vb" Link="Shared\Firmware.vb" />
+    <Compile Include="..\Source\FlashMemory.vb" Link="Shared\FlashMemory.vb" />
+    <Compile Include="..\Source\JTAG.vb" Link="Shared\JTAG.vb" />
+    <Compile Include="..\Source\JTAG_SVF_Player.vb" Link="Shared\JTAG_SVF_Player.vb" />
+    <Compile Include="..\Source\languages\chinese.Designer.vb" Link="Languages\chinese.Designer.vb" />
+    <Compile Include="..\Source\languages\english.Designer.vb" Link="Languages\english.Designer.vb" />
+    <Compile Include="..\Source\languages\french.Designer.vb" Link="Languages\french.Designer.vb" />
+    <Compile Include="..\Source\languages\german.Designer.vb" Link="Languages\german.Designer.vb" />
+    <Compile Include="..\Source\languages\italian.Designer.vb" Link="Languages\italian.Designer.vb" />
+    <Compile Include="..\Source\languages\portuguese.Designer.vb" Link="Languages\portuguese.Designer.vb" />
+    <Compile Include="..\Source\languages\russian.Designer.vb" Link="Languages\russian.Designer.vb" />
+    <Compile Include="..\Source\languages\spanish.Designer.vb" Link="Languages\spanish.Designer.vb" />
+    <Compile Include="..\Source\MemoryDevice.vb" Link="Shared\MemoryDevice.vb" />
+    <Compile Include="..\Source\MemoryInterface.vb" Link="Shared\MemoryInterface.vb" />
+    <Compile Include="..\Source\NAND_Block_Manager.vb" Link="Shared\NAND_Block_Manager.vb" />
+    <Compile Include="..\Source\ProgLogic.vb" Link="Shared\ProgLogic.vb" />
+    <Compile Include="..\Source\programmers\DFU.vb" Link="Programmers\DFU.vb" />
+    <Compile Include="..\Source\programmers\EPROM.vb" Link="Programmers\EPROM.vb" />
+    <Compile Include="..\Source\programmers\FWH.vb" Link="Programmers\FWH.vb" />
+    <Compile Include="..\Source\programmers\HyperFlash.vb" Link="Programmers\HyperFlash.vb" />
+    <Compile Include="..\Source\programmers\I2C.vb" Link="Programmers\I2C.vb" />
+    <Compile Include="..\Source\programmers\JTAG_BSR.vb" Link="Programmers\JTAG_BSR.vb" />
+    <Compile Include="..\Source\programmers\Microwire.vb" Link="Programmers\Microwire.vb" />
+    <Compile Include="..\Source\programmers\PARALLEL_NAND.vb" Link="Programmers\PARALLEL_NAND.vb" />
+    <Compile Include="..\Source\programmers\PARALLEL_NOR.vb" Link="Programmers\PARALLEL_NOR.vb" />
+    <Compile Include="..\Source\programmers\SPI_NAND.vb" Link="Programmers\SPI_NAND.vb" />
+    <Compile Include="..\Source\programmers\SPI_NOR.vb" Link="Programmers\SPI_NOR.vb" />
+    <Compile Include="..\Source\programmers\SPI_QUAD.vb" Link="Programmers\SPI_QUAD.vb" />
+    <Compile Include="..\Source\programmers\SWI.vb" Link="Programmers\SWI.vb" />
+    <Compile Include="..\Source\ScriptEngine.vb" Link="Shared\ScriptEngine.vb" />
+    <Compile Include="..\Source\ScriptExtension.vb" Link="Shared\ScriptExtension.vb" />
+    <Compile Include="..\Source\USB.vb" Link="Shared\USB.vb" />
+    <Compile Include="..\Source\Utilities.vb" Link="Shared\Utilities.vb" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Firmware\" />
+    <Folder Include="Languages\" />
+    <Folder Include="Shared\" />
+    <Folder Include="Programmers\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\Firmware\CLASSIC_U2.hex" Link="Firmware\CLASSIC_U2.hex" />
+    <EmbeddedResource Include="..\Firmware\CLASSIC_U4.hex" Link="Firmware\CLASSIC_U4.hex" />
+    <EmbeddedResource Include="..\Firmware\MACH1_1V8.bit" Link="Firmware\MACH1_1V8.bit" />
+    <EmbeddedResource Include="..\Firmware\MACH1_3V3.bit" Link="Firmware\MACH1_3V3.bit" />
+    <EmbeddedResource Include="..\Firmware\MACH1_ERASE.svf" Link="Firmware\MACH1_ERASE.svf" />
+    <EmbeddedResource Include="..\Firmware\MACH1_SPI_1V8.bit" Link="Firmware\MACH1_SPI_1V8.bit" />
+    <EmbeddedResource Include="..\Firmware\MACH1_SPI_3V.bit" Link="Firmware\MACH1_SPI_3V.bit" />
+    <EmbeddedResource Include="..\Firmware\Mach1_v2_Source.bin" Link="Firmware\Mach1_v2_Source.bin" />
+    <EmbeddedResource Include="..\Firmware\PCB5_Source.bin" Link="Firmware\PCB5_Source.bin" />
+    <EmbeddedResource Include="..\Firmware\PRO5_1V8.bit" Link="Firmware\PRO5_1V8.bit" />
+    <EmbeddedResource Include="..\Firmware\PRO5_3V.bit" Link="Firmware\PRO5_3V.bit" />
+    <EmbeddedResource Include="..\Firmware\XPORT_PCB2.hex" Link="Firmware\XPORT_PCB2.hex" />
+    <EmbeddedResource Include="..\Source\languages\chinese.resx" Link="Languages\chinese.resx" />
+    <EmbeddedResource Include="..\Source\languages\english.resx" Link="Languages\english.resx" />
+    <EmbeddedResource Include="..\Source\languages\french.resx" Link="Languages\french.resx" />
+    <EmbeddedResource Include="..\Source\languages\german.resx" Link="Languages\german.resx" />
+    <EmbeddedResource Include="..\Source\languages\italian.resx" Link="Languages\italian.resx" />
+    <EmbeddedResource Include="..\Source\languages\portuguese.resx" Link="Languages\portuguese.resx" />
+    <EmbeddedResource Include="..\Source\languages\russian.resx" Link="Languages\russian.resx" />
+    <EmbeddedResource Include="..\Source\languages\spanish.resx" Link="Languages\spanish.resx" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LibUsbDotNet" Version="2.2.29" />
+  </ItemGroup>
+
+</Project>

@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2021 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2023 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB PRODUCTS
 'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
@@ -8,7 +8,7 @@ Imports FlashcatUSB.ECC_LIB
 Imports FlashcatUSB.FlashMemory
 Imports FlashcatUSB.USB
 
-Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
+Public Class PNAND_Programmer : Implements MemoryDeviceUSB
     Private FCUSB As FCUSB_DEVICE
     Public Property MyFlashDevice As P_NAND
     Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
@@ -26,6 +26,8 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
     Public Property Clock As NandMemSpeed = NandMemSpeed._10MHz
     Public Property PreserveAreas As Boolean = True
     Public Property BadBlockMode As BadBlockMarker = BadBlockMarker.Disabled
+
+    Public ECC_ENG As ECC_Engine
 
     Sub New(parent_if As FCUSB_DEVICE)
         FCUSB = parent_if
@@ -56,9 +58,7 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
                 MyFlashDevice_SelectBest(device_matches)
                 RaiseEvent PrintConsole(String.Format(RM.GetString("flash_detected"), MyFlashDevice.NAME, Format(MyFlashDevice.FLASH_SIZE, "#,###")))
                 RaiseEvent PrintConsole(RM.GetString("ext_prog_mode"))
-
                 PrintPageAndBlockInformation()
-
                 If MyFlashDevice.IFACE = VCC_IF.X8_3V Then
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NAND (X8 3.3V)")
                 ElseIf MyFlashDevice.IFACE = VCC_IF.X8_1V8 Then
@@ -103,7 +103,6 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
                     RaiseEvent PrintConsole(String.Format("Total bad blocks: {0}", TotalBadBlocks))
                     RaiseEvent PrintConsole(String.Format(RM.GetString("nand_mem_map_complete"), Format(BlockManager.MAPPED_PAGES, "#,###")))
                 End If
-                ECC_LoadConfiguration(MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT)
                 Utilities.Sleep(10) 'We need to wait here (device is being configured)
                 Me.MyFlashStatus = DeviceStatus.Supported
                 Return True
@@ -477,7 +476,7 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
         Try
             Dim NAND_PACKET As UInt32 = 1
             Dim result As Boolean
-            If NAND_ECC IsNot Nothing AndAlso (memory_area = FlashArea.Main) Then 'We need to auto-correct data uisng ECC
+            If ECC_ENG IsNot Nothing AndAlso (memory_area = FlashArea.Main) Then 'We need to auto-correct data uisng ECC
                 Dim page_count As Integer = CInt(Math.Ceiling((count + page_offset) / MyFlashDevice.PAGE_SIZE)) 'Number of complete pages and OOB to read and correct
                 Dim total_main_bytes As Integer = (page_count * MyFlashDevice.PAGE_SIZE)
                 Dim total_oob_bytes As Integer = (page_count * MyFlashDevice.PAGE_EXT)
@@ -489,9 +488,9 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
                 setup_data = SetupPacket_NAND(phy_page_index, 0, oob_area_data.Length, FlashArea.OOB)
                 result = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, oob_area_data, NAND_PACKET)
                 If Not result Then Return Nothing
-                Dim ecc_data() As Byte = NAND_ECC.GetEccFromSpare(oob_area_data, MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT) 'This strips out the ecc data from the spare area
-                ECC_LAST_RESULT = NAND_ECC.ReadData(main_area_data, ecc_data) 'This processes the flash data (512 bytes at a time) and corrects for any errors using the ECC
-                If ECC_LAST_RESULT = ECC_DECODE_RESULT.Uncorractable Then
+                Dim ecc_data() As Byte = ECC_ENG.GetEccFromSpare(oob_area_data, MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT) 'This strips out the ecc data from the spare area
+                ECC_ENG.ReadData(main_area_data, ecc_data) 'This processes the flash data (512 bytes at a time) and corrects for any errors using the ECC
+                If ECC_ENG.GetLastResult() = ECC_DECODE_RESULT.Uncorractable Then
                     Dim logical_addr As Long = (phy_page_index * CLng(MyFlashDevice.PAGE_SIZE)) + page_offset
                     RaiseEvent PrintConsole("ECC failed at: 0x" & Hex(logical_addr).PadLeft(8, "0"c))
                 End If
@@ -524,15 +523,15 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
                 For i = 0 To page_aligned.Length - 1 : page_aligned(i) = 255 : Next
                 Array.Copy(main_data, 0, page_aligned, 0, main_data.Length)
             ElseIf memory_area = FlashArea.Main Then
-                If NAND_ECC IsNot Nothing Then
+                If ECC_ENG IsNot Nothing Then
                     If oob_data Is Nothing Then
                         Dim o_size As Integer = ((main_data.Length \ MyFlashDevice.PAGE_SIZE) * MyFlashDevice.PAGE_EXT)
                         ReDim oob_data(o_size - 1)
                         Utilities.FillByteArray(oob_data, 255)
                     End If
                     Dim ecc_data() As Byte = Nothing
-                    NAND_ECC.WriteData(main_data, ecc_data)
-                    NAND_ECC.SetEccToSpare(oob_data, ecc_data, MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT)
+                    ECC_ENG.WriteData(main_data, ecc_data)
+                    ECC_ENG.SetEccToSpare(oob_data, ecc_data, MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT)
                 End If
                 page_aligned = NAND_LayoutTool.CreatePageAligned(MyFlashDevice, main_data, oob_data)
             ElseIf memory_area = FlashArea.OOB Then
@@ -613,6 +612,9 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
         Return setup_data
     End Function
 
+    Public Function GetUsbDevice() As FCUSB_DEVICE Implements MemoryDeviceUSB.GetUsbDevice
+        Return Me.FCUSB
+    End Function
 
 
 End Class

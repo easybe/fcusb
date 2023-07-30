@@ -21,6 +21,7 @@ Public Module MainApp
     Public CURRENT_DEVICE_MODE As DeviceMode
     Public AppIsClosing As Boolean = False
     Public WithEvents ScriptProcessor As New EC_ScriptEngine.Processor
+    Public WithEvents ScriptExt As ScriptExtension
     Public WithEvents USBCLIENT As New HostClient
     Public ScriptPath As String = (New IO.FileInfo(MyLocation)).DirectoryName & "\Scripts\"
     Public Platform As String
@@ -29,8 +30,6 @@ Public Module MainApp
     Public WithEvents MEM_IF As New MemoryInterface 'Contains API to access the various memory devices
     Public WithEvents MAIN_FCUSB As FCUSB_DEVICE = Nothing
     Public NAND_LayoutTool As NAND_LAYOUT_TOOL
-
-    Public Const IS_DEBUG_VER As Boolean = False
 
     Sub Main(ParamArray args() As String)
         Try 'This makes it only allow one instance
@@ -48,10 +47,9 @@ Public Module MainApp
         Thread.CurrentThread.CurrentCulture = Globalization.CultureInfo.CreateSpecificCulture("en-US")
         LicenseSystem_Init()
         CUSTOM_SPI_DEV = New SPI_NOR("User-defined", VCC_IF.SERIAL_3V, 1048576, 0, 0)
-        If NAND_ECC_CFG Is Nothing Then NAND_ECC_CFG = GenerateLocalEccConfigurations()
         Thread.CurrentThread.Name = "rootApp"
         Platform = Environment.OSVersion.Platform & " (" & Utilities.GetOsBitsString() & ")"
-        ScriptApplication.AddInternalMethods()
+        ScriptExt = New ScriptExtension(ScriptProcessor)
         USBCLIENT.StartService()
 
         'Dim arg_list As New List(Of String)
@@ -90,6 +88,9 @@ Public Module MainApp
         'PrintConsole(message, True)
     End Sub
 
+    Private Sub ScriptExt_GetSelectedDevce(ByRef usb_dev As FCUSB_DEVICE) Handles ScriptExt.GetSelectedDevce
+        usb_dev = MAIN_FCUSB
+    End Sub
 
 #Region "License System"
 
@@ -154,75 +155,6 @@ Public Module MainApp
 
 #End Region
 
-#Region "Error correcting code"
-    Public NAND_ECC_CFG() As ECC_LIB.ECC_Configuration_Entry
-    Public NAND_ECC As ECC_LIB.Engine
-
-    Public Property ECC_LAST_RESULT As ECC_LIB.ECC_DECODE_RESULT = ECC_LIB.ECC_DECODE_RESULT.NoErrors
-    'Returns number of bytes for a given ECC configuration
-    Public Sub ECC_LoadConfiguration(page_size As Integer, spare_size As Integer)
-        NAND_ECC = Nothing
-        If NAND_ECC_CFG Is Nothing OrElse (Not MySettings.ECC_FEATURE_ENABLED) Then Exit Sub
-        PrintConsole("ECC Feature is enabled")
-        For i = 0 To NAND_ECC_CFG.Length - 1
-            If NAND_ECC_CFG(i).IsValid() Then
-                If NAND_ECC_CFG(i).PageSize = page_size AndAlso NAND_ECC_CFG(i).SpareSize = spare_size Then
-                    NAND_ECC = New ECC_LIB.Engine(NAND_ECC_CFG(i).Algorithm, NAND_ECC_CFG(i).BitError, NAND_ECC_CFG(i).SymSize)
-                    NAND_ECC.REVERSE_ARRAY = NAND_ECC_CFG(i).ReverseData
-                    NAND_ECC.ECC_DATA_LOCATION = NAND_ECC_CFG(i).EccRegion
-                    PrintConsole("Compatible profile found at index " & (i + 1).ToString)
-                    Exit Sub
-                End If
-            End If
-        Next
-        PrintConsole("No compatible profile found")
-    End Sub
-
-    Public Function GenerateLocalEccConfigurations() As ECC_LIB.ECC_Configuration_Entry()
-        Dim cfg_list As New List(Of ECC_LIB.ECC_Configuration_Entry)
-
-        Dim n1 As New ECC_LIB.ECC_Configuration_Entry()
-        n1.PageSize = 512
-        n1.SpareSize = 16
-        n1.Algorithm = ECC_LIB.ecc_algorithum.hamming
-        n1.BitError = 1
-        n1.SymSize = 0
-        n1.ReverseData = False
-        n1.AddRegion(&HD)
-
-        Dim n2 As New ECC_LIB.ECC_Configuration_Entry()
-        n2.PageSize = 2048
-        n2.SpareSize = 64
-        n2.Algorithm = ECC_LIB.ecc_algorithum.reedsolomon
-        n2.BitError = 4
-        n2.SymSize = 9
-        n2.ReverseData = False
-        n2.AddRegion(&H7)
-        n2.AddRegion(&H17)
-        n2.AddRegion(&H27)
-        n2.AddRegion(&H37)
-
-        Dim n3 As New ECC_LIB.ECC_Configuration_Entry()
-        n3.PageSize = 2048
-        n3.SpareSize = 128
-        n3.Algorithm = ECC_LIB.ecc_algorithum.bhc
-        n3.BitError = 8
-        n3.SymSize = 0
-        n3.ReverseData = False
-        n3.AddRegion(&H13)
-        n3.AddRegion(&H33)
-        n3.AddRegion(&H53)
-        n3.AddRegion(&H73)
-
-        cfg_list.Add(n1)
-        cfg_list.Add(n2)
-        cfg_list.Add(n3)
-
-        Return cfg_list.ToArray
-    End Function
-
-#End Region
-
 #Region "SPI Settings"
 
     Public Function GetSpiClockString(usb_dev As FCUSB_DEVICE, desired_speed As UInt32) As String
@@ -251,30 +183,8 @@ Public Module MainApp
         Return CType(desired_speed, SQI_SPEED)
     End Function
 
-    Public Function GetDevices_SERIAL_EEPROM() As SPI_NOR()
-        Dim spi_eeprom As New List(Of SPI_NOR)
-        Dim d() As Device = FlashDatabase.GetFlashDevices(MemoryType.SERIAL_NOR)
-        For Each dev As SPI_NOR In d
-            If DirectCast(dev, SPI_NOR).ProgramMode = SPI_PROG.SPI_EEPROM Then
-                spi_eeprom.Add(dev)
-            ElseIf DirectCast(dev, SPI_NOR).ProgramMode = SPI_PROG.Nordic Then
-                spi_eeprom.Add(dev)
-            End If
-        Next
-        Return spi_eeprom.ToArray
-    End Function
-
-    Public Function GetDevices_PARALLEL_EEPROM() As P_NOR()
-        Dim par_ee_list As New List(Of P_NOR)
-        Dim d() As Device = FlashDatabase.GetFlashDevices(MemoryType.PARALLEL_NOR)
-        For Each dev As P_NOR In d
-            If dev.WriteMode = MFP_PRG.EEPROM Then par_ee_list.Add(dev)
-        Next
-        Return par_ee_list.ToArray
-    End Function
-
     Public Function SPIEEPROM_Configure(SPI_IF As SPI_Programmer, eeprom_name As String) As Boolean
-        Dim all_eeprom_devices() As SPI_NOR = GetDevices_SERIAL_EEPROM()
+        Dim all_eeprom_devices() As SPI_NOR = FlashDatabase.GetDevices_SERIAL_EEPROM()
         Dim eeprom As SPI_NOR = Nothing
         For Each ee_dev In all_eeprom_devices
             If ee_dev.NAME.Equals(eeprom_name) Then
@@ -482,6 +392,10 @@ Public Module MainApp
 
     Private Sub IF_WriteSuccessful(mydev As MemoryDeviceInstance, x_oper As MemControl_v2.XFER_Operation)
         'GUI.SuccessfulWriteOperation(mydev, x_oper)
+    End Sub
+
+    Public Sub ECC_Init(mem_dev As MemoryDeviceUSB)
+        'Nothing to do
     End Sub
 
     Private Sub IF_WriteFailed(mydev As MemoryDeviceInstance, Params As WriteParameters, ByRef ContinueOperation As Boolean)

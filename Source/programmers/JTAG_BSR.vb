@@ -439,4 +439,8 @@ Public Class BSR_Programmer : Implements MemoryDeviceUSB
         Return data_in
     End Function
 
+    Public Function GetUsbDevice() As USB.FCUSB_DEVICE Implements MemoryDeviceUSB.GetUsbDevice
+        Return Me.FCUSB
+    End Function
+
 End Class

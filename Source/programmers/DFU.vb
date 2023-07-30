@@ -2,7 +2,7 @@
 Imports FlashcatUSB.FlashMemory
 
 Public Class DFU_Programmer : Implements MemoryDeviceUSB
-    Public FCUSB As USB.FCUSB_DEVICE
+    Private FCUSB As USB.FCUSB_DEVICE
 
     Private transaction As Integer = 0
 
@@ -351,5 +351,10 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
             Return False
         End Try
     End Function
+
+    Public Function GetUsbDevice() As USB.FCUSB_DEVICE Implements MemoryDeviceUSB.GetUsbDevice
+        Return Me.FCUSB
+    End Function
+
 
 End Class

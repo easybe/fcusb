@@ -1,5 +1,9 @@
 ﻿Public Interface MemoryDeviceUSB
     ''' <summary>
+    ''' Returns the USB handler for this device
+    ''' </summary>
+    Function GetUsbDevice() As USB.FCUSB_DEVICE
+    ''' <summary>
     ''' Sends text messages to our underlying application
     ''' </summary>
     Event PrintConsole(message As String)

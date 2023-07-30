@@ -182,4 +182,8 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         Return False 'Not supported
     End Function
 
+    Public Function GetUsbDevice() As USB.FCUSB_DEVICE Implements MemoryDeviceUSB.GetUsbDevice
+        Return Me.FCUSB
+    End Function
+
 End Class

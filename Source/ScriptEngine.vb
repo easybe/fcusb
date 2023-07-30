@@ -76,7 +76,6 @@ Namespace EC_ScriptEngine
             AddScriptCommand("ask", {CmdPrm.String}, New ScriptFunction(AddressOf c_ask))
             AddScriptCommand("abort", Nothing, New ScriptFunction(AddressOf c_abort))
             AddScriptCommand("catalog", Nothing, New ScriptFunction(AddressOf c_catalog))
-            AddScriptCommand("cpen", {CmdPrm.Bool}, New ScriptFunction(AddressOf c_cpen))
             AddScriptCommand("crc16", {CmdPrm.Data}, New ScriptFunction(AddressOf c_crc16))
             AddScriptCommand("crc32", {CmdPrm.Data}, New ScriptFunction(AddressOf c_crc32))
             AddScriptCommand("cint", {CmdPrm.UInteger}, New ScriptFunction(AddressOf c_cint))
@@ -885,22 +884,6 @@ Namespace EC_ScriptEngine
             FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.HYPERFLASH, 3, "hf_database.html")
             FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.OTP_EPROM, 3, "otp_database.html")
             FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.FWH_NOR, 3, "fwh_database.html")
-            Return Nothing
-        End Function
-
-        Friend Function c_cpen(arguments() As ScriptVariable, Index As Integer) As ScriptVariable
-            Dim cp_en As Boolean = CBool(arguments(0).Value)
-            If Not MAIN_FCUSB.IS_CONNECTED Then
-                Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "FlashcatUSB device is not connected"}
-            End If
-            Dim w_index As UInt32 = 0UL
-            If cp_en Then w_index = 1UL
-            MAIN_FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_CPEN, Nothing, w_index)
-            If cp_en Then
-                RaiseEvent PrintConsole("CPEN pin set to HIGH")
-            Else
-                RaiseEvent PrintConsole("CPEN pin set to LOW")
-            End If
             Return Nothing
         End Function
 

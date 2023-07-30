@@ -1,4 +1,5 @@
 ﻿Imports FlashcatUSB.FlashMemory
+Imports FlashcatUSB.USB
 
 Public Class SWI_Programmer : Implements MemoryDeviceUSB
     Private FCUSB As USB.FCUSB_DEVICE
@@ -105,6 +106,10 @@ Public Class SWI_Programmer : Implements MemoryDeviceUSB
         data_in(9) = CByte((PageSize >> 8) And 255)
         data_in(10) = 1
         Return data_in
+    End Function
+
+    Public Function GetUsbDevice() As FCUSB_DEVICE Implements MemoryDeviceUSB.GetUsbDevice
+        Return Me.FCUSB
     End Function
 
 End Class

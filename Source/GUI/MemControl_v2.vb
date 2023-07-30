@@ -309,28 +309,28 @@ Public Class MemControl_v2
 #End Region
 
 #Region "Status Bar Hooks"
-    Private Delegate Sub cbStatus_UpdateOper(ind As MEM_OPERATION)
-    Private Delegate Sub cbStatus_UpdateBase(addr As Long)
-    Private Delegate Sub cbStatus_UpdateTask(value As String)
-    Private Delegate Sub cbStatus_UpdateSpeed(speed_str As String)
-    Private Delegate Sub cbStatus_UpdatePercent(percent As Integer)
+    Private Delegate Sub cbStatus_UpdateOper(index As Integer, oper As MEM_OPERATION)
+    Private Delegate Sub cbStatus_UpdateBase(index As Integer, addr As Long)
+    Private Delegate Sub cbStatus_UpdateTask(index As Integer, value As String)
+    Private Delegate Sub cbStatus_UpdateSpeed(index As Integer, speed_str As String)
+    Private Delegate Sub cbStatus_UpdatePercent(index As Integer, percent As Integer)
 
-    Private Sub Status_UpdateOper(ind As MEM_OPERATION)
-        StatusBar_ImgIndex(ind)
+    Private Sub Status_UpdateOper(index As Integer, oper As MEM_OPERATION)
+        StatusBar_ImgIndex(oper)
     End Sub
-    Private Sub Status_UpdateBase(addr As Long)
+    Private Sub Status_UpdateBase(index As Integer, addr As Long)
         StatusBar_SetTextBaseAddress(addr)
     End Sub
 
-    Private Sub Status_UpdateTask(task As String)
+    Private Sub Status_UpdateTask(index As Integer, task As String)
         StatusBar_SetTextTask(task)
     End Sub
 
-    Private Sub Status_UpdateSpeed(speed_str As String)
+    Private Sub Status_UpdateSpeed(index As Integer, speed_str As String)
         StatusBar_SetTextSpeed(speed_str)
     End Sub
 
-    Private Sub Status_UpdatePercent(percent As Integer)
+    Private Sub Status_UpdatePercent(index As Integer, percent As Integer)
         Me.SetProgress(percent)
         StatusBar_SetPercent(percent)
     End Sub
@@ -365,8 +365,8 @@ Public Class MemControl_v2
             Dim available_pages As Integer = SNAND_IF.BlockManager.MAPPED_PAGES
             Me.FlashAvailable = SNAND_IF.DeviceSize
             Me.AddExtendedArea(available_pages, NandDevice.PAGE_SIZE, NandDevice.PAGE_EXT, pages_per_block)
-        ElseIf Me.MemDevice.MEM_IF.GetType() Is GetType(PARALLEL_NAND) Then
-            Dim PNAND_IF As PARALLEL_NAND = CType(Me.MemDevice.MEM_IF, PARALLEL_NAND)
+        ElseIf Me.MemDevice.MEM_IF.GetType() Is GetType(PNAND_Programmer) Then
+            Dim PNAND_IF As PNAND_Programmer = CType(Me.MemDevice.MEM_IF, PNAND_Programmer)
             Dim NandDevice As P_NAND = PNAND_IF.MyFlashDevice
             Dim pages_per_block As Integer = (NandDevice.Block_Size \ NandDevice.PAGE_SIZE)
             Dim available_pages As Integer = PNAND_IF.BlockManager.MAPPED_PAGES
@@ -400,8 +400,8 @@ Public Class MemControl_v2
             IO_Control.EccStatus(False)
             IO_Control.MemoryArea = area
             If Me.HAS_EXTAREA Then
-                If Me.MemDevice.MEM_IF.GetType() Is GetType(PARALLEL_NAND) Then
-                    Dim PNAND_IF As PARALLEL_NAND = CType(Me.MemDevice.MEM_IF, PARALLEL_NAND)
+                If Me.MemDevice.MEM_IF.GetType() Is GetType(PNAND_Programmer) Then
+                    Dim PNAND_IF As PNAND_Programmer = CType(Me.MemDevice.MEM_IF, PNAND_Programmer)
                     PNAND_IF.MemoryArea = area
                     Me.FlashAvailable = PNAND_IF.DeviceSize
                 ElseIf Me.MemDevice.MEM_IF.GetType() Is GetType(SPINAND_Programmer) Then
@@ -460,12 +460,19 @@ Public Class MemControl_v2
 #End Region
 
     Private Sub UpdateEccResultImg()
-        If NAND_ECC IsNot Nothing AndAlso Me.AreaSelected = FlashMemory.FlashArea.Main Then
+        Dim ECC_Enabled As Boolean = False
+        Dim ECC_LastResult As ECC_LIB.ECC_DECODE_RESULT
+        If MemDevice.MEM_IF.GetType() Is GetType(PNAND_Programmer) Then
+            Dim PNAND_IF As PNAND_Programmer = CType(Me.MemDevice.MEM_IF, PNAND_Programmer)
+            If PNAND_IF.ECC_ENG IsNot Nothing Then ECC_Enabled = True : ECC_LastResult = PNAND_IF.ECC_ENG.GetLastResult()
+        End If
+        If MemDevice.MEM_IF.GetType() Is GetType(SPINAND_Programmer) Then
+            Dim SNAND_IF As SPINAND_Programmer = CType(Me.MemDevice.MEM_IF, SPINAND_Programmer)
+            If SNAND_IF.ECC_ENG IsNot Nothing Then ECC_Enabled = True : ECC_LastResult = SNAND_IF.ECC_ENG.GetLastResult()
+        End If
+        If ECC_Enabled AndAlso Me.AreaSelected = FlashMemory.FlashArea.Main Then
             IO_Control.EccStatus(True)
-            Dim return_obj As Object = Nothing
-            return_obj = ECC_LAST_RESULT
-            Dim result As ECC_LIB.ECC_DECODE_RESULT = DirectCast(return_obj, ECC_LIB.ECC_DECODE_RESULT)
-            If result = ECC_LIB.ECC_DECODE_RESULT.NoErrors Then
+            If ECC_LastResult = ECC_LIB.ECC_DECODE_RESULT.NoErrors Then
                 IO_Control.EccImage(My.Resources.ecc_valid)
             Else
                 IO_Control.EccImage(My.Resources.ecc_blue)
@@ -705,11 +712,11 @@ Public Class MemControl_v2
                 WritingParams.Status.UpdateSpeed = New cbStatus_UpdateSpeed(AddressOf Status_UpdateSpeed)
                 WritingParams.Status.UpdatePercent = New cbStatus_UpdatePercent(AddressOf Status_UpdatePercent)
                 'Reset current labels
-                Status_UpdateOper(MEM_OPERATION.NoOp)
-                Status_UpdateBase(file_out.Offset)
-                Status_UpdateTask("")
-                Status_UpdateSpeed("")
-                Status_UpdatePercent(0)
+                Status_UpdateOper(0, MEM_OPERATION.NoOp)
+                Status_UpdateBase(0, file_out.Offset)
+                Status_UpdateTask(0, "")
+                Status_UpdateSpeed(0, "")
+                Status_UpdatePercent(0, 0)
                 Dim write_success As Boolean = Me.MemDevice.WriteStream(file_out.DataStream, WritingParams)
                 If write_success Then Me.MemDevice.WaitUntilReady()
                 file_out.DataStream.Dispose()
@@ -753,7 +760,7 @@ Public Class MemControl_v2
             Me.MemDevice.FCUSB.USB_LEDBlink()
             SetProgress(0)
             DisableControls(True)
-            Status_UpdateOper(MEM_OPERATION.VerifyData)
+            Status_UpdateOper(0, MEM_OPERATION.VerifyData)
             RaiseEvent WriteConsole(RM.GetString("mc_compare_start"))
             RaiseEvent WriteConsole(RM.GetString("mc_compare_filename") & ": " & param.local_file.Name)
             RaiseEvent WriteConsole(String.Format(RM.GetString("mc_compare_info"), Hex(param.BaseOffset).PadLeft(8, "0"c), Format(param.Count, "#,###")))
@@ -781,9 +788,9 @@ Public Class MemControl_v2
                 param.BaseOffset += buffer.Length
                 BytesTransfered += CUInt(buffer.Length)
                 Dim speed_str As String = UpdateSpeed_GetText(CInt(Math.Round(BytesTransfered / (ReadTimer.ElapsedMilliseconds / 1000))))
-                Status_UpdateSpeed(speed_str)
+                Status_UpdateSpeed(0, speed_str)
                 Dim percent_done As Single = CSng((BytesTransfered / CompareCount) * 100)
-                Status_UpdatePercent(CInt(percent_done))
+                Status_UpdatePercent(0, CInt(percent_done))
                 Dim vee As New CompareDifference
                 For x As UInt32 = 0 To CUInt(buffer.Length - 1)
                     If (Not buffer(CInt(x)) = file_data(CInt(x))) Then
@@ -814,7 +821,7 @@ Public Class MemControl_v2
             GetFocus()
             Me.IN_OPERATION = False
             GUI.OperationStopped(Me)
-            Status_UpdateOper(MEM_OPERATION.NoOp)
+            Status_UpdateOper(0, MEM_OPERATION.NoOp)
         End Try
         Try
             If (param.Count = 0) Then 'We compared all data, lets show the user!
@@ -927,11 +934,11 @@ Public Class MemControl_v2
             GUI.OperationStarted(Me)
             Me.IN_OPERATION = True
             Me.MemDevice.FCUSB.USB_LEDBlink()
-            Status_UpdateOper(MEM_OPERATION.EraseSector)
-            Status_UpdateBase(0)
-            Status_UpdatePercent(0)
-            Status_UpdateSpeed("")
-            Status_UpdateTask(RM.GetString("mem_erase_device"))
+            Status_UpdateOper(0, MEM_OPERATION.EraseSector)
+            Status_UpdateBase(0, 0)
+            Status_UpdatePercent(0, 0)
+            Status_UpdateSpeed(0, "")
+            Status_UpdateTask(0, RM.GetString("mem_erase_device"))
             Me.MemDevice.EraseFlash()
             Me.MemDevice.WaitUntilReady()
             RaiseEvent SetStatus(RM.GetString("mem_erase_device_success"))
@@ -1061,6 +1068,5 @@ Public Class MemControl_v2
             Me.MemDevice.ReadStream(data_stream, f_params)
         End If
     End Sub
-
 
 End Class

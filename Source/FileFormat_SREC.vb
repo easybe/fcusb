@@ -13,7 +13,7 @@
         StartAddr16 = 9
     End Enum
 
-    Public Enum RECORD_DATAWIDTH
+    Public Enum RECORD_DATAWIDTH As Integer
         [BYTE] = 0
         [WORD] = 1
     End Enum

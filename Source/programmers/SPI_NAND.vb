@@ -26,6 +26,8 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
 
     Public WithEvents BlockManager As NAND_BLOCK_IF
 
+    Public ECC_ENG As ECC_Engine
+
     Sub New(parent_if As FCUSB_DEVICE)
         FCUSB = parent_if
     End Sub
@@ -97,7 +99,6 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                 RaiseEvent PrintConsole(String.Format("Total bad blocks: {0}", TotalBadBlocks))
                 RaiseEvent PrintConsole(String.Format(RM.GetString("nand_mem_map_complete"), Format(BlockManager.MAPPED_PAGES, "#,###")))
             End If
-            ECC_LoadConfiguration(MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT)
             Return True
         Else
             MyFlashStatus = DeviceStatus.NotSupported
@@ -459,15 +460,15 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                 For i = 0 To page_aligned.Length - 1 : page_aligned(i) = 255 : Next
                 Array.Copy(main_data, 0, page_aligned, 0, main_data.Length)
             ElseIf memory_area = FlashArea.Main Then
-                If NAND_ECC IsNot Nothing Then
+                If ECC_ENG IsNot Nothing Then
                     If oob_data Is Nothing Then
                         Dim o_size As Integer = ((main_data.Length \ NAND_DEV.PAGE_SIZE) * NAND_DEV.PAGE_EXT)
                         ReDim oob_data(o_size - 1)
                         Utilities.FillByteArray(oob_data, 255)
                     End If
                     Dim ecc_data() As Byte = Nothing
-                    NAND_ECC.WriteData(main_data, ecc_data)
-                    NAND_ECC.SetEccToSpare(oob_data, ecc_data, NAND_DEV.PAGE_SIZE, NAND_DEV.PAGE_EXT)
+                    ECC_ENG.WriteData(main_data, ecc_data)
+                    ECC_ENG.SetEccToSpare(oob_data, ecc_data, NAND_DEV.PAGE_SIZE, NAND_DEV.PAGE_EXT)
                 End If
                 page_aligned = NAND_LayoutTool.CreatePageAligned(MyFlashDevice, main_data, oob_data)
             ElseIf memory_area = FlashArea.OOB Then
@@ -497,16 +498,16 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             Else 'Software mode only
                 read_fnc = New USB_Readages(AddressOf ReadPages_Software)
             End If
-            If NAND_ECC IsNot Nothing AndAlso (memory_area = FlashArea.Main) Then
+            If ECC_ENG IsNot Nothing AndAlso (memory_area = FlashArea.Main) Then
                 Dim NAND_DEV As SPI_NAND = DirectCast(MyFlashDevice, SPI_NAND)
                 Dim page_count As Integer = CInt(Math.Ceiling((count + page_offset) / NAND_DEV.PAGE_SIZE)) 'Number of complete pages and OOB to read and correct
                 Dim total_main_bytes As Integer = (page_count * NAND_DEV.PAGE_SIZE)
                 Dim total_oob_bytes As Integer = (page_count * NAND_DEV.PAGE_EXT)
                 Dim main_area_data() As Byte = read_fnc(page_addr, 0, total_main_bytes, FlashArea.Main)
                 Dim oob_area_data() As Byte = read_fnc(page_addr, 0, total_oob_bytes, FlashArea.OOB)
-                Dim ecc_data() As Byte = NAND_ECC.GetEccFromSpare(oob_area_data, NAND_DEV.PAGE_SIZE, NAND_DEV.PAGE_EXT) 'This strips out the ecc data from the spare area
-                ECC_LAST_RESULT = NAND_ECC.ReadData(main_area_data, ecc_data) 'This processes the flash data (512 bytes at a time) and corrects for any errors using the ECC
-                If ECC_LAST_RESULT = ECC_DECODE_RESULT.Uncorractable Then
+                Dim ecc_data() As Byte = ECC_ENG.GetEccFromSpare(oob_area_data, NAND_DEV.PAGE_SIZE, NAND_DEV.PAGE_EXT) 'This strips out the ecc data from the spare area
+                ECC_ENG.ReadData(main_area_data, ecc_data) 'This processes the flash data (512 bytes at a time) and corrects for any errors using the ECC
+                If ECC_ENG.GetLastResult() = ECC_DECODE_RESULT.Uncorractable Then
                     Dim logical_addr As Long = (page_addr * CLng(MyFlashDevice.PAGE_SIZE)) + page_offset
                     RaiseEvent PrintConsole("ECC failed at: 0x" & Hex(logical_addr).PadLeft(8, "0"c))
                 End If
@@ -717,6 +718,10 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         buffer_size = Math.Min(count, bytes_left)
         count -= buffer_size
         Return (page_addr Mod pages_per_die)
+    End Function
+
+    Public Function GetUsbDevice() As FCUSB_DEVICE Implements MemoryDeviceUSB.GetUsbDevice
+        Return Me.FCUSB
     End Function
 
 End Class

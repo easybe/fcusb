@@ -49,8 +49,8 @@ Public Module Firmware
     End Function
 
     Public Function FirmwareCheck(usb_dev As FCUSB_DEVICE, supported_fw As Single) As Boolean
+        If usb_dev.DEBUG_MODE Then Return True
         Dim current_fw As Single = Utilities.StringToSingle(usb_dev.FW_VERSION())
-        If IS_DEBUG_VER Then Return True
         If (Not current_fw = supported_fw) Then
             PrintConsole(String.Format(RM.GetString("sw_requires_fw"), supported_fw.ToString)) 'Software requires firmware version {0}
             PrintConsole(RM.GetString("fw_update_available"), True) 'Firmware update available, performing automatic update
@@ -73,7 +73,7 @@ Public Module Firmware
     End Sub
 
     Public Sub AVR_UpdateFirmware(usb_dev As FCUSB_DEVICE)
-        Dim DFU_IF As DFU_Programmer = CType(CreateProgrammer(MAIN_FCUSB, DeviceMode.DFU), DFU_Programmer)
+        Dim DFU_IF As DFU_Programmer = CType(CreateProgrammer(usb_dev, DeviceMode.DFU), DFU_Programmer)
         PrintConsole("Initializing DFU programming mode")
         AddHandler DFU_IF.SetProgress, AddressOf MainApp.SetProgress
         Dim emb_fw_hex() As Byte = Nothing

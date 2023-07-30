@@ -60,12 +60,10 @@ Namespace Logic
             Dim TotalBytesTransfered As UInt32 = 0
             SSPI_SS(True)
             If (WriteBuffer IsNot Nothing) Then
-                Dim BytesWritten As Integer = 0
                 Dim Result As Boolean = SSPI_WriteData(WriteBuffer)
                 If Result Then TotalBytesTransfered += CUInt(WriteBuffer.Length)
             End If
             If (ReadBuffer IsNot Nothing) Then
-                Dim BytesRead As Integer = 0
                 Dim Result As Boolean = SSPI_ReadData(ReadBuffer)
                 If Result Then TotalBytesTransfered += CUInt(ReadBuffer.Length)
             End If
@@ -264,14 +262,14 @@ Namespace Logic
             End If
         End Sub
 
-        Public Sub UpdateLogic(Mode As DeviceMode, TargetVoltage As Voltage)
+        Public Sub UpdateLogic(fcusb As FCUSB_DEVICE, Mode As DeviceMode, TargetVoltage As Voltage)
             Try
-                If MAIN_FCUSB.IS_CONNECTED Then
-                    If MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
-                        FCUSBPRO_LoadBitstream(MAIN_FCUSB, Mode, TargetVoltage)
-                    ElseIf MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+                If fcusb.IS_CONNECTED Then
+                    If fcusb.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
+                        FCUSBPRO_LoadBitstream(fcusb, Mode, TargetVoltage)
+                    ElseIf fcusb.HWBOARD = FCUSB_BOARD.Mach1 Then
                         PrintConsole("Updating all FPGA logic", True)
-                        MACH1_Init(MAIN_FCUSB, Mode, TargetVoltage)
+                        MACH1_Init(fcusb, Mode, TargetVoltage)
                         PrintConsole("FPGA logic successfully updated", True)
                     End If
                 End If
@@ -292,16 +290,16 @@ Namespace Logic
                 End If
             End If
             SetDeviceVoltage(usb_dev, TargetVoltage)
-            Dim SPI_CFG_IF As New ISC_LOGIC_PROG(MAIN_FCUSB)
+            Dim SPI_CFG_IF As New ISC_LOGIC_PROG(usb_dev)
             Return SPI_CFG_IF.SSPI_ProgramICE(bit_data)
         End Function
         'This writes random data to the SMC and then reads it back and compares it
-        Public Function SMC_Integrity_Check() As Boolean
+        Public Function SMC_Integrity_Check(usb_dev As FCUSB_DEVICE) As Boolean
             Dim buffer_out(63) As Byte
             Dim buffer_in() As Byte = Utilities.CreateRandomBuffer(64)
-            Dim result As Boolean = MAIN_FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SMC_WR, buffer_in)
+            Dim result As Boolean = usb_dev.USB_CONTROL_MSG_OUT(USBREQ.SMC_WR, buffer_in)
             If Not result Then Return False
-            result = MAIN_FCUSB.USB_CONTROL_MSG_IN(USBREQ.SMC_RD, buffer_out)
+            result = usb_dev.USB_CONTROL_MSG_IN(USBREQ.SMC_RD, buffer_out)
             If Not result Then Return False
             Return buffer_in.SequenceEqual(buffer_out)
         End Function
@@ -334,7 +332,7 @@ Namespace Logic
             If Not usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then Return False
             SetDeviceVoltage(usb_dev, TargetVoltage)
             Dim cpld32 As UInt32 = usb_dev.LOGIC_GetVersion()
-            If IS_DEBUG_VER Then Return True 'We dont want to update the FPGA
+            If usb_dev.DEBUG_MODE Then Return True 'We dont want To update the FPGA
             Dim bit_data() As Byte = Nothing
             Dim svf_code As UInt32 = 0
             If CurrentMode = DeviceMode.SPI Or CurrentMode = DeviceMode.SPI_EEPROM Or CurrentMode = DeviceMode.SPI_NAND Then

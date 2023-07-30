@@ -188,7 +188,8 @@ Namespace FlashMemory
         Spansion_FL = 2
         ISSI = 3
         Winbond = 4
-        Intel_01
+        Intel_01 = 5
+        AT45 = 6
     End Enum
 
     Public Enum SPI_PROG As Byte
@@ -1016,6 +1017,11 @@ Namespace FlashMemory
             Dim I28F320J3 As P_NOR = CType(FindDevice(&H89, &H16, 0, MemoryType.PARALLEL_NOR), P_NOR)
             I28F320J3.VENDOR_SPECIFIC = VENDOR_FEATURE.Intel_01
 
+            'Adesto AT45 Series (not all devices have NONVOL CFG REG)
+            Dim AT45DB321E As SPI_NOR = CType(FindDevice(&H1F, &H2701, &H100, MemoryType.SERIAL_NOR), SPI_NOR)
+            AT45DB321E.VENDOR_SPECIFIC = VENDOR_FEATURE.AT45
+
+
         End Sub
 
         Private Sub SPINOR_Database()
@@ -1113,6 +1119,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("Cypress S26HL01GT", SPI_3V, Gb001, &H34, &H6A, &HDC, Mb002, &H3, &H13, &H12) With {.ID2 = &H1B, .PAGE_SIZE = 512})
             'Micron (ST)
             FlashDB.Add(New SPI_NOR("Micron MT25QL02GC", SPI_3V, Gb002, &H20, &HBA22) With {.SEND_EN4B = True, .SQI_MODE = QUAD})
+            FlashDB.Add(New SPI_NOR("Micron MT25QU02GC", SPI_1V8, Gb002, &H20, &HBB22) With {.SEND_EN4B = True, .SQI_MODE = QUAD})
             FlashDB.Add(New SPI_NOR("Micron N25Q00AA", SPI_3V, Gb001, &H20, &HBA21) With {.SEND_EN4B = True, .SQI_MODE = QUAD})
             FlashDB.Add(New SPI_NOR("Micron N25Q512A", SPI_3V, Mb512, &H20, &HBA20) With {.SEND_EN4B = True, .SQI_MODE = QUAD})
             FlashDB.Add(New SPI_NOR("Micron N25Q256A", SPI_3V, Mb256, &H20, &HBA19) With {.SEND_EN4B = True, .SQI_MODE = QUAD})
@@ -1445,6 +1452,8 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("ESMT F25L04PA", SPI_3V, Mb004, &H8C, &H3013))
             FlashDB.Add(New SPI_NOR("ESMT F25L02PA", SPI_3V, Mb002, &H8C, &H3012))
             'Others
+            FlashDB.Add(New SPI_NOR("NOR-MEM NM25Q128", SPI_3V, Mb128, &H52, &H2218))
+            FlashDB.Add(New SPI_NOR("NOR-MEM NM25Q64", SPI_3V, Mb064, &H52, &H2217))
             FlashDB.Add(New SPI_NOR("Sanyo LE25FU406B", SPI_3V, Mb004, &H62, &H1E62))
             FlashDB.Add(New SPI_NOR("Sanyo LE25FW406A", SPI_3V, Mb004, &H62, &H1A62))
             FlashDB.Add(New SPI_NOR("Berg_Micro BG25Q32A", SPI_3V, Mb032, &HE0, &H4016))
@@ -1499,6 +1508,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NAND("Micron MT29F2G01ABB", &H2C, &H25, 2048, 128, 64, 2048, True, SPI_1V8)) '2Gb
             FlashDB.Add(New SPI_NAND("Micron MT29F4G01ADA", &H2C, &H36, 2048, 128, 64, 4096, True, SPI_3V)) '4Gb
             FlashDB.Add(New SPI_NAND("Micron MT29F4G01AAA", &H2C, &H32, 2048, 128, 64, 4096, True, SPI_3V)) '4Gb
+            FlashDB.Add(New SPI_NAND("Micron MT29F4G01ABA", &H2C, &H34, 4096, 256, 64, 2048, False, SPI_3V)) '4Gb
             'GigaDevice
             FlashDB.Add(New SPI_NAND("GigaDevice GD5F1GQ4UB", &HC8, &HD1, 2048, 128, 64, 1024, False, SPI_3V)) '1Gb
             FlashDB.Add(New SPI_NAND("GigaDevice GD5F1GQ4RB", &HC8, &HC1, 2048, 128, 64, 1024, False, SPI_1V8)) '1Gb
@@ -1628,7 +1638,7 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("AMD AM29F040", &H1, &HA4, Mb004, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7) With {.ERASE_DELAY = 500, .RESET_ENABLED = False})
             FlashDB.Add(New P_NOR("AMD AM29F010B", &H1, &H20, Mb001, VCC_IF.X8_5V, BLKLYT.Kb128_Uni, MFP_PRG.Standard, MFP_DELAY.uS) With {.ERASE_DELAY = 500, .RESET_ENABLED = False})
             FlashDB.Add(New P_NOR("AMD AM29F040B", &H20, &HE2, Mb004, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.uS) With {.ERASE_DELAY = 500, .RESET_ENABLED = False}) 'Why is this not: 01 A4? (PLCC32 and DIP32 tested)
-            FlashDB.Add(New P_NOR("AMD AM29F080B", &H1, &HD5, Mb008, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.uS) With {.ERASE_DELAY = 500, .RESET_ENABLED = False}) 'TSOP40
+            FlashDB.Add(New P_NOR("AMD AM29F080B", &H1, &HD5, Mb008, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.uS) With {.ERASE_DELAY = 500, .RESET_ENABLED = False}) 'TSOP40 CV
             FlashDB.Add(New P_NOR("AMD AM29F160DT", 0, 0, Mb016, VCC_IF.X16_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.uS)) 'Uses Micron M29F160FT
             FlashDB.Add(New P_NOR("AMD AM29F160DB", 0, 0, Mb016, VCC_IF.X16_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.uS)) 'Uses Micron M29F160FB
             FlashDB.Add(New P_NOR("AMD AM29F016B", &H1, &HAD, Mb016, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.uS)) '(CV)
@@ -1924,7 +1934,16 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("Toshiba TC58FVM6B5B", &H98, &H2E, Mb064, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.BypassMode, MFP_DELAY.DQ7))
             FlashDB.Add(New P_NOR("Toshiba TC58FYM6T2A", &H98, &H7A, Mb064, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.BypassMode, MFP_DELAY.DQ7))
             FlashDB.Add(New P_NOR("Toshiba TC58FYM6B2A", &H98, &H7B, Mb064, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.BypassMode, MFP_DELAY.DQ7))
+
+
+
+            'TC58FVM7T2AFT
             FlashDB.Add(New P_NOR("Toshiba TC58FVM7T2A", &H98, &H7C, Mb128, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.BypassMode, MFP_DELAY.DQ7))
+
+
+
+
+
             FlashDB.Add(New P_NOR("Toshiba TC58FVM7B2A", &H98, &H82, Mb128, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.BypassMode, MFP_DELAY.DQ7))
             FlashDB.Add(New P_NOR("Toshiba TC58FYM7T2A", &H98, &HD8, Mb128, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.BypassMode, MFP_DELAY.DQ7))
             FlashDB.Add(New P_NOR("Toshiba TC58FYM7B2A", &H98, &HB2, Mb128, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.BypassMode, MFP_DELAY.DQ7))
@@ -2113,6 +2132,7 @@ Namespace FlashMemory
             FlashDB.Add(New P_NAND("Micron MT29F8G08BAA      ", &H2C, &H_D3D19558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
             FlashDB.Add(New P_NAND("Micron MT29F8G08ABACA    ", &H2C, &H_D390A664UI, 4096, 224, 64, 4096, VCC_IF.X8_3V)) '8Gb
             FlashDB.Add(New P_NAND("Micron MT29F8G08ABABA    ", &H2C, &H_38002685UI, 4096, 224, 128, 2048, VCC_IF.X8_3V)) '8Gb
+            FlashDB.Add(New P_NAND("Micron MT29F8G08ADAFA    ", &H2C, &H_D3D0A666UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
             FlashDB.Add(New P_NAND("Micron MT29F16G08CBACA   ", &H2C, &H_48044AA5UI, 4096, 224, 256, 2048, VCC_IF.X8_3V)) '16Gb
             FlashDB.Add(New P_NAND("Micron MT29F16G08ABABA   ", &H2C, &H_48002689UI, 4096, 224, 128, 4096, VCC_IF.X8_3V)) '16Gb
             FlashDB.Add(New P_NAND("Micron MT29F16G08ABCBB   ", &H2C, &H_48002689UI, 4096, 224, 128, 4096, VCC_IF.X8_3V)) '16Gb
@@ -2167,6 +2187,8 @@ Namespace FlashMemory
             FlashDB.Add(New P_NAND("Toshiba TC58NVG2S0HTA00", &H98, &H_DC902676UI, 4096, 256, 64, 2048, VCC_IF.X8_3V))
             FlashDB.Add(New P_NAND("Toshiba TC58NVG2S3ETA00", &H98, &H_DC901576UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) 'CV
             FlashDB.Add(New P_NAND("Toshiba TC58NVG2S0HTAI0", &H98, &H_DC902676UI, 4096, 256, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TC58NYG2S0HBAI4", &H98, &H_AC902676UI, 4096, 256, 64, 2048, VCC_IF.X8_1V8)) '4Gbit 1V8
+            FlashDB.Add(New P_NAND("Toshiba TC58NVG2S0HBAI6", &H98, &H_DC902676UI, 4096, 256, 64, 2048, VCC_IF.X8_3V)) '4Gbit 3V
             FlashDB.Add(New P_NAND("Toshiba TH58NVG2S3HTA00", &H98, &H_DC911576UI, 2048, 128, 64, 4096, VCC_IF.X8_3V))
             FlashDB.Add(New P_NAND("Toshiba TC58BVG2S0HTAI0", &H98, &H_DC9026F6UI, 4096, 128, 64, 2048, VCC_IF.X8_3V))
             FlashDB.Add(New P_NAND("Toshiba TH58NVG3S0HTA00", &H98, &H_D3912676UI, 4096, 256, 64, 4096, VCC_IF.X8_3V))
@@ -2176,11 +2198,15 @@ Namespace FlashMemory
             FlashDB.Add(New P_NAND("Toshiba TC58NVG6D2HTA00", &H98, &H_DE948276UI, 8192, 640, 256, 4096, VCC_IF.X8_3V)) '64Gb
             FlashDB.Add(New P_NAND("Toshiba TC58NVG2S0HBAI4", &H98, &H_D8902070UI, 4096, 256, 64, 2048, VCC_IF.X8_3V)) '4Gb
             FlashDB.Add(New P_NAND("Toshiba TC58NVG4D2ETA00", &H98, &H_00D59432UI, 8192, 376, 128, 2048, VCC_IF.X8_3V)) '16Gbit
+            FlashDB.Add(New P_NAND("Toshiba TC58DVM82A1FT00", &H98, &H_00000075UI, 512, 16, 32, 2048, VCC_IF.X8_3V))
+            'FlashDB.Add(New P_NAND("Toshiba TC58DVM82F1FT00", &H98, &H_75A5BA22UI, 256, 8, 32, 2048, VCC_IF.X16_3V)) 'Needs verification
+
             'Winbond SLC 8x NAND devices
             FlashDB.Add(New P_NAND("Winbond W29N01GW", &HEF, &H_B1805500UI, 2048, 64, 64, 1024, VCC_IF.X8_1V8)) '1Gb
             FlashDB.Add(New P_NAND("Winbond W29N01GV", &HEF, &H_F1809500UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
             FlashDB.Add(New P_NAND("Winbond W29N01HV", &HEF, &H_F1009500UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
             FlashDB.Add(New P_NAND("Winbond W29N02GV", &HEF, &H_DA909504UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
+            FlashDB.Add(New P_NAND("Winbond W29N02KV", &HEF, &H_DA109506UI, 2048, 128, 64, 2048, VCC_IF.X8_3V)) '2Gb
             FlashDB.Add(New P_NAND("Winbond W29N04GV", &HEF, &H_DC909554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
             FlashDB.Add(New P_NAND("Winbond W29N08GV", &HEF, &H_D3919558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
             FlashDB.Add(New P_NAND("Winbond W29N08GV", &HEF, &H_DC909554UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
@@ -2272,6 +2298,7 @@ Namespace FlashMemory
             FlashDB.Add(New P_NAND("Hynix HY27UG084GDM", &HAD, &H_00DA0015UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
             FlashDB.Add(New P_NAND("Hynix HY27UG164G2M", &HAD, &H_00DC0055UI, 2048, 64, 64, 4096, VCC_IF.X16_3V)) '4Gb
             FlashDB.Add(New P_NAND("Hynix HY27UF084G2M", &HAD, &H_00DC8095UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Hynix HY27UF084G2B", &HAD, &H_DC109554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
             'Spansion SLC 34 series
             FlashDB.Add(New P_NAND("Cypress S34ML01G1  ", &H1, &H_00F1001DUI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
             FlashDB.Add(New P_NAND("Cypress S34ML02G1  ", &H1, &H_DA909544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
@@ -2520,8 +2547,10 @@ Namespace FlashMemory
                     Dim nor_flash As P_NOR = DirectCast(flash, P_NOR)
                     If (NOR_IsType8X(nor_flash.IFACE)) Then
                         Dim FLASH_ID1 As Byte = CByte(nor_flash.ID1 And 255)
-                        If MFG = nor_flash.MFG_CODE AndAlso ID1 = FLASH_ID1 AndAlso ID2 = nor_flash.ID2 Then
-                            devices.Add(flash)
+                        If MFG = nor_flash.MFG_CODE AndAlso ID1 = nor_flash.ID1 Then
+                            If (flash.ID2 = 0) OrElse (flash.ID2 = ID2) Then
+                                devices.Add(flash)
+                            End If
                         End If
                     End If
                 End If
@@ -2831,6 +2860,28 @@ Namespace FlashMemory
                 End If
             Next
         End Sub
+
+        Public Function GetDevices_SERIAL_EEPROM() As SPI_NOR()
+            Dim spi_eeprom As New List(Of SPI_NOR)
+            Dim d() As Device = GetFlashDevices(MemoryType.SERIAL_NOR)
+            For Each dev As SPI_NOR In d
+                If DirectCast(dev, SPI_NOR).ProgramMode = SPI_PROG.SPI_EEPROM Then
+                    spi_eeprom.Add(dev)
+                ElseIf DirectCast(dev, SPI_NOR).ProgramMode = SPI_PROG.Nordic Then
+                    spi_eeprom.Add(dev)
+                End If
+            Next
+            Return spi_eeprom.ToArray
+        End Function
+
+        Public Function GetDevices_PARALLEL_EEPROM() As P_NOR()
+            Dim par_ee_list As New List(Of P_NOR)
+            Dim d() As Device = GetFlashDevices(MemoryType.PARALLEL_NOR)
+            For Each dev As P_NOR In d
+                If dev.WriteMode = MFP_PRG.EEPROM Then par_ee_list.Add(dev)
+            Next
+            Return par_ee_list.ToArray
+        End Function
 
 #End Region
 

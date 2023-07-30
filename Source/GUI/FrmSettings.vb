@@ -654,7 +654,7 @@ Public Class FrmSettings
 
     Private Sub SetupSerialEEPROM()
         cb_spi_eeprom.Items.Add("(Not selected)") 'Index 0
-        Dim SPI_EEPROM_LIST() As FlashMemory.SPI_NOR = GetDevices_SERIAL_EEPROM()
+        Dim SPI_EEPROM_LIST() As FlashMemory.SPI_NOR = FlashDatabase.GetDevices_SERIAL_EEPROM()
         Dim selected_index As Integer = 0
         Dim counter As Integer = 0
         For Each item In SPI_EEPROM_LIST
@@ -669,7 +669,7 @@ Public Class FrmSettings
 
     Private Sub SetupParallelEEPROM()
         cb_parallel_eeprom.Items.Add("(Not selected)") 'Index 0
-        Dim EEPROM_LIST() As FlashMemory.P_NOR = GetDevices_PARALLEL_EEPROM()
+        Dim EEPROM_LIST() As FlashMemory.P_NOR = FlashDatabase.GetDevices_PARALLEL_EEPROM()
         Dim selected_index As Integer = 0
         Dim counter As Integer = 0
         For Each item In EEPROM_LIST

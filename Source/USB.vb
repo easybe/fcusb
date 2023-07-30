@@ -53,12 +53,13 @@ Namespace USB
         Public Event DeviceDisconnected(usb_dev As FCUSB_DEVICE)
 
         Private ConnectedDevices As New List(Of FCUSB_DEVICE) 'Contains all devices that are connected
+        Private DEBUG_MODE As Boolean
 
         Public Property IsRunning As Boolean = False
         Public Property CloseService As Boolean = False
 
-        Sub New()
-
+        Sub New(Optional debug_mode As Boolean = False)
+            Me.DEBUG_MODE = debug_mode
         End Sub
 
         Public Sub StartService()
@@ -140,7 +141,7 @@ Namespace USB
         Public Function Connect(usb_device As UsbDevice, ByRef fcusb_dev As FCUSB_DEVICE) As Boolean
             Try
                 If OpenUsbDevice(usb_device) Then
-                    Dim new_device As New FCUSB_DEVICE(usb_device)
+                    Dim new_device As New FCUSB_DEVICE(usb_device, Me.DEBUG_MODE)
                     If (usb_device.UsbRegistryInfo.Vid = USB_VID_ATMEL) Then 'DFU Mode
                         new_device.IS_CONNECTED = True
                         new_device.HWBOARD = FCUSB_BOARD.ATMEL_DFU
@@ -251,6 +252,8 @@ Namespace USB
 
         Public JTAG_IF As New JTAG.JTAG_IF(Me)
 
+        Public ReadOnly Property DEBUG_MODE As Boolean = False
+
         Private ReadOnly Property USB_TIMEOUT_VALUE As Integer = DEFAULT_TIMEOUT
 
         Public Event OnDisconnected(this_dev As FCUSB_DEVICE)
@@ -269,9 +272,10 @@ Namespace USB
             End Get
         End Property
 
-        Sub New(my_handle As UsbDevice)
+        Sub New(my_handle As UsbDevice, debug_mode As Boolean)
             Me.USBHANDLE = my_handle
             Me.USB_PATH = GetDevicePath(my_handle.UsbRegistryInfo)
+            Me.DEBUG_MODE = debug_mode
             If (Me.HasLogic) Then
                 Me.USBFLAG_OUT = (UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Interface Or UsbCtrlFlags.Direction_Out)
                 Me.USBFLAG_IN = (UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Interface Or UsbCtrlFlags.Direction_In)
@@ -279,7 +283,7 @@ Namespace USB
                 Me.USBFLAG_OUT = (UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Device Or UsbCtrlFlags.Direction_Out)
                 Me.USBFLAG_IN = (UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Device Or UsbCtrlFlags.Direction_In)
             End If
-            If IS_DEBUG_VER Then USB_TIMEOUT_VALUE = 5000000
+            If Me.DEBUG_MODE Then USB_TIMEOUT_VALUE = 5000000
         End Sub
 
         Public Function CheckConnection() As Boolean
@@ -721,7 +725,6 @@ Namespace USB
         EXPIO_WRMEMDATA = &H7B
         EXPIO_RDMEMDATA = &H7C
         EXPIO_WAIT = &H7D
-        EXPIO_CPEN = &H7E
         EXPIO_SR = &H7F
         VERSION = &H80
         ECHO = &H81

@@ -135,5 +135,8 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
         Return WriteData(0, data)
     End Function
 
+    Public Function GetUsbDevice() As USB.FCUSB_DEVICE Implements MemoryDeviceUSB.GetUsbDevice
+        Return Me.FCUSB
+    End Function
 
 End Class

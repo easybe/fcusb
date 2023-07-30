@@ -310,7 +310,7 @@ Public Class ConsoleMode
                             index += 1
                         Next
                         If Not Device_Found Then
-                            Dim SPI_EEPROM_LIST = MainApp.GetDevices_SERIAL_EEPROM()
+                            Dim SPI_EEPROM_LIST = FlashDatabase.GetDevices_SERIAL_EEPROM()
                             For Each dev In SPI_EEPROM_LIST
                                 Dim spi_part As String = dev.NAME.Substring(dev.NAME.IndexOf(" ") + 1)
                                 If dev.NAME.ToUpper().Equals(eeprom_str.ToUpper()) OrElse spi_part.ToUpper().Equals(eeprom_str.ToUpper()) Then
@@ -321,7 +321,7 @@ Public Class ConsoleMode
                             Next
                         End If
                         If Not Device_Found Then
-                            Dim SPI_EEPROM_LIST = MainApp.GetDevices_PARALLEL_EEPROM()
+                            Dim SPI_EEPROM_LIST = FlashDatabase.GetDevices_PARALLEL_EEPROM()
                             For Each dev In SPI_EEPROM_LIST
                                 Dim spi_part As String = dev.NAME.Substring(dev.NAME.IndexOf(" ") + 1)
                                 If dev.NAME.ToUpper().Equals(eeprom_str.ToUpper()) OrElse spi_part.ToUpper().Equals(eeprom_str.ToUpper()) Then
@@ -417,21 +417,14 @@ Public Class ConsoleMode
             console_result = ExitValue.Error
             Return
         End If
-
-
-
-
         Dim mem_dev As MemoryInterface.MemoryDeviceInstance = MainApp.MEM_IF.GetDevice(0)
         If mem_dev.DEV_MODE = DeviceMode.PNAND Then
-            DirectCast(mem_dev.MEM_IF, PARALLEL_NAND).MemoryArea = MyOperation.FLASH_AREA
+            DirectCast(mem_dev.MEM_IF, PNAND_Programmer).MemoryArea = MyOperation.FLASH_AREA
             'mem_dev.Size = mem_dev.MEM_IF.DeviceSize
         ElseIf mem_dev.DEV_MODE = DeviceMode.SPI_NAND Then
             DirectCast(mem_dev.MEM_IF, SPINAND_Programmer).MemoryArea = MyOperation.FLASH_AREA
             'mem_dev.Size = mem_dev.MEM_IF.DeviceSize
         End If
-
-
-
         Select Case MyOperation.CurrentTask
             Case ConsoleTask.ReadMemory
                 operation_success = Me.ConsoleMode_RunTask_ReadMemory(mem_dev)
@@ -695,13 +688,13 @@ Public Class ConsoleMode
             PrintConsole(dev.NAME)
         Next
         PrintConsole("[SERIAL EEPROM DEVICES]")
-        Dim SPI_EEPROM_LIST = MainApp.GetDevices_SERIAL_EEPROM()
+        Dim SPI_EEPROM_LIST = FlashDatabase.GetDevices_SERIAL_EEPROM()
         For Each dev In SPI_EEPROM_LIST
             Dim spi_part As String = dev.NAME.Substring(dev.NAME.IndexOf(" ") + 1)
             PrintConsole(spi_part)
         Next
         PrintConsole("[PARALLEL EEPROM DEVICES]")
-        Dim PAR_EEPROM_LIST = MainApp.GetDevices_PARALLEL_EEPROM()
+        Dim PAR_EEPROM_LIST = FlashDatabase.GetDevices_PARALLEL_EEPROM()
         For Each dev In PAR_EEPROM_LIST
             Dim par_part As String = dev.NAME.Substring(dev.NAME.IndexOf(" ") + 1)
             PrintConsole(par_part)

@@ -24,9 +24,9 @@ Partial Class MemControl_v2
     Private Sub InitializeComponent()
         Me.pbar = New System.Windows.Forms.ProgressBar()
         Me.gb_flash = New System.Windows.Forms.GroupBox()
-        Me.txtAddress = New System.Windows.Forms.TextBox()
         Me.IO_Control = New FlashcatUSB.MemIOControl()
         Me.HexEditor64 = New FlashcatUSB.HexEditor_v2()
+        Me.txtAddress = New System.Windows.Forms.TextBox()
         Me.gb_flash.SuspendLayout()
         Me.SuspendLayout()
         '
@@ -55,21 +55,16 @@ Partial Class MemControl_v2
         Me.gb_flash.TabStop = False
         Me.gb_flash.Text = "(FLASH_NAME PART_NUMBER)"
         '
-        'txtAddress
-        '
-        Me.txtAddress.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.txtAddress.Location = New System.Drawing.Point(275, 22)
-        Me.txtAddress.Name = "txtAddress"
-        Me.txtAddress.Size = New System.Drawing.Size(92, 20)
-        Me.txtAddress.TabIndex = 40
-        '
         'IO_Control
         '
         Me.IO_Control.AllowEdit = True
         Me.IO_Control.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Left) _
             Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.IO_Control.FlashAvailable = CType(0, Long)
+        Me.IO_Control.FlashBase = CType(0, Long)
         Me.IO_Control.FlashName = Nothing
+        Me.IO_Control.InitialDirectory = ""
+        Me.IO_Control.LastDirectory = ""
         Me.IO_Control.Location = New System.Drawing.Point(6, 16)
         Me.IO_Control.MemoryArea = FlashcatUSB.FlashMemory.FlashArea.Main
         Me.IO_Control.Name = "IO_Control"
@@ -92,6 +87,14 @@ Partial Class MemControl_v2
         Me.HexEditor64.Size = New System.Drawing.Size(368, 139)
         Me.HexEditor64.TabIndex = 24
         Me.HexEditor64.TopAddress = CType(0, Long)
+        '
+        'txtAddress
+        '
+        Me.txtAddress.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.txtAddress.Location = New System.Drawing.Point(275, 22)
+        Me.txtAddress.Name = "txtAddress"
+        Me.txtAddress.Size = New System.Drawing.Size(92, 20)
+        Me.txtAddress.TabIndex = 40
         '
         'MemControl_v2
         '

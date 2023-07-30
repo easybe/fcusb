@@ -100,6 +100,10 @@
                 If n.RecordField = FIELD_TYPE.Data AndAlso RecordAddr = -1 Then
                     If n.Data Is Nothing Then Return False
                     RecordAddr = n.Address + n.Data.Length
+                ElseIf n.RecordField = FIELD_TYPE.ExtSegmentAddr Then
+                    Dim base_addr As Integer = ((CInt(n.Data(0)) << 8) Or CInt(n.Data(1))) * 16
+                    Me.m_data_size = base_addr + RecordAddr
+                    Return True
                 ElseIf n.RecordField = FIELD_TYPE.ExtLinearAddr Then
                     Me.m_data_size = (CInt(n.Data(0)) << 24) Or (CInt(n.Data(1)) << 16) Or RecordAddr
                     Return True
@@ -269,6 +273,8 @@
             Throw New NotImplementedException()
         End Sub
 
+        Public Property USE_LINEAR_ADDR As Boolean = False 'Use Segment or Linear addressing scheme; segment is limited to 1MB
+
         Public Overrides Sub Write(buffer() As Byte, offset As Integer, count As Integer)
             Dim buffer_ptr As Integer = 0
             Dim bytes_left As Integer = count
@@ -282,8 +288,15 @@
                 Me.DataAddress += CUInt(packet_size)
                 Dim current16 As UInt16 = CUShort(Me.DataAddress >> 16)
                 bytes_left -= packet_size
-                If (Not current16 = upper16) Then
-                    Me.output_stream.WriteLine((New IRECORD(FIELD_TYPE.ExtLinearAddr, current16, Nothing)).ToString())
+                If ((Not current16 = upper16) AndAlso (Not bytes_left = 0)) Then
+                    If Me.USE_LINEAR_ADDR Then
+                        Dim upper() As Byte = {CByte((current16 >> 8) And 255), CByte(current16 And 255)} 'Big-endian
+                        Me.output_stream.WriteLine((New IRECORD(FIELD_TYPE.ExtLinearAddr, 0, upper)).ToString())
+                    Else
+                        Dim ExtAddr As Integer = CInt((Me.DataAddress / 16))
+                        Dim seg_data() As Byte = {CByte((ExtAddr >> 8) And 255), CByte(ExtAddr And 255)}
+                        Me.output_stream.WriteLine((New IRECORD(FIELD_TYPE.ExtSegmentAddr, 0, seg_data)).ToString())
+                    End If
                 End If
             Loop
         End Sub

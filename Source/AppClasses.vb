@@ -1,4 +1,4 @@
-﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2021 - ALL RIGHTS RESERVED
+﻿'COPYRIGHT EMBEDDED COMPUTERS LLC 2023 - ALL RIGHTS RESERVED
 'THIS SOFTWARE IS ONLY FOR USE WITH GENUINE FLASHCATUSB PRODUCTS
 'CONTACT EMAIL: support@embeddedcomputers.net
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
@@ -6,8 +6,10 @@
 
 Imports FlashcatUSB.FlashMemory
 Imports FlashcatUSB.MemoryInterface
+Imports FlashcatUSB.ECC_LIB
 
 Public Class WriteParameters
+    Public Index As Integer = 0 'Used for multiple write operations
     Public Address As Long = 0 'flash address to write to
     Public BytesLeft As Long = 0 'Number of bytes to write from this stream
     Public BytesWritten As Long = 0 'Number of bytes we have written
@@ -21,6 +23,7 @@ Public Class WriteParameters
 End Class
 
 Public Class ReadParameters
+    Public Index As Integer = 0 'Used for multiple read operations
     Public Address As Long = 0
     Public Count As Long = 0
     Public Status As New MemoryDeviceInstance.StatusCallback 'Contains all the delegates (if connected)
@@ -72,10 +75,10 @@ Public Class FlashcatSettings
     'GENERAL
     Public Property S93_DEVICE As String 'Name of the part number
     Public Property S93_DEVICE_ORG As Integer '0=8-bit,1=16-bit
-    Public Property SREC_DATAMODE As SREC.RECORD_DATAWIDTH '0=8-bit,1=16-bit
+    Public Property SREC_DATAMODE As Integer  '0=8-bit,1=16-bit
     Public Property PARALLEL_EEPROM As String 'Name of the Parallel EEPROM
     'JTAG
-    Public Property JTAG_SPEED As JTAG.JTAG_SPEED
+    Public Property JTAG_SPEED As Integer 'JTAG.JTAG_SPEED
     'License
     Public Property LICENSE_KEY As String
     Public Property LICENSED_TO As String
@@ -128,9 +131,9 @@ Public Class FlashcatSettings
         Me.ECC_FEATURE_ENABLED = SettingsFile.GetValue("ECC_ENABLED", False)
         Me.S93_DEVICE = SettingsFile.GetValue("S93_DEVICE_NAME", "")
         Me.S93_DEVICE_ORG = SettingsFile.GetValue("S93_ORG", 0)
-        Me.SREC_DATAMODE = CType(SettingsFile.GetValue("SREC_ORG", 0), SREC.RECORD_DATAWIDTH)
+        Me.SREC_DATAMODE = SettingsFile.GetValue("SREC_ORG", 0)
         Me.PARALLEL_EEPROM = SettingsFile.GetValue("PARALLEL_EEPROM", "")
-        Me.JTAG_SPEED = CType(SettingsFile.GetValue("JTAG_FREQ", JTAG.JTAG_SPEED._10MHZ), JTAG.JTAG_SPEED)
+        Me.JTAG_SPEED = SettingsFile.GetValue("JTAG_FREQ", 2) 'JTAG_SPEED._10MHZ
         Me.NOR_READ_ACCESS = SettingsFile.GetValue("NOR_READ_ACCESS", 200)
         Me.NOR_WE_PULSE = SettingsFile.GetValue("NOR_WE_PULSE", 125)
         Me.PLUGIN_DEFAULT_DIR = SettingsFile.GetValue("PLUGIN_DIR", "C:\")
@@ -185,7 +188,7 @@ Public Class FlashcatSettings
         Try
             Dim EEPROM_FOUND As Boolean = False
             If Not Me.SPI_EEPROM.Equals("") Then
-                Dim d() As SPI_NOR = GetDevices_SERIAL_EEPROM()
+                Dim d() As SPI_NOR = FlashDatabase.GetDevices_SERIAL_EEPROM()
                 For Each dev In d
                     If dev.NAME.Equals(Me.SPI_EEPROM) Then
                         EEPROM_FOUND = True
@@ -203,7 +206,7 @@ Public Class FlashcatSettings
         Try
             Dim EEPROM_FOUND As Boolean = False
             If Not Me.PARALLEL_EEPROM.Equals("") Then
-                Dim d() As P_NOR = GetDevices_PARALLEL_EEPROM()
+                Dim d() As P_NOR = FlashDatabase.GetDevices_PARALLEL_EEPROM()
                 For Each dev In d
                     If dev.NAME.Equals(Me.PARALLEL_EEPROM) Then
                         EEPROM_FOUND = True
@@ -487,7 +490,6 @@ Public Class SettingsIO_INI
 End Class
 
 #If NET6_0 Then
-
 Public Class SettingsIO_Registry
     Implements SettingsIO
 
@@ -531,7 +533,6 @@ Public Class SettingsIO_Registry
         Throw New NotImplementedException()
     End Function
 End Class
-
 #Else
 
 Public Class SettingsIO_Registry
@@ -697,7 +698,6 @@ Public Class SettingsIO_Registry
     End Function
 
 End Class
-
 #End If
 
 

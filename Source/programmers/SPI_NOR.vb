@@ -327,7 +327,7 @@ Namespace SPI
                     Do
                         Dim sr() As Byte = ReadStatusRegister() 'Check Bit 7 (RDY/BUSY#)
                         status = sr(0)
-                        If Not ((status And &H80) > 0) Then Utilities.Sleep(50)
+                        If Not ((status And &H80) > 0) Then Utilities.Sleep(10)
                     Loop While Not ((status And &H80) > 0)
                 Else
                     Do
@@ -518,27 +518,34 @@ Namespace SPI
         'Changes the Page Size configuration bit in nonvol
         Public Function AT45_SetPageConfiguration(EnableExtPage As Boolean) As Boolean
             If (EnableExtPage) Then
-                SPIBUS_WriteRead({&H3D, &H2A, &H80, &HA7}, Nothing)
-            Else
-                SPIBUS_WriteRead({&H3D, &H2A, &H80, &HA6}, Nothing) 'One-time programmable!
+                SPIBUS_WriteRead({&H3D, &H2A, &H80, &HA7}, Nothing) '528 bytes per page
+            Else '512 bytes per page
+                SPIBUS_WriteRead({&H3D, &H2A, &H80, &HA6}, Nothing) 'One-time programmable on some devices?
             End If
+            Utilities.Sleep(20)
             WaitUntilReady()
-            Me.ExtendedPage = EnableExtPage
-            Return True
+            Dim sr() As Byte = ReadStatusRegister() 'Some devices have 2 SR
+            If EnableExtPage = ((sr(0) And 1) = 0) Then
+                Me.ExtendedPage = EnableExtPage
+                Return True
+            Else
+                Return False
+            End If
         End Function
 
         Private Function AT45_ReadData(flash_offset As UInt32, data_count As Integer) As Byte()
             Dim page_size As UInt16 = CUShort(IIf(Me.ExtendedPage, MyFlashDevice.PAGE_SIZE_EXTENDED, MyFlashDevice.PAGE_SIZE))
             Dim data_out(data_count - 1) As Byte
             Dim AddrOffset As Integer = CInt(Math.Ceiling(Math.Log(page_size, 2))) 'Number of bits the address is offset
-            Dim PageAddr As UInt16 = CUShort(flash_offset \ page_size)
+            Dim PageAddr As UInt32 = CUShort(flash_offset \ page_size)
             Dim PageOffset As UInt32 = flash_offset - (PageAddr * page_size)
             Dim addr_bytes() As Byte = Utilities.Bytes.FromUInt24((PageAddr << AddrOffset) + PageOffset)
             Dim at45_addr As UInt32 = (PageAddr << AddrOffset) + PageOffset
             Dim dummy_clocks As Integer = (4 * 8) '(4 extra bytes)
             Dim setup_class As New ReadSetupPacket(MyFlashDevice.OP_COMMANDS.READ, at45_addr, data_out.Length, MyFlashDevice.AddressBytes)
             setup_class.DUMMY = dummy_clocks
-            FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_READFLASH, setup_class.ToBytes, data_out, 0)
+            Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_READFLASH, setup_class.ToBytes, data_out, 0)
+            If Not result Then Return Nothing
             Return data_out
         End Function
 
@@ -565,7 +572,9 @@ Namespace SPI
                     Dim src_ind As Integer = DataOut.Length - BytesLeft
                     Array.Copy(DataOut, src_ind, DataToBuffer, 4, BytesToWrite)
                     SPIBUS_SlaveSelect_Enable()
-                    SPIBUS_WriteData(DataToBuffer)
+                    Utilities.Sleep(5)   'We need this here for Pro
+                    If Not SPIBUS_WriteData(DataToBuffer) Then Return False
+                    Utilities.Sleep(5)
                     SPIBUS_SlaveSelect_Disable()
                     WaitUntilReady()
                     Dim PageAddr As UInt32 = (offset \ page_size)
@@ -729,6 +738,7 @@ Namespace SPI
         Private Sub SPIBUS_SlaveSelect_Enable()
             Try
                 FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SPI_SS_ENABLE)
+                Utilities.Sleep(2)
             Catch ex As Exception
             End Try
         End Sub
@@ -736,6 +746,7 @@ Namespace SPI
         Private Sub SPIBUS_SlaveSelect_Disable()
             Try
                 FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SPI_SS_DISABLE)
+                Utilities.Sleep(2)
             Catch ex As Exception
             End Try
         End Sub
@@ -771,6 +782,10 @@ Namespace SPI
         End Sub
 
 #End Region
+
+        Public Function GetUsbDevice() As FCUSB_DEVICE Implements MemoryDeviceUSB.GetUsbDevice
+            Return Me.FCUSB
+        End Function
 
     End Class
 
