@@ -168,15 +168,15 @@ Public Class MemoryInterface
 
 #Region "GUICONTROL EVENTS"
 
-        Private Sub OnWriteConsole(ByVal msg_out As String) Handles GuiControl.WriteConsole
+        Private Sub OnWriteConsole(msg_out As String) Handles GuiControl.WriteConsole
             RaiseEvent PrintConsole(msg_out)
         End Sub
 
-        Private Sub OnSetStatus(ByVal status_text As String) Handles GuiControl.SetStatus
+        Private Sub OnSetStatus(status_text As String) Handles GuiControl.SetStatus
             RaiseEvent SetStatus(status_text)
         End Sub
 
-        Private Sub OnSuccessfulWrite(ByVal mydev As USB.HostClient.FCUSB_DEVICE, ByVal x As MemControl_v2.XFER_Operation) Handles GuiControl.SuccessfulWrite
+        Private Sub OnSuccessfulWrite(mydev As USB.HostClient.FCUSB_DEVICE, x As MemControl_v2.XFER_Operation) Handles GuiControl.SuccessfulWrite
             If GUI IsNot Nothing Then
                 GUI.SuccessfulWriteOperation(mydev, x)
             End If
@@ -190,7 +190,7 @@ Public Class MemoryInterface
             End Try
         End Sub
 
-        Private Sub OnReadDataRequest(ByVal base_addr As Long, ByRef data() As Byte, ByVal memory_area As FlashArea) Handles GuiControl.ReadMemory
+        Private Sub OnReadDataRequest(base_addr As Long, ByRef data() As Byte, memory_area As FlashArea) Handles GuiControl.ReadMemory
             Try
                 If Me.IsBulkErasing Then
                     For i = 0 To data.Length - 1

@@ -131,7 +131,7 @@ Namespace SPI
             Dim array_ptr As UInt32 = 0
             Dim read_cmd As Byte = MyFlashDevice.OP_COMMANDS.READ
             Dim dummy_clocks As Byte = 0
-            If MySettings.SPI_FASTREAD AndAlso FCUSB.IsProfessional() Then
+            If MySettings.SPI_FASTREAD AndAlso FCUSB.HasLogic() Then
                 read_cmd = MyFlashDevice.OP_COMMANDS.FAST_READ
             End If
             If (Me.MyFlashDevice.ProgramMode = FlashMemory.SPI_ProgramMode.Atmel45Series) Then
@@ -155,7 +155,7 @@ Namespace SPI
                     FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_READFLASH, setup_class.ToBytes, data_to_read, 0)
                 End If
             Else 'Normal SPI READ
-                If MySettings.SPI_FASTREAD AndAlso (FCUSB.IsProfessional()) Then
+                If MySettings.SPI_FASTREAD AndAlso (FCUSB.HasLogic()) Then
                     dummy_clocks = MyFlashDevice.SPI_DUMMY
                 End If
                 If (MyFlashDevice.STACKED_DIES > 1) Then
@@ -416,7 +416,7 @@ Namespace SPI
             End Try
         End Function
 
-        Private Function GetArrayWithCmdAndAddr(ByVal cmd As Byte, ByVal addr_offset As UInt32) As Byte()
+        Private Function GetArrayWithCmdAndAddr(cmd As Byte, addr_offset As UInt32) As Byte()
             Dim addr_data() As Byte = BitConverter.GetBytes(addr_offset)
             ReDim Preserve addr_data(MyFlashDevice.AddressBytes - 1)
             Array.Reverse(addr_data)
@@ -514,7 +514,7 @@ Namespace SPI
             End If
         End Sub
         'Changes the Page Size configuration bit in nonvol
-        Public Function Atmel_SetPageConfiguration(ByVal EnableExtPage As Boolean) As Boolean
+        Public Function Atmel_SetPageConfiguration(EnableExtPage As Boolean) As Boolean
             If (Not EnableExtPage) Then
                 Dim ReadBack As Integer = SPIBUS_WriteRead({&H3D, &H2A, &H80, &HA6}, Nothing)
                 WaitUntilReady()
@@ -553,10 +553,10 @@ Namespace SPI
             Return die_addr
         End Function
 
-        Private Function WriteData_Flash(ByVal setup_packet As WriteSetupPacket, ByVal data_out() As Byte) As Boolean
+        Private Function WriteData_Flash(ByVal setup_packet As WriteSetupPacket, data_out() As Byte) As Boolean
             Try
                 Dim result As Boolean
-                If (FCUSB.IsProfessional) Then
+                If (FCUSB.HasLogic()) Then
                     Dim DataToWrite As UInt32 = data_out.Length
                     Dim PacketSize As UInt32 = 8192
                     Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / PacketSize)) 'Calcuates iterations
@@ -566,7 +566,7 @@ Namespace SPI
                         Dim data(BufferSize - 1) As Byte
                         setup_packet.WR_COUNT = BufferSize
                         Array.Copy(data_out, (i * PacketSize), data, 0, data.Length)
-                        result = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPI_WRITEFLASH, setup_packet.ToBytes, data, 0, 1000)
+                        result = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPI_WRITEFLASH, setup_packet.ToBytes(), data, 0, 1000)
                         If Not result Then Return False
                         Utilities.Sleep(5)
                         setup_packet.DATA_OFFSET += data.Length
@@ -574,7 +574,7 @@ Namespace SPI
                         result = FCUSB.USB_WaitForComplete()
                     Next
                 Else
-                    result = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPI_WRITEFLASH, setup_packet.ToBytes, data_out, 0)
+                    result = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPI_WRITEFLASH, setup_packet.ToBytes(), data_out, 0)
                 End If
                 Utilities.Sleep(6) 'Needed
                 Return result
@@ -814,6 +814,54 @@ Namespace SPI
         MHZ_1 = 1000000
     End Enum
 
+    Friend Class WriteSetupPacket
+        Public Property CMD_PROG As Byte
+        Public Property CMD_WREN As Byte
+        Public Property CMD_RDSR As Byte
+        Public Property CMD_RDFR As Byte
+        Public Property CMD_WR As Byte
+        Public Property PAGE_SIZE As UInt32
+        Public Property SEND_RDFS As Boolean = False
+        Property DATA_OFFSET As UInt32
+        Property WR_COUNT As UInt32
+        Property ADDR_BYTES As Byte 'Number of bytes used for the read command 
+        Property SPI_MODE As SPI_QUAD_SUPPORT = SPI_QUAD_SUPPORT.NO_QUAD
+
+        Sub New(ByVal spi_dev As SPI_NOR, ByVal offset As UInt32, ByVal d_count As UInt32)
+            Me.CMD_PROG = spi_dev.OP_COMMANDS.PROG
+            Me.CMD_WREN = spi_dev.OP_COMMANDS.WREN
+            Me.CMD_RDSR = spi_dev.OP_COMMANDS.RDSR
+            Me.CMD_RDFR = spi_dev.OP_COMMANDS.RDFR 'Flag Status Register
+            Me.ADDR_BYTES = spi_dev.AddressBytes
+            Me.DATA_OFFSET = offset
+            Me.WR_COUNT = d_count
+            Me.SEND_RDFS = spi_dev.SEND_RDFS
+            Me.PAGE_SIZE = spi_dev.PAGE_SIZE
+        End Sub
+
+        Public Function ToBytes() As Byte()
+            Dim setup_data(14) As Byte
+            setup_data(0) = Me.CMD_PROG
+            setup_data(1) = Me.CMD_WREN
+            setup_data(2) = Me.CMD_RDSR
+            setup_data(3) = Me.CMD_RDFR
+            setup_data(4) = CByte(Me.ADDR_BYTES) 'Number of bytes to write
+            setup_data(5) = CByte((Me.PAGE_SIZE And &HFF00) >> 8)
+            setup_data(6) = CByte(Me.PAGE_SIZE And &HFF)
+            setup_data(7) = CByte((Me.DATA_OFFSET And &HFF000000) >> 24)
+            setup_data(8) = CByte((Me.DATA_OFFSET And &HFF0000) >> 16)
+            setup_data(9) = CByte((Me.DATA_OFFSET And &HFF00) >> 8)
+            setup_data(10) = CByte(Me.DATA_OFFSET And &HFF)
+            setup_data(11) = CByte((Me.WR_COUNT And &HFF0000) >> 16)
+            setup_data(12) = CByte((Me.WR_COUNT And &HFF00) >> 8)
+            setup_data(13) = CByte(Me.WR_COUNT And &HFF)
+            setup_data(14) = Me.SPI_MODE
+            If (Not Me.SEND_RDFS) Then setup_data(3) = 0 'Only use flag-reg if required
+            Return setup_data
+        End Function
+
+    End Class
+
     Friend Class ReadSetupPacket
         Property READ_CMD As Byte
         Property DATA_OFFSET As UInt32
@@ -842,54 +890,6 @@ Namespace SPI
             setup_data(8) = CByte(COUNT And &HFF)
             setup_data(9) = Me.DUMMY 'Number of dummy bytes
             setup_data(10) = Me.SPI_MODE
-            Return setup_data
-        End Function
-
-    End Class
-
-    Friend Class WriteSetupPacket
-        Public Property CMD_PROG As Byte
-        Public Property CMD_WREN As Byte
-        Public Property CMD_RDSR As Byte
-        Public Property CMD_RDFR As Byte
-        Public Property CMD_WR As Byte
-        Public Property PAGE_SIZE As UInt32
-        Public Property SEND_RDFS As Boolean = False
-        Property DATA_OFFSET As UInt32
-        Property WR_COUNT As UInt32
-        Property ADDR_BYTES As Byte 'Number of bytes used for the read command 
-        Property SPI_MODE As SPI_QUAD_SUPPORT = SPI_QUAD_SUPPORT.NO_QUAD
-
-        Sub New(ByVal spi_dev As SPI_NOR, ByVal offset As UInt32, ByVal d_count As UInt32)
-            Me.CMD_PROG = spi_dev.OP_COMMANDS.PROG
-            Me.CMD_WREN = spi_dev.OP_COMMANDS.WREN
-            Me.CMD_RDSR = spi_dev.OP_COMMANDS.RDSR
-            Me.CMD_RDFR = spi_dev.OP_COMMANDS.RDFR 'Flag Status Register
-            Me.ADDR_BYTES = spi_dev.AddressBytes
-            Me.DATA_OFFSET = offset
-            Me.WR_COUNT = d_count
-            Me.SEND_RDFS = spi_dev.SEND_RDFS
-            Me.PAGE_SIZE = spi_dev.PAGE_SIZE
-        End Sub
-
-        Public Function ToBytes() As Byte()
-            Dim setup_data(15) As Byte '16 bytes
-            setup_data(0) = Me.CMD_PROG
-            setup_data(1) = Me.CMD_WREN
-            setup_data(2) = Me.CMD_RDSR
-            setup_data(3) = Me.CMD_RDFR
-            setup_data(4) = CByte(Me.ADDR_BYTES) 'Number of bytes to write
-            setup_data(5) = CByte((Me.PAGE_SIZE And &HFF00) >> 8)
-            setup_data(6) = CByte(Me.PAGE_SIZE And &HFF)
-            setup_data(7) = CByte((Me.DATA_OFFSET And &HFF000000) >> 24)
-            setup_data(8) = CByte((Me.DATA_OFFSET And &HFF0000) >> 16)
-            setup_data(9) = CByte((Me.DATA_OFFSET And &HFF00) >> 8)
-            setup_data(10) = CByte(Me.DATA_OFFSET And &HFF)
-            setup_data(11) = CByte((Me.WR_COUNT And &HFF0000) >> 16)
-            setup_data(12) = CByte((Me.WR_COUNT And &HFF00) >> 8)
-            setup_data(13) = CByte(Me.WR_COUNT And &HFF)
-            setup_data(14) = Me.SPI_MODE
-            If (Not Me.SEND_RDFS) Then setup_data(3) = 0 'Only use flag-reg if required
             Return setup_data
         End Function
 

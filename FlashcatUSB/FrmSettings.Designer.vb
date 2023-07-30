@@ -126,6 +126,11 @@ Partial Class FrmSettings
         Me.cb_ECC_BITERR = New System.Windows.Forms.ComboBox()
         Me.lbl_nandecc_biterror = New System.Windows.Forms.Label()
         Me.TP_GEN = New System.Windows.Forms.TabPage()
+        Me.GroupBox9 = New System.Windows.Forms.GroupBox()
+        Me.cb_nor_we_pulse = New System.Windows.Forms.ComboBox()
+        Me.cb_nor_read_access = New System.Windows.Forms.ComboBox()
+        Me.Label24 = New System.Windows.Forms.Label()
+        Me.Label23 = New System.Windows.Forms.Label()
         Me.GroupBox7 = New System.Windows.Forms.GroupBox()
         Me.lbl_s93_size = New System.Windows.Forms.Label()
         Me.cb_s93_devices = New System.Windows.Forms.ComboBox()
@@ -160,6 +165,7 @@ Partial Class FrmSettings
         Me.TP_NAND2.SuspendLayout()
         Me.gb_nandecc_title.SuspendLayout()
         Me.TP_GEN.SuspendLayout()
+        Me.GroupBox9.SuspendLayout()
         Me.GroupBox7.SuspendLayout()
         Me.GroupBox2.SuspendLayout()
         Me.GroupBox3.SuspendLayout()
@@ -1272,6 +1278,7 @@ Partial Class FrmSettings
         'TP_GEN
         '
         Me.TP_GEN.BackColor = System.Drawing.SystemColors.Control
+        Me.TP_GEN.Controls.Add(Me.GroupBox9)
         Me.TP_GEN.Controls.Add(Me.GroupBox7)
         Me.TP_GEN.Controls.Add(Me.GroupBox2)
         Me.TP_GEN.Controls.Add(Me.GroupBox3)
@@ -1281,6 +1288,57 @@ Partial Class FrmSettings
         Me.TP_GEN.Size = New System.Drawing.Size(524, 328)
         Me.TP_GEN.TabIndex = 5
         Me.TP_GEN.Text = "  General  "
+        '
+        'GroupBox9
+        '
+        Me.GroupBox9.Controls.Add(Me.cb_nor_we_pulse)
+        Me.GroupBox9.Controls.Add(Me.cb_nor_read_access)
+        Me.GroupBox9.Controls.Add(Me.Label24)
+        Me.GroupBox9.Controls.Add(Me.Label23)
+        Me.GroupBox9.Location = New System.Drawing.Point(256, 123)
+        Me.GroupBox9.Name = "GroupBox9"
+        Me.GroupBox9.Size = New System.Drawing.Size(262, 151)
+        Me.GroupBox9.TabIndex = 54
+        Me.GroupBox9.TabStop = False
+        Me.GroupBox9.Text = "Parallel NOR timings (Mach¹)"
+        '
+        'cb_nor_we_pulse
+        '
+        Me.cb_nor_we_pulse.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_nor_we_pulse.FormattingEnabled = True
+        Me.cb_nor_we_pulse.Items.AddRange(New Object() {"50 ns", "75 ns", "100 ns", "125 ns", "150 ns", "175 ns", "200 ns", "250 ns"})
+        Me.cb_nor_we_pulse.Location = New System.Drawing.Point(11, 94)
+        Me.cb_nor_we_pulse.Name = "cb_nor_we_pulse"
+        Me.cb_nor_we_pulse.Size = New System.Drawing.Size(109, 21)
+        Me.cb_nor_we_pulse.TabIndex = 47
+        '
+        'cb_nor_read_access
+        '
+        Me.cb_nor_read_access.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_nor_read_access.FormattingEnabled = True
+        Me.cb_nor_read_access.Items.AddRange(New Object() {"50 ns", "75 ns", "100 ns", "125 ns", "150 ns", "175 ns", "200 ns", "250 ns"})
+        Me.cb_nor_read_access.Location = New System.Drawing.Point(11, 40)
+        Me.cb_nor_read_access.Name = "cb_nor_read_access"
+        Me.cb_nor_read_access.Size = New System.Drawing.Size(109, 21)
+        Me.cb_nor_read_access.TabIndex = 46
+        '
+        'Label24
+        '
+        Me.Label24.AutoSize = True
+        Me.Label24.Location = New System.Drawing.Point(12, 76)
+        Me.Label24.Name = "Label24"
+        Me.Label24.Size = New System.Drawing.Size(60, 13)
+        Me.Label24.TabIndex = 56
+        Me.Label24.Text = "Write-pulse"
+        '
+        'Label23
+        '
+        Me.Label23.AutoSize = True
+        Me.Label23.Location = New System.Drawing.Point(12, 22)
+        Me.Label23.Name = "Label23"
+        Me.Label23.Size = New System.Drawing.Size(70, 13)
+        Me.Label23.TabIndex = 55
+        Me.Label23.Text = "Read-access"
         '
         'GroupBox7
         '
@@ -1496,6 +1554,8 @@ Partial Class FrmSettings
         Me.gb_nandecc_title.ResumeLayout(False)
         Me.gb_nandecc_title.PerformLayout()
         Me.TP_GEN.ResumeLayout(False)
+        Me.GroupBox9.ResumeLayout(False)
+        Me.GroupBox9.PerformLayout()
         Me.GroupBox7.ResumeLayout(False)
         Me.GroupBox7.PerformLayout()
         Me.GroupBox2.ResumeLayout(False)
@@ -1627,4 +1687,9 @@ Partial Class FrmSettings
     Friend WithEvents lbl_s93_size As Label
     Friend WithEvents cbNAND_Speed As ComboBox
     Friend WithEvents Label2 As Label
+    Friend WithEvents GroupBox9 As GroupBox
+    Friend WithEvents cb_nor_we_pulse As ComboBox
+    Friend WithEvents cb_nor_read_access As ComboBox
+    Friend WithEvents Label24 As Label
+    Friend WithEvents Label23 As Label
 End Class

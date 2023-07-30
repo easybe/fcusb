@@ -332,7 +332,7 @@ Namespace JTAG
         Public Function BoundaryScan_Init(EnableX8Mode As Boolean) As Boolean
             If Not SetupReady Then Return False
             WriteConsole("JTAG Boundary Scan Programmer")
-            If (Not FCUSB.IsProfessional) Then
+            If (Not FCUSB.HasLogic) Then
                 WriteConsole("This feature is only available using FlashcatUSB Professional") : Return False
             End If
             If Not BSDL_Is_Configured() Then Return False

@@ -807,69 +807,32 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     End Function
 
     Private Function EPROM_WriteData(logical_address As UInt32, data_to_write() As Byte, Params As WriteParameters) As Boolean
-        Dim PacketSize As UInt32 = 1024
         Try
+            Dim PacketSize As UInt32 = 2048
             Dim M27C160 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &HB1, 0, MemoryType.OTP_EPROM)
             Dim BytesWritten As UInt32 = 0
             Dim DataToWrite As UInt32 = data_to_write.Length
             Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / PacketSize)) 'Calcuates iterations
+            HardwareControl(EXPIO_CTRL.WE_HIGH)
+            HardwareControl(EXPIO_CTRL.VPP_12V)
+            HardwareControl(EXPIO_CTRL.VPP_ENABLE)
+            If MyFlashDevice Is M27C160 Then HardwareControl(EXPIO_CTRL.OE_HIGH)
+            Utilities.Sleep(150)
             For i As Integer = 0 To Loops - 1
                 If Params.AbortOperation Then Return False
                 Dim BufferSize As Integer = DataToWrite
                 If (BufferSize > PacketSize) Then BufferSize = PacketSize
                 Dim data_packet(BufferSize - 1) As Byte
                 Array.Copy(data_to_write, (i * PacketSize), data_packet, 0, data_packet.Length)
-                HardwareControl(EXPIO_CTRL.WE_HIGH)
-                If MyFlashDevice Is M27C160 Then HardwareControl(EXPIO_CTRL.OE_HIGH)
-                HardwareControl(EXPIO_CTRL.VPP_12V)
-                Utilities.Sleep(150)
                 Dim result As Boolean = WriteBulk_NOR(logical_address, data_packet)
-                Utilities.Sleep(25)
                 If (Not result) Then Return False
-                Dim data_clone() As Byte = EPROM_ReadData(logical_address, PacketSize)
-                If MyAdapter = MEM_PROTOCOL.EPROM_X16 Then
-                    Dim fix As New List(Of eeprom_rewrite_word)
-                    Dim data_written() As UInt16 = ByteToWordArray(data_packet)
-                    Dim data_read() As UInt16 = ByteToWordArray(data_clone)
-                    Dim phy_addr As UInt32 = logical_address >> 1
-                    For x = 0 To data_written.Length - 1
-                        If Not data_read(x) = data_written(x) Then
-                            Dim opposite_byte As UInt16 = Not data_read(x)
-                            If (opposite_byte And data_written(x)) = 0 Then
-                                fix.Add(New eeprom_rewrite_word With {.address = phy_addr + x, .data = data_written(x)})
-                            Else
-                                RaiseEvent PrintConsole("EPROM: error, programming error at address: 0x" & ((phy_addr + x) * 2).ToString.PadLeft(8, "0"))
-                                Return False
-                            End If
-                        End If
-                    Next
-                    If (fix.Count > 0) Then
-                        RaiseEvent PrintConsole("EPROM: " & fix.Count & " words need to be reburned")
-                        'Reburn and verify here
-                    End If
-                Else 'X8
-                    Dim fix As New List(Of eeprom_rewrite_byte)
-                    Dim phy_addr As UInt32 = logical_address
-                    For x = 0 To data_packet.Length - 1
-                        If Not data_clone(x) = data_packet(x) Then
-                            Dim opposite_byte As UInt16 = Not data_clone(x)
-                            If (opposite_byte And data_packet(x)) = 0 Then
-                                fix.Add(New eeprom_rewrite_byte With {.address = phy_addr + x, .data = data_packet(x)})
-                            Else
-                                RaiseEvent PrintConsole("EPROM: error, programming error at address: 0x" & ((phy_addr + x) * 2).ToString.PadLeft(8, "0"))
-                                Return False
-                            End If
-                        End If
-                    Next
-                    If (fix.Count > 0) Then
-                        RaiseEvent PrintConsole("EPROM: " & fix.Count & " bytes need to be reburned")
-                        'Reburn and verify here
-                    End If
-                End If
                 logical_address += data_packet.Length
                 DataToWrite -= data_packet.Length
                 BytesWritten += data_packet.Length
             Next
+            HardwareControl(EXPIO_CTRL.VPP_0V)
+            If MyFlashDevice Is M27C160 Then HardwareControl(EXPIO_CTRL.OE_LOW)
+            HardwareControl(EXPIO_CTRL.VPP_DISABLE)
         Catch ex As Exception
         End Try
         Return True
@@ -884,16 +847,6 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Next
         Return out
     End Function
-
-    Private Structure eeprom_rewrite_word
-        Dim address As UInt32
-        Dim data As UInt16
-    End Structure
-
-    Private Structure eeprom_rewrite_byte
-        Dim address As UInt32
-        Dim data As Byte
-    End Structure
 
 #End Region
 
@@ -980,8 +933,6 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         End Try
     End Function
 
-
-
     Private Function EXPIO_SETUP_WRITEADDRESS(mode As E_EXPIO_WRADDR) As Boolean
         Try
             Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_ADDRESS, Nothing, mode)
@@ -1004,7 +955,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         End Try
     End Function
 
-    Private Function EXPIO_SETUP_DELAY(ByVal delay_mode As MFP_DELAY) As Boolean
+    Private Function EXPIO_SETUP_DELAY(delay_mode As MFP_DELAY) As Boolean
         Try
             Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_MODE_DELAY, Nothing, delay_mode)
             Threading.Thread.Sleep(25)
@@ -1014,7 +965,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         End Try
     End Function
 
-    Private Function EXPIO_SETUP_WRITEDELAY(ByVal delay_cycles As UInt16) As Boolean
+    Private Function EXPIO_SETUP_WRITEDELAY(delay_cycles As UInt16) As Boolean
         Try
             Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_DELAY, Nothing, delay_cycles)
             Threading.Thread.Sleep(25)
@@ -1120,6 +1071,12 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Me.CURRENT_WRITE_MODE = E_EXPIO_WRITEDATA.Standard
         Return ident
     End Function
+    'Sets access and write pulse timings for MACH1 using NOR PARALLEL mode
+    Public Sub EXPIO_SetTiming(read_access As Integer, we_pulse As Integer)
+        If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_TIMING, Nothing, (read_access << 8 Or we_pulse))
+        End If
+    End Sub
 
     Private Sub EXPIO_WAIT()
         Utilities.Sleep(10)

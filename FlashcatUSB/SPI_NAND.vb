@@ -30,7 +30,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             MFG = &HEF
             PART = &HAA21 'We need to override AB21 to indicate 1Gbit NAND die
         Else
-            Dim clk_speed As Integer = GetSpiClock(FCUSB.HWBOARD, MySettings.SPI_CLOCK_MAX)
+            Dim clk_speed As Integer = GetMaxSpiClock(FCUSB.HWBOARD, MySettings.SPI_CLOCK_MAX)
             Me.FCUSB.USB_SPI_SETUP(MySettings.SPI_MODE, MySettings.SPI_BIT_ORDER, clk_speed)
             SPIBUS_WriteRead({SPI_Command_DEF.RDID}, rdid) 'NAND devives use 1 dummy byte, then MFG and ID1 (and sometimes, ID2)
             If Not (rdid(0) = 0 Or rdid(0) = 255) Then Return False
@@ -480,7 +480,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Try
             Dim bytes_left As UInt32 = data_count
             Dim data_out(data_count - 1) As Byte
-            If (FCUSB.IsProfessional Or FCUSB.HWBOARD = FCUSB_BOARD.Mach1) Then 'Hardware-enabled routine
+            If (FCUSB.HasLogic()) Then 'Hardware-enabled routine
                 Dim setup() As Byte = SetupPacket_NAND(page_addr, page_offset, data_count, memory_area)
                 Dim param As UInt32 = Utilities.BoolToInt(MyFlashDevice.PLANE_SELECT)
                 Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.SPINAND_READFLASH, setup, data_out, param)
@@ -606,7 +606,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     Private Function USB_WritePageAlignedData(ByRef page_addr As UInt32, page_aligned() As Byte) As Boolean
         Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE)
         Dim pages_to_write As UInt32 = (page_aligned.Length / page_size_tot)
-        If (FCUSB.IsProfessional Or FCUSB.HWBOARD = FCUSB_BOARD.Mach1) Then 'Hardware-enabled routine
+        If (FCUSB.HasLogic()) Then 'Hardware-enabled routine
             Dim array_ptr As UInt32 = 0
             Do Until pages_to_write = 0
                 Dim max_page_count As Integer = 8192 / MyFlashDevice.PAGE_SIZE
@@ -651,7 +651,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             Return False
         End If
         Dim pages_to_write As UInt32 = (area_data.Length / page_size)
-        If (FCUSB.IsProfessional Or FCUSB.HWBOARD = FCUSB_BOARD.Mach1) Then 'Hardware-enabled routine
+        If (FCUSB.HasLogic()) Then 'Hardware-enabled routine
             Dim array_ptr As UInt32 = 0
             Do Until pages_to_write = 0
                 Dim max_page_count As Integer = (8192 / page_size)
@@ -700,7 +700,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         SPIBUS_WriteRead(exe_packet)
     End Sub
 
-    Private Function SetupPacket_NAND(ByVal page_addr As UInt32, ByVal page_offset As UInt16, ByVal Count As UInt32, ByVal area As FlashArea) As Byte()
+    Private Function SetupPacket_NAND(page_addr As UInt32, page_offset As UInt16, Count As UInt32, area As FlashArea) As Byte()
         Dim nand_layout As NANDLAYOUT_STRUCTURE = NANDLAYOUT_Get(MyFlashDevice)
         Dim spare_size As UInt16 = MyFlashDevice.EXT_PAGE_SIZE
         If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then area = FlashArea.All
@@ -728,7 +728,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Return setup_data
     End Function
 
-    Private Function GetPageForMultiDie(ByRef page_addr As UInt32, ByVal page_offset As UInt16, ByRef count As UInt32, ByRef buffer_size As UInt32, ByVal area As FlashArea) As UInt32
+    Private Function GetPageForMultiDie(ByRef page_addr As UInt32, page_offset As UInt16, ByRef count As UInt32, ByRef buffer_size As UInt32, area As FlashArea) As UInt32
         Dim total_pages As UInt32 = (MyFlashDevice.FLASH_SIZE / MyFlashDevice.PAGE_SIZE)
         Dim pages_per_die As UInt32 = total_pages / MyFlashDevice.STACKED_DIES
         Dim die_id As Byte = Math.Floor(page_addr / pages_per_die)

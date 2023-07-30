@@ -229,7 +229,9 @@ Namespace JTAG
             Try
                 For x = 0 To svf_file.Count - 1
                     Dim line As String = svf_file(x)
-                    RaiseEvent Progress(((x + 1) / svf_file.Length) * 100)
+                    If x Mod 100 = 0 Then
+                        RaiseEvent Progress(((x + 1) / svf_file.Length) * 100)
+                    End If
                     If LOOP_COUNTER = 0 Then
                         If line.ToUpper.StartsWith("LOOP ") Then 'Lattice's Extended SVF command
                             Dim loop_count_str As String = line.Substring(5).Trim

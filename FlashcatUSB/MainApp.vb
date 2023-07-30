@@ -18,11 +18,11 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 588
+    Public Const Build As Integer = 589
 
-    Private Const PRO_PCB4_FW As Single = 1.18F 'This is the embedded firmware version for pro
+    Private Const PRO_PCB4_FW As Single = 1.19F 'This is the embedded firmware version for pro
     Private Const PRO_PCB5_FW As Single = 1.02F 'This is the embedded firmware version for pro
-    Private Const MACH1_PCB2_FW As Single = 2.13F 'Firmware version for Mach1
+    Private Const MACH1_PCB2_FW As Single = 2.14F 'Firmware version for Mach1
     Private Const XPORT_PCB1_FW As Single = 4.55F 'XPORT PCB 1.x
     Private Const XPORT_PCB2_FW As Single = 5.12F 'XPORT PCB 2.x
     Private Const CLASSIC_FW As Single = 4.49F 'Min revision allowed for classic (PCB 2.x)
@@ -33,8 +33,11 @@ Public Module MainApp
     Private Const CPLD_JTAG As UInt32 = &HCD330101UI 'ID CODE FOR JTAG (3.3v)
     Private Const CPLD_QSPI_3V3 As UInt32 = &HCD330121UI 'ID CODE FOR JTAG (3.3v)
     Private Const CPLD_QSPI_1V8 As UInt32 = &HCD180121UI 'ID CODE FOR JTAG (1.8v)
-    Private Const MACH1_FGPA_3V3 As UInt32 = &HAF330005UI
-    Private Const MACH1_FGPA_1V8 As UInt32 = &HAF180005UI
+    Private Const MACH1_FGPA_3V3 As UInt32 = &HAF330006UI
+    Private Const MACH1_FGPA_1V8 As UInt32 = &HAF180006UI
+    Private Const MACH1_SPI_3V3 As UInt32 = &HAF330101UI 'Passthrough for SPI
+    Private Const MACH1_SPI_1V8 As UInt32 = &HAF180102UI 'Passthrough for SPI
+
     Public AppIsClosing As Boolean = False
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
     Public WithEvents ScriptEngine As New FcScriptEngine
@@ -46,7 +49,7 @@ Public Module MainApp
     Private FcMutex As Mutex
     Public IS_DEBUG_VER As Boolean = False
 
-    Sub Main(ByVal Args() As String)
+    Sub Main(Args() As String)
         Try 'This makes it only allow one instance
             Dim created As Boolean = False
             FcMutex = New Mutex(False, "FCUSB", created)
@@ -400,7 +403,7 @@ Public Module MainApp
 
     Public Sub SPIEEPROM_Configure(ByVal usb_dev As FCUSB_DEVICE, ByVal eeprom As SPI_EEPROM)
         Dim nRF24_mode As Boolean = False
-        usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, 1000000))
+        usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, SPI_SPEED.MHZ_1))
         Select Case eeprom
             Case SPI_EEPROM.nRF24LE1  '16384 bytes
                 usb_dev.USB_VCC_3V() 'Ignored by PCB 2.x
@@ -419,15 +422,15 @@ Public Module MainApp
             usb_dev.SPI_NOR_IF.SetProgPin(True) 'Sets PROG.PIN to HIGH
             Utilities.Sleep(10)
             If (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB4) Then
-                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, 12000000))
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, SPI_SPEED.MHZ_8))
             ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB5) Then
-                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, 1000000))
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, SPI_SPEED.MHZ_8))
             ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.XPORT_PCB1) Then
-                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, 2000000))
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, SPI_SPEED.MHZ_8))
             ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.XPORT_PCB2) Then
-                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, 2000000))
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, SPI_SPEED.MHZ_8))
             Else
-                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, 8000000))
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, SPI_SPEED.MHZ_8))
             End If
         End If
         usb_dev.SPI_NOR_IF.MyFlashDevice = Get_SPI_EEPROM(MySettings.SPI_EEPROM)
@@ -463,7 +466,7 @@ Public Module MainApp
         Public Property FLASH_OFFSET As UInt32 = 0
         Public Property FLASH_SIZE As UInt32 = 0
         Public Property SPI_EEPROM As SPI_NOR = Nothing
-        Public Property SPI_SPEED As Integer = 8 'In MHZ
+        Public Property SPI_FREQ As SPI_SPEED = SPI_SPEED.MHZ_8
         Public Property I2C_EEPROM As I2C_Programmer.I2C_DEVICE = Nothing
         Public Property LogOutput As Boolean = False
         Public Property LogAppendFile As Boolean = False
@@ -578,13 +581,13 @@ Public Module MainApp
         ConsoleWriteLine(RM.GetString("successfully_connected")) '"Successfully connected to FlashcatUSB over USB"
         ConsoleWriteLine(RM.GetString("board_fw_version") & ": " & usb_dev.FW_VERSION) 'Board firmware version
         If (usb_dev.HWBOARD = FCUSB_BOARD.Professional_PCB4) Then
-            If Not FCUSBPRO_PCB4_Init(usb_dev) Then
-                ConsoleWriteLine("Failed to initialize board")
-                Console_Exit() : Exit Sub
+            If Not FCUSBPRO_PCB4_Init(usb_dev, MyConsoleOperation.Mode) Then
+                Utilities.Sleep(1000)
+                usb_dev = USBCLIENT.Connect(SEL_USB_PATH)
             End If
             FCUSBPRO_SetDeviceVoltage(usb_dev, True)
         ElseIf (usb_dev.HWBOARD = FCUSB_BOARD.Professional_PCB5) Then
-            If Not FCUSBPRO_PCB5_Init(usb_dev) Then
+            If Not FCUSBPRO_PCB5_Init(usb_dev, MyConsoleOperation.Mode) Then
                 ConsoleWriteLine("Failed to initialize board")
                 Console_Exit() : Exit Sub
             End If
@@ -593,12 +596,13 @@ Public Module MainApp
         Select Case MyConsoleOperation.Mode
             Case DeviceMode.SPI
                 ConsoleWriteLine(RM.GetString("device_mode") & ": Serial Programmable Interface (SPI-NOR)")
-                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, SPI_SPEED.MHZ_8))
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, SPI_SPEED.MHZ_8))
                 If usb_dev.SPI_NOR_IF.DeviceInit() Then
-                    usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, MyConsoleOperation.SPI_SPEED))
+                    usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, MyConsoleOperation.SPI_FREQ))
                     MyConsoleOperation.FLASH_SIZE = usb_dev.SPI_NOR_IF.MyFlashDevice.FLASH_SIZE
                     mem_dev = MEM_IF.Add(usb_dev, usb_dev.SPI_NOR_IF.MyFlashDevice)
-                    ConsoleWriteLine(String.Format(RM.GetString("spi_set_clock"), MyConsoleOperation.SPI_SPEED) & " MHz")
+                    Dim clk As Integer = (MyConsoleOperation.SPI_FREQ / 1000000)
+                    ConsoleWriteLine(String.Format(RM.GetString("spi_set_clock"), clk.ToString) & " MHz")
                 Else
                     Select Case usb_dev.SPI_NOR_IF.MyFlashStatus
                         Case DeviceStatus.NotDetected
@@ -611,12 +615,12 @@ Public Module MainApp
                 End If 'Console mode
             Case DeviceMode.SPI_NAND
                 ConsoleWriteLine(RM.GetString("device_mode") & ": Serial Programmable Interface (SPI-NAND)")
-                Dim desired_speed As UInt32 = (MyConsoleOperation.SPI_SPEED * 1000000)
-                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, desired_speed))
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, MyConsoleOperation.SPI_FREQ))
                 If usb_dev.SPI_NAND_IF.DeviceInit() Then
                     MyConsoleOperation.FLASH_SIZE = usb_dev.SPI_NAND_IF.MyFlashDevice.FLASH_SIZE
                     mem_dev = MEM_IF.Add(usb_dev, usb_dev.SPI_NAND_IF.MyFlashDevice)
-                    ConsoleWriteLine(String.Format(RM.GetString("spi_set_clock"), MyConsoleOperation.SPI_SPEED) & " MHz")
+                    Dim clk As Integer = (MyConsoleOperation.SPI_FREQ / 1000000)
+                    ConsoleWriteLine(String.Format(RM.GetString("spi_set_clock"), clk.ToString) & " MHz")
                 Else
                     Select Case usb_dev.SPI_NOR_IF.MyFlashStatus
                         Case DeviceStatus.NotDetected
@@ -865,7 +869,7 @@ Public Module MainApp
                     End If
                     Dim speed_val As String = option_task(0) : option_task.RemoveAt(0)
                     If IsNumeric(speed_val) AndAlso (speed_val > 1 OrElse speed_val < 48) Then
-                        MyConsoleOperation.SPI_SPEED = CInt(speed_val)
+                        MyConsoleOperation.SPI_FREQ = (CInt(speed_val) * 1000000)
                     Else
                         ConsoleWriteLine("MHZ value must be between 1 and 48") : Console_Exit() : Return False
                     End If
@@ -1020,6 +1024,7 @@ Public Module MainApp
                 Console.WriteLine("")
                 ConsoleProgressReset = False
             End If
+            Threading.Thread.CurrentThread.Join(10) 'Pump a message
             Console.SetCursorPosition(0, Console.CursorTop - 1)
             Console.Write(RM.GetString("console_progress"), percent.ToString.PadLeft(3, " "))
             Console.SetCursorPosition(0, Console.CursorTop + 1)
@@ -1091,39 +1096,26 @@ Public Module MainApp
 #Region "SPI Clock Settings"
 
     Public Function GetSpiClockString(usb_dev As FCUSB_DEVICE) As String
-        Dim current_speed As UInt32 = GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX)
+        Dim current_speed As UInt32 = GetMaxSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX)
         Return (current_speed / 1000000).ToString & " Mhz"
     End Function
 
-    Public Function GetSpiClock(brd As FCUSB_BOARD, desired_speed As UInt32) As SPI_SPEED
-        Dim MCK As UInt32 = 0
+    Public Function GetMaxSpiClock(brd As FCUSB_BOARD, desired_speed As SPI_SPEED) As SPI_SPEED
         Select Case brd
-            Case FCUSB_BOARD.Classic '16MHz MCK
-                If (desired_speed > SPI_SPEED.MHZ_8) Then Return SPI_SPEED.MHZ_8  'Fastest possible
-                MCK = SPI_SPEED.MHZ_16
-            Case FCUSB_BOARD.XPORT_PCB1  '16MHz MCK
-                If (desired_speed > SPI_SPEED.MHZ_8) Then Return SPI_SPEED.MHZ_8  'Fastest possible
-                MCK = SPI_SPEED.MHZ_16
-            Case FCUSB_BOARD.XPORT_PCB2  '16MHz MCK
-                If (desired_speed > SPI_SPEED.MHZ_8) Then Return SPI_SPEED.MHZ_8  'Fastest possible
-                MCK = SPI_SPEED.MHZ_16
-            Case FCUSB_BOARD.Professional_PCB4
-                If (desired_speed > SPI_SPEED.MHZ_32) Then Return SPI_SPEED.MHZ_32 'Fastest possible
-                MCK = 64000000
-            Case Else
-                Return 0
+            Case FCUSB_BOARD.Classic, FCUSB_BOARD.XPORT_PCB1, FCUSB_BOARD.XPORT_PCB2
+                If (desired_speed > SPI_SPEED.MHZ_8) Then Return SPI_SPEED.MHZ_8
+            Case Else 'PRO and MACH1
+                If (desired_speed > SPI_SPEED.MHZ_32) Then Return SPI_SPEED.MHZ_32
         End Select
-        Dim spi_baud_div As UInt32 = Math.Ceiling(CSng(MCK) / CSng(desired_speed))
-        Dim max_speed As UInt32 = (MCK / spi_baud_div)
-        Return max_speed
+        Return desired_speed
     End Function
 
-    Public Function GetSqiClock(brd As FCUSB_BOARD, desired_speed As UInt32) As SQI_SPEED
+    Public Function GetMaxSqiClock(brd As FCUSB_BOARD, desired_speed As UInt32) As SQI_SPEED
         Dim MCK As UInt32 = 0
         Select Case brd
             Case FCUSB_BOARD.Mach1
-                If (desired_speed > SQI_SPEED.MHZ_20) Then Return SQI_SPEED.MHZ_20  'Fastest possible
-                MCK = SQI_SPEED.MHZ_40
+                If (desired_speed > SQI_SPEED.MHZ_40) Then Return SQI_SPEED.MHZ_40  'Fastest possible
+                MCK = 80000000
             Case FCUSB_BOARD.Professional_PCB4
                 If (desired_speed > SQI_SPEED.MHZ_20) Then Return SQI_SPEED.MHZ_20  'Fastest possible
                 MCK = SQI_SPEED.MHZ_40
@@ -1196,6 +1188,9 @@ Public Module MainApp
         Public Property ECC_SymWidth As Integer '8/9/10
         Public Property ECC_Separate As Boolean
         Public Property ECC_Reverse As Boolean
+        'NOR Flash
+        Public Property NOR_READ_ACCESS As Integer
+        Public Property NOR_WE_PULSE As Integer
         'GENERAL
         Public Property S93_DEVICE As String 'Name of the part number
         Public Property S93_DEVICE_ORG As Integer '0=8-bit,1=16-bit
@@ -1257,6 +1252,8 @@ Public Module MainApp
             Me.S93_DEVICE_ORG = GetRegistryValue("S93_ORG", 0)
             Me.SREC_BITMODE = GetRegistryValue("SREC_ORG", 0)
             Me.JTAG_SPEED = GetRegistryValue("JTAG_FREQ", JTAG_TCK_FREQ._10MHZ)
+            Me.NOR_READ_ACCESS = GetRegistryValue("NOR_READ_ACCESS", 200)
+            Me.NOR_WE_PULSE = GetRegistryValue("NOR_WE_PULSE", 125)
             LoadCustomSPI()
         End Sub
 
@@ -1304,6 +1301,8 @@ Public Module MainApp
             SetRegistryValue("S93_ORG", Me.S93_DEVICE_ORG)
             SetRegistryValue("SREC_ORG", Me.SREC_BITMODE)
             SetRegistryValue("JTAG_FREQ", Me.JTAG_SPEED)
+            SetRegistryValue("NOR_READ_ACCESS", Me.NOR_READ_ACCESS)
+            SetRegistryValue("NOR_WE_PULSE", Me.NOR_WE_PULSE)
             SaveCustomSPI()
         End Sub
 
@@ -1755,6 +1754,8 @@ Public Module MainApp
                 modes.Add(DeviceMode.SQI)
                 modes.Add(DeviceMode.SPI_NAND)
             Case FCUSB_BOARD.Mach1
+                modes.Add(DeviceMode.SPI)
+                modes.Add(DeviceMode.SPI_NAND)
                 modes.Add(DeviceMode.SQI)
                 modes.Add(DeviceMode.NOR_NAND)
                 modes.Add(DeviceMode.HyperFlash)
@@ -1871,11 +1872,11 @@ Public Module MainApp
         End If
         Select Case usb_dev.HWBOARD
             Case FCUSB_BOARD.Professional_PCB4
-                If Not FCUSBPRO_PCB4_Init(usb_dev) Then Exit Sub
+                If Not FCUSBPRO_PCB4_Init(usb_dev, MySettings.OPERATION_MODE) Then Exit Sub
             Case FCUSB_BOARD.Professional_PCB5
-                If Not FCUSBPRO_PCB5_Init(usb_dev) Then Exit Sub
+                If Not FCUSBPRO_PCB5_Init(usb_dev, MySettings.OPERATION_MODE) Then Exit Sub
             Case FCUSB_BOARD.Mach1
-                If Not FCUSBMACH1_Init(usb_dev) Then Exit Sub
+                If Not FCUSBMACH1_Init(usb_dev, MySettings.OPERATION_MODE) Then Exit Sub
         End Select
         FCUSBPRO_SetDeviceVoltage(usb_dev, True)
         If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI) Then
@@ -1964,13 +1965,13 @@ Public Module MainApp
         If MySettings.OPERATION_MODE = DeviceMode.SPI Then
             If MySettings.SPI_AUTO Then
                 GUI.PrintConsole(RM.GetString("spi_attempting_detect"))
-                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, SPI_SPEED.MHZ_8))
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, SPI_SPEED.MHZ_8))
                 If usb_dev.SPI_NOR_IF.DeviceInit() Then
-                    usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
+                    usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
                     Dim block_size As UInt32 = 65536
-                    If usb_dev.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then block_size = 262144
+                    If usb_dev.HasLogic() Then block_size = 262144
                     Connected_Event(usb_dev, MemoryType.SERIAL_NOR, "SPI NOR Flash", block_size)
-                    GUI.PrintConsole(RM.GetString("spi_detected_spi")) '"Detected SPI Flash on high-speed SPI port"
+                    GUI.PrintConsole(RM.GetString("spi_detected_spi")) '"Detected SPI Flash on high-speed SPI port" 
                     GUI.PrintConsole(String.Format(RM.GetString("spi_set_clock"), GetSpiClockString(usb_dev)))
                     If (usb_dev.SPI_NOR_IF.W25M121AV_Mode) Then
                         GUI.PrintConsole("Winbond W25M121AV Flash device detected")
@@ -1995,9 +1996,9 @@ Public Module MainApp
             End If
         ElseIf MySettings.OPERATION_MODE = DeviceMode.SQI Then
             GUI.PrintConsole("Attempting to detect SPI device in SPI extended mode")
-            usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, SQI_SPEED.MHZ_10))
+            usb_dev.SQI_NOR_IF.SQIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, SQI_SPEED.MHZ_10))
             If usb_dev.SQI_NOR_IF.DeviceInit() Then
-                usb_dev.SQI_NOR_IF.SQIBUS_Setup(GetSqiClock(usb_dev.HWBOARD, MySettings.SQI_CLOCK_MAX))
+                usb_dev.SQI_NOR_IF.SQIBUS_Setup(GetMaxSqiClock(usb_dev.HWBOARD, MySettings.SQI_CLOCK_MAX))
                 Dim mem_name As String = "SPI Flash"
                 Select Case usb_dev.SQI_NOR_IF.SQI_IO_MODE
                     Case MULTI_IO_MODE.Dual
@@ -2023,7 +2024,7 @@ Public Module MainApp
             End If
         ElseIf MySettings.OPERATION_MODE = DeviceMode.SPI_NAND Then
             GUI.PrintConsole(RM.GetString("spi_nand_attempt_detect"))
-            usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
+            usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
             If usb_dev.SPI_NAND_IF.DeviceInit() Then
                 Connected_Event(usb_dev, MemoryType.SERIAL_NAND, "SPI NAND Flash", 65536)
                 GUI.PrintConsole(RM.GetString("spi_nand_detected"))
@@ -2063,6 +2064,7 @@ Public Module MainApp
                     Else
                         If usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
                             Connected_Event(usb_dev, MemoryType.PARALLEL_NOR, "NOR Flash", 262144)
+                            usb_dev.EXT_IF.EXPIO_SetTiming(MySettings.NOR_READ_ACCESS, MySettings.NOR_WE_PULSE)
                         Else
                             Connected_Event(usb_dev, MemoryType.PARALLEL_NOR, "NOR Flash", 16384)
                         End If
@@ -2429,12 +2431,12 @@ Public Module MainApp
                 If device.IS_CONNECTED Then
                     If device.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
                         WriteConsole("Updating all CPLD logic")
-                        FCUSBPRO_PCB4_Init(device)
+                        FCUSBPRO_PCB4_Init(device, MySettings.OPERATION_MODE)
                         SetStatus("CPLD logic successfully updated")
                         Application.DoEvents()
                     ElseIf device.HWBOARD = FCUSB_BOARD.Mach1 Then
                         WriteConsole("Updating all FPGA logic")
-                        FCUSBMACH1_Init(device)
+                        FCUSBMACH1_Init(device, MySettings.OPERATION_MODE)
                         SetStatus("FPGA logic successfully updated")
                         Application.DoEvents()
                     End If
@@ -2444,55 +2446,53 @@ Public Module MainApp
         End Try
     End Sub
     'PCB 4.x only
-    Public Function FCUSBPRO_PCB4_Init(usb_dev As FCUSB_DEVICE) As Boolean
+    Public Function FCUSBPRO_PCB4_Init(usb_dev As FCUSB_DEVICE, CurrentMode As DeviceMode) As Boolean
         usb_dev.USB_VCC_OFF()
         If (Not usb_dev.HWBOARD = FCUSB_BOARD.Professional_PCB4) Then Return False
         Dim cpld32 As UInt32 = usb_dev.LOGIC_GetVersion()
-        If IS_DEBUG_VER Then
-            Return True 'We dont want to update the CPLD
-        End If
-        Dim mode_needed As CPLD_MODE = CPLD_MODE.NotSelected
-        If MySettings.OPERATION_MODE = DeviceMode.I2C_EEPROM Then
-            mode_needed = CPLD_MODE.I2C
+        If IS_DEBUG_VER Then Return True 'We dont want to update the CPLD
+        Dim mode_needed As LOGIC_MODE = LOGIC_MODE.NotSelected
+        If CurrentMode = DeviceMode.I2C_EEPROM Then
+            mode_needed = LOGIC_MODE.I2C
             If (Not MySettings.VOLT_SELECT = USB.Voltage.V3_3) Then
                 MySettings.VOLT_SELECT = Voltage.V3_3
             End If
-        ElseIf MySettings.OPERATION_MODE = DeviceMode.JTAG Then
-            mode_needed = CPLD_MODE.JTAG
-        ElseIf MySettings.OPERATION_MODE = DeviceMode.SQI Then
+        ElseIf CurrentMode = DeviceMode.JTAG Then
+            mode_needed = LOGIC_MODE.JTAG
+        ElseIf CurrentMode = DeviceMode.SQI Then
             If MySettings.VOLT_SELECT = Voltage.V1_8 Then
-                mode_needed = CPLD_MODE.QSPI_1V8
+                mode_needed = LOGIC_MODE.QSPI_1V8
             Else
-                mode_needed = CPLD_MODE.QSPI_3V
+                mode_needed = LOGIC_MODE.QSPI_3V
             End If
         Else
             If MySettings.VOLT_SELECT = Voltage.V1_8 Then
-                mode_needed = CPLD_MODE.SPI_1V8
+                mode_needed = LOGIC_MODE.SPI_1V8
             ElseIf MySettings.VOLT_SELECT = Voltage.V3_3 Then
-                mode_needed = CPLD_MODE.SPI_3V
+                mode_needed = LOGIC_MODE.SPI_3V
             Else
                 MySettings.VOLT_SELECT = Voltage.V3_3
-                mode_needed = CPLD_MODE.SPI_3V
+                mode_needed = LOGIC_MODE.SPI_3V
             End If
         End If
         Dim svf_data() As Byte = Nothing
         Dim svf_code As UInt32 = 0
-        If mode_needed = CPLD_MODE.I2C And (Not cpld32 = CPLD_I2C) Then
+        If mode_needed = LOGIC_MODE.I2C And (Not cpld32 = CPLD_I2C) Then
             svf_data = Utilities.GetResourceAsBytes("PCB4_I2C.svf")
             svf_code = CPLD_I2C
-        ElseIf mode_needed = CPLD_MODE.JTAG And (Not cpld32 = CPLD_JTAG) Then
+        ElseIf mode_needed = LOGIC_MODE.JTAG And (Not cpld32 = CPLD_JTAG) Then
             svf_data = Utilities.GetResourceAsBytes("JTAG_3V3.svf")
             svf_code = CPLD_JTAG
-        ElseIf mode_needed = CPLD_MODE.QSPI_3V And (Not cpld32 = CPLD_QSPI_3V3) Then
+        ElseIf mode_needed = LOGIC_MODE.QSPI_3V And (Not cpld32 = CPLD_QSPI_3V3) Then
             svf_data = Utilities.GetResourceAsBytes("PCB4_QUAD_3V3.svf")
             svf_code = CPLD_QSPI_3V3
-        ElseIf mode_needed = CPLD_MODE.QSPI_1V8 And (Not cpld32 = CPLD_QSPI_1V8) Then
+        ElseIf mode_needed = LOGIC_MODE.QSPI_1V8 And (Not cpld32 = CPLD_QSPI_1V8) Then
             svf_data = Utilities.GetResourceAsBytes("PCB4_QUAD_1V8.svf")
             svf_code = CPLD_QSPI_1V8
-        ElseIf mode_needed = CPLD_MODE.SPI_1V8 And (Not cpld32 = CPLD_SPI_1V8) Then
+        ElseIf mode_needed = LOGIC_MODE.SPI_1V8 And (Not cpld32 = CPLD_SPI_1V8) Then
             svf_data = Utilities.GetResourceAsBytes("PCB4_1V8.svf")
             svf_code = CPLD_SPI_1V8
-        ElseIf mode_needed = CPLD_MODE.SPI_3V And (Not cpld32 = CPLD_SPI_3V3) Then
+        ElseIf mode_needed = LOGIC_MODE.SPI_3V And (Not cpld32 = CPLD_SPI_3V3) Then
             svf_data = Utilities.GetResourceAsBytes("PCB4_3V3.svf")
             svf_code = CPLD_SPI_3V3
         End If
@@ -2503,7 +2503,7 @@ Public Module MainApp
         Return True 'Continue
     End Function
 
-    Public Function FCUSBPRO_PCB5_Init(usb_dev As FCUSB_DEVICE) As Boolean
+    Public Function FCUSBPRO_PCB5_Init(usb_dev As FCUSB_DEVICE, CurrentMode As DeviceMode) As Boolean
         'SPI programming here
 
 
@@ -2520,7 +2520,7 @@ Public Module MainApp
         End If
     End Sub
 
-    Private Enum CPLD_MODE
+    Private Enum LOGIC_MODE
         NotSelected 'Default
         SPI_3V 'Standard GPIO/SPI @ 3.3V
         SPI_1V8 'Standard GPIO/SPI @ 1.8V
@@ -2536,78 +2536,84 @@ Public Module MainApp
 
     Public Sub MACH1_FPGA_ERASE(usb_dev As FCUSB_DEVICE)
         Try
+            SetStatus("Erasing FPGA device")
             MEM_IF.Clear(usb_dev) 'Remove all devices that are on this usb port
             Dim svf_data() As Byte = Utilities.GetResourceAsBytes("MACH1_ERASE.svf")
-            ProgramSVF(usb_dev, svf_data, &HFFFFFFFFUI)
+            Dim jtag_successful As Boolean = usb_dev.JTAG_IF.Init(True)
+            If Not jtag_successful Then
+                WriteConsole("Error: failed to connect to FPGA via JTAG")
+                Exit Sub
+            End If
+            Dim svf_file() As String = Utilities.Bytes.ToCharStringArray(svf_data)
+            usb_dev.LOGIC_SetVersion(&HFFFFFFFFUI)
+            Dim result As Boolean = usb_dev.JTAG_IF.JSP.RunFile_SVF(svf_file)
+            If Not result Then
+                WriteConsole("Error: failed to erase FPGA via JTAG")
+                Exit Sub
+            End If
         Catch ex As Exception
         End Try
     End Sub
 
-    Public Function FCUSBMACH1_Init(usb_dev As FCUSB_DEVICE) As Boolean
+    Public Function FCUSBMACH1_Init(usb_dev As FCUSB_DEVICE, CurrentMode As DeviceMode) As Boolean
         If Not usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then Return False
         FCUSBPRO_SetDeviceVoltage(usb_dev) 'Power on CPLD
-        Dim SPI_CFG_IF As New ISC_LOGIC_PROG(usb_dev)
-        AddHandler SPI_CFG_IF.PrintConsole, AddressOf WriteConsole
-        AddHandler SPI_CFG_IF.SetProgress, AddressOf OnUpdateProgress
-        SPI_CFG_IF.SSPI_Init()
-        Dim SPI_ID As UInt32 = SPI_CFG_IF.SSPI_ReadIdent()
-        If (SPI_ID = &H12BC043) Then
-            WriteConsole("FlashcatUSB Mach¹ SPI in-circuit programming enabled")
-            Return MACH1_UpdateViaSPI(usb_dev, SPI_CFG_IF)
-        Else
-            WriteConsole("FlashcatUSB Mach¹ SPI in-circuit programming disabled")
-            Return MACH1_UpdateViaJTAG(usb_dev)
-        End If
-    End Function
-
-    Private Function MACH1_UpdateViaJTAG(usb_dev As FCUSB_DEVICE) As Boolean
-        If IS_DEBUG_VER Then Return True 'We dont want to update the FPGA
         Dim cpld32 As UInt32 = usb_dev.LOGIC_GetVersion()
-        Dim svf_data() As Byte = Nothing
+        If IS_DEBUG_VER Then Return True 'We dont want to update the FPGA
+        Dim bit_data() As Byte = Nothing
         Dim svf_code As UInt32 = 0
         If Utilities.StringToSingle(usb_dev.FW_VERSION()) = MACH1_PCB2_FW Then
-            If MySettings.VOLT_SELECT = Voltage.V1_8 And (Not cpld32 = MACH1_FGPA_1V8) Then
-                svf_data = Utilities.GetResourceAsBytes("MACH1_1V8.svf")
-                svf_code = MACH1_FGPA_1V8
-            ElseIf MySettings.VOLT_SELECT = Voltage.V3_3 And (Not cpld32 = MACH1_FGPA_3V3) Then
-                svf_data = Utilities.GetResourceAsBytes("MACH1_3V3.svf")
-                svf_code = MACH1_FGPA_3V3
+            Dim mode_needed As LOGIC_MODE = LOGIC_MODE.NotSelected
+            If CurrentMode = DeviceMode.SPI Or CurrentMode = DeviceMode.SPI_EEPROM Or CurrentMode = DeviceMode.SPI_NAND Then
+                If MySettings.VOLT_SELECT = Voltage.V1_8 And (Not cpld32 = MACH1_SPI_1V8) Then
+                    bit_data = Utilities.GetResourceAsBytes("MACH1_SPI_1V8.bit")
+                    svf_code = MACH1_SPI_1V8
+                ElseIf MySettings.VOLT_SELECT = Voltage.V3_3 And (Not cpld32 = MACH1_SPI_3V3) Then
+                    bit_data = Utilities.GetResourceAsBytes("MACH1_SPI_3V.bit")
+                    svf_code = MACH1_SPI_3V3
+                End If
+            Else
+                If MySettings.VOLT_SELECT = Voltage.V1_8 And (Not cpld32 = MACH1_FGPA_1V8) Then
+                    bit_data = Utilities.GetResourceAsBytes("MACH1_1V8.bit")
+                    svf_code = MACH1_FGPA_1V8
+                ElseIf MySettings.VOLT_SELECT = Voltage.V3_3 And (Not cpld32 = MACH1_FGPA_3V3) Then
+                    bit_data = Utilities.GetResourceAsBytes("MACH1_3V3.bit")
+                    svf_code = MACH1_FGPA_3V3
+                End If
             End If
         End If
-        If (svf_data IsNot Nothing) Then
-            ProgramSVF(usb_dev, svf_data, svf_code)
-            Return False 'Stop
+        If (bit_data IsNot Nothing) Then
+            Return ProgramSPI(usb_dev, bit_data, svf_code)
         End If
         Return True
     End Function
 
-    Private Function MACH1_UpdateViaSPI(usb_dev As FCUSB_DEVICE, SPI_CFG_IF As ISC_LOGIC_PROG) As Boolean
-        If IS_DEBUG_VER Then Return True 'We dont want to update the FPGA
-        Dim cpld32 As UInt32 = usb_dev.LOGIC_GetVersion()
-        Dim bit_data() As Byte = Nothing
-        Dim svf_code As UInt32 = 0
-        If Utilities.StringToSingle(usb_dev.FW_VERSION()) = MACH1_PCB2_FW Then
-            If MySettings.VOLT_SELECT = Voltage.V1_8 And (Not cpld32 = MACH1_FGPA_1V8) Then
-                bit_data = Utilities.GetResourceAsBytes("MACH1_1V8.bit")
-                svf_code = MACH1_FGPA_1V8
-            ElseIf MySettings.VOLT_SELECT = Voltage.V3_3 And (Not cpld32 = MACH1_FGPA_3V3) Then
-                bit_data = Utilities.GetResourceAsBytes("MACH1_3V3.bit")
-                svf_code = MACH1_FGPA_3V3
+    Private Function ProgramSPI(usb_dev As FCUSB_DEVICE, bit_data() As Byte, bit_code As UInt32) As Boolean
+        Try
+            Dim SPI_CFG_IF As New ISC_LOGIC_PROG(usb_dev)
+            AddHandler SPI_CFG_IF.PrintConsole, AddressOf WriteConsole
+            AddHandler SPI_CFG_IF.SetProgress, AddressOf OnUpdateProgress
+            SPI_CFG_IF.SSPI_Init()
+            Dim SPI_ID As UInt32 = SPI_CFG_IF.SSPI_ReadIdent()
+            If Not (SPI_ID = &H12BC043) Then
+                MACH1_FPGA_ERASE(usb_dev)
+                SPI_CFG_IF.SSPI_Init() 'May not be needed
+                SPI_ID = SPI_CFG_IF.SSPI_ReadIdent()
             End If
-        End If
-        If (bit_data IsNot Nothing) Then
+            If Not (SPI_ID = &H12BC043) Then Return False
             SetStatus("Programming on board FPGA with new logic")
             If SPI_CFG_IF.SSPI_ProgramBitstream(bit_data) Then
                 Dim status_msg As String = "FPGA device successfully programmed"
                 WriteConsole(status_msg) : SetStatus(status_msg)
-                usb_dev.LOGIC_SetVersion(svf_code)
+                usb_dev.LOGIC_SetVersion(bit_code)
                 Return True
             Else
                 Dim status_msg As String = "FPGA device programming failed"
                 WriteConsole(status_msg) : SetStatus(status_msg)
                 Return False
             End If
-        End If
+        Catch ex As Exception
+        End Try
         Return True
     End Function
 
@@ -2619,17 +2625,23 @@ Public Module MainApp
                     logic_type = "FPGA"
                 End If
             End If
-            SetStatus("Programming on board " & logic_type & " with new logic")
+            Dim Message As String = "Programming on board " & logic_type & " with new logic"
+            If GUI IsNot Nothing Then SetStatus(Message) Else ConsoleWriteLine(Message)
             usb_dev.USB_VCC_OFF()
             Utilities.Sleep(1000)
             If Not usb_dev.JTAG_IF.Init(True) Then
-                SetStatus("Error: unable to connect to on board " & logic_type & " via JTAG")
+                Message = "Error: unable to connect to on board " & logic_type & " via JTAG"
+                If GUI IsNot Nothing Then SetStatus(Message) Else ConsoleWriteLine(Message)
                 Exit Sub
             End If
             usb_dev.USB_VCC_ON()
             Dim svf_file() As String = Utilities.Bytes.ToCharStringArray(svf_data)
-            RemoveHandler usb_dev.JTAG_IF.JSP.Progress, AddressOf OnUpdateProgress
-            AddHandler usb_dev.JTAG_IF.JSP.Progress, AddressOf OnUpdateProgress
+            If GUI IsNot Nothing Then
+                RemoveHandler usb_dev.JTAG_IF.JSP.Progress, AddressOf OnUpdateProgress
+                AddHandler usb_dev.JTAG_IF.JSP.Progress, AddressOf OnUpdateProgress
+            Else
+                AddHandler usb_dev.JTAG_IF.JSP.Progress, AddressOf Console_UpdateProgress
+            End If
             WriteConsole("Programming SVF data into Logic device")
             usb_dev.LOGIC_SetVersion(&HFFFFFFFFUI)
             Dim result As Boolean = usb_dev.JTAG_IF.JSP.RunFile_SVF(svf_file)
@@ -2645,8 +2657,11 @@ Public Module MainApp
             End If
             Utilities.Sleep(250)
             usb_dev.USB_CONTROL_MSG_OUT(USBREQ.FW_REBOOT, Nothing, 0) 'We need to reboot to clean up USB memory
+            Utilities.Sleep(250)
+            If GUI Is Nothing Then ConsoleWriteLine("Rebooting board...")
         Catch ex As Exception
-            SetStatus("Exception in programming " & logic_type)
+            Dim Message As String = "Exception in programming " & logic_type
+            If GUI IsNot Nothing Then SetStatus(Message) Else ConsoleWriteLine(Message)
         Finally
             USBCLIENT.HW_BUSY = False
         End Try

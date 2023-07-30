@@ -717,7 +717,7 @@ Partial Class MainForm
         Me.TabConsole.Location = New System.Drawing.Point(4, 22)
         Me.TabConsole.Name = "TabConsole"
         Me.TabConsole.Padding = New System.Windows.Forms.Padding(3)
-        Me.TabConsole.Size = New System.Drawing.Size(481, 297)
+        Me.TabConsole.Size = New System.Drawing.Size(537, 297)
         Me.TabConsole.TabIndex = 1
         Me.TabConsole.Text = "  Console  "
         '
@@ -726,7 +726,7 @@ Partial Class MainForm
         Me.cmd_console_copy.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.cmd_console_copy.FlatStyle = System.Windows.Forms.FlatStyle.Popup
         Me.cmd_console_copy.Image = Global.FlashcatUSB.My.Resources.Resources.clipboard_ico
-        Me.cmd_console_copy.Location = New System.Drawing.Point(459, 272)
+        Me.cmd_console_copy.Location = New System.Drawing.Point(482, 272)
         Me.cmd_console_copy.Name = "cmd_console_copy"
         Me.cmd_console_copy.Size = New System.Drawing.Size(22, 22)
         Me.cmd_console_copy.TabIndex = 9
@@ -737,7 +737,7 @@ Partial Class MainForm
         Me.cmd_console_clear.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.cmd_console_clear.FlatStyle = System.Windows.Forms.FlatStyle.Popup
         Me.cmd_console_clear.Image = Global.FlashcatUSB.My.Resources.Resources.clear_x
-        Me.cmd_console_clear.Location = New System.Drawing.Point(433, 272)
+        Me.cmd_console_clear.Location = New System.Drawing.Point(456, 272)
         Me.cmd_console_clear.Name = "cmd_console_clear"
         Me.cmd_console_clear.Size = New System.Drawing.Size(22, 22)
         Me.cmd_console_clear.TabIndex = 8
@@ -748,7 +748,7 @@ Partial Class MainForm
         Me.cmdSaveLog.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.cmdSaveLog.FlatStyle = System.Windows.Forms.FlatStyle.Popup
         Me.cmdSaveLog.Image = CType(resources.GetObject("cmdSaveLog.Image"), System.Drawing.Image)
-        Me.cmdSaveLog.Location = New System.Drawing.Point(485, 272)
+        Me.cmdSaveLog.Location = New System.Drawing.Point(508, 272)
         Me.cmdSaveLog.Name = "cmdSaveLog"
         Me.cmdSaveLog.Size = New System.Drawing.Size(22, 22)
         Me.cmdSaveLog.TabIndex = 7
@@ -760,7 +760,7 @@ Partial Class MainForm
             Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.txtInput.Location = New System.Drawing.Point(3, 274)
         Me.txtInput.Name = "txtInput"
-        Me.txtInput.Size = New System.Drawing.Size(424, 20)
+        Me.txtInput.Size = New System.Drawing.Size(447, 20)
         Me.txtInput.TabIndex = 6
         '
         'ConsoleBox
@@ -771,7 +771,8 @@ Partial Class MainForm
         Me.ConsoleBox.FormattingEnabled = True
         Me.ConsoleBox.Location = New System.Drawing.Point(3, 3)
         Me.ConsoleBox.Name = "ConsoleBox"
-        Me.ConsoleBox.Size = New System.Drawing.Size(504, 264)
+        Me.ConsoleBox.ScrollAlwaysVisible = True
+        Me.ConsoleBox.Size = New System.Drawing.Size(527, 264)
         Me.ConsoleBox.TabIndex = 1
         '
         'TabMultiDevice
@@ -784,7 +785,7 @@ Partial Class MainForm
         Me.TabMultiDevice.Location = New System.Drawing.Point(4, 22)
         Me.TabMultiDevice.Name = "TabMultiDevice"
         Me.TabMultiDevice.Padding = New System.Windows.Forms.Padding(3)
-        Me.TabMultiDevice.Size = New System.Drawing.Size(481, 297)
+        Me.TabMultiDevice.Size = New System.Drawing.Size(537, 297)
         Me.TabMultiDevice.TabIndex = 2
         Me.TabMultiDevice.Text = "  Multi-device  "
         '

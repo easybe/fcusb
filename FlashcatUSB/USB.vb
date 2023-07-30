@@ -74,11 +74,13 @@ Namespace USB
 
             Public Event UpdateProgress(ByVal percent As Integer, ByRef device As FCUSB_DEVICE)
 
-            Public ReadOnly Property IsProfessional As Boolean
+            Public ReadOnly Property HasLogic() As Boolean
                 Get
                     If Me.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
                         Return True
                     ElseIf Me.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
+                        Return True
+                    ElseIf Me.HWBOARD = FCUSB_BOARD.Mach1 Then
                         Return True
                     Else
                         Return False
@@ -110,9 +112,14 @@ Namespace USB
 
             Public Sub USB_SPI_SETUP(mode As SPIBUS_MODE, bit_order As SPI_ORDER, speed As Integer)
                 Try
-                    Dim clock_speed As UInt32 = GetSpiClock(Me.HWBOARD, speed)
+                    Dim clock_speed As UInt32 = GetMaxSpiClock(Me.HWBOARD, speed)
+                    Dim result As Boolean
                     If (Me.HWBOARD = FCUSB_BOARD.Professional_PCB4) Then
-                        USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, clock_speed)
+                        result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, (clock_speed / 1000000))
+                    ElseIf (Me.HWBOARD = FCUSB_BOARD.Professional_PCB5) Then
+                        result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, (clock_speed / 1000000))
+                    ElseIf (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                        result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, (clock_speed / 1000000))
                     Else
                         SPI_ORDER_BYTE = 0
                         If bit_order = SPI_ORDER.SPI_ORDER_MSB_FIRST Then
@@ -142,7 +149,7 @@ Namespace USB
                             clock_byte = &H1 'SPI_CLOCK_FOSC_16
                         End If
                         Dim spiConf As UInt16 = CUShort(clock_byte Or SPI_MODE_BYTE Or SPI_ORDER_BYTE)
-                        USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, CUInt(spiConf))
+                        result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, CUInt(spiConf))
                     End If
                     Thread.Sleep(50)
                 Catch ex As Exception
@@ -150,7 +157,7 @@ Namespace USB
             End Sub
 
             Private Sub USB_SPI_SETSPEED(ByVal MHZ As UInt32)
-                If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                If (Me.HasLogic()) Then
                     USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, MHZ)
                 Else
                     Dim clock_byte As Byte
@@ -171,7 +178,7 @@ Namespace USB
 
             Public Function USB_SETUP_BULKOUT(RQ As USBREQ, SETUP() As Byte, BULK_OUT() As Byte, ByVal control_dt As UInt32, Optional timeout As Integer = -1) As Boolean
                 Try
-                    If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    If (Me.HasLogic()) Then
                         Dim ErrCounter As Integer = 0
                         Dim result As Boolean = True
                         Do
@@ -208,7 +215,7 @@ Namespace USB
             Public Function USB_SETUP_BULKIN(RQ As USBREQ, SETUP() As Byte, ByRef DATA_IN() As Byte, control_dt As UInt32, Optional timeout As Integer = -1) As Boolean
                 Try
                     Dim result As Boolean
-                    If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    If (Me.HasLogic()) Then
                         Dim ErrCounter As Integer = 0
                         Do
                             result = True
@@ -242,7 +249,7 @@ Namespace USB
                     If USBHANDLE Is Nothing Then Return False
                     Dim result As Boolean
                     Dim usb_flag As Byte
-                    If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    If (Me.HasLogic()) Then
                         usb_flag = (UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Interface Or UsbCtrlFlags.Direction_Out)
                     Else
                         usb_flag = (UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Device Or UsbCtrlFlags.Direction_Out)
@@ -269,7 +276,7 @@ Namespace USB
                     If USBHANDLE Is Nothing Then Return False
                     Dim usb_flag As Byte
                     Dim bytes_xfer As Integer = 0
-                    If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    If (Me.HasLogic()) Then
                         usb_flag = UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Interface Or UsbCtrlFlags.Direction_In
                     Else
                         usb_flag = UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Device Or UsbCtrlFlags.Direction_In
@@ -289,7 +296,7 @@ Namespace USB
             Public Function USB_BULK_IN(ByRef buffer_in() As Byte, Optional Timeout As Integer = -1) As Boolean
                 Try
                     If Timeout = -1 Then Timeout = USB_TIMEOUT_VALUE
-                    If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    If (Me.HasLogic()) Then
                         Dim xfer As Integer = 0
                         Using ep_reader As UsbEndpointReader = USBHANDLE.OpenEndpointReader(ReadEndpointID.Ep01, buffer_in.Length, EndpointType.Bulk)
                             Dim ec2 As ErrorCode = ep_reader.Read(buffer_in, 0, CInt(buffer_in.Length), Timeout, xfer) '5 second timeout
@@ -315,7 +322,7 @@ Namespace USB
             Public Function USB_BULK_OUT(ByVal buffer_out() As Byte, Optional Timeout As Integer = -1) As Boolean
                 Try
                     If Timeout = -1 Then Timeout = USB_TIMEOUT_VALUE
-                    If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    If (Me.HasLogic()) Then
                         Dim xfer As Integer = 0
                         Using ep_writer As UsbEndpointWriter = USBHANDLE.OpenEndpointWriter(WriteEndpointID.Ep02, EndpointType.Bulk)
                             Dim ec2 As ErrorCode = ep_writer.Write(buffer_out, 0, CInt(buffer_out.Length), Timeout, xfer) '5 second timeout
@@ -412,13 +419,13 @@ Namespace USB
             End Function
 
             Public Sub USB_VCC_OFF()
-                If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                If (Me.HasLogic()) Then
                     USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
                 End If
             End Sub
 
             Public Sub USB_VCC_ON()
-                If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                If (Me.HasLogic()) Then
                     If (MySettings.VOLT_SELECT = Voltage.V1_8) Then
                         USB_VCC_1V8()
                     Else
@@ -428,7 +435,7 @@ Namespace USB
             End Sub
 
             Public Sub USB_VCC_1V8()
-                If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                If (Me.HasLogic()) Then
                     USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
                     Utilities.Sleep(250)
                     USB_CONTROL_MSG_OUT(USBREQ.LOGIC_1V8)
@@ -438,7 +445,7 @@ Namespace USB
             End Sub
 
             Public Sub USB_VCC_3V()
-                If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                If (Me.HasLogic()) Then
                     USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
                     Utilities.Sleep(250)
                     USB_CONTROL_MSG_OUT(USBREQ.LOGIC_3V3)
@@ -633,7 +640,7 @@ Namespace USB
             USBCLIENT.Disconnect_All()
         End Sub
 
-        Public Function Connect(ByVal usb_device_path As String) As FCUSB_DEVICE
+        Public Function Connect(usb_device_path As String) As FCUSB_DEVICE
             Try
                 Dim fcusb_list() As UsbRegistry = FindUsbDevices()
                 If fcusb_list Is Nothing OrElse fcusb_list.Count = 0 Then Return Nothing
@@ -665,7 +672,7 @@ Namespace USB
             Return Nothing
         End Function
 
-        Private Function OpenUsbDevice(ByVal usb_dev As UsbDevice) As Boolean
+        Private Function OpenUsbDevice(usb_dev As UsbDevice) As Boolean
             Try
                 Dim wholeUsbDevice As IUsbDevice = TryCast(usb_dev, IUsbDevice)
                 If wholeUsbDevice IsNot Nothing Then 'Libusb only
@@ -885,6 +892,7 @@ Namespace USB
         EXPIO_WAIT = &H7D
         EXPIO_CPEN = &H7E
         EXPIO_SR = &H7F
+        EXPIO_TIMING = &H5E
         VERSION = &H80
         ECHO = &H81
         LEDON = &H82

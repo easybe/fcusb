@@ -1757,7 +1757,7 @@ Namespace Utilities
             Return parts
         End Function
         'Gets only the unique elements in the array (this one for Integer)
-        Public Function Unique(ByVal IntArray() As Integer) As Integer()
+        Public Function Unique(IntArray() As Integer) As Integer()
             Array.Sort(IntArray)
             Dim counter As Integer = 0
             Dim ret(IntArray.Length - 1) As Integer
@@ -1774,7 +1774,7 @@ Namespace Utilities
             Return ret
         End Function
 
-        Public Function CharCount(ByVal input As String, ByVal ChrToCount As Char) As Integer
+        Public Function CharCount(input As String, ChrToCount As Char) As Integer
             Dim Count As Integer = 0
             For Each c As Char In input
                 If c = ChrToCount Then Count += 1
@@ -1782,18 +1782,18 @@ Namespace Utilities
             Return Count
         End Function
 
-        Public Function RandomNumber(ByVal MinValue As Integer, Optional ByVal MaxValue As Integer = 0) As Integer
+        Public Function RandomNumber(MinValue As Integer, Optional MaxValue As Integer = 0) As Integer
             Randomize()
             Static r As New Random()
             Dim outnum As Integer = r.Next(MinValue, MaxValue + 1)
             Return outnum
         End Function
 
-        Public Sub Sleep(ByVal miliseconds As Integer)
+        Public Sub Sleep(miliseconds As Integer)
             Threading.Thread.Sleep(miliseconds)
         End Sub
         '"A" returns "0A"
-        Public Function Pad(ByVal input As String) As String
+        Public Function Pad(input As String) As String
             If Not input.Length Mod 2 = 0 Then
                 Return "0" & input
             Else
@@ -1801,7 +1801,7 @@ Namespace Utilities
             End If
         End Function
 
-        Public Function ByteToBooleanArray(ByVal anyByteArray() As Byte) As Boolean()
+        Public Function ByteToBooleanArray(anyByteArray() As Byte) As Boolean()
             Dim returnedArray() As Boolean
             Dim truthList As New List(Of Boolean)
             If Not anyByteArray Is Nothing Then

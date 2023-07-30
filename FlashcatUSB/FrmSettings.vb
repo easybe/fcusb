@@ -13,7 +13,6 @@ Public Class FrmSettings
         ' Add any initialization after the InitializeComponent() call.
     End Sub
 
-
     Private Sub SPI_SetMaximumClockSettings()
         Select Case MySettings.SPI_CLOCK_MAX
             Case SPI.SPI_SPEED.MHZ_32
@@ -190,7 +189,6 @@ Public Class FrmSettings
                 cb_sym_width.SelectedIndex = 1
         End Select
         ECC_CheckIfEnabled()
-
         cb_retry_write.SelectedIndex = (MySettings.VERIFY_COUNT - 1)
         cbSrec.SelectedIndex = MySettings.SREC_BITMODE
         Select Case MySettings.JTAG_SPEED
@@ -199,6 +197,18 @@ Public Class FrmSettings
             Case FlashcatSettings.JTAG_TCK_FREQ._20MHz
                 cb_jtag_tck_speed.SelectedIndex = 1
         End Select
+        For Each item In cb_nor_read_access.Items
+            If item.ToString.StartsWith(MySettings.NOR_READ_ACCESS) Then
+                cb_nor_read_access.SelectedItem = item
+                Exit For
+            End If
+        Next
+        For Each item In cb_nor_we_pulse.Items
+            If item.ToString.StartsWith(MySettings.NOR_WE_PULSE) Then
+                cb_nor_we_pulse.SelectedItem = item
+                Exit For
+            End If
+        Next
     End Sub
 
     Private Sub Language_setup()
@@ -334,6 +344,10 @@ Public Class FrmSettings
             Case 1
                 MySettings.JTAG_SPEED = FlashcatSettings.JTAG_TCK_FREQ._20MHz
         End Select
+        Dim s As String = cb_nor_read_access.SelectedItem.ToString
+        MySettings.NOR_READ_ACCESS = CInt(s.Substring(0, s.IndexOf(" ")))
+        s = cb_nor_we_pulse.SelectedItem.ToString
+        MySettings.NOR_WE_PULSE = CInt(s.Substring(0, s.IndexOf(" ")))
     End Sub
 
     Private Sub CustomDevice_LoadSettings()

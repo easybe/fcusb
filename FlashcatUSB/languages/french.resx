@@ -827,41 +827,41 @@
     <value>Mauvais bloc NAND à l’adresse: 0x{0} (Cartographié à 0x{1})</value>
   </data>
   <data name="mc_button_alldata" xml:space="preserve">
-    <value>Conversion d'un fichier binaire au format INTEL HEX</value>
+    <value>Toute Donnée</value>
     <comment>The NAND memory area selection button (both main and spare areas)</comment>
   </data>
   <data name="mc_button_cancel" xml:space="preserve">
-    <value>Toute Donnée</value>
+    <value>Annulation</value>
   </data>
   <data name="mc_button_close" xml:space="preserve">
-    <value>Annulation</value>
+    <value>Fermer</value>
     <comment>The close button on the compare popup window</comment>
   </data>
   <data name="mc_button_compare" xml:space="preserve">
-    <value>Fermer</value>
-    <comment>The popup text when your move your cursor over the button</comment>
-  </data>
-  <data name="mc_button_erase" xml:space="preserve">
     <value>Compare le contenu de la mémoire</value>
     <comment>The popup text when your move your cursor over the button</comment>
   </data>
-  <data name="mc_button_main" xml:space="preserve">
+  <data name="mc_button_erase" xml:space="preserve">
     <value>Efface toute la mémoire</value>
+    <comment>The popup text when your move your cursor over the button</comment>
+  </data>
+  <data name="mc_button_main" xml:space="preserve">
+    <value>Zone Principale</value>
     <comment>The NAND memory area selection button (main part)</comment>
   </data>
   <data name="mc_button_ok" xml:space="preserve">
-    <value>Zone Principale</value>
+    <value>OK</value>
   </data>
   <data name="mc_button_read" xml:space="preserve">
-    <value>OK</value>
+    <value>Télécharger</value>
     <comment>The popup text when your move your cursor over the button</comment>
   </data>
   <data name="mc_button_spare" xml:space="preserve">
-    <value>Lecture de la mémoire vers le disque</value>
+    <value>De rechange</value>
     <comment>The NAND memory area selection button (the spare or OOB)</comment>
   </data>
   <data name="mc_button_write" xml:space="preserve">
-    <value>Zone de réserve</value>
+    <value>Programme</value>
     <comment>The popup text when your move your cursor over the button</comment>
   </data>
   <data name="mc_compare_canceled" xml:space="preserve">
@@ -874,85 +874,85 @@
     <value>Comparaison de la mémoire terminée: {0}% de correspondance des données</value>
   </data>
   <data name="mc_compare_filename" xml:space="preserve">
-    <value>Comparaison de la mémoire terminée: {0} erreurs en tout ({1}% de correspondances)</value>
-  </data>
-  <data name="mc_compare_flash_addr" xml:space="preserve">
     <value>Nom de fichier</value>
   </data>
-  <data name="mc_compare_info" xml:space="preserve">
+  <data name="mc_compare_flash_addr" xml:space="preserve">
     <value>Adresse flash</value>
   </data>
-  <data name="mc_compare_mismatch" xml:space="preserve">
+  <data name="mc_compare_info" xml:space="preserve">
     <value>Adresse flash: 0x{0}, taille: {1} octets</value>
+  </data>
+  <data name="mc_compare_mismatch" xml:space="preserve">
+    <value>Comparaison de la mémoire terminée: {0} erreurs en tout ({1}% de correspondances)</value>
   </data>
   <data name="mc_compare_results" xml:space="preserve">
     <value>Compteur d'erreurs: {0} octets ({1}% de correspondances)</value>
   </data>
   <data name="mc_compare_selected" xml:space="preserve">
-    <value>Résultats de la comparaison de mémoire</value>
-  </data>
-  <data name="mc_compare_start" xml:space="preserve">
     <value>Fichier sélectionné, comparaison {0}</value>
   </data>
-  <data name="mc_compare_total_processed" xml:space="preserve">
+  <data name="mc_compare_start" xml:space="preserve">
     <value>Début de l'opération de comparaison mémoire</value>
   </data>
-  <data name="mc_erase_command_sent" xml:space="preserve">
+  <data name="mc_compare_total_processed" xml:space="preserve">
     <value>Nombre total d'octets traités</value>
   </data>
-  <data name="mc_erase_confirm" xml:space="preserve">
+  <data name="mc_erase_command_sent" xml:space="preserve">
     <value>Envoie de la commande d'effacement mémoire au circuit: {0}</value>
   </data>
-  <data name="mc_erase_warning" xml:space="preserve">
+  <data name="mc_erase_confirm" xml:space="preserve">
     <value>Confirmer l'effacement mémoire de {0}</value>
   </data>
-  <data name="mc_io_destination" xml:space="preserve">
+  <data name="mc_erase_warning" xml:space="preserve">
     <value>Cette action va effacer le données de façon définitive</value>
   </data>
-  <data name="mc_io_file_cancel_to" xml:space="preserve">
+  <data name="mc_io_destination" xml:space="preserve">
     <value>Adresse ce la cible flash: 0x{0}, octets à écrire: {1} octets</value>
   </data>
-  <data name="mc_io_file_choose" xml:space="preserve">
+  <data name="mc_io_file_cancel_to" xml:space="preserve">
     <value>Annulation par l'utilisateur. Aucune donnée écrite sur {0}</value>
   </data>
-  <data name="mc_io_file_compare" xml:space="preserve">
+  <data name="mc_io_file_choose" xml:space="preserve">
     <value>Choisir le fichier à écrire sur {0}</value>
   </data>
-  <data name="mc_io_file_writing" xml:space="preserve">
+  <data name="mc_io_file_compare" xml:space="preserve">
     <value>Sélectionner le fichier à comparer avec la mémoire</value>
   </data>
-  <data name="mc_io_open_file" xml:space="preserve">
+  <data name="mc_io_file_writing" xml:space="preserve">
     <value>Fichier sélectionné, écriture sur {0}</value>
   </data>
-  <data name="mc_io_save_canceled" xml:space="preserve">
+  <data name="mc_io_open_file" xml:space="preserve">
     <value>Fichier ouvert pour écriture: {0}, (taille: {1} octets)</value>
   </data>
-  <data name="mc_io_save_type" xml:space="preserve">
+  <data name="mc_io_save_canceled" xml:space="preserve">
     <value>Annulation par l'utilisateur. Aucune donnée n'a été sauvée.</value>
   </data>
+  <data name="mc_io_save_type" xml:space="preserve">
+    <value>Choisir l'emplacement sur le disque dur et le format de données</value>
+  </data>
   <data name="mc_mem_read_begin" xml:space="preserve">
-    <value>Opération de lecture terminée</value>
+    <value>Mémoire de début lue à partir de {0}</value>
   </data>
   <data name="mc_mem_read_canceled" xml:space="preserve">
-    <value>Sélectionner la range pour la lecture des données depuis {0}</value>
+    <value>Opération de lecture annulée</value>
   </data>
   <data name="mc_mem_read_done" xml:space="preserve">
-    <value>Fichier ouvert pour écriture: {0} (Intel hex format), Taille totale: {1} octets</value>
+    <value>Opération de lecture terminée</value>
   </data>
   <data name="mc_mem_read_from" xml:space="preserve">
-    <value>Lu {0} octets en {1} secondes, {2}</value>
+    <value>Sélectionner la range pour la lecture des données depuis {0}</value>
   </data>
   <data name="mc_mem_read_result" xml:space="preserve">
-    <value>Opération de lecture en cours</value>
+    <value>Lu {0} octets en {1} secondes, {2}</value>
   </data>
   <data name="mc_mem_read_start" xml:space="preserve">
-    <value>Adresse de début: {0} ({1}) Longueur: {2}</value>
+    <value>Opération de lecture en cours</value>
   </data>
   <data name="mc_mem_start_addr" xml:space="preserve">
-    <value>L'utilisateur a annulé l'opération de lecture</value>
+    <value>Adresse de début: {0} ({1}) Longueur: {2}</value>
   </data>
   <data name="mc_mem_user_cancel" xml:space="preserve">
-    <value>Données lues converties au format Intel HEX pour enregistrement</value>
+    <value>L'utilisateur a annulé l'opération de lecture</value>
   </data>
   <data name="mc_mem_write_success" xml:space="preserve">
     <value>{0} enregistré sur le disque avec succès</value>
@@ -1173,13 +1173,13 @@
     <comment>Text for checkbox to have the software write data flags</comment>
   </data>
   <data name="mc_mem_converting_format" xml:space="preserve">
-    <value>Choisir l'emplacement sur le disque dur et le format de données</value>
-  </data>
-  <data name="mc_mem_incorrect_format" xml:space="preserve">
     <value>Début  de lecture de la mémoire à {0}</value>
   </data>
+  <data name="mc_mem_incorrect_format" xml:space="preserve">
+    <value>Le fichier sélectionné n'est pas au format {0}</value>
+  </data>
   <data name="mc_mem_open_file_write" xml:space="preserve">
-    <value>Opération de lecture annulée</value>
+    <value>Fichier ouvert pour écriture: {0}, Taille totale: {1} octets</value>
   </data>
   <data name="nandecc_algorithm" xml:space="preserve">
     <value>Algorithme</value>

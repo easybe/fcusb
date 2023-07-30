@@ -1,6 +1,3 @@
-! Initialize
-! Row_Width	  :1560
-! Address_Length :623
 HDR	0;
 HIR	0;
 TDR	0;
@@ -10,25 +7,10 @@ ENDIR	IRPAUSE;
 FREQUENCY	1.00e+006 HZ;
 STATE	IDLE;
 
-
-! Check the IDCODE
-
-! Shift in IDCODE_PUB(0xE0) instruction
-SIR	8	TDI  (E0);
-SDR	32	TDI  (00000000)
-		TDO  (012BC043)
-		MASK (FFFFFFFF);
-
-
-! Program Bscan register
-
 ! Shift in Preload(0x1C) instruction
 SIR	8	TDI  (1C);
 SDR	552	TDI  (FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 			 FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF);
-
-
-! Check the Key Protection fuses
 
 ! Shift in LSC_READ_STATUS(0x3C) instruction
 SIR	8	TDI  (3C);
@@ -36,9 +18,6 @@ RUNTEST	IDLE	2 TCK	1.00E-003 SEC;
 SDR	32	TDI  (00000000)
 		TDO  (00000000)
 		MASK (00010000);
-
-
-! Enable the Flash
 
 ! Shift in ISC ENABLE(0xC6) instruction
 SIR	8	TDI  (C6);
@@ -57,18 +36,12 @@ SIR	8	TDI  (C6);
 SDR	8	TDI  (08);
 RUNTEST	IDLE	2 TCK	1.00E-003 SEC;
 
-
-! Check the OTP fuses
-
 ! Shift in LSC_READ_STATUS(0x3C) instruction
 SIR	8	TDI  (3C);
 RUNTEST	IDLE	2 TCK	1.00E-003 SEC;
 SDR	32	TDI  (00000000)
 		TDO  (00000000)
 		MASK (00024040);
-
-
-! Erase the Flash
 
 ! Shift in ISC ERASE(0x0E) instruction
 SIR	8	TDI  (0E);
@@ -82,18 +55,12 @@ SDR	1	TDI  (0)
 		TDO  (0);
 ENDLOOP ;
 
-
-! Read the status bit
-
 ! Shift in LSC_READ_STATUS(0x3C) instruction
 SIR	8	TDI  (3C);
 RUNTEST	IDLE	2 TCK	1.00E-003 SEC;
 SDR	32	TDI  (00000000)
 		TDO  (00000000)
 		MASK (00003000);
-
-
-! Exit the programming mode
 
 ! Shift in ISC DISABLE(0x26) instruction
 SIR	8	TDI  (26);

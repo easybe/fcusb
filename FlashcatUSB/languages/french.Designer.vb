@@ -1631,7 +1631,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Conversion d&apos;un fichier binaire au format INTEL HEX.
+        '''  Looks up a localized string similar to Toute Donnée.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_alldata() As String
             Get
@@ -1640,7 +1640,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Toute Donnée.
+        '''  Looks up a localized string similar to Annulation.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_cancel() As String
             Get
@@ -1649,7 +1649,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Annulation.
+        '''  Looks up a localized string similar to Fermer.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_close() As String
             Get
@@ -1658,7 +1658,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Fermer.
+        '''  Looks up a localized string similar to Compare le contenu de la mémoire.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_compare() As String
             Get
@@ -1667,7 +1667,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Compare le contenu de la mémoire.
+        '''  Looks up a localized string similar to Efface toute la mémoire.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_erase() As String
             Get
@@ -1676,7 +1676,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Efface toute la mémoire.
+        '''  Looks up a localized string similar to Zone Principale.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_main() As String
             Get
@@ -1685,7 +1685,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Zone Principale.
+        '''  Looks up a localized string similar to OK.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_ok() As String
             Get
@@ -1694,7 +1694,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to OK.
+        '''  Looks up a localized string similar to Télécharger.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_read() As String
             Get
@@ -1703,7 +1703,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Lecture de la mémoire vers le disque.
+        '''  Looks up a localized string similar to De rechange.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_spare() As String
             Get
@@ -1712,7 +1712,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Zone de réserve.
+        '''  Looks up a localized string similar to Programme.
         '''</summary>
         Friend Shared ReadOnly Property mc_button_write() As String
             Get
@@ -1748,7 +1748,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Comparaison de la mémoire terminée: {0} erreurs en tout ({1}% de correspondances).
+        '''  Looks up a localized string similar to Nom de fichier.
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_filename() As String
             Get
@@ -1757,7 +1757,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Nom de fichier.
+        '''  Looks up a localized string similar to Adresse flash.
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_flash_addr() As String
             Get
@@ -1766,7 +1766,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Adresse flash.
+        '''  Looks up a localized string similar to Adresse flash: 0x{0}, taille: {1} octets.
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_info() As String
             Get
@@ -1775,7 +1775,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Adresse flash: 0x{0}, taille: {1} octets.
+        '''  Looks up a localized string similar to Comparaison de la mémoire terminée: {0} erreurs en tout ({1}% de correspondances).
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_mismatch() As String
             Get
@@ -1793,7 +1793,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Résultats de la comparaison de mémoire.
+        '''  Looks up a localized string similar to Fichier sélectionné, comparaison {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_selected() As String
             Get
@@ -1802,7 +1802,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Fichier sélectionné, comparaison {0}.
+        '''  Looks up a localized string similar to Début de l&apos;opération de comparaison mémoire.
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_start() As String
             Get
@@ -1811,7 +1811,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Début de l&apos;opération de comparaison mémoire.
+        '''  Looks up a localized string similar to Nombre total d&apos;octets traités.
         '''</summary>
         Friend Shared ReadOnly Property mc_compare_total_processed() As String
             Get
@@ -1820,7 +1820,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Nombre total d&apos;octets traités.
+        '''  Looks up a localized string similar to Envoie de la commande d&apos;effacement mémoire au circuit: {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_erase_command_sent() As String
             Get
@@ -1829,7 +1829,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Envoie de la commande d&apos;effacement mémoire au circuit: {0}.
+        '''  Looks up a localized string similar to Confirmer l&apos;effacement mémoire de {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_erase_confirm() As String
             Get
@@ -1838,7 +1838,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Confirmer l&apos;effacement mémoire de {0}.
+        '''  Looks up a localized string similar to Cette action va effacer le données de façon définitive.
         '''</summary>
         Friend Shared ReadOnly Property mc_erase_warning() As String
             Get
@@ -1847,7 +1847,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Cette action va effacer le données de façon définitive.
+        '''  Looks up a localized string similar to Adresse ce la cible flash: 0x{0}, octets à écrire: {1} octets.
         '''</summary>
         Friend Shared ReadOnly Property mc_io_destination() As String
             Get
@@ -1856,7 +1856,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Adresse ce la cible flash: 0x{0}, octets à écrire: {1} octets.
+        '''  Looks up a localized string similar to Annulation par l&apos;utilisateur. Aucune donnée écrite sur {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_io_file_cancel_to() As String
             Get
@@ -1865,7 +1865,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Annulation par l&apos;utilisateur. Aucune donnée écrite sur {0}.
+        '''  Looks up a localized string similar to Choisir le fichier à écrire sur {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_io_file_choose() As String
             Get
@@ -1874,7 +1874,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Choisir le fichier à écrire sur {0}.
+        '''  Looks up a localized string similar to Sélectionner le fichier à comparer avec la mémoire.
         '''</summary>
         Friend Shared ReadOnly Property mc_io_file_compare() As String
             Get
@@ -1883,7 +1883,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Sélectionner le fichier à comparer avec la mémoire.
+        '''  Looks up a localized string similar to Fichier sélectionné, écriture sur {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_io_file_writing() As String
             Get
@@ -1892,7 +1892,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Fichier sélectionné, écriture sur {0}.
+        '''  Looks up a localized string similar to Fichier ouvert pour écriture: {0}, (taille: {1} octets).
         '''</summary>
         Friend Shared ReadOnly Property mc_io_open_file() As String
             Get
@@ -1901,7 +1901,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Fichier ouvert pour écriture: {0}, (taille: {1} octets).
+        '''  Looks up a localized string similar to Annulation par l&apos;utilisateur. Aucune donnée n&apos;a été sauvée..
         '''</summary>
         Friend Shared ReadOnly Property mc_io_save_canceled() As String
             Get
@@ -1910,7 +1910,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Annulation par l&apos;utilisateur. Aucune donnée n&apos;a été sauvée..
+        '''  Looks up a localized string similar to Choisir l&apos;emplacement sur le disque dur et le format de données.
         '''</summary>
         Friend Shared ReadOnly Property mc_io_save_type() As String
             Get
@@ -1919,7 +1919,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Choisir l&apos;emplacement sur le disque dur et le format de données.
+        '''  Looks up a localized string similar to Début  de lecture de la mémoire à {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_converting_format() As String
             Get
@@ -1928,7 +1928,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Début  de lecture de la mémoire à {0}.
+        '''  Looks up a localized string similar to Le fichier sélectionné n&apos;est pas au format {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_incorrect_format() As String
             Get
@@ -1937,7 +1937,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Opération de lecture annulée.
+        '''  Looks up a localized string similar to Fichier ouvert pour écriture: {0}, Taille totale: {1} octets.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_open_file_write() As String
             Get
@@ -1946,7 +1946,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Opération de lecture terminée.
+        '''  Looks up a localized string similar to Mémoire de début lue à partir de {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_read_begin() As String
             Get
@@ -1955,7 +1955,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Sélectionner la range pour la lecture des données depuis {0}.
+        '''  Looks up a localized string similar to Opération de lecture annulée.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_read_canceled() As String
             Get
@@ -1964,7 +1964,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Fichier ouvert pour écriture: {0} (Intel hex format), Taille totale: {1} octets.
+        '''  Looks up a localized string similar to Opération de lecture terminée.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_read_done() As String
             Get
@@ -1973,7 +1973,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Lu {0} octets en {1} secondes, {2}.
+        '''  Looks up a localized string similar to Sélectionner la range pour la lecture des données depuis {0}.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_read_from() As String
             Get
@@ -1982,7 +1982,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Opération de lecture en cours.
+        '''  Looks up a localized string similar to Lu {0} octets en {1} secondes, {2}.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_read_result() As String
             Get
@@ -1991,7 +1991,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Adresse de début: {0} ({1}) Longueur: {2}.
+        '''  Looks up a localized string similar to Opération de lecture en cours.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_read_start() As String
             Get
@@ -2000,7 +2000,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to L&apos;utilisateur a annulé l&apos;opération de lecture.
+        '''  Looks up a localized string similar to Adresse de début: {0} ({1}) Longueur: {2}.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_start_addr() As String
             Get
@@ -2009,7 +2009,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Données lues converties au format Intel HEX pour enregistrement.
+        '''  Looks up a localized string similar to L&apos;utilisateur a annulé l&apos;opération de lecture.
         '''</summary>
         Friend Shared ReadOnly Property mc_mem_user_cancel() As String
             Get

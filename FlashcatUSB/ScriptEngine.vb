@@ -4052,13 +4052,13 @@ Public Class FcScriptEngine : Implements IDisposable
             Select Case USBCLIENT.FCUSB(Index).HWBOARD
                 Case USB.FCUSB_BOARD.Professional_PCB4
                     USBCLIENT.FCUSB(Index).LOGIC_SetVersion(&HFFFFFFFFUI)
-                    FCUSBPRO_PCB4_Init(USBCLIENT.FCUSB(Index))
+                    FCUSBPRO_PCB4_Init(USBCLIENT.FCUSB(Index), MySettings.OPERATION_MODE)
                 Case USB.FCUSB_BOARD.Professional_PCB5
                     USBCLIENT.FCUSB(Index).LOGIC_SetVersion(&HFFFFFFFFUI)
-                    FCUSBPRO_PCB5_Init(USBCLIENT.FCUSB(Index))
+                    FCUSBPRO_PCB5_Init(USBCLIENT.FCUSB(Index), MySettings.OPERATION_MODE)
                 Case USB.FCUSB_BOARD.Mach1
                     USBCLIENT.FCUSB(Index).LOGIC_SetVersion(&HFFFFFFFFUI)
-                    FCUSBMACH1_Init(USBCLIENT.FCUSB(Index))
+                    FCUSBMACH1_Init(USBCLIENT.FCUSB(Index), MySettings.OPERATION_MODE)
                 Case Else
                     Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Load.Logic only available for PRO or MACH1"}
             End Select

@@ -1198,10 +1198,13 @@ Public Class MemControl_v2
                 CompareResultForm.MaximizeBox = False
                 Dim fn_lbl As New Label With {.Width = CompareResultForm.Width + 20, .Height = 18, .Text = RM.GetString("mc_compare_filename") & ": " & filename, .Location = New Point(10, 4)}
                 CompareResultForm.Controls.Add(fn_lbl)
-                CompareResultForm.Controls.Add(New Label With {.Width = CompareResultForm.Width + 20, .Height = 18, .Text = RM.GetString("mc_compare_flash_addr") & ": 0x" & Hex(StartingAddress).PadLeft(8, "0") & " - 0x" & Hex(StartingAddress + CompareCount - 1).PadLeft(8, "0"), .Location = New Point(10, 24)})
-                CompareResultForm.Controls.Add(New Label With {.Width = CompareResultForm.Width + 20, .Height = 18, .Text = RM.GetString("mc_compare_total_processed") & ": " & Format(CompareCount, "#,###"), .Location = New Point(10, 44)})
-                CompareResultForm.Controls.Add(New Label With {.Width = CompareResultForm.Width + 20, .Height = 18, .Text = String.Format(RM.GetString("mc_compare_mismatch"), TotalMismatches, percent_formatted), .Location = New Point(10, 64)})
-
+                Dim s1 As String = RM.GetString("mc_compare_flash_addr")
+                Dim s2 As String = RM.GetString("mc_compare_total_processed")
+                Dim s3 As String = RM.GetString("mc_compare_mismatch") 's3 = "Mismatch count: {0} bytes ({1}% match)" "s3 = "Adresse flash: 0x{0}, taille: {1} octets""
+                Dim match_str As String = String.Format(s3, TotalMismatches, percent_formatted)
+                CompareResultForm.Controls.Add(New Label With {.Width = CompareResultForm.Width + 20, .Height = 18, .Text = s1 & ": 0x" & Hex(StartingAddress).PadLeft(8, "0") & " - 0x" & Hex(StartingAddress + CompareCount - 1).PadLeft(8, "0"), .Location = New Point(10, 24)})
+                CompareResultForm.Controls.Add(New Label With {.Width = CompareResultForm.Width + 20, .Height = 18, .Text = s2 & ": " & Format(CompareCount, "#,###"), .Location = New Point(10, 44)})
+                CompareResultForm.Controls.Add(New Label With {.Width = CompareResultForm.Width + 20, .Height = 18, .Text = match_str, .Location = New Point(10, 64)})
                 Dim cmbClose As New Button With {.Text = RM.GetString("mc_button_close"), .Width = 80, .Location = New Point(CompareResultForm.Width / 2 - 50, 92)}
                 AddHandler cmbClose.Click, Sub()
                                                CompareResultForm.DialogResult = DialogResult.OK

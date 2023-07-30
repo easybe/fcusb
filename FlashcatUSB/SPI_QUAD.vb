@@ -27,7 +27,7 @@ Namespace SPI
         Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
             MyFlashStatus = DeviceStatus.NotDetected
             Dim FLASH_IDENT As SPI_IDENT = Nothing
-            If (FCUSB.IsProfessional() OrElse FCUSB.HWBOARD = FCUSB_BOARD.Mach1) Then
+            If (FCUSB.HasLogic()) Then
                 If MySettings.VOLT_SELECT = Voltage.V1_8 Then
                     FCUSB.USB_VCC_1V8()
                 Else
@@ -35,7 +35,7 @@ Namespace SPI
                 End If
             End If
             Utilities.Sleep(200)
-            ReadDeviceID(MULTI_IO_MODE.Single) 'Read ID first, then see if we can access QUAD/DUAL
+            FLASH_IDENT = ReadDeviceID(MULTI_IO_MODE.Single) 'Read ID first, then see if we can access QUAD/DUAL
             FLASH_IDENT = ReadDeviceID(MULTI_IO_MODE.Quad)
             If Not FLASH_IDENT.DETECTED Then FLASH_IDENT = ReadDeviceID(MULTI_IO_MODE.Dual)
             If Not FLASH_IDENT.DETECTED Then FLASH_IDENT = ReadDeviceID(MULTI_IO_MODE.Single)
@@ -66,7 +66,7 @@ Namespace SPI
                         SQIBUS_WriteRead({&HF0}) 'SPI RESET COMMAND
                         Utilities.Sleep(20)
                         If (FLASH_IDENT.MANU = &HEF) Then 'Winbond
-                            ' Winbond_EnableQUAD()
+                            'Winbond_EnableQUAD()
                         ElseIf FLASH_IDENT.MANU = 1 Then 'Cypress/Spansion
                             Dim sr2(0) As Byte
                             SQIBUS_WriteRead({&H35}, sr2)
@@ -92,7 +92,7 @@ Namespace SPI
                     Return True
                 Else
                     RaiseEvent PrintConsole(RM.GetString("unknown_device_email"))
-                    MyFlashDevice = New SPI_NOR("Unknown", VCC_IF.SERIAL_3V, 0, FLASH_IDENT.MANU, FLASH_IDENT.RDID)
+                    MyFlashDevice = New SPI_NOR("Unknown", VCC_IF.SERIAL_3V, 0, FLASH_IDENT.MANU, CUShort(FLASH_IDENT.RDID And &HFFFF))
                     MyFlashStatus = DeviceStatus.NotSupported
                     Return False
                 End If
@@ -119,7 +119,6 @@ Namespace SPI
             Me.SQI_IO_MODE = mode
             If SQIBUS_WriteRead({id_code}, out_buffer) = 6 Then 'MULTIPLE I/O READ ID
                 id.MANU = out_buffer(0)
-                'id.RDID = Utilities.Bytes.ToUInt32({0, 0, out_buffer(1), out_buffer(2)})
                 id.RDID = (CUInt(out_buffer(1)) << 24) Or (CUInt(out_buffer(2)) << 16) Or (CUInt(out_buffer(3)) << 8) Or CUInt(out_buffer(4))
             End If
             Return id
@@ -311,7 +310,7 @@ Namespace SPI
                 Dim setup_class As New WriteSetupPacket(MyFlashDevice, flash_offset, BufferSize)
                 setup_class.SPI_MODE = Me.SQI_DEVICE_MODE
                 setup_class.CMD_PROG = PROG_CMD
-                Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USBREQ.SQI_WR_FLASH, setup_class.ToBytes, sector_data, 0)
+                Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USBREQ.SQI_WR_FLASH, setup_class.ToBytes(), sector_data, 0)
                 If Not result Then Return False
                 Utilities.Sleep(10)
                 FCUSB.USB_WaitForComplete()
@@ -433,16 +432,15 @@ Namespace SPI
 #Region "SPIBUS"
 
         Public Sub SQIBUS_Setup(bus_speed As SQI_SPEED)
-            FCUSB.USB_VCC_OFF()
             Dim clock_div As Integer = 0 'Divides the clock speed
-            If FCUSB.IsProfessional() Then
+            If FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
                 If bus_speed = SQI_SPEED.MHZ_20 Then
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "20 MHz"))
                 Else
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
                     clock_div = 1
                 End If
-            ElseIf FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
+            ElseIf FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5 Or FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
                 If bus_speed = SQI_SPEED.MHZ_40 Then
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "40 MHz"))
                 ElseIf bus_speed = SQI_SPEED.MHZ_20 Then
@@ -458,21 +456,8 @@ Namespace SPI
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "1 MHz"))
                     clock_div = 4
                 End If
-            ElseIf FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
-                If bus_speed = SQI_SPEED.MHZ_20 Then
-                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "20 MHz"))
-                ElseIf bus_speed = SQI_SPEED.MHZ_10 Then
-                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
-                    clock_div = 1
-                ElseIf bus_speed = SQI_SPEED.MHZ_5 Then
-                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "5 MHz"))
-                    clock_div = 2
-                ElseIf bus_speed = SQI_SPEED.MHZ_2 Then
-                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "2 MHz"))
-                    clock_div = 3
-                End If
             End If
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, clock_div)
+            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, clock_div)
             Utilities.Sleep(50) 'Allow time for device to change IO
         End Sub
 
