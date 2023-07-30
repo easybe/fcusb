@@ -44,6 +44,11 @@ Public Class ConsoleMode
                 Console_DisplayHelp()
             Else
                 MyOperation = ConsoleMode_ParseSwitches(Args)
+                If MyOperation.Mode = DeviceMode.Unspecified Then
+                    MyOperation.Mode = MySettings.OPERATION_MODE
+                Else
+                    MySettings.OPERATION_MODE = MyOperation.Mode
+                End If
                 If MyOperation Is Nothing Then Return
                 If Not ConsoleMode_SetupOperation() Then Exit Sub
                 PrintConsole("Waiting to connect to FlashcatUSB")
@@ -82,8 +87,9 @@ Public Class ConsoleMode
     End Function
 
     Private Function ConsoleMode_ParseSwitches(args As String()) As ConsoleOperation
+        Dim arg_index As Integer = 0
         Dim MyConsoleParams = New ConsoleOperation()
-        Select Case If(args(0).ToUpper(), "")
+        Select Case If(args(arg_index).ToUpper(), "")
             Case "-H", "-?", "-HELP"
                 MyConsoleParams.CurrentTask = ConsoleTask.Help
                 Exit Select
@@ -109,6 +115,7 @@ Public Class ConsoleMode
                 PrintConsole("OPERATION not specified (i.e. -READ or -WRITE)")
                 Return Nothing
         End Select
+        arg_index += 1
         If (args.Length > 1) Then
             If MyConsoleParams.CurrentTask = ConsoleTask.License Then
                 If License_LoadKey(args(1).ToUpper()) Then
@@ -119,66 +126,64 @@ Public Class ConsoleMode
                 End If
                 Return Nothing
             ElseIf Equals(args(1).ToUpper(), "-SPI") Then
-                MyConsoleParams.Mode = DeviceMode.SPI
+                MyConsoleParams.Mode = DeviceMode.SPI : arg_index += 1
             ElseIf Equals(args(1).ToUpper(), "-SQI") Then
-                MyConsoleParams.Mode = DeviceMode.SQI
+                MyConsoleParams.Mode = DeviceMode.SQI : arg_index += 1
             ElseIf Equals(args(1).ToUpper(), "-SPINAND") Then
-                MyConsoleParams.Mode = DeviceMode.SPI_NAND
+                MyConsoleParams.Mode = DeviceMode.SPI_NAND : arg_index += 1
             ElseIf Equals(args(1).ToUpper(), "-SPIEEPROM") Then
-                MyConsoleParams.Mode = DeviceMode.SPI_EEPROM
+                MyConsoleParams.Mode = DeviceMode.SPI_EEPROM : arg_index += 1
             ElseIf Equals(args(1).ToUpper(), "-I2C") Then
-                MyConsoleParams.Mode = DeviceMode.I2C_EEPROM
+                MyConsoleParams.Mode = DeviceMode.I2C_EEPROM : arg_index += 1
             ElseIf Equals(args(1).ToUpper(), "-SWI") Then
-                MyConsoleParams.Mode = DeviceMode.ONE_WIRE
+                MyConsoleParams.Mode = DeviceMode.ONE_WIRE : arg_index += 1
             ElseIf Equals(args(1).ToUpper(), "-PNOR") Then
-                MyConsoleParams.Mode = DeviceMode.PNOR
+                MyConsoleParams.Mode = DeviceMode.PNOR : arg_index += 1
             ElseIf Equals(args(1).ToUpper(), "-PNAND") Then
-                MyConsoleParams.Mode = DeviceMode.PNAND
+                MyConsoleParams.Mode = DeviceMode.PNAND : arg_index += 1
             ElseIf Equals(args(1).ToUpper(), "-MICROWIRE") Then
-                MyConsoleParams.Mode = DeviceMode.Microwire
+                MyConsoleParams.Mode = DeviceMode.Microwire : arg_index += 1
             ElseIf Equals(args(1).ToUpper(), "-FWH") Then
-                MyConsoleParams.Mode = DeviceMode.FWH
+                MyConsoleParams.Mode = DeviceMode.FWH : arg_index += 1
             ElseIf Equals(args(1).ToUpper(), "-HYPERFLASH") Then
-                MyConsoleParams.Mode = DeviceMode.HyperFlash
+                MyConsoleParams.Mode = DeviceMode.HyperFlash : arg_index += 1
             ElseIf Equals(args(1).ToUpper(), "-EPROM") Then
-                MyConsoleParams.Mode = DeviceMode.EPROM
+                MyConsoleParams.Mode = DeviceMode.EPROM : arg_index += 1
             ElseIf Equals(args(1).ToUpper(), "-JTAG") Then
-                MyConsoleParams.Mode = DeviceMode.JTAG
+                MyConsoleParams.Mode = DeviceMode.JTAG : arg_index += 1
             Else
-                Environment.ExitCode = -1
-                PrintConsole("MODE not specified (i.e. -SPI or -I2C)")
-                Return Nothing
+                PrintConsole("MODE not specified (using OPERATION setting instead)")
             End If
         End If
-        Dim i As Integer = 2
-        While i <= args.Length - 1
-            If Not String.IsNullOrEmpty(args(i)) Then
-                Dim last_option As Boolean = (i = args.Length - 1)
-                Select Case args(i).ToUpper()
+
+        While arg_index <= args.Length - 1
+            If Not String.IsNullOrEmpty(args(arg_index)) Then
+                Dim last_option As Boolean = (arg_index = args.Length - 1)
+                Select Case args(arg_index).ToUpper()
                     Case "-FILE"
-                        If last_option OrElse args(i + 1).StartsWith("-") Then
-                            PrintConsole(String.Format("You must specify a value following {0}", args(i)))
+                        If last_option OrElse args(arg_index + 1).StartsWith("-") Then
+                            PrintConsole(String.Format("You must specify a value following {0}", args(arg_index)))
                             Return Nothing
                         End If
-                        MyConsoleParams.FILENAME = args(i + 1)
-                        i += 1
+                        MyConsoleParams.FILENAME = args(arg_index + 1)
+                        arg_index += 1
                         Exit Select
                     Case "-LOG"
-                        If last_option OrElse args(i + 1).StartsWith("-") Then
-                            PrintConsole(String.Format("You must specify a value following {0}", args(i)))
+                        If last_option OrElse args(arg_index + 1).StartsWith("-") Then
+                            PrintConsole(String.Format("You must specify a value following {0}", args(arg_index)))
                             Return Nothing
                         End If
-                        MyConsoleParams.LogFilename = args(i + 1)
-                        i += 1
+                        MyConsoleParams.LogFilename = args(arg_index + 1)
+                        arg_index += 1
                         MyConsoleParams.LogOutput = True
                         Exit Select
                     Case "-MHZ"
-                        If last_option OrElse args(i + 1).StartsWith("-") Then
-                            PrintConsole(String.Format("You must specify a value following {0}", args(i)))
+                        If last_option OrElse args(arg_index + 1).StartsWith("-") Then
+                            PrintConsole(String.Format("You must specify a value following {0}", args(arg_index)))
                             Return Nothing
                         End If
-                        Dim speed As String = args(i + 1)
-                        i += 1
+                        Dim speed As String = args(arg_index + 1)
+                        arg_index += 1
                         If Utilities.IsNumeric(speed) AndAlso (Integer.Parse(speed) >= 1 AndAlso Integer.Parse(speed) <= 48) Then
                         Else
                             PrintConsole("MHZ value must be between 1 and 48")
@@ -187,12 +192,12 @@ Public Class ConsoleMode
                         MyConsoleParams.SPI_FREQ = CType(Integer.Parse(speed) * 1000000, SPI.SPI_SPEED)
                         Exit Select
                     Case "-AREA"
-                        If last_option OrElse args(i + 1).StartsWith("-") Then
-                            PrintConsole(String.Format("You must specify a value following {0}", args(i)))
+                        If last_option OrElse args(arg_index + 1).StartsWith("-") Then
+                            PrintConsole(String.Format("You must specify a value following {0}", args(arg_index)))
                             Return Nothing
                         End If
-                        Dim area_option As String = args(i + 1)
-                        i += 1
+                        Dim area_option As String = args(arg_index + 1)
+                        arg_index += 1
                         If area_option.ToUpper().Equals("MAIN") Then
                             MyConsoleParams.FLASH_AREA = FlashMemory.FlashArea.Main
                         ElseIf area_option.ToUpper().Equals("SPARE") Then
@@ -208,14 +213,14 @@ Public Class ConsoleMode
                         MyConsoleParams.LogAppendFile = True
                         Exit Select
                     Case "-OFFSET"
-                        If last_option OrElse args(i + 1).StartsWith("-") Then
-                            PrintConsole(String.Format("You must specify a value following {0}", args(i)))
+                        If last_option OrElse args(arg_index + 1).StartsWith("-") Then
+                            PrintConsole(String.Format("You must specify a value following {0}", args(arg_index)))
                             Return Nothing
                         End If
-                        Dim offset_value As String = args(i + 1)
-                        i += 1
+                        Dim offset_value As String = args(arg_index + 1)
+                        arg_index += 1
                         If Not Utilities.IsDataType.HexString(offset_value) AndAlso Not Utilities.IsNumeric(offset_value) Then
-                            PrintConsole(String.Format("{0} value must be numeric or hexadecimal", args(i)))
+                            PrintConsole(String.Format("{0} value must be numeric or hexadecimal", args(arg_index)))
                             Return Nothing
                         End If
                         If Utilities.IsNumeric(offset_value) Then
@@ -225,14 +230,14 @@ Public Class ConsoleMode
                         End If
                         Exit Select
                     Case "-LENGTH"
-                        If last_option OrElse args(i + 1).StartsWith("-") Then
-                            PrintConsole(String.Format("You must specify a value following {0}", args(i)))
+                        If last_option OrElse args(arg_index + 1).StartsWith("-") Then
+                            PrintConsole(String.Format("You must specify a value following {0}", args(arg_index)))
                             Return Nothing
                         End If
-                        Dim offset_value As String = args(i + 1)
-                        i += 1
+                        Dim offset_value As String = args(arg_index + 1)
+                        arg_index += 1
                         If Not Utilities.IsDataType.HexString(offset_value) AndAlso Not Utilities.IsNumeric(offset_value) Then
-                            PrintConsole(String.Format("{0} value must be numeric or hexadecimal", args(i)))
+                            PrintConsole(String.Format("{0} value must be numeric or hexadecimal", args(arg_index)))
                             Return Nothing
                         End If
                         If Utilities.IsNumeric(offset_value) Then
@@ -248,14 +253,14 @@ Public Class ConsoleMode
                         MyConsoleParams.ExitConsole = True
                         Exit Select
                     Case "-ADDRESS"
-                        If last_option OrElse args(i + 1).StartsWith("-") Then
-                            PrintConsole(String.Format("You must specify a value following {0}", args(i)))
+                        If last_option OrElse args(arg_index + 1).StartsWith("-") Then
+                            PrintConsole(String.Format("You must specify a value following {0}", args(arg_index)))
                             Return Nothing
                         End If
-                        Dim offset_value = args(i + 1)
-                        i += 1
+                        Dim offset_value = args(arg_index + 1)
+                        arg_index += 1
                         If Not Utilities.IsDataType.HexString(offset_value) AndAlso Not Utilities.IsNumeric(offset_value) Then
-                            PrintConsole(String.Format("{0} value must be numeric or hexadecimal", args(i)))
+                            PrintConsole(String.Format("{0} value must be numeric or hexadecimal", args(arg_index)))
                             Return Nothing
                         End If
                         If Utilities.IsNumeric(offset_value) Then
@@ -265,12 +270,12 @@ Public Class ConsoleMode
                         End If
                         Exit Select
                     Case "-EEPROM"
-                        If last_option OrElse args(i + 1).StartsWith("-") Then
-                            PrintConsole(String.Format("You must specify a value following {0}", args(i)))
+                        If last_option OrElse args(arg_index + 1).StartsWith("-") Then
+                            PrintConsole(String.Format("You must specify a value following {0}", args(arg_index)))
                             Return Nothing
                         End If
-                        Dim eeprom_str As String = args(i + 1)
-                        i += 1
+                        Dim eeprom_str As String = args(arg_index + 1)
+                        arg_index += 1
                         Dim Device_Found = False
                         Dim I2C_IF = New I2C_Programmer(Nothing)
                         Dim index = 0
@@ -301,11 +306,11 @@ Public Class ConsoleMode
                         End If
                         Exit Select
                     Case Else
-                        PrintConsole(String.Format("Option not recognized: {0}", args(i)))
+                        PrintConsole(String.Format("Option not recognized: {0}", args(arg_index)))
                         Exit Select
                 End Select
             End If
-            i += 1 ' Load other options
+            arg_index += 1 ' Load other options
         End While
         Return MyConsoleParams
     End Function

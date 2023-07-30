@@ -102,6 +102,7 @@ Namespace FlashMemory
         HF = 7 'Used by HYPERFLASH
         RYRB = 8 'Wait for RY/BY pin to be HIGH
         NAND_SR = 9 'Wait for NAND using command instead of RB_x pin
+        NAND_RBx = 10
     End Enum
 
     Public Enum VCC_IF As Integer
@@ -152,6 +153,12 @@ Namespace FlashMemory
         'Intel P30
         P30_Top = 21 '4x32KB; ?x128KB
         P30_Btm = 22 '?x128KB; 4x32KB
+        'Intel B5
+        Four_Top_B5
+        Four_Btm_B5
+        'Sharp
+        Sharp_Top
+        Sharp_Btm
     End Enum
 
     Public Enum EraseMethod
@@ -294,10 +301,10 @@ Namespace FlashMemory
                     AddSector(Kb512, blocks - 1)
                     AddSector(Kb064, 8)
                 Case BLKLYT.Four_Btm
-                    AddSector(Kb128, 1)
-                    AddSector(Kb064, 2)
-                    AddSector(Kb256, 1)
-                    AddSector(Kb512, blocks - 1)
+                    AddSector(Kb128, 1) '16KB
+                    AddSector(Kb064, 2) '8KB
+                    AddSector(Kb256, 1) '32KB
+                    AddSector(Kb512, blocks - 1) '64KB
                 Case BLKLYT.Two_Btm
                     AddSector(Kb064, 8)
                     AddSector(Kb512, blocks - 1)
@@ -368,6 +375,24 @@ Namespace FlashMemory
                     AddSector(Kb512, 4)   '65536    262144
                     AddSector(Mb002, 126) '262144   33030144
                     AddSector(Kb512, 4)   '65536    262144
+                Case BLKLYT.Four_Top_B5
+                    blocks = CInt(CUInt(Size) / Mb001)
+                    AddSector(Kb128, 1) '16KB
+                    AddSector(Kb064, 2) '8KB
+                    AddSector(Kb512 + Kb256, 1) '32KB
+                    AddSector(Mb001, blocks - 1) '64KB
+                Case BLKLYT.Four_Btm_B5
+                    blocks = CInt(CUInt(Size) / Mb001)
+                    AddSector(Kb128, 1) '16KB
+                    AddSector(Kb064, 2) '8KB
+                    AddSector(Kb512 + Kb256, 1) '32KB
+                    AddSector(Mb001, blocks - 1) '128KB
+                Case BLKLYT.Sharp_Top
+                    AddSector(Kb512, blocks - 1) '64KB
+                    AddSector(Kb064, 8) '8KB
+                Case BLKLYT.Sharp_Btm
+                    AddSector(Kb064, 8) '8KB
+                    AddSector(Kb512, blocks - 1) '64KB
                 Case BLKLYT.EntireDevice
                     AddSector(CInt(Size))
             End Select
@@ -619,9 +644,10 @@ Namespace FlashMemory
     'Parallel NAND
     Public Class P_NAND : Inherits G_NAND
         Public Property ADDRESS_SCHEME As PAGE_TYPE
+        Public Property DIE_COUNT As Integer = 1
 
         Sub New(FlashName As String, MFG As Byte, ID As UInt32, PageSize As UInt16, SpareSize As UInt16, PageCount As UInt16, BlockCount As UInt16, vcc As VCC_IF)
-            MyBase.New(FlashName, MFG, ID, PageSize, SpareSize, PageCount, BlockCount, vcc)
+            MyBase.New(FlashName.TrimEnd, MFG, ID, PageSize, SpareSize, PageCount, BlockCount, vcc)
             If PageSize = 512 Then
                 Me.ADDRESS_SCHEME = PAGE_TYPE.SMALL
             Else
@@ -1088,7 +1114,6 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("Micron M25PX64", SPI_3V, Mb064, &H20, &H7117))
             FlashDB.Add(New SPI_NOR("Micron M25PX32", SPI_3V, Mb032, &H20, &H7116))
             FlashDB.Add(New SPI_NOR("Micron M25PX16", SPI_3V, Mb016, &H20, &H7115))
-
             FlashDB.Add(New SPI_NOR("Micron M25PE16", SPI_3V, Mb016, &H20, &H8015))
             FlashDB.Add(New SPI_NOR("Micron M25PE80", SPI_3V, Mb008, &H20, &H8014))
             FlashDB.Add(New SPI_NOR("Micron M25PE40", SPI_3V, Mb004, &H20, &H8013))
@@ -1157,6 +1182,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("Winbond W25Q20BW", SPI_1V8, Mb002, &HEF, &H5012) With {.SQI_MODE = SPI_QUAD})
             'MXIC
             FlashDB.Add(New SPI_NOR("MXIC MX66L1G45G", SPI_3V, Gb001, &HC2, &H201B) With {.SEND_EN4B = True})
+            FlashDB.Add(New SPI_NOR("MXIC MX25LM51245G", SPI_3V, Mb512, &HC2, &H853A) With {.SEND_EN4B = True})
             FlashDB.Add(New SPI_NOR("MXIC MX25L51245G", SPI_3V, Mb512, &HC2, &H201A) With {.SEND_EN4B = True})
             FlashDB.Add(New SPI_NOR("MXIC MX25L25655E", SPI_3V, Mb256, &HC2, &H2619) With {.SEND_EN4B = True})
             FlashDB.Add(New SPI_NOR("MXIC MX25L256", SPI_3V, Mb256, &HC2, &H2019) With {.SEND_EN4B = True})
@@ -1180,7 +1206,8 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("MXIC MX66L51235F", SPI_3V, Mb512, &HC2, &H201A) With {.SEND_EN4B = True})
             FlashDB.Add(New SPI_NOR("MXIC MX25V8035", SPI_2V5, Mb008, &HC2, &H2554))
             FlashDB.Add(New SPI_NOR("MXIC MX25V4035", SPI_2V5, Mb004, &HC2, &H2553))
-            FlashDB.Add(New SPI_NOR("MXIC MX25V8035F", SPI_2V5, Mb008, &HC2, &H2314))
+            FlashDB.Add(New SPI_NOR("MXIC MX25V1635F", SPI_3V, Mb016, &HC2, &H2315)) 'Range 2.3V-3.6V
+            FlashDB.Add(New SPI_NOR("MXIC MX25V8035F", SPI_3V, Mb008, &HC2, &H2314)) 'Range 2.3V-3.6V
             FlashDB.Add(New SPI_NOR("MXIC MX25R6435", SPI_3V, Mb064, &HC2, &H2817)) 'Wide range: 1.65 to 3.5V
             FlashDB.Add(New SPI_NOR("MXIC MX25R3235F", SPI_3V, Mb032, &HC2, &H2816)) 'Wide range: 1.65 to 3.5V
             FlashDB.Add(New SPI_NOR("MXIC MX25R1635F", SPI_3V, Mb016, &HC2, &H2815)) 'Wide range: 1.65 to 3.5V
@@ -1542,14 +1569,15 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("Intel 28F320B3(B)", &H89, &H8897, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
             FlashDB.Add(New P_NOR("Intel 28F640B3(T)", &H89, &H8898, Mb064, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
             FlashDB.Add(New P_NOR("Intel 28F640B3(B)", &H89, &H8899, Mb064, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
-            FlashDB.Add(New P_NOR("Intel 28F004B5(T)", &H89, &H78, Mb004, VCC_IF.X8_5V, BLKLYT.Four_Top, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
-            FlashDB.Add(New P_NOR("Intel 28F200B5(T)", &H89, &H2274, Mb002, VCC_IF.X16_5V, BLKLYT.Four_Top, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
-            FlashDB.Add(New P_NOR("Intel 28F400B5(T)", &H89, &H4470, Mb004, VCC_IF.X16_5V, BLKLYT.Four_Top, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
-            FlashDB.Add(New P_NOR("Intel 28F800B5(T)", &H89, &H889C, Mb008, VCC_IF.X16_5V, BLKLYT.Four_Top, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
-            FlashDB.Add(New P_NOR("Intel 28F004B5(B)", &H89, &H79, Mb004, VCC_IF.X8_5V, BLKLYT.Four_Btm, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
-            FlashDB.Add(New P_NOR("Intel 28F200B5(B)", &H89, &H2275, Mb002, VCC_IF.X16_5V, BLKLYT.Four_Btm, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
-            FlashDB.Add(New P_NOR("Intel 28F400B5(B)", &H89, &H4471, Mb004, VCC_IF.X16_5V, BLKLYT.Four_Btm, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
-            FlashDB.Add(New P_NOR("Intel 28F800B5(B)", &H89, &H889D, Mb008, VCC_IF.X16_5V, BLKLYT.Four_Btm, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
+            'Intel B5
+            FlashDB.Add(New P_NOR("Intel 28F200B5(T)", &H89, &H2274, Mb002, VCC_IF.X16_5V_12VPP, BLKLYT.Four_Top_B5, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
+            FlashDB.Add(New P_NOR("Intel 28F200B5(B)", &H89, &H2275, Mb002, VCC_IF.X16_5V_12VPP, BLKLYT.Four_Btm_B5, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
+            FlashDB.Add(New P_NOR("Intel 28F400B5(T)", &H89, &H4470, Mb004, VCC_IF.X16_5V_12VPP, BLKLYT.Four_Top_B5, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
+            FlashDB.Add(New P_NOR("Intel 28F400B5(B)", &H89, &H4471, Mb004, VCC_IF.X16_5V_12VPP, BLKLYT.Four_Btm_B5, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
+            FlashDB.Add(New P_NOR("Intel 28F800B5(T)", &H89, &H889C, Mb008, VCC_IF.X16_5V_12VPP, BLKLYT.Four_Top_B5, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
+            FlashDB.Add(New P_NOR("Intel 28F800B5(B)", &H89, &H889D, Mb008, VCC_IF.X16_5V_12VPP, BLKLYT.Four_Btm_B5, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
+            FlashDB.Add(New P_NOR("Intel 28F004B5(T)", &H89, &H78, Mb004, VCC_IF.X8_5V_12VPP, BLKLYT.Four_Top_B5, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
+            FlashDB.Add(New P_NOR("Intel 28F004B5(B)", &H89, &H79, Mb004, VCC_IF.X8_5V_12VPP, BLKLYT.Four_Btm_B5, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
             'AMD
             FlashDB.Add(New P_NOR("AMD AM29F200(T)", &H1, &H2251, Mb002, VCC_IF.X16_5V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("AMD AM29F200(B)", &H1, &H2252, Mb002, VCC_IF.X16_5V, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
@@ -1598,6 +1626,17 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("AMD AM29LV320D(B)", &H1, &H22F9, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("AMD AM29LV320M(T)", &H1, &H2201, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("AMD AM29LV320M(B)", &H1, &H2200, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS))
+            'Sharp
+            FlashDB.Add(New P_NOR("Sharp LH28F160BJHE", &HB0, &HE8, Mb016, VCC_IF.X16_3V, BLKLYT.Sharp_Top, MFP_PRG.Standard, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("Sharp LH28F160BG(T)", &HB0, &H68, Mb016, VCC_IF.X16_3V, BLKLYT.Sharp_Top, MFP_PRG.Standard, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("Sharp LH28F160BG(B)", &HB0, &H69, Mb016, VCC_IF.X16_3V, BLKLYT.Sharp_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("Sharp LH28F320BFHE", &HB0, &HB4, Mb032, VCC_IF.X16_3V, BLKLYT.Sharp_Top, MFP_PRG.Buffer1, MFP_DELAY.SR1))
+            FlashDB.Add(New P_NOR("Sharp LH28F320BJHE", &HB0, &HE3, Mb032, VCC_IF.X16_3V, BLKLYT.Sharp_Btm, MFP_PRG.Buffer1, MFP_DELAY.SR1))
+            FlashDB.Add(New P_NOR("Sharp LH28F640BFHE", &HB0, &HB3, Mb064, VCC_IF.X16_3V, BLKLYT.Sharp_Btm, MFP_PRG.Buffer1, MFP_DELAY.SR1))
+            FlashDB.Add(New P_NOR("Sharp LH28F640BFHG", &HB0, &HB1, Mb064, VCC_IF.X16_3V, BLKLYT.Sharp_Btm, MFP_PRG.Buffer1, MFP_DELAY.SR1))
+            FlashDB.Add(New P_NOR("Sharp LH28F640SPHT", &HB0, &H17, Mb064, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer1, MFP_DELAY.SR1))
+            FlashDB.Add(New P_NOR("Sharp LH28F128BFHT", &HB0, &H10, Mb128, VCC_IF.X16_3V, BLKLYT.Kb512_Uni, MFP_PRG.Buffer1, MFP_DELAY.SR1))
+            FlashDB.Add(New P_NOR("Sharp LH28F128BFHT", &HB0, &H11, Mb128, VCC_IF.X16_3V, BLKLYT.Kb512_Uni, MFP_PRG.Buffer1, MFP_DELAY.SR1)) 'Variant
             'Winbond
             FlashDB.Add(New P_NOR("Winbond W49F020", &HDA, &H8C, Mb002, VCC_IF.X8_5V, BLKLYT.EntireDevice, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("Winbond W49F002U", &HDA, &HB, Mb002, VCC_IF.X8_5V, BLKLYT.Mb002_NonUni, MFP_PRG.Standard, MFP_DELAY.uS) With {.PAGE_SIZE = 128, .HARDWARE_DELAY = 18})
@@ -1647,6 +1686,8 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("Atmel AT49F040T", &H1F, &H12, Mb004, VCC_IF.X8_5V, BLKLYT.EntireDevice, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("Atmel AT49BV/LV16X", &H1F, &HC0, Mb016, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.Standard, MFP_DELAY.uS)) 'Supports Single Pulse Byte/ Word Program
             FlashDB.Add(New P_NOR("Atmel AT49BV/LV16XT", &H1F, &HC2, Mb016, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("Atmel AT49BV322D(B)", &H1F, &H_01C8, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("Atmel AT49BV322D(T)", &H1F, &H_01C9, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.Standard, MFP_DELAY.uS))
             'MXIC
             FlashDB.Add(New P_NOR("MXIC MX29F040", &HC2, &HA4, Mb004, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
             FlashDB.Add(New P_NOR("MXIC MX29F080", &HC2, &HD5, Mb008, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
@@ -1741,26 +1782,24 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("ST M29F800T", &H20, &HEC, Mb008, VCC_IF.X16_5V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
             FlashDB.Add(New P_NOR("ST M29F800B", &H20, &H58, Mb008, VCC_IF.X16_5V, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
             'ST 3V NOR
-            FlashDB.Add(New P_NOR("ST M29W400DT", &H20, &HEE, Mb004, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("ST M29W400DB", &H20, &HEF, Mb004, VCC_IF.X16_3V, BLKLYT.Four_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("ST M29W800AT", &H20, &HD7, Mb008, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("ST M29W800AB", &H20, &H5B, Mb008, VCC_IF.X16_3V, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("ST M29W800DT", &H20, &H22D7, Mb008, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("ST M29W800DB", &H20, &H225B, Mb008, VCC_IF.X16_3V, BLKLYT.Four_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("ST M29W160ET", &H20, &H22C4, Mb016, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("ST M29W160EB", &H20, &H2249, Mb016, VCC_IF.X16_3V, BLKLYT.Four_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS)) 'CV
-            FlashDB.Add(New P_NOR("ST M29D323DT", &H20, &H225E, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("ST M29D323DB", &H20, &H225F, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("ST M29W320DT", &H20, &H22CA, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("ST M29W320DB", &H20, &H22CB, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("ST M29W320ET", &H20, &H2256, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("ST M29W320EB", &H20, &H2257, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("ST M29W640GH", &H20, &H227E, Mb064, VCC_IF.X16_3V, BLKLYT.Kb512_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &HC01))
-            FlashDB.Add(New P_NOR("ST M29W640GL", &H20, &H227E, Mb064, VCC_IF.X16_3V, BLKLYT.Kb512_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &HC00))
-            FlashDB.Add(New P_NOR("ST M29W640GT", &H20, &H227E, Mb064, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H1001))
-            FlashDB.Add(New P_NOR("ST M29W640GB", &H20, &H227E, Mb064, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H1000))
-            FlashDB.Add(New P_NOR("ST M29W128GH", &H20, &H227E, Mb128, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2101))
-            FlashDB.Add(New P_NOR("ST M29W128GL", &H20, &H227E, Mb128, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2100))
+            FlashDB.Add(New P_NOR("ST M29W400DT", &H20, &H_00EE, Mb004, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("ST M29W400DB", &H20, &H_00EF, Mb004, VCC_IF.X16_3V, BLKLYT.Four_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("ST M29W800AT", &H20, &H_00D7, Mb008, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("ST M29W800AB", &H20, &H_005B, Mb008, VCC_IF.X16_3V, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("ST M29W800DT", &H20, &H_22D7, Mb008, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("ST M29W800DB", &H20, &H_225B, Mb008, VCC_IF.X16_3V, BLKLYT.Four_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("ST M29W160ET", &H20, &H_22C4, Mb016, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("ST M29W160EB", &H20, &H_2249, Mb016, VCC_IF.X16_3V, BLKLYT.Four_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS)) 'CV
+            FlashDB.Add(New P_NOR("ST M29D323DT", &H20, &H_225E, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("ST M29D323DB", &H20, &H_225F, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("ST M29W320ET", &H20, &H_2256, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("ST M29W320EB", &H20, &H_2257, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("ST M29W640GH", &H20, &H_227E, Mb064, VCC_IF.X16_3V, BLKLYT.Kb512_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &HC01))
+            FlashDB.Add(New P_NOR("ST M29W640GL", &H20, &H_227E, Mb064, VCC_IF.X16_3V, BLKLYT.Kb512_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &HC00))
+            FlashDB.Add(New P_NOR("ST M29W640GT", &H20, &H_227E, Mb064, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H1001))
+            FlashDB.Add(New P_NOR("ST M29W640GB", &H20, &H_227E, Mb064, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H1000))
+            FlashDB.Add(New P_NOR("ST M29W128GH", &H20, &H_227E, Mb128, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2101))
+            FlashDB.Add(New P_NOR("ST M29W128GL", &H20, &H_227E, Mb128, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.DQ7, &H2100))
             'ST M28
             FlashDB.Add(New P_NOR("ST M28W160CT", &H20, &H88CE, Mb016, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
             FlashDB.Add(New P_NOR("ST M28W160CB", &H20, &H88CF, Mb016, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.IntelSharp, MFP_DELAY.SR1))
@@ -1895,262 +1934,266 @@ Namespace FlashMemory
         End Sub
 
         Private Sub NAND_Database()
+            'Intel MLC NAND
+            FlashDB.Add(New P_NAND("Intel JS29F64G08AAME1", &H89, &H_88244BA9UI, 8192, 448, 256, 2048, VCC_IF.X8_3V)) '64Gb
+            FlashDB.Add(New P_NAND("Intel PF29F64G08LCMFS", &H89, &H_64643CA1UI, 16384, 1216, 512, 1024, VCC_IF.X8_3V)) '64Gb
+            FlashDB.Add(New P_NAND("Intel PF29F16B08MCMFS", &H89, &H_64643CA1UI, 512, 16, 32, 1024, VCC_IF.X8_3V) With {.DIE_COUNT = 2}) '128Gb (dual x8)
+            FlashDB.Add(New P_NAND("Intel PF29F32B08NCMFS", &H89, &H_64643CA1UI, 512, 16, 32, 1024, VCC_IF.X8_3V) With {.DIE_COUNT = 4}) '256Gb (dual x8)
             '00 = Does not matter
             'Micron SLC 8x NAND devices
-            FlashDB.Add(New P_NAND("ST NAND128W3A", &H20, &H732073, 512, 16, 32, 1024, VCC_IF.X8_3V)) '128Mb
-            FlashDB.Add(New P_NAND("ST NAND256R3A", &H20, &H352035, 512, 16, 32, 2048, VCC_IF.X8_1V8)) '256Mb
-            FlashDB.Add(New P_NAND("ST NAND256W3A", &H20, &H752075, 512, 16, 32, 2048, VCC_IF.X8_3V)) '256Mb
-            FlashDB.Add(New P_NAND("ST NAND256R4A", &H20, &H452045, 512, 16, 32, 2048, VCC_IF.X16_1V8)) '256Mb
-            FlashDB.Add(New P_NAND("ST NAND256W4A", &H20, &H552055, 512, 16, 32, 2048, VCC_IF.X16_3V)) '256Mb
-            FlashDB.Add(New P_NAND("ST NAND512R3A", &H20, &H362036, 512, 16, 32, 4096, VCC_IF.X8_1V8)) '512Mb
-            FlashDB.Add(New P_NAND("ST NAND512W3A", &H20, &H762076, 512, 16, 32, 4096, VCC_IF.X8_3V)) '512Mb
-            FlashDB.Add(New P_NAND("ST NAND512R4A", &H20, &H462046, 512, 16, 32, 4096, VCC_IF.X16_1V8)) '512Mb
-            FlashDB.Add(New P_NAND("ST NAND512W4A", &H20, &H562056, 512, 16, 32, 4096, VCC_IF.X16_3V)) '512Mb
-            FlashDB.Add(New P_NAND("ST NAND01GR3A", &H20, &H392039, 512, 16, 32, 8192, VCC_IF.X8_1V8)) '1Gb
-            FlashDB.Add(New P_NAND("ST NAND01GW3A", &H20, &H792079, 512, 16, 32, 8192, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("ST NAND01GR4A", &H20, &H492049, 512, 16, 32, 8192, VCC_IF.X16_1V8)) '1Gb
-            FlashDB.Add(New P_NAND("ST NAND01GW4A", &H20, &H592059, 512, 16, 32, 8192, VCC_IF.X16_3V)) '1Gb
+            FlashDB.Add(New P_NAND("ST NAND128W3A", &H20, &H_00732073UI, 512, 16, 32, 1024, VCC_IF.X8_3V)) '128Mb
+            FlashDB.Add(New P_NAND("ST NAND256R3A", &H20, &H_00352035UI, 512, 16, 32, 2048, VCC_IF.X8_1V8)) '256Mb
+            FlashDB.Add(New P_NAND("ST NAND256W3A", &H20, &H_00752075UI, 512, 16, 32, 2048, VCC_IF.X8_3V)) '256Mb
+            FlashDB.Add(New P_NAND("ST NAND256R4A", &H20, &H_00452045UI, 512, 16, 32, 2048, VCC_IF.X16_1V8)) '256Mb
+            FlashDB.Add(New P_NAND("ST NAND256W4A", &H20, &H_00552055UI, 512, 16, 32, 2048, VCC_IF.X16_3V)) '256Mb
+            FlashDB.Add(New P_NAND("ST NAND512R3A", &H20, &H_00362036UI, 512, 16, 32, 4096, VCC_IF.X8_1V8)) '512Mb
+            FlashDB.Add(New P_NAND("ST NAND512W3A", &H20, &H_00762076UI, 512, 16, 32, 4096, VCC_IF.X8_3V)) '512Mb
+            FlashDB.Add(New P_NAND("ST NAND512R4A", &H20, &H_00462046UI, 512, 16, 32, 4096, VCC_IF.X16_1V8)) '512Mb
+            FlashDB.Add(New P_NAND("ST NAND512W4A", &H20, &H_00562056UI, 512, 16, 32, 4096, VCC_IF.X16_3V)) '512Mb
+            FlashDB.Add(New P_NAND("ST NAND01GR3A", &H20, &H_00392039UI, 512, 16, 32, 8192, VCC_IF.X8_1V8)) '1Gb
+            FlashDB.Add(New P_NAND("ST NAND01GW3A", &H20, &H_00792079UI, 512, 16, 32, 8192, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("ST NAND01GR4A", &H20, &H_00492049UI, 512, 16, 32, 8192, VCC_IF.X16_1V8)) '1Gb
+            FlashDB.Add(New P_NAND("ST NAND01GW4A", &H20, &H_00592059UI, 512, 16, 32, 8192, VCC_IF.X16_3V)) '1Gb
             'Type-2 AddressWrite
-            FlashDB.Add(New P_NAND("ST NAND01GR3B", &H20, &HA1UI, 2048, 64, 64, 1024, VCC_IF.X8_1V8)) '1Gb
-            FlashDB.Add(New P_NAND("ST NAND01GW3B", &H20, &HF1001DUI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("ST NAND01GR4B", &H20, &HB1UI, 2048, 64, 64, 1024, VCC_IF.X16_1V8)) '1Gb
-            FlashDB.Add(New P_NAND("ST NAND01GW4B", &H20, &HC1UI, 2048, 64, 64, 1024, VCC_IF.X16_3V)) '1Gb
-            FlashDB.Add(New P_NAND("ST NAND02GR3B", &H20, &HAAUI, 2048, 64, 64, 2048, VCC_IF.X8_1V8)) '2Gb
-            FlashDB.Add(New P_NAND("ST NAND02GW3B", &H20, &HDA8015UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
-            FlashDB.Add(New P_NAND("ST NAND02GR4B", &H20, &HBAUI, 2048, 64, 64, 2048, VCC_IF.X16_1V8)) '2Gb
-            FlashDB.Add(New P_NAND("ST NAND02GW4B", &H20, &HCAUI, 2048, 64, 64, 2048, VCC_IF.X16_3V)) '2Gb
-            FlashDB.Add(New P_NAND("ST NAND04GW3B", &H20, &HDC8095UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("ST NAND04GW3B", &H20, &HDC1095UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("ST NAND08GW3B", &H20, &HD3C195UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
+            FlashDB.Add(New P_NAND("ST NAND01GR3B", &H20, &H_000000A1UI, 2048, 64, 64, 1024, VCC_IF.X8_1V8)) '1Gb
+            FlashDB.Add(New P_NAND("ST NAND01GW3B", &H20, &H_00F1001DUI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("ST NAND01GR4B", &H20, &H_000000B1UI, 2048, 64, 64, 1024, VCC_IF.X16_1V8)) '1Gb
+            FlashDB.Add(New P_NAND("ST NAND01GW4B", &H20, &H_000000C1UI, 2048, 64, 64, 1024, VCC_IF.X16_3V)) '1Gb
+            FlashDB.Add(New P_NAND("ST NAND02GR3B", &H20, &H_000000AAUI, 2048, 64, 64, 2048, VCC_IF.X8_1V8)) '2Gb
+            FlashDB.Add(New P_NAND("ST NAND02GW3B", &H20, &H_00DA8015UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
+            FlashDB.Add(New P_NAND("ST NAND02GR4B", &H20, &H_000000BAUI, 2048, 64, 64, 2048, VCC_IF.X16_1V8)) '2Gb
+            FlashDB.Add(New P_NAND("ST NAND02GW4B", &H20, &H_000000CAUI, 2048, 64, 64, 2048, VCC_IF.X16_3V)) '2Gb
+            FlashDB.Add(New P_NAND("ST NAND04GW3B", &H20, &H_00DC8095UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("ST NAND04GW3B", &H20, &H_00DC1095UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("ST NAND08GW3B", &H20, &H_00D3C195UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
             'Micron devices
-            FlashDB.Add(New P_NAND("Micron MT29F1G08ABAEA", &H2C, &HF1809504UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("Micron MT29F1G08ABBEA", &H2C, &HA1801504UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("Micron MT29F1G08ABADAWP", &H2C, &HF1809502UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("Micron MT29F2G08AAB", &H2C, &HDA0015, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
-            FlashDB.Add(New P_NAND("Micron MT29F2G08ABBFA", &H2C, &HAA901504UI, 2048, 224, 64, 2048, VCC_IF.X8_3V)) '2Gb
-            FlashDB.Add(New P_NAND("Micron MT29F2G08ABAFA", &H2C, &HDA909504UI, 2048, 224, 64, 2048, VCC_IF.X8_3V)) '2Gb
-            FlashDB.Add(New P_NAND("Micron MT29F2G08ABBEA", &H2C, &HAA901506UI, 2048, 64, 64, 2048, VCC_IF.X8_1V8)) '2Gb
-            FlashDB.Add(New P_NAND("Micron MT29F2G16ABBEA", &H2C, &HBA905506UI, 2048, 64, 64, 2048, VCC_IF.X16_1V8)) '2Gb
-            FlashDB.Add(New P_NAND("Micron MT29F2G08ABAGA", &H2C, &HDA909506UI, 2048, 128, 64, 2048, VCC_IF.X8_3V)) '2Gb
-            FlashDB.Add(New P_NAND("Micron MT29F2G08ABBGA", &H2C, &HAA901506UI, 2048, 128, 64, 2048, VCC_IF.X8_1V8)) '2Gb
-            FlashDB.Add(New P_NAND("Micron MT29F2G16ABAEA", &H2C, &HCA90D506UI, 2048, 64, 64, 2048, VCC_IF.X16_3V)) '2Gb
-            FlashDB.Add(New P_NAND("Micron MT29F2G08ABBEAH4", &H2C, &HAA9015UI, 2048, 64, 64, 2048, VCC_IF.X8_1V8)) '2Gb
-            FlashDB.Add(New P_NAND("Micron MT29F2G16ABBEAH4", &H2C, &HBA9055UI, 2048, 64, 64, 2048, VCC_IF.X16_1V8)) '2Gb
-            FlashDB.Add(New P_NAND("Micron MT29F2G08ABAEAH4", &H2C, &HDA9095UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
-            FlashDB.Add(New P_NAND("Micron MT29F2G16ABAEAH4", &H2C, &HCA90D5UI, 2048, 64, 64, 2048, VCC_IF.X16_3V)) '2Gb
-            FlashDB.Add(New P_NAND("Micron MT29F4G08BAB", &H2C, &HDC0015, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Micron MT29F4G08AAA", &H2C, &HDC909554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Micron MT29F4G08BABWP ", &H2C, &HDC801550UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Micron MT29F4G08ABA", &H2C, &HDC909556UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Micron MT29F4G08ABADAWP", &H2C, &H90A0B0CUI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Micron MT29F4G08ABAEA", &H2C, &HDC90A654UI, 4096, 224, 64, 2048, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Micron MT29F4G08ABAEA", &H2C, &HDC90A654UI, 4096, 224, 64, 2048, VCC_IF.X8_3V)) '4Gb (1 page concurrent programming)
-            FlashDB.Add(New P_NAND("Micron MT29F4G08ABAEA", &H2C, &HDC80A662UI, 4096, 224, 64, 2048, VCC_IF.X8_3V)) '4Gb (2 page concurrent programming)
-            FlashDB.Add(New P_NAND("Micron MT29F4G16ABADA", &H2C, &HCC90D556UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Micron MT29F8G08DAA", &H2C, &HD3909554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Micron MT29F8G08BAA", &H2C, &HD3D19558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
-            FlashDB.Add(New P_NAND("Micron MT29F8G08ABACA", &H2C, &HD390A664UI, 4096, 224, 64, 4096, VCC_IF.X8_3V)) '8Gb
-            FlashDB.Add(New P_NAND("Micron MT29F8G08ABABA", &H2C, &H38002685UI, 4096, 224, 128, 2048, VCC_IF.X8_3V)) '8Gb
-            FlashDB.Add(New P_NAND("Micron MT29F16G08CBACA", &H2C, &H48044AA5UI, 4096, 224, 256, 2048, VCC_IF.X8_3V)) '16Gb
-            FlashDB.Add(New P_NAND("Micron MT29F32G08AFACA", &H2C, &H480026A9UI, 4096, 224, 256, 4096, VCC_IF.X8_3V)) '32Gb
-            FlashDB.Add(New P_NAND("Micron MT29F32G08CBAAA", &H2C, &HD7943E84UI, 4096, 218, 128, 8192, VCC_IF.X8_3V)) '32Gb (2 planes)
-            FlashDB.Add(New P_NAND("Micron MT29F32G08CBACAWP", &H2C, &H64444BA9UI, 4096, 224, 256, 4096, VCC_IF.X8_3V)) '32Gb
-            FlashDB.Add(New P_NAND("Micron MT29F32G08CBACAWP", &H2C, &H68044AA9UI, 4096, 224, 256, 4096, VCC_IF.X8_3V)) '32Gb
-            FlashDB.Add(New P_NAND("Micron MT29F64G08CFACAWP", &H2C, &H68044AA9UI, 4096, 224, 256, 8192, VCC_IF.X8_3V)) '64Gb
-            FlashDB.Add(New P_NAND("Micron MT29F64G08CEACAD1", &H2C, &H68044AA9UI, 4096, 224, 256, 8192, VCC_IF.X8_3V)) '64Gb
-            FlashDB.Add(New P_NAND("Micron MT29F128G08CXACAD1", &H2C, &H68044AA9UI, 4096, 224, 256, 8192, VCC_IF.X8_3V)) '64Gb
-            FlashDB.Add(New P_NAND("Micron MT29F64G08CECCBH1", &H2C, &H68044AA9UI, 4096, 224, 256, 8192, VCC_IF.X8_3V)) '64Gb
-            FlashDB.Add(New P_NAND("Micron MT29F64G08CBABA", &H2C, &H64444BA9UI, 8192, 744, 256, 4096, VCC_IF.X8_3V)) '64Gb
-            FlashDB.Add(New P_NAND("Micron MT29F64G08CBAAA", &H2C, &H88044BA9UI, 8192, 448, 256, 4096, VCC_IF.X8_3V)) '64Gb MLC
-            FlashDB.Add(New P_NAND("Micron MT29F64G08CBABB", &H2C, &H64444BA9UI, 8192, 744, 256, 4096, VCC_IF.X8_3V)) '64Gb
-            FlashDB.Add(New P_NAND("Micron MT29F64G08CBCBB", &H2C, &H64444BA9UI, 8192, 744, 256, 4096, VCC_IF.X8_3V)) '64Gb
-            FlashDB.Add(New P_NAND("Micron MT29F64G08CEACA", &H2C, &H64444BA9UI, 4096, 224, 256, 8192, VCC_IF.X8_3V)) '64Gb
-            FlashDB.Add(New P_NAND("Micron MT29F64G08CECCB", &H2C, &H64444BA9UI, 4096, 224, 256, 8192, VCC_IF.X8_3V)) '64Gb
-            FlashDB.Add(New P_NAND("Micron MT29F64G08CFACA", &H2C, &H64444BA9UI, 4096, 224, 256, 8192, VCC_IF.X8_3V)) '64Gb
-            FlashDB.Add(New P_NAND("Micron MT29F64G08CFACBWP", &H2C, &H8805CAA9UI, 4096, 224, 256, 16384, VCC_IF.X8_3V)) '128Gb
-            FlashDB.Add(New P_NAND("Micron MT29F128G08CKCCBH2", &H2C, &H68044AA9UI, 4096, 224, 256, 16384, VCC_IF.X8_3V)) '128Gb
-            FlashDB.Add(New P_NAND("Micron MT29F256G08CUCCBH3", &H2C, &H8805CAA9UI, 4096, 224, 256, 16384, VCC_IF.X8_3V)) '128Gb
-            FlashDB.Add(New P_NAND("Micron MT29F128G08CECBB", &H2C, &H64444BA9UI, 8192, 744, 256, 8192, VCC_IF.X8_3V)) '128Gb
-            FlashDB.Add(New P_NAND("Micron MT29F128G08CFABA", &H2C, &H64444BA9UI, 8192, 744, 256, 8192, VCC_IF.X8_3V)) '128Gb
-            FlashDB.Add(New P_NAND("Micron MT29F128G08CFABB", &H2C, &H64444BA9UI, 8192, 744, 256, 8192, VCC_IF.X8_3V)) '128Gb
-            FlashDB.Add(New P_NAND("Micron MT29F128G08CXACA", &H2C, &H64444BA9UI, 4096, 224, 256, 16384, VCC_IF.X8_3V)) '128Gb
-            FlashDB.Add(New P_NAND("Micron MT29F256G08CJABA", &H2C, &H84C54BA9UI, 8192, 744, 256, 16384, VCC_IF.X8_3V)) '256Gb
-            FlashDB.Add(New P_NAND("Micron MT29F256G08CJABB", &H2C, &H84C54BA9UI, 8192, 744, 256, 16384, VCC_IF.X8_3V)) '256Gb
-            FlashDB.Add(New P_NAND("Micron MT29F256G08CKCBB", &H2C, &H84C54BA9UI, 8192, 744, 256, 16384, VCC_IF.X8_3V)) '256Gb
-            FlashDB.Add(New P_NAND("Micron MT29F256G08CMCBB", &H2C, &H64444BA9UI, 8192, 744, 256, 16384, VCC_IF.X8_3V)) '256Gb
+            FlashDB.Add(New P_NAND("Micron MT29F1G08ABAEA    ", &H2C, &H_F1809504UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Micron MT29F1G08ABBEA    ", &H2C, &H_A1801504UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Micron MT29F1G08ABADAWP  ", &H2C, &H_F1809502UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Micron MT29F2G08ABAEA    ", &H2C, &H_DA909506UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
+            FlashDB.Add(New P_NAND("Micron MT29F2G08ABAFA    ", &H2C, &H_DA909504UI, 2048, 224, 64, 2048, VCC_IF.X8_3V)) '2Gb
+            FlashDB.Add(New P_NAND("Micron MT29F2G08ABAGA    ", &H2C, &H_DA909586UI, 2048, 128, 64, 2048, VCC_IF.X8_3V)) '2Gb
+            FlashDB.Add(New P_NAND("Micron MT29F2G08AAB      ", &H2C, &H_0000DA0015, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
+            FlashDB.Add(New P_NAND("Micron MT29F2G08ABBFA    ", &H2C, &H_AA901504UI, 2048, 224, 64, 2048, VCC_IF.X8_3V)) '2Gb
+            FlashDB.Add(New P_NAND("Micron MT29F2G08ABBEA    ", &H2C, &H_AA901506UI, 2048, 64, 64, 2048, VCC_IF.X8_1V8)) '2Gb
+            FlashDB.Add(New P_NAND("Micron MT29F2G16ABBEA    ", &H2C, &H_BA905506UI, 2048, 64, 64, 2048, VCC_IF.X16_1V8)) '2Gb
+            FlashDB.Add(New P_NAND("Micron MT29F2G08ABBGA    ", &H2C, &H_AA901506UI, 2048, 128, 64, 2048, VCC_IF.X8_1V8)) '2Gb
+            FlashDB.Add(New P_NAND("Micron MT29F2G16ABAEA    ", &H2C, &H_CA90D506UI, 2048, 64, 64, 2048, VCC_IF.X16_3V)) '2Gb
+            FlashDB.Add(New P_NAND("Micron MT29F2G08ABBEAH4  ", &H2C, &H_00AA9015UI, 2048, 64, 64, 2048, VCC_IF.X8_1V8)) '2Gb
+            FlashDB.Add(New P_NAND("Micron MT29F2G16ABBEAH4  ", &H2C, &H_00BA9055UI, 2048, 64, 64, 2048, VCC_IF.X16_1V8)) '2Gb
+            FlashDB.Add(New P_NAND("Micron MT29F2G16ABAEAH4  ", &H2C, &H_00CA90D5UI, 2048, 64, 64, 2048, VCC_IF.X16_3V)) '2Gb
+            FlashDB.Add(New P_NAND("Micron MT29F4G08BAB      ", &H2C, &H_0000DC0015, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Micron MT29F4G08AAA      ", &H2C, &H_DC909554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Micron MT29F4G08BABWP    ", &H2C, &H_DC801550UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Micron MT29F4G08ABADA    ", &H2C, &H_DC909556UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Micron MT29F4G08ABAEA    ", &H2C, &H_DC90A654UI, 4096, 224, 64, 2048, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Micron MT29F4G08ABAEA    ", &H2C, &H_DC90A654UI, 4096, 224, 64, 2048, VCC_IF.X8_3V)) '4Gb (1 page concurrent programming)
+            FlashDB.Add(New P_NAND("Micron MT29F4G08ABAEA    ", &H2C, &H_DC80A662UI, 4096, 224, 64, 2048, VCC_IF.X8_3V)) '4Gb (2 page concurrent programming)
+            FlashDB.Add(New P_NAND("Micron MT29F4G16ABADA    ", &H2C, &H_CC90D556UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Micron MT29F8G08DAA      ", &H2C, &H_D3909554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Micron MT29F8G08BAA      ", &H2C, &H_D3D19558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
+            FlashDB.Add(New P_NAND("Micron MT29F8G08ABACA    ", &H2C, &H_D390A664UI, 4096, 224, 64, 4096, VCC_IF.X8_3V)) '8Gb
+            FlashDB.Add(New P_NAND("Micron MT29F8G08ABABA    ", &H2C, &H_38002685UI, 4096, 224, 128, 2048, VCC_IF.X8_3V)) '8Gb
+            FlashDB.Add(New P_NAND("Micron MT29F16G08CBACA   ", &H2C, &H_48044AA5UI, 4096, 224, 256, 2048, VCC_IF.X8_3V)) '16Gb
+            FlashDB.Add(New P_NAND("Micron MT29F32G08AFACA   ", &H2C, &H_480026A9UI, 4096, 224, 256, 4096, VCC_IF.X8_3V)) '32Gb
+            FlashDB.Add(New P_NAND("Micron MT29F32G08CBAAA   ", &H2C, &H_D7943E84UI, 4096, 218, 128, 8192, VCC_IF.X8_3V)) '32Gb (2 planes)
+            FlashDB.Add(New P_NAND("Micron MT29F32G08CBACAWP ", &H2C, &H_64444BA9UI, 4096, 224, 256, 4096, VCC_IF.X8_3V)) '32Gb
+            FlashDB.Add(New P_NAND("Micron MT29F32G08CBACAWP ", &H2C, &H_68044AA9UI, 4096, 224, 256, 4096, VCC_IF.X8_3V)) '32Gb
+            FlashDB.Add(New P_NAND("Micron MT29F64G08CFACAWP ", &H2C, &H_68044AA9UI, 4096, 224, 256, 8192, VCC_IF.X8_3V)) '64Gb
+            FlashDB.Add(New P_NAND("Micron MT29F64G08CEACAD1 ", &H2C, &H_68044AA9UI, 4096, 224, 256, 8192, VCC_IF.X8_3V)) '64Gb
+            FlashDB.Add(New P_NAND("Micron MT29F128G08CXACAD1", &H2C, &H_68044AA9UI, 4096, 224, 256, 8192, VCC_IF.X8_3V)) '64Gb
+            FlashDB.Add(New P_NAND("Micron MT29F64G08CECCBH1 ", &H2C, &H_68044AA9UI, 4096, 224, 256, 8192, VCC_IF.X8_3V)) '64Gb
+            FlashDB.Add(New P_NAND("Micron MT29F64G08CBABA   ", &H2C, &H_64444BA9UI, 8192, 744, 256, 4096, VCC_IF.X8_3V)) '64Gb
+            FlashDB.Add(New P_NAND("Micron MT29F64G08CBAAA   ", &H2C, &H_88044BA9UI, 8192, 448, 256, 4096, VCC_IF.X8_3V)) '64Gb MLC
+            FlashDB.Add(New P_NAND("Micron MT29F64G08CBABB   ", &H2C, &H_64444BA9UI, 8192, 744, 256, 4096, VCC_IF.X8_3V)) '64Gb
+            FlashDB.Add(New P_NAND("Micron MT29F64G08CBCBB   ", &H2C, &H_64444BA9UI, 8192, 744, 256, 4096, VCC_IF.X8_3V)) '64Gb
+            FlashDB.Add(New P_NAND("Micron MT29F64G08CEACA   ", &H2C, &H_64444BA9UI, 4096, 224, 256, 8192, VCC_IF.X8_3V)) '64Gb
+            FlashDB.Add(New P_NAND("Micron MT29F64G08CECCB   ", &H2C, &H_64444BA9UI, 4096, 224, 256, 8192, VCC_IF.X8_3V)) '64Gb
+            FlashDB.Add(New P_NAND("Micron MT29F64G08CFACA   ", &H2C, &H_64444BA9UI, 4096, 224, 256, 8192, VCC_IF.X8_3V)) '64Gb
+            FlashDB.Add(New P_NAND("Micron MT29F64G08CFACBWP ", &H2C, &H_8805CAA9UI, 4096, 224, 256, 16384, VCC_IF.X8_3V)) '128Gb
+            FlashDB.Add(New P_NAND("Micron MT29F128G08CKCCBH2", &H2C, &H_68044AA9UI, 4096, 224, 256, 16384, VCC_IF.X8_3V)) '128Gb
+            FlashDB.Add(New P_NAND("Micron MT29F256G08CUCCBH3", &H2C, &H_8805CAA9UI, 4096, 224, 256, 16384, VCC_IF.X8_3V)) '128Gb
+            FlashDB.Add(New P_NAND("Micron MT29F128G08CECBB  ", &H2C, &H_64444BA9UI, 8192, 744, 256, 8192, VCC_IF.X8_3V)) '128Gb
+            FlashDB.Add(New P_NAND("Micron MT29F128G08CFABA  ", &H2C, &H_64444BA9UI, 8192, 744, 256, 8192, VCC_IF.X8_3V)) '128Gb
+            FlashDB.Add(New P_NAND("Micron MT29F128G08CFABB  ", &H2C, &H_64444BA9UI, 8192, 744, 256, 8192, VCC_IF.X8_3V)) '128Gb
+            FlashDB.Add(New P_NAND("Micron MT29F128G08CXACA  ", &H2C, &H_64444BA9UI, 4096, 224, 256, 16384, VCC_IF.X8_3V)) '128Gb
+            FlashDB.Add(New P_NAND("Micron MT29F256G08CJABA  ", &H2C, &H_84C54BA9UI, 8192, 744, 256, 16384, VCC_IF.X8_3V)) '256Gb
+            FlashDB.Add(New P_NAND("Micron MT29F256G08CJABB  ", &H2C, &H_84C54BA9UI, 8192, 744, 256, 16384, VCC_IF.X8_3V)) '256Gb
+            FlashDB.Add(New P_NAND("Micron MT29F256G08CKCBB  ", &H2C, &H_84C54BA9UI, 8192, 744, 256, 16384, VCC_IF.X8_3V)) '256Gb
+            FlashDB.Add(New P_NAND("Micron MT29F256G08CMCBB  ", &H2C, &H_64444BA9UI, 8192, 744, 256, 16384, VCC_IF.X8_3V)) '256Gb
             'Toshiba SLC 8x NAND devices
-            FlashDB.Add(New P_NAND("Toshiba TC58DVM92A5TAI0", &H98, &H76A5C029UI, 512, 16, 32, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TC58DVM92A5TAI0", &H98, &H76A5C021UI, 512, 16, 32, 4096, VCC_IF.X8_3V)) '<---- different revision
-            FlashDB.Add(New P_NAND("Toshiba TC58NVG3D4CTGI0", &H98, &HD384A5E6UI, 2048, 128, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("Toshiba TC58BVG0S3HTA00", &H98, &HF08014F2UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TC58DVG02D5TA00", &H98, &HF1001572UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TC58NVG0S3ETA00", &H98, &HD1901576UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TC58NVG0S3HTA00", &H98, &HF1801572UI, 2048, 128, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TC58NVG0S3HTAI0", &H98, &HF1801572UI, 2048, 128, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TC58BVG0S3HTAI0", &H98, &HF18015F2UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TC58NVG1S3HTA00", &H98, &HDA901576UI, 2048, 128, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TC58BVG1S3HTA00", &H98, &HDA9015F6UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
-            FlashDB.Add(New P_NAND("Toshiba TC58NVG1S3HTAI0", &H98, &HDA901576UI, 2048, 128, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TC58NVG2S0HTA00", &H98, &HDC902676UI, 4096, 256, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TC58NVG2S3ETA00", &H98, &HDC901576UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) 'CV
-            FlashDB.Add(New P_NAND("Toshiba TC58NVG2S0HTAI0", &H98, &HDC902676UI, 4096, 256, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TH58NVG2S3HTA00", &H98, &HDC911576UI, 2048, 128, 64, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TC58BVG2S0HTAI0", &H98, &HDC9026F6UI, 4096, 128, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TH58NVG3S0HTA00", &H98, &HD3912676UI, 4096, 256, 64, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TH58NVG3S0HTAI0", &H98, &HD3912676UI, 4096, 256, 64, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TC58NVG3S0FTA00", &H98, &HD3902676UI, 4096, 232, 64, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TC58NVG3S0FTA00", &H98, &H902676UI, 4096, 232, 64, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Toshiba TC58NVG6D2HTA00", &H98, &HDE948276UI, 8192, 640, 256, 4096, VCC_IF.X8_3V)) '64Gb
-            FlashDB.Add(New P_NAND("Toshiba TC58NVG2S0HBAI4", &H98, &HD8902070UI, 4096, 256, 64, 2048, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Toshiba TC58NVG4D2ETA00", &H98, &HD59432UI, 8192, 376, 128, 2048, VCC_IF.X8_3V)) '16Gbit
+            FlashDB.Add(New P_NAND("Toshiba TC58DVM92A5TAI0", &H98, &H_76A5C029UI, 512, 16, 32, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TC58DVM92A5TAI0", &H98, &H_76A5C021UI, 512, 16, 32, 4096, VCC_IF.X8_3V)) '<---- different revision
+            FlashDB.Add(New P_NAND("Toshiba TC58NVG3D4CTGI0", &H98, &H_D384A5E6UI, 2048, 128, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Toshiba TC58BVG0S3HTA00", &H98, &H_F08014F2UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TC58DVG02D5TA00", &H98, &H_F1001572UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TC58NVG0S3ETA00", &H98, &H_D1901576UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TC58NVG0S3HTA00", &H98, &H_F1801572UI, 2048, 128, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TC58NVG0S3HTAI0", &H98, &H_F1801572UI, 2048, 128, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TC58BVG0S3HTAI0", &H98, &H_F18015F2UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TC58NVG1S3HTA00", &H98, &H_DA901576UI, 2048, 128, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TC58BVG1S3HTA00", &H98, &H_DA9015F6UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
+            FlashDB.Add(New P_NAND("Toshiba TC58NVG1S3HTAI0", &H98, &H_DA901576UI, 2048, 128, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TC58NVG2S0HTA00", &H98, &H_DC902676UI, 4096, 256, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TC58NVG2S3ETA00", &H98, &H_DC901576UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) 'CV
+            FlashDB.Add(New P_NAND("Toshiba TC58NVG2S0HTAI0", &H98, &H_DC902676UI, 4096, 256, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TH58NVG2S3HTA00", &H98, &H_DC911576UI, 2048, 128, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TC58BVG2S0HTAI0", &H98, &H_DC9026F6UI, 4096, 128, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TH58NVG3S0HTA00", &H98, &H_D3912676UI, 4096, 256, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TH58NVG3S0HTAI0", &H98, &H_D3912676UI, 4096, 256, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TC58NVG3S0FTA00", &H98, &H_D3902676UI, 4096, 232, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TC58NVG3S0FTA00", &H98, &H_00902676UI, 4096, 232, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Toshiba TC58NVG6D2HTA00", &H98, &H_DE948276UI, 8192, 640, 256, 4096, VCC_IF.X8_3V)) '64Gb
+            FlashDB.Add(New P_NAND("Toshiba TC58NVG2S0HBAI4", &H98, &H_D8902070UI, 4096, 256, 64, 2048, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Toshiba TC58NVG4D2ETA00", &H98, &H_00D59432UI, 8192, 376, 128, 2048, VCC_IF.X8_3V)) '16Gbit
             'Winbond SLC 8x NAND devices
-            FlashDB.Add(New P_NAND("Winbond W29N01GW", &HEF, &HB1805500UI, 2048, 64, 64, 1024, VCC_IF.X8_1V8)) '1Gb
-            FlashDB.Add(New P_NAND("Winbond W29N01GV", &HEF, &HF1809500UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("Winbond W29N01HV", &HEF, &HF1009500UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("Winbond W29N02GV", &HEF, &HDA909504UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
-            FlashDB.Add(New P_NAND("Winbond W29N04GV", &HEF, &HDC909554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Winbond W29N08GV", &HEF, &HD3919558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
-            FlashDB.Add(New P_NAND("Winbond W29N08GV", &HEF, &HDC909554UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
-            FlashDB.Add(New P_NAND("Winbond W29N04GZ", &HEF, &HAC901554UI, 2048, 64, 64, 4096, VCC_IF.X8_1V8)) '4Gb
-            FlashDB.Add(New P_NAND("Winbond W29N04GW", &HEF, &HBC905554UI, 2048, 64, 64, 4096, VCC_IF.X16_1V8)) '4Gb
+            FlashDB.Add(New P_NAND("Winbond W29N01GW", &HEF, &H_B1805500UI, 2048, 64, 64, 1024, VCC_IF.X8_1V8)) '1Gb
+            FlashDB.Add(New P_NAND("Winbond W29N01GV", &HEF, &H_F1809500UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Winbond W29N01HV", &HEF, &H_F1009500UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Winbond W29N02GV", &HEF, &H_DA909504UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
+            FlashDB.Add(New P_NAND("Winbond W29N04GV", &HEF, &H_DC909554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Winbond W29N08GV", &HEF, &H_D3919558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
+            FlashDB.Add(New P_NAND("Winbond W29N08GV", &HEF, &H_DC909554UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
+            FlashDB.Add(New P_NAND("Winbond W29N04GZ", &HEF, &H_AC901554UI, 2048, 64, 64, 4096, VCC_IF.X8_1V8)) '4Gb
+            FlashDB.Add(New P_NAND("Winbond W29N04GW", &HEF, &H_BC905554UI, 2048, 64, 64, 4096, VCC_IF.X16_1V8)) '4Gb
             'Macronix SLC 8x NAND devices
-            FlashDB.Add(New P_NAND("MXIC MX30LF1208AA", &HC2, &HF0801D, 2048, 64, 64, 512, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("MXIC MX30LF1GE8AB", &HC2, &HF1809582UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("MXIC MX30UF1G18AC", &HC2, &HA1801502UI, 2048, 64, 64, 1024, VCC_IF.X8_1V8))
-            FlashDB.Add(New P_NAND("MXIC MX30LF1G18AC", &HC2, &HF1809502UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("MXIC MX30LF1G08AA", &HC2, &HF1801D, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("MXIC MX30LF1G28AD", &HC2, &HF1809103UI, 2048, 128, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("MXIC MX30LF2G28AD", &HC2, &HDA909107UI, 2048, 128, 64, 2048, VCC_IF.X8_3V)) '2Gb
-            FlashDB.Add(New P_NAND("MXIC MX30LF4G28AD", &HC2, &HDC90A257UI, 4096, 256, 64, 2048, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("MXIC MX30LF2G18AC", &HC2, &HDA909506UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("MXIC MX30UF2G18AC", &HC2, &HAA901506UI, 2048, 64, 64, 2048, VCC_IF.X8_1V8))
-            FlashDB.Add(New P_NAND("MXIC MX30LF2G28AB", &HC2, &HDA909507UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("MXIC MX30LF2GE8AB", &HC2, &HDA909586UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("MXIC MX30UF2G18AB", &HC2, &HBA905506UI, 2048, 64, 64, 2048, VCC_IF.X8_1V8))
-            FlashDB.Add(New P_NAND("MXIC MX30UF2G28AB", &HC2, &HAA901507UI, 2048, 112, 64, 1024, VCC_IF.X8_1V8))
-            FlashDB.Add(New P_NAND("MXIC MX30LF4G18AC", &HC2, &HDC909556UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("MXIC MX30UF4G18AB", &HC2, &HAC901556UI, 2048, 64, 64, 4096, VCC_IF.X8_1V8))
-            FlashDB.Add(New P_NAND("MXIC MX30LF2G28AB", &HC2, &HDC909507UI, 2048, 112, 64, 2048, VCC_IF.X8_3V)) '2-plane (8-bit ECC)
-            FlashDB.Add(New P_NAND("MXIC MX30LF4G28AB", &HC2, &HDC909557UI, 2048, 112, 64, 4096, VCC_IF.X8_3V)) '2-plane (8-bit ECC)
-            FlashDB.Add(New P_NAND("MXIC MX30LF4GE8AB", &HC2, &HDC9095D6UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("MXIC MX30UF4G28AB", &HC2, &HAC901557UI, 2048, 112, 64, 2048, VCC_IF.X8_1V8))
-            FlashDB.Add(New P_NAND("MXIC MX60LF8G18AC", &HC2, &HD3D1955AUI, 2048, 64, 64, 8192, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("MXIC MX60LF8G28AB", &HC2, &HD3D1955BUI, 2048, 64, 64, 8192, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("MXIC MX30LF1208AA", &HC2, &H_00F0801DUI, 2048, 64, 64, 512, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("MXIC MX30LF1GE8AB", &HC2, &H_F1809582UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("MXIC MX30UF1G18AC", &HC2, &H_A1801502UI, 2048, 64, 64, 1024, VCC_IF.X8_1V8))
+            FlashDB.Add(New P_NAND("MXIC MX30LF1G18AC", &HC2, &H_F1809502UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("MXIC MX30LF1G08AA", &HC2, &H_0000F1801D, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("MXIC MX30LF1G28AD", &HC2, &H_F1809103UI, 2048, 128, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("MXIC MX30LF2G28AD", &HC2, &H_DA909107UI, 2048, 128, 64, 2048, VCC_IF.X8_3V)) '2Gb
+            FlashDB.Add(New P_NAND("MXIC MX30LF4G28AD", &HC2, &H_DC90A257UI, 4096, 256, 64, 2048, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("MXIC MX30LF2G18AC", &HC2, &H_DA909506UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("MXIC MX30UF2G18AC", &HC2, &H_AA901506UI, 2048, 64, 64, 2048, VCC_IF.X8_1V8))
+            FlashDB.Add(New P_NAND("MXIC MX30LF2G28AB", &HC2, &H_DA909507UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("MXIC MX30LF2GE8AB", &HC2, &H_DA909586UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("MXIC MX30UF2G18AB", &HC2, &H_BA905506UI, 2048, 64, 64, 2048, VCC_IF.X8_1V8))
+            FlashDB.Add(New P_NAND("MXIC MX30UF2G28AB", &HC2, &H_AA901507UI, 2048, 112, 64, 1024, VCC_IF.X8_1V8))
+            FlashDB.Add(New P_NAND("MXIC MX30LF4G18AC", &HC2, &H_DC909556UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("MXIC MX30UF4G18AB", &HC2, &H_AC901556UI, 2048, 64, 64, 4096, VCC_IF.X8_1V8))
+            FlashDB.Add(New P_NAND("MXIC MX30LF2G28AB", &HC2, &H_DC909507UI, 2048, 112, 64, 2048, VCC_IF.X8_3V)) '2-plane (8-bit ECC)
+            FlashDB.Add(New P_NAND("MXIC MX30LF4G28AB", &HC2, &H_DC909557UI, 2048, 112, 64, 4096, VCC_IF.X8_3V)) '2-plane (8-bit ECC)
+            FlashDB.Add(New P_NAND("MXIC MX30LF4GE8AB", &HC2, &H_DC9095D6UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("MXIC MX30UF4G28AB", &HC2, &H_AC901557UI, 2048, 112, 64, 2048, VCC_IF.X8_1V8))
+            FlashDB.Add(New P_NAND("MXIC MX60LF8G18AC", &HC2, &H_D3D1955AUI, 2048, 64, 64, 8192, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("MXIC MX60LF8G28AB", &HC2, &H_D3D1955BUI, 2048, 64, 64, 8192, VCC_IF.X8_3V))
             'Samsung SLC x8 NAND devices
-            FlashDB.Add(New P_NAND("Samsung K9F2808U0C", &HEC, &H73UI, 512, 16, 32, 1024, VCC_IF.X8_3V)) '128Mb
-            FlashDB.Add(New P_NAND("Samsung K9K2G08U0M", &HEC, &HDAC11544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9K1G08U0M", &HEC, &H79A5C0ECUI, 512, 16, 32, 8192, VCC_IF.X8_3V)) 'Gb001
-            FlashDB.Add(New P_NAND("Samsung K9F1208U0C", &HEC, &H765A3F74UI, 512, 16, 32, 4096, VCC_IF.X8_3V)) 'Mb512
-            FlashDB.Add(New P_NAND("Samsung K9F5608U0D", &HEC, &H75A5BDECUI, 512, 16, 32, 2048, VCC_IF.X8_3V)) 'Mb256
-            FlashDB.Add(New P_NAND("Samsung K9F1G08U0A", &HEC, &HF1801540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9F1G08U0B", &HEC, &HF1009540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9F1G08U0C", &HEC, &HF1009540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9F1G08U0D", &HEC, &HF1001540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9F1G08U0C", &HEC, &HF1009540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9F1G08B0C", &HEC, &HF1009540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9F1G08U0E", &HEC, &HF1009541UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9F2G08X0", &HEC, &HDA101544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9F2G08U0C", &HEC, &HDA109544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9F2G08U0M", &HEC, &HDA8015UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9G8G08U0B", &HEC, &HD314A564UI, 2048, 64, 128, 4096, VCC_IF.X8_3V)) '8Gb
-            FlashDB.Add(New P_NAND("Samsung K9W8G08U1M", &HEC, &HDCC11554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9F4G08U0A", &HEC, &HDC109554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9F4G08U0B", &HEC, &HDC109554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9F4G08U0B", &HEC, &HDC109555UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9GAG08U0E", &HEC, &HD5847250UI, 8192, 436, 128, 2076, VCC_IF.X8_3V)) '16Gb
-            FlashDB.Add(New P_NAND("Samsung K9GAG08U0M", &HEC, &HD514B674UI, 4096, 128, 128, 4096, VCC_IF.X8_3V)) '16Gb
-            FlashDB.Add(New P_NAND("Samsung K9K8G08U0A", &HEC, &HD3519558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Samsung K9KAG08U0M", &HEC, &HD551A668UI, 4096, 128, 64, 8192, VCC_IF.X8_3V)) '8Gb
-            FlashDB.Add(New P_NAND("Samsung K9WAG08U1A", &HEC, &HD3519558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
-            FlashDB.Add(New P_NAND("Samsung K9K8G08U0A", &HEC, &HD3519558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '16Gb Dual die (CE1#/CE2#)
-            FlashDB.Add(New P_NAND("Samsung K9NBG08U5A", &HEC, &HD3519558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '32Gb Quad die (CE1#/CE2#/CE3#/CE4#)
+            FlashDB.Add(New P_NAND("Samsung K9F2808U0C", &HEC, &H_0073A533UI, 512, 16, 32, 1024, VCC_IF.X8_3V)) '128Mb
+            FlashDB.Add(New P_NAND("Samsung K9K2G08U0M", &HEC, &H_DAC11544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9K1G08U0M", &HEC, &H_79A5C0ECUI, 512, 16, 32, 8192, VCC_IF.X8_3V)) 'Gb001
+            FlashDB.Add(New P_NAND("Samsung K9F1208U0C", &HEC, &H_765A3F74UI, 512, 16, 32, 4096, VCC_IF.X8_3V)) 'Mb512
+            FlashDB.Add(New P_NAND("Samsung K9F5608U0D", &HEC, &H_75A5BDECUI, 512, 16, 32, 2048, VCC_IF.X8_3V)) 'Mb256
+            FlashDB.Add(New P_NAND("Samsung K9F1G08U0A", &HEC, &H_F1801540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9F1G08U0B", &HEC, &H_F1009540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9F1G08U0C", &HEC, &H_F1009540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9F1G08U0D", &HEC, &H_F1001540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9F1G08U0C", &HEC, &H_F1009540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9F1G08B0C", &HEC, &H_F1009540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9F1G08U0E", &HEC, &H_F1009541UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9F2G08X0 ", &HEC, &H_DA101544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9F2G08U0C", &HEC, &H_DA109544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9F2G08U0M", &HEC, &H_00DA8015UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9G8G08U0B", &HEC, &H_D314A564UI, 2048, 64, 128, 4096, VCC_IF.X8_3V)) '8Gb
+            FlashDB.Add(New P_NAND("Samsung K9W8G08U1M", &HEC, &H_DCC11554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9F4G08U0A", &HEC, &H_DC109554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9F4G08U0B", &HEC, &H_DC109554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9F4G08U0B", &HEC, &H_DC109555UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9GAG08U0E", &HEC, &H_D5847250UI, 8192, 436, 128, 2076, VCC_IF.X8_3V)) '16Gb
+            FlashDB.Add(New P_NAND("Samsung K9GAG08U0M", &HEC, &H_D514B674UI, 4096, 128, 128, 4096, VCC_IF.X8_3V)) '16Gb
+            FlashDB.Add(New P_NAND("Samsung K9K8G08U0A", &HEC, &H_D3519558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9KAG08U0M", &HEC, &H_D551A668UI, 4096, 128, 64, 8192, VCC_IF.X8_3V)) '8Gb
+            FlashDB.Add(New P_NAND("Samsung K9WAG08U1A", &HEC, &H_D3519558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
+            FlashDB.Add(New P_NAND("Samsung K9K8G08U0A", &HEC, &H_D3519558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '16Gb Dual die (CE1#/CE2#)
+            FlashDB.Add(New P_NAND("Samsung K9NBG08U5A", &HEC, &H_D3519558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '32Gb Quad die (CE1#/CE2#/CE3#/CE4#)
             'Hynix SLC x8 devices
-            FlashDB.Add(New P_NAND("Hynix HY27US08281A", &HAD, &H73AD73ADUI, 512, 16, 32, 1024, VCC_IF.X16_3V)) '128Mb
-            FlashDB.Add(New P_NAND("Hynix HY27US08561A", &HAD, &H75AD75ADUI, 512, 16, 32, 2048, VCC_IF.X8_3V)) '256Mb
-            FlashDB.Add(New P_NAND("Hynix HY27US16561A", &HAD, &H55AD55ADUI, 512, 16, 32, 2048, VCC_IF.X16_3V)) '256Mb
-            FlashDB.Add(New P_NAND("Hynix HY27SS08561A", &HAD, &H35AD35ADUI, 512, 16, 32, 2048, VCC_IF.X8_1V8)) '256Mb
-            FlashDB.Add(New P_NAND("Hynix HY27SS16561A", &HAD, &H45AD45ADUI, 512, 16, 32, 2048, VCC_IF.X16_1V8)) '256Mb
-            FlashDB.Add(New P_NAND("Hynix HY27US08121B", &HAD, &H76AD76ADUI, 512, 16, 32, 4096, VCC_IF.X8_3V)) '512Mb
-            FlashDB.Add(New P_NAND("Hynix HY27UF081G2A", &HAD, &HF1805DADUI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("Hynix HY27UF161G2A", &HAD, &HF1805DADUI, 2048, 64, 64, 1024, VCC_IF.X16_3V)) '1Gb
-            FlashDB.Add(New P_NAND("Hynix H27U1G8F2B", &HAD, &HF1001D, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("Hynix H27U1G8F2CTR", &HAD, &HF1801DADUI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("Hynix HY27UF081G2M", &HAD, &HF10015ADUI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("Hynix HY27US081G1M", &HAD, &H79A500UI, 512, 16, 32, 8192, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Hynix HY27SF081G2M", &HAD, &HA10015UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("Hynix HY27UF082G2B", &HAD, &HDA109544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Hynix HY27UF082G2A", &HAD, &HDA801D00UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Hynix H27UAG8T2M", &HAD, &HD514B644UI, 4096, 128, 128, 4096, VCC_IF.X8_3V)) '16Gb
-            FlashDB.Add(New P_NAND("Hynix H27UAG8T2B", &HAD, &HD5949A74UI, 8192, 448, 256, 512, VCC_IF.X8_3V)) '16Gb
-            FlashDB.Add(New P_NAND("Hynix H27U2G8F2C", &HAD, &HDA909546UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Hynix H27U2G8F2C", &HAD, &HDA909544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Hynix H27U2G6F2C", &HAD, &HCA90D544UI, 2048, 64, 64, 2048, VCC_IF.X16_3V))
-            FlashDB.Add(New P_NAND("Hynix H27S2G8F2C", &HAD, &HAA901544UI, 2048, 64, 64, 2048, VCC_IF.X8_1V8))
-            FlashDB.Add(New P_NAND("Hynix H27S2G6F2C", &HAD, &HBA905544UI, 2048, 64, 64, 2048, VCC_IF.X16_1V8))
-            FlashDB.Add(New P_NAND("Hynix H27UBG8T2B", &HAD, &HD794DA74UI, 8192, 640, 256, 2048, VCC_IF.X8_3V)) '32Gb 16Mbit blocks
-            FlashDB.Add(New P_NAND("Hynix H27UBG8T2C", &HAD, &HD7949160UI, 8192, 640, 256, 2048, VCC_IF.X8_3V)) '32Gb
-            FlashDB.Add(New P_NAND("Hynix H27U4G8F2D", &HAD, &HDC909554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Hynix H27U4G6F2D", &HAD, &HCC90D554UI, 2048, 64, 64, 4096, VCC_IF.X16_3V))
-            FlashDB.Add(New P_NAND("Hynix H27S4G8F2D", &HAD, &HAC901554UI, 2048, 64, 64, 4096, VCC_IF.X8_1V8))
-            FlashDB.Add(New P_NAND("Hynix H27S4G6F2D", &HAD, &HBC905554UI, 2048, 64, 64, 4096, VCC_IF.X16_1V8))
-            FlashDB.Add(New P_NAND("Hynix H27UCG8T2FTR", &HAD, &HDE14AB42UI, 8192, 640, 256, 4180, VCC_IF.X8_3V)) '64Gb
-            FlashDB.Add(New P_NAND("Hynix HY27UG084G2M", &HAD, &HDC0015UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Hynix HY27UG084GDM", &HAD, &HDA0015UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Hynix HY27UG164G2M", &HAD, &HDC0055UI, 2048, 64, 64, 4096, VCC_IF.X16_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Hynix HY27UF084G2M", &HAD, &HDC8095UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Hynix HY27US08281A", &HAD, &H_73AD73ADUI, 512, 16, 32, 1024, VCC_IF.X16_3V)) '128Mb
+            FlashDB.Add(New P_NAND("Hynix HY27US08561A", &HAD, &H_75AD75ADUI, 512, 16, 32, 2048, VCC_IF.X8_3V)) '256Mb
+            FlashDB.Add(New P_NAND("Hynix HY27US16561A", &HAD, &H_55AD55ADUI, 512, 16, 32, 2048, VCC_IF.X16_3V)) '256Mb
+            FlashDB.Add(New P_NAND("Hynix HY27SS08561A", &HAD, &H_35AD35ADUI, 512, 16, 32, 2048, VCC_IF.X8_1V8)) '256Mb
+            FlashDB.Add(New P_NAND("Hynix HY27SS16561A", &HAD, &H_45AD45ADUI, 512, 16, 32, 2048, VCC_IF.X16_1V8)) '256Mb
+            FlashDB.Add(New P_NAND("Hynix HY27US08121B", &HAD, &H_76AD76ADUI, 512, 16, 32, 4096, VCC_IF.X8_3V)) '512Mb
+            FlashDB.Add(New P_NAND("Hynix HY27UF081G2A", &HAD, &H_F1805DADUI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Hynix HY27UF161G2A", &HAD, &H_F1805DADUI, 2048, 64, 64, 1024, VCC_IF.X16_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Hynix H27U1G8F2B  ", &HAD, &H_0000F1001D, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Hynix H27U1G8F2CTR", &HAD, &H_F1801DADUI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Hynix HY27UF081G2M", &HAD, &H_F10015ADUI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Hynix HY27US081G1M", &HAD, &H_0079A500UI, 512, 16, 32, 8192, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Hynix HY27SF081G2M", &HAD, &H_00A10015UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Hynix HY27UF082G2B", &HAD, &H_DA109544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Hynix HY27UF082G2A", &HAD, &H_DA801D00UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Hynix H27UAG8T2M  ", &HAD, &H_D514B644UI, 4096, 128, 128, 4096, VCC_IF.X8_3V)) '16Gb
+            FlashDB.Add(New P_NAND("Hynix H27UAG8T2B  ", &HAD, &H_D5949A74UI, 8192, 448, 256, 512, VCC_IF.X8_3V)) '16Gb
+            FlashDB.Add(New P_NAND("Hynix H27U2G8F2C  ", &HAD, &H_DA909546UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Hynix H27U2G8F2C  ", &HAD, &H_DA909544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Hynix H27U2G6F2C  ", &HAD, &H_CA90D544UI, 2048, 64, 64, 2048, VCC_IF.X16_3V))
+            FlashDB.Add(New P_NAND("Hynix H27S2G8F2C  ", &HAD, &H_AA901544UI, 2048, 64, 64, 2048, VCC_IF.X8_1V8))
+            FlashDB.Add(New P_NAND("Hynix H27S2G6F2C  ", &HAD, &H_BA905544UI, 2048, 64, 64, 2048, VCC_IF.X16_1V8))
+            FlashDB.Add(New P_NAND("Hynix H27UBG8T2B  ", &HAD, &H_D794DA74UI, 8192, 640, 256, 2048, VCC_IF.X8_3V)) '32Gb 16Mbit blocks
+            FlashDB.Add(New P_NAND("Hynix H27UBG8T2C  ", &HAD, &H_D7949160UI, 8192, 640, 256, 2048, VCC_IF.X8_3V)) '32Gb
+            FlashDB.Add(New P_NAND("Hynix H27U4G8F2D  ", &HAD, &H_DC909554UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Hynix H27U4G6F2D  ", &HAD, &H_CC90D554UI, 2048, 64, 64, 4096, VCC_IF.X16_3V))
+            FlashDB.Add(New P_NAND("Hynix H27S4G8F2D  ", &HAD, &H_AC901554UI, 2048, 64, 64, 4096, VCC_IF.X8_1V8))
+            FlashDB.Add(New P_NAND("Hynix H27S4G6F2D  ", &HAD, &H_BC905554UI, 2048, 64, 64, 4096, VCC_IF.X16_1V8))
+            FlashDB.Add(New P_NAND("Hynix H27UCG8T2FTR", &HAD, &H_DE14AB42UI, 8192, 640, 256, 4180, VCC_IF.X8_3V)) '64Gb
+            FlashDB.Add(New P_NAND("Hynix HY27UG084G2M", &HAD, &H_00DC0015UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Hynix HY27UG084GDM", &HAD, &H_00DA0015UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Hynix HY27UG164G2M", &HAD, &H_00DC0055UI, 2048, 64, 64, 4096, VCC_IF.X16_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Hynix HY27UF084G2M", &HAD, &H_00DC8095UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
             'Spansion SLC 34 series
-            FlashDB.Add(New P_NAND("Cypress S34ML01G1", &H1, &HF1001DUI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Cypress S34ML02G1", &H1, &HDA9095UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Cypress S34ML04G1", &H1, &HDC9095UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Cypress S34ML01G2", &H1, &HF1801DUI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Cypress S34ML02G2", &H1, &HDA909546UI, 2048, 128, 64, 2048, VCC_IF.X8_3V)) '2Gb
-            FlashDB.Add(New P_NAND("Cypress S34ML04G2", &H1, &HDC909556UI, 2048, 128, 64, 4096, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Cypress S34ML01G2", &H1, &HC1805DUI, 2048, 64, 64, 1024, VCC_IF.X16_3V)) 'X16 version
-            FlashDB.Add(New P_NAND("Cypress S34ML02G2", &H1, &HCA90D546UI, 2048, 128, 64, 2048, VCC_IF.X16_3V))
-            FlashDB.Add(New P_NAND("Cypress S34ML04G2", &H1, &HCC90D556UI, 2048, 128, 64, 4096, VCC_IF.X16_3V))
-            FlashDB.Add(New P_NAND("Cypress S34ML04G3", &H1, &HDC000504UI, 2048, 128, 64, 4096, VCC_IF.X16_3V))
-            FlashDB.Add(New P_NAND("Cypress S34MS01G200", &H1, &HA18015UI, 2048, 64, 64, 4096, VCC_IF.X8_1V8))
-            FlashDB.Add(New P_NAND("Cypress S34MS02G200", &H1, &HAA901546UI, 2048, 64, 64, 4096, VCC_IF.X8_1V8))
-            FlashDB.Add(New P_NAND("Cypress S34MS04G200", &H1, &HAC901556UI, 2048, 64, 64, 4096, VCC_IF.X8_1V8))
-            FlashDB.Add(New P_NAND("Cypress S34MS01G204", &H1, &HB18055UI, 2048, 64, 64, 4096, VCC_IF.X16_1V8))
-            FlashDB.Add(New P_NAND("Cypress S34MS02G204", &H1, &HBA905546UI, 2048, 128, 64, 4096, VCC_IF.X16_1V8))
-            FlashDB.Add(New P_NAND("Cypress S34MS04G204", &H1, &HBC905556UI, 2048, 128, 64, 4096, VCC_IF.X16_1V8))
+            FlashDB.Add(New P_NAND("Cypress S34ML01G1  ", &H1, &H_00F1001DUI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Cypress S34ML02G1  ", &H1, &H_00DA9095UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Cypress S34ML04G1  ", &H1, &H_00DC9095UI, 2048, 64, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Cypress S34ML01G2  ", &H1, &H_00F1801DUI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Cypress S34ML02G2  ", &H1, &H_DA909546UI, 2048, 128, 64, 2048, VCC_IF.X8_3V)) '2Gb
+            FlashDB.Add(New P_NAND("Cypress S34ML04G2  ", &H1, &H_DC909556UI, 2048, 128, 64, 4096, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Cypress S34ML01G2  ", &H1, &H_00C1805DUI, 2048, 64, 64, 1024, VCC_IF.X16_3V)) 'X16 version
+            FlashDB.Add(New P_NAND("Cypress S34ML02G2  ", &H1, &H_CA90D546UI, 2048, 128, 64, 2048, VCC_IF.X16_3V))
+            FlashDB.Add(New P_NAND("Cypress S34ML04G2  ", &H1, &H_CC90D556UI, 2048, 128, 64, 4096, VCC_IF.X16_3V))
+            FlashDB.Add(New P_NAND("Cypress S34ML04G3  ", &H1, &H_DC000504UI, 2048, 128, 64, 4096, VCC_IF.X16_3V))
+            FlashDB.Add(New P_NAND("Cypress S34MS01G200", &H1, &H_00A18015UI, 2048, 64, 64, 4096, VCC_IF.X8_1V8))
+            FlashDB.Add(New P_NAND("Cypress S34MS02G200", &H1, &H_AA901546UI, 2048, 64, 64, 4096, VCC_IF.X8_1V8))
+            FlashDB.Add(New P_NAND("Cypress S34MS04G200", &H1, &H_AC901556UI, 2048, 64, 64, 4096, VCC_IF.X8_1V8))
+            FlashDB.Add(New P_NAND("Cypress S34MS01G204", &H1, &H_00B18055UI, 2048, 64, 64, 4096, VCC_IF.X16_1V8))
+            FlashDB.Add(New P_NAND("Cypress S34MS02G204", &H1, &H_BA905546UI, 2048, 128, 64, 4096, VCC_IF.X16_1V8))
+            FlashDB.Add(New P_NAND("Cypress S34MS04G204", &H1, &H_BC905556UI, 2048, 128, 64, 4096, VCC_IF.X16_1V8))
             'Dosilicon
-            FlashDB.Add(New P_NAND("Dosilicon FMND1G08U3D", &HF8, &HF18095UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND1G16U3D", &HF8, &HC180D5UI, 2048, 64, 64, 1024, VCC_IF.X16_3V)) '1Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND1G08S3D", &HF8, &HA18015UI, 2048, 64, 64, 1024, VCC_IF.X8_1V8)) '1Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND1G16S3D", &HF8, &HB18055UI, 2048, 64, 64, 1024, VCC_IF.X16_1V8)) '1Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND2G08U3D", &HF8, &HDA909546UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND2G16U3D", &HF8, &HCA90D546UI, 2048, 64, 64, 2048, VCC_IF.X16_3V)) '2Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND2G08S3D", &HF8, &HAA901546UI, 2048, 64, 64, 2048, VCC_IF.X8_1V8)) '2Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND2G16S3D", &HF8, &HBA905546UI, 2048, 64, 64, 2048, VCC_IF.X16_1V8)) '2Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND4G08U3B", &HF8, &HDC909546UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND4G16U3B", &HF8, &HCC90D546UI, 2048, 64, 64, 4096, VCC_IF.X16_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND4G08S3B", &HF8, &HAC901546UI, 2048, 64, 64, 4096, VCC_IF.X8_1V8)) '4Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND4G16S3B", &HF8, &HBC905546UI, 2048, 64, 64, 4096, VCC_IF.X16_1V8)) '4Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND4G08U3C", &HF8, &HDC909546UI, 2048, 128, 64, 4096, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND4G16U3C", &HF8, &HCC90D546UI, 2048, 128, 64, 4096, VCC_IF.X16_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND4G08S3C", &HF8, &HAC901546UI, 2048, 128, 64, 4096, VCC_IF.X8_1V8)) '4Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND4G16S3C", &HF8, &HBC905546UI, 2048, 128, 64, 4096, VCC_IF.X16_1V8)) '4Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND4G08U3F", &HF8, &HDC80A662UI, 4096, 256, 64, 2048, VCC_IF.X8_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND4G16U3F", &HF8, &HCC80E662UI, 4096, 256, 64, 2048, VCC_IF.X16_3V)) '4Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND4G08S3F", &HF8, &HAC802662UI, 4096, 256, 64, 2048, VCC_IF.X8_1V8)) '4Gb
-            FlashDB.Add(New P_NAND("Dosilicon FMND4G16S3F", &HF8, &HBC806662UI, 4096, 256, 64, 2048, VCC_IF.X16_1V8)) '4Gb
-            FlashDB.Add(New P_NAND("Dosilicon DSND8G08U3N", &HE5, &HD3C1A666UI, 4096, 256, 64, 2048 * 2, VCC_IF.X8_3V)) '8Gb (dual die)
-            FlashDB.Add(New P_NAND("Dosilicon DSND8G16U3N", &HE5, &HC3C1E666UI, 4096, 256, 64, 2048 * 2, VCC_IF.X16_3V)) '8Gb (dual die)
-            FlashDB.Add(New P_NAND("Dosilicon DSND8G08S3N", &HE5, &HA3C12666UI, 4096, 256, 64, 2048 * 2, VCC_IF.X8_1V8)) '8Gb (dual die)
-            FlashDB.Add(New P_NAND("Dosilicon DSND8G16S3N", &HE5, &HB3C16666UI, 4096, 256, 64, 2048 * 2, VCC_IF.X16_1V8)) '8Gb (dual die)
-            FlashDB.Add(New P_NAND("Dosilicon DSND8G08U3M", &HE5, &HD3D1955AUI, 2048, 64, 64, 4096 * 2, VCC_IF.X8_3V)) '8Gb (dual die)
-            FlashDB.Add(New P_NAND("Dosilicon DSND8G16U3M", &HE5, &HC3D1D55AUI, 2048, 64, 64, 4096 * 2, VCC_IF.X16_3V)) '8Gb (dual die)
-            FlashDB.Add(New P_NAND("Dosilicon DSND8G08S3M", &HE5, &HA3D1155AUI, 2048, 64, 64, 4096 * 2, VCC_IF.X8_1V8)) '8Gb (dual die)
-            FlashDB.Add(New P_NAND("Dosilicon DSND8G16S3M", &HE5, &HB3D1555AUI, 2048, 64, 64, 4096 * 2, VCC_IF.X16_1V8)) '8Gb (dual die)
+            FlashDB.Add(New P_NAND("Dosilicon FMND1G08U3D", &HF8, &H_00F18095UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND1G16U3D", &HF8, &H_00C180D5UI, 2048, 64, 64, 1024, VCC_IF.X16_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND1G08S3D", &HF8, &H_00A18015UI, 2048, 64, 64, 1024, VCC_IF.X8_1V8)) '1Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND1G16S3D", &HF8, &H_00B18055UI, 2048, 64, 64, 1024, VCC_IF.X16_1V8)) '1Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND2G08U3D", &HF8, &H_DA909546UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND2G16U3D", &HF8, &H_CA90D546UI, 2048, 64, 64, 2048, VCC_IF.X16_3V)) '2Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND2G08S3D", &HF8, &H_AA901546UI, 2048, 64, 64, 2048, VCC_IF.X8_1V8)) '2Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND2G16S3D", &HF8, &H_BA905546UI, 2048, 64, 64, 2048, VCC_IF.X16_1V8)) '2Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND4G08U3B", &HF8, &H_DC909546UI, 2048, 64, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND4G16U3B", &HF8, &H_CC90D546UI, 2048, 64, 64, 4096, VCC_IF.X16_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND4G08S3B", &HF8, &H_AC901546UI, 2048, 64, 64, 4096, VCC_IF.X8_1V8)) '4Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND4G16S3B", &HF8, &H_BC905546UI, 2048, 64, 64, 4096, VCC_IF.X16_1V8)) '4Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND4G08U3C", &HF8, &H_DC909546UI, 2048, 128, 64, 4096, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND4G16U3C", &HF8, &H_CC90D546UI, 2048, 128, 64, 4096, VCC_IF.X16_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND4G08S3C", &HF8, &H_AC901546UI, 2048, 128, 64, 4096, VCC_IF.X8_1V8)) '4Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND4G16S3C", &HF8, &H_BC905546UI, 2048, 128, 64, 4096, VCC_IF.X16_1V8)) '4Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND4G08U3F", &HF8, &H_DC80A662UI, 4096, 256, 64, 2048, VCC_IF.X8_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND4G16U3F", &HF8, &H_CC80E662UI, 4096, 256, 64, 2048, VCC_IF.X16_3V)) '4Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND4G08S3F", &HF8, &H_AC802662UI, 4096, 256, 64, 2048, VCC_IF.X8_1V8)) '4Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND4G16S3F", &HF8, &H_BC806662UI, 4096, 256, 64, 2048, VCC_IF.X16_1V8)) '4Gb
+            FlashDB.Add(New P_NAND("Dosilicon DSND8G08U3N", &HE5, &H_D3C1A666UI, 4096, 256, 64, 2048 * 2, VCC_IF.X8_3V)) '8Gb (dual die)
+            FlashDB.Add(New P_NAND("Dosilicon DSND8G16U3N", &HE5, &H_C3C1E666UI, 4096, 256, 64, 2048 * 2, VCC_IF.X16_3V)) '8Gb (dual die)
+            FlashDB.Add(New P_NAND("Dosilicon DSND8G08S3N", &HE5, &H_A3C12666UI, 4096, 256, 64, 2048 * 2, VCC_IF.X8_1V8)) '8Gb (dual die)
+            FlashDB.Add(New P_NAND("Dosilicon DSND8G16S3N", &HE5, &H_B3C16666UI, 4096, 256, 64, 2048 * 2, VCC_IF.X16_1V8)) '8Gb (dual die)
+            FlashDB.Add(New P_NAND("Dosilicon DSND8G08U3M", &HE5, &H_D3D1955AUI, 2048, 64, 64, 4096 * 2, VCC_IF.X8_3V)) '8Gb (dual die)
+            FlashDB.Add(New P_NAND("Dosilicon DSND8G16U3M", &HE5, &H_C3D1D55AUI, 2048, 64, 64, 4096 * 2, VCC_IF.X16_3V)) '8Gb (dual die)
+            FlashDB.Add(New P_NAND("Dosilicon DSND8G08S3M", &HE5, &H_A3D1155AUI, 2048, 64, 64, 4096 * 2, VCC_IF.X8_1V8)) '8Gb (dual die)
+            FlashDB.Add(New P_NAND("Dosilicon DSND8G16S3M", &HE5, &H_B3D1555AUI, 2048, 64, 64, 4096 * 2, VCC_IF.X16_1V8)) '8Gb (dual die)
             'Others
-            FlashDB.Add(New P_NAND("FORESEE FS33ND01GS1", &HEC, &HF1009542UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("Zentel A5U1GA31ATS", &H92, &HF1809540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb (ESMT branded)
-            FlashDB.Add(New P_NAND("ESMT F59L1G81MA", &HC8, &HD1809540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("ESMT F59L1G81MB", &HC8, &HD1809540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("ESMT F59L1G81LA", &HC8, &HD1809542UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
-            FlashDB.Add(New P_NAND("ESMT F59L2G81A", &HC8, &HDA909544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
+            FlashDB.Add(New P_NAND("FORESEE FS33ND01GS1", &HEC, &H_F1009542UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Zentel A5U1GA31ATS ", &H92, &H_F1809540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb (ESMT branded)
+            FlashDB.Add(New P_NAND("ESMT F59L1G81MA    ", &HC8, &H_D1809540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("ESMT F59L1G81MB    ", &HC8, &H_D1809540UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("ESMT F59L1G81LA    ", &HC8, &H_D1809542UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("ESMT F59L2G81A     ", &HC8, &H_DA909544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
 
             'FlashDB.Add(New P_NAND("SanDisk SDTNPNAHEM-008G", &H45, &HDE989272UI, 8192, 1024, 516, 2084, VCC_IF.X8_3V) With {.ADDRESS_SCHEME = 3}) '64Gb
 

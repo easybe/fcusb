@@ -59,6 +59,7 @@ Public Class FlashcatSettings
     Public Property NAND_SkipBadBlock As Boolean = True 'If a block fails to program, skip block and write data to the next block
     Public Property NAND_Layout As NandMemLayout = NandMemLayout.Separated
     Public Property NAND_Speed As NandMemSpeed = NandMemSpeed._20MHz
+    Public Property NAND_UseRBx As Boolean = True
     'NAND ECC Settings
     Public Property ECC_FEATURE_ENABLED As Boolean
     'NOR Flash
@@ -118,6 +119,7 @@ Public Class FlashcatSettings
         Me.NAND_SkipBadBlock = SettingsFile.GetValue("NAND_Mismatch", True)
         Me.NAND_Layout = CType(SettingsFile.GetValue("NAND_Layout", NandMemLayout.Separated), NandMemLayout)
         Me.NAND_Speed = CType(SettingsFile.GetValue("NAND_Speed", NandMemSpeed._20MHz), NandMemSpeed)
+        Me.NAND_UseRBx = SettingsFile.GetValue("NAND_UseRBx", True)
         Me.ECC_FEATURE_ENABLED = SettingsFile.GetValue("ECC_ENABLED", False)
         Me.S93_DEVICE = SettingsFile.GetValue("S93_DEVICE_NAME", "")
         Me.S93_DEVICE_ORG = SettingsFile.GetValue("S93_ORG", 0)
@@ -158,6 +160,7 @@ Public Class FlashcatSettings
         SettingsFile.SetValue("NAND_Mismatch", Me.NAND_SkipBadBlock)
         SettingsFile.SetValue("NAND_Layout", Me.NAND_Layout)
         SettingsFile.SetValue("NAND_Speed", Me.NAND_Speed)
+        SettingsFile.SetValue("NAND_UseRBx", Me.NAND_UseRBx)
         SettingsFile.SetValue("Language", LanguageName)
         SettingsFile.SetValue("ECC_ENABLED", Me.ECC_FEATURE_ENABLED)
         SettingsFile.SetValue("S93_DEVICE_NAME", Me.S93_DEVICE)

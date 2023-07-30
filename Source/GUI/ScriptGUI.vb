@@ -3,7 +3,6 @@ Imports FlashcatUSB.EC_ScriptEngine
 
 Module ScriptGUI
     Delegate Function ScriptFunction(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
-    Private UserTabCount As Integer
 
     Public Sub AddInternalMethods()
         Dim TAB_CMD As New ScriptCmd("TAB")
@@ -27,8 +26,9 @@ Module ScriptGUI
     Private Function c_tab_create(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim tab_name As String = CStr(arguments(0).Value)
         GUI.CreateUserTab(" " & tab_name & " ") 'Thread-Safe
+        Dim CurrentCount As Integer = GUI.GetUserTabCount()
         Dim sv As New ScriptVariable(CreateVarName(), DataType.UInteger)
-        sv.Value = UserTabCount - 1
+        sv.Value = CurrentCount - 1
         Return sv
     End Function
 
@@ -152,8 +152,9 @@ Module ScriptGUI
     'Removes a user control from NAME
     Private Sub RemoveUserControl(ctr_name As String)
         If GUI Is Nothing Then Exit Sub
-        If UserTabCount = 0 Then Exit Sub
-        For i As Integer = 0 To CInt(UserTabCount - 1)
+        Dim CurrentCount As Integer = GUI.GetUserTabCount()
+        If CurrentCount = 0 Then Exit Sub
+        For i As Integer = 0 To CurrentCount - 1
             Dim uTab As TabPage = GUI.GetUserTab(i)
             For Each user_control As Control In uTab.Controls
                 If user_control.Name.ToUpper.Equals(ctr_name.ToUpper) Then

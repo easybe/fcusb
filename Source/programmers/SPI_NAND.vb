@@ -606,21 +606,11 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.PAGE_EXT)
         Dim pages_to_write As Integer = (page_aligned.Length \ page_size_tot)
         If (FCUSB.HasLogic()) Then 'Hardware-enabled routine
-            Dim array_ptr As Integer = 0
-            Do Until pages_to_write = 0
-                Dim max_page_count As Integer = 8192 \ MyFlashDevice.PAGE_SIZE
-                Dim count As Integer = Math.Min(max_page_count, pages_to_write) 'Write up to 4 pages (fcusb pro buffer has 12KB total)
-                Dim packet((count * page_size_tot) - 1) As Byte
-                Array.Copy(page_aligned, array_ptr, packet, 0, packet.Length)
-                array_ptr += packet.Length
-                Dim setup() As Byte = SetupPacket_NAND(page_addr, 0, packet.Length, FlashArea.All) 'We will write the entire page
-                Dim param As Integer = Utilities.BoolToInt(MyFlashDevice.PLANE_SELECT)
-                Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPINAND_WRITEFLASH, setup, packet, CUInt(param))
-                If Not result Then Return False
-                FCUSB.USB_WaitForComplete()
-                page_addr += count
-                pages_to_write -= count
-            Loop
+            Dim setup() As Byte = SetupPacket_NAND(page_addr, 0, page_aligned.Length, FlashArea.All) 'We will write the entire page
+            Dim param As Integer = Utilities.BoolToInt(MyFlashDevice.PLANE_SELECT)
+            Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPINAND_WRITEFLASH, setup, page_aligned, CUInt(param))
+            If Not result Then Return False
+            FCUSB.USB_WaitForComplete()
         Else
             For i = 0 To pages_to_write - 1
                 Dim cache_data(page_size_tot - 1) As Byte

@@ -18,15 +18,6 @@ Public Module MainApp
     Public GUI As MainForm
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
     Public MySettings As New FlashcatSettings
-    Public Const FC_BUILD As Integer = 628
-    Private Const PRO_PCB5_FW As Single = 1.14F 'This is the embedded firmware version for pro
-    Private Const MACH1_PCB2_FW As Single = 2.25F 'Firmware version for Mach1
-    Private Const XPORT_PCB2_FW As Single = 5.24F 'XPORT PCB 2.x
-    Private Const CLASSIC_FW As Single = 4.53F 'Min revision allowed for classic (PCB 2.x)
-    Private Const MACH1_FGPA_3V3 As UInt32 = &HAF330007UI
-    Private Const MACH1_FGPA_1V8 As UInt32 = &HAF180007UI
-    Private Const MACH1_SPI_3V3 As UInt32 = &HAF330101UI 'Passthrough for SPI
-    Private Const MACH1_SPI_1V8 As UInt32 = &HAF180102UI 'Passthrough for SPI
     Public CURRENT_DEVICE_MODE As DeviceMode
     Public AppIsClosing As Boolean = False
     Public WithEvents ScriptProcessor As New EC_ScriptEngine.Processor

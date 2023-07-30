@@ -8,10 +8,15 @@
     <AssemblyName>fcusb_console</AssemblyName>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="..\Source\AppClasses.vb" Link="AppClasses.vb" />
     <Compile Include="..\Source\ArrayExtension.vb" Link="ArrayExtension.vb" />
     <Compile Include="..\Source\CFI.vb" Link="CFI.vb" />
+    <Compile Include="..\Source\Configuration.vb" Link="Configuration.vb" />
     <Compile Include="..\Source\DetectDevice.vb" Link="DetectDevice.vb" />
     <Compile Include="..\Source\Enum.vb" Link="Enum.vb" />
     <Compile Include="..\Source\FileFormat_IHEX.vb" Link="FileFormat_IHEX.vb" />

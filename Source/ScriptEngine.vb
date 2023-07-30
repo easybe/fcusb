@@ -344,13 +344,22 @@ Namespace EC_ScriptEngine
             If test_condition Is Nothing OrElse test_condition.Data.VarType = DataType.FncError Then
                 Return New ExecuteResult(CStr(test_condition.Value), se.INDEX)
             End If
-            Dim result As Boolean = CBool(test_condition.Value)
-            If se.NOT_MODIFIER Then result = Not result
-            If result Then
-                Return Execute(se.IF_MAIN)
+            Dim result As ExecuteResult
+            Dim not_value As Boolean = CBool(test_condition.Value)
+            If se.NOT_MODIFIER Then not_value = Not not_value
+            If not_value Then
+                result = Execute(se.IF_MAIN)
             Else
-                Return Execute(se.IF_ELSE)
+                result = Execute(se.IF_ELSE)
             End If
+            If result IsNot Nothing Then
+                If result.IsError Then Return result
+                If Not result.Flow = ProgramFlow.KeepRunning Then
+                    If result.Flow = ProgramFlow.ExitIf Then Return Nothing 'Clears the ExitIf flag
+                    Return result
+                End If
+            End If
+            Return Nothing 'No Error
         End Function
 
         Public Function Execute_Event(s_event As ScriptEvent, arguments() As ScriptVariable) As ScriptVariable
@@ -1621,7 +1630,7 @@ Namespace EC_ScriptEngine
                 Return Nothing
             End If
             If this_if.CONDITION Is Nothing Then
-                ErrInd = Pointer
+                ErrInd = ind(Pointer)
                 ErrorMsg = "IF condition is not valid"
                 Return Nothing
             End If
@@ -1754,13 +1763,13 @@ Namespace EC_ScriptEngine
             Return this_for
         End Function
 
-        Friend Function CreateGoto(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
+        Public Function CreateGoto(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
             Dim this_goto As New ScriptGoto(Me.MyParent)
             this_goto.INDEX = ind(Pointer)
             Dim input As String = lines(Pointer)
             If input.ToUpper.StartsWith("GOTO ") Then input = input.Substring(5).Trim
             If (input = "") Then
-                ErrInd = Pointer
+                ErrInd = ind(Pointer)
                 ErrorMsg = "GOTO statement is missing target label"
                 Return Nothing
             End If
@@ -1768,27 +1777,31 @@ Namespace EC_ScriptEngine
             Return this_goto
         End Function
 
-        Friend Function CreateExit(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
+        Public Function CreateExit(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
             Dim this_exit As New ScriptExit(Me.MyParent)
             this_exit.INDEX = ind(Pointer)
             Dim input As String = lines(Pointer).Substring(4).Trim
-            If input = "" Then
-                ErrInd = Pointer
+            If String.IsNullOrEmpty(input) Then
+                ErrInd = ind(Pointer)
                 ErrorMsg = "Exit statement missing parameter"
                 Return Nothing
             ElseIf input.ToUpper.Equals("WHILE") Then
                 this_exit.ExitMode = ProgramFlow.ExitWhile
             ElseIf input.ToUpper.Equals("FOR") Then
                 this_exit.ExitMode = ProgramFlow.ExitFor
+            ElseIf input.ToUpper.Equals("IF") Then
+                this_exit.ExitMode = ProgramFlow.ExitIf
+            ElseIf input.ToUpper.Equals("SCRIPT") Then
+                this_exit.ExitMode = ProgramFlow.ExitScript
             Else
-                ErrInd = Pointer
+                ErrInd = ind(Pointer)
                 ErrorMsg = "Label statement is missing target label"
                 Return Nothing
             End If
             Return this_exit
         End Function
 
-        Friend Function CreateReturn(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
+        Public Function CreateReturn(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
             Dim this_return As New ScriptReturn(Me.MyParent)
             this_return.INDEX = ind(Pointer)
             Dim input As String = lines(Pointer)
@@ -1800,13 +1813,13 @@ Namespace EC_ScriptEngine
             Return this_return
         End Function
 
-        Friend Function CreateLabel(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
+        Public Function CreateLabel(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
             Dim label_this As New ScriptLabel(Me.MyParent)
             label_this.INDEX = ind(Pointer)
             Dim input As String = lines(Pointer)
             If input.ToUpper.EndsWith(":") Then input = input.Substring(0, input.Length - 1).Trim
-            If (input = "") Then
-                ErrInd = Pointer
+            If String.IsNullOrEmpty(input) Then
+                ErrInd = ind(Pointer)
                 ErrorMsg = "Label statement is missing target label"
                 Return Nothing
             End If
@@ -1814,14 +1827,14 @@ Namespace EC_ScriptEngine
             Return label_this
         End Function
 
-        Friend Function CreateEvent(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
+        Public Function CreateEvent(ByRef Pointer As Integer, lines() As String, ind() As Integer, ByRef ErrInd As Integer, ByRef ErrorMsg As String) As ScriptLineElement
             Dim this_ev As New ScriptEvent(Me.MyParent)
             this_ev.INDEX = ind(Pointer)
             Dim input As String = lines(Pointer).Substring(11).Trim
             Pointer += 1
             Dim event_name As String = FeedParameter(input)
             If (event_name = "") Then
-                ErrInd = Pointer
+                ErrInd = ind(Pointer)
                 ErrorMsg = "CreateEvent statement is missing event name"
                 Return Nothing
             End If
@@ -1833,7 +1846,7 @@ Namespace EC_ScriptEngine
                 Dim eval As String = Utilities.RemoveComment(lines(Pointer).Replace(vbTab, " ")).Trim
                 If (Not eval = "") Then
                     If eval.ToUpper.StartsWith("CREATEEVENT") Then
-                        ErrInd = Pointer
+                        ErrInd = ind(Pointer)
                         ErrorMsg = "Error: CreateEvent statement within event"
                     ElseIf eval.ToUpper.StartsWith("ENDEVENT") OrElse eval.ToUpper.StartsWith("END EVENT") Then
                         EndEventTrigger = True : Exit While
@@ -1845,7 +1858,7 @@ Namespace EC_ScriptEngine
                 Pointer += 1
             End While
             If (Not EndEventTrigger) Then
-                ErrInd = Pointer
+                ErrInd = ind(Pointer)
                 ErrorMsg = "CreateEvent: EndEvent statement not present"
                 Return Nothing
             End If
@@ -1933,6 +1946,8 @@ Namespace EC_ScriptEngine
         ReturnResult
         ExitWhile
         ExitFor
+        ExitIf
+        ExitScript
     End Enum
 
 #End Region

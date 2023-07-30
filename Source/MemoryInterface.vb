@@ -23,17 +23,9 @@ Public Class MemoryInterface
         MainApp.RemoveAllTabs()
     End Sub
 
-    Public Function GetDevices(usb_dev As USB.FCUSB_DEVICE) As MemoryDeviceInstance()
-        Try
-            Dim devices_on_this_usbport As New List(Of MemoryDeviceInstance)
-            For Each i In MyDevices
-                If i.FCUSB Is usb_dev Then devices_on_this_usbport.Add(i)
-            Next
-            If devices_on_this_usbport.Count = 0 Then Return Nothing
-            Return devices_on_this_usbport.ToArray
-        Catch ex As Exception
-            Return Nothing
-        End Try
+    Public Function GetDevices() As MemoryDeviceInstance()
+        If MyDevices.Count = 0 Then Return Nothing
+        Return MyDevices.ToArray()
     End Function
 
     Public Function Add(usb_dev As USB.FCUSB_DEVICE, PRG_IF As MemoryDeviceUSB) As MemoryDeviceInstance

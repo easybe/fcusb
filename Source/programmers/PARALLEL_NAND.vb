@@ -85,6 +85,9 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
                     End If
                 End If
                 FCUSB.USB_CONTROL_MSG_OUT(USBREQ.NAND_SETTYPE, Nothing, CUInt(MyFlashDevice.ADDRESS_SCHEME))
+                If Not MySettings.NAND_UseRBx Then
+                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_DELAY, Nothing, CUInt(MFP_DELAY.NAND_SR))
+                End If
                 BlockManager = New NAND_BLOCK_IF(MyFlashDevice)
                 If (MySettings.NAND_BadBlockManager = BadBlockMode.Disabled) Then
                     RaiseEvent PrintConsole(RM.GetString("nand_block_manager_disabled"))
@@ -415,11 +418,8 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
         MEMORY_AREA_ERASED = Nothing
         WriteResult = WriteBulk(phy_page_index, main_data, oob_data, memory_area)
         If Not WriteResult Then Return False
-        If MyFlashDevice.ADDRESS_SCHEME = P_NAND.PAGE_TYPE.SMALL Then
-            Utilities.Sleep(100)
-        Else
-            Utilities.Sleep(10)
-        End If
+        'If MyFlashDevice.ADDRESS_SCHEME = P_NAND.PAGE_TYPE.SMALL Then Utilities.Sleep(100) No longer needed?
+        Utilities.Sleep(10)
         WaitUntilReady()
         Return WriteResult
     End Function

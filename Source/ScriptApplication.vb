@@ -389,12 +389,16 @@ Public Module ScriptApplication
         End If
         Dim bytes_to_read As Int32 = 1
         If arguments.Length > 0 Then bytes_to_read = CInt(arguments(0).Value)
+        Dim current_if() As MemoryDeviceInstance = MEM_IF.GetDevices()
+        If current_if Is Nothing Then
+            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "A SPI/QSPI memory device must be connected"}
+        End If
         Dim sv As New ScriptVariable(CreateVarName(), DataType.Data)
         If CURRENT_DEVICE_MODE = DeviceMode.SPI Then
-            Dim SPI_IF As New SPI.SPI_Programmer(MAIN_FCUSB)
+            Dim SPI_IF As SPI.SPI_Programmer = CType(current_if(0).MEM_IF, SPI.SPI_Programmer)
             sv.Value = SPI_IF.ReadStatusRegister(bytes_to_read)
         ElseIf CURRENT_DEVICE_MODE = DeviceMode.SQI Then
-            Dim SQI_IF As New SPI.SQI_Programmer(MAIN_FCUSB)
+            Dim SQI_IF As SPI.SQI_Programmer = CType(current_if(0).MEM_IF, SPI.SQI_Programmer)
             sv.Value = SQI_IF.ReadStatusRegister(bytes_to_read)
         End If
         Return sv
@@ -409,37 +413,61 @@ Public Module ScriptApplication
         If Not MAIN_FCUSB.IS_CONNECTED Then
             Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "FlashcatUSB device is not connected"}
         End If
+        Dim current_if() As MemoryDeviceInstance = MEM_IF.GetDevices()
+        If current_if Is Nothing Then
+            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "A SPI/QSPI memory device must be connected"}
+        End If
         Dim data_out() As Byte = CType(arguments(0).Value, Byte())
         If CURRENT_DEVICE_MODE = DeviceMode.SPI Then
-            Dim SPI_IF As New SPI.SPI_Programmer(MAIN_FCUSB)
+            Dim SPI_IF As SPI.SPI_Programmer = CType(current_if(0).MEM_IF, SPI.SPI_Programmer)
             SPI_IF.WriteStatusRegister(data_out)
         ElseIf CURRENT_DEVICE_MODE = DeviceMode.SQI Then
-            Dim SQI_IF As New SPI.SQI_Programmer(MAIN_FCUSB)
+            Dim SQI_IF As SPI.SQI_Programmer = CType(current_if(0).MEM_IF, SPI.SQI_Programmer)
             SQI_IF.WriteStatusRegister(data_out)
         End If
         Return Nothing
     End Function
 
     Private Function c_spi_writeread(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
-        If Not CURRENT_DEVICE_MODE = DeviceMode.SPI Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Device is not in SPI operation mode"}
-        ElseIf Not MAIN_FCUSB.IS_CONNECTED Then
+        If CURRENT_DEVICE_MODE = DeviceMode.SPI Then
+        ElseIf CURRENT_DEVICE_MODE = DeviceMode.SQI Then
+        Else
+            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Device is not in SPI/QUAD operation mode"}
+        End If
+        If Not MAIN_FCUSB.IS_CONNECTED Then
             Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "FlashcatUSB device is not connected"}
+        End If
+        Dim current_if() As MemoryDeviceInstance = MEM_IF.GetDevices()
+        If current_if Is Nothing Then
+            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "A SPI/QSPI memory device must be connected"}
         End If
         Dim DataToWrite() As Byte = CType(arguments(0).Value, Byte())
         Dim ReadBack As Int32 = 0
         If arguments.Length = 2 Then ReadBack = CInt(arguments(1).Value)
-        Dim SPI_IF As New SPI.SPI_Programmer(MAIN_FCUSB)
-        If ReadBack = 0 Then
-            SPI_IF.SPIBUS_WriteRead(DataToWrite)
-            Return Nothing
-        Else
-            Dim return_data(ReadBack - 1) As Byte
-            SPI_IF.SPIBUS_WriteRead(DataToWrite, return_data)
-            Dim sv As New ScriptVariable(CreateVarName(), DataType.Data)
-            sv.Value = return_data
-            Return sv
+        If CURRENT_DEVICE_MODE = DeviceMode.SPI Then
+            Dim SPI_IF As SPI.SPI_Programmer = CType(current_if(0).MEM_IF, SPI.SPI_Programmer)
+            If ReadBack = 0 Then
+                SPI_IF.SPIBUS_WriteRead(DataToWrite)
+            Else
+                Dim return_data(ReadBack - 1) As Byte
+                SPI_IF.SPIBUS_WriteRead(DataToWrite, return_data)
+                Dim sv As New ScriptVariable(CreateVarName(), DataType.Data)
+                sv.Value = return_data
+                Return sv
+            End If
+        ElseIf CURRENT_DEVICE_MODE = DeviceMode.SQI Then
+            Dim SQI_IF As SPI.SQI_Programmer = CType(current_if(0).MEM_IF, SPI.SQI_Programmer)
+            If ReadBack = 0 Then
+                SQI_IF.SQIBUS_WriteRead(DataToWrite)
+            Else
+                Dim return_data(ReadBack - 1) As Byte
+                SQI_IF.SQIBUS_WriteRead(DataToWrite, return_data)
+                Dim sv As New ScriptVariable(CreateVarName(), DataType.Data)
+                sv.Value = return_data
+                Return sv
+            End If
         End If
+        Return Nothing
     End Function
 
     Private Function c_spi_prog(arguments() As ScriptVariable, Index As Int32) As ScriptVariable

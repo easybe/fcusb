@@ -74,9 +74,13 @@ Public Class FrmSettings
                 rb_mainspare_segmented.Checked = True
         End Select
         cbNAND_Speed.SelectedIndex = MySettings.NAND_Speed
+        If MySettings.NAND_UseRBx Then
+            rbNandWait_RBx.Checked = True
+        Else
+            rbNandWait_SR.Checked = True
+        End If
         SetupSpiEeprom()
         Setup_I2C_SWI_tab()
-
         If MAIN_FCUSB Is Nothing Then
             rb_speed_100khz.Enabled = False
             rb_speed_1mhz.Enabled = False
@@ -275,6 +279,11 @@ Public Class FrmSettings
             MySettings.NAND_Layout = NandMemLayout.Separated
         ElseIf rb_mainspare_segmented.Checked Then
             MySettings.NAND_Layout = NandMemLayout.Segmented
+        End If
+        If rbNandWait_RBx.Checked Then
+            MySettings.NAND_UseRBx = True
+        Else
+            MySettings.NAND_UseRBx = False
         End If
         'i2c tab
         Dim i2c_address As Byte = &HA0 'Initial address

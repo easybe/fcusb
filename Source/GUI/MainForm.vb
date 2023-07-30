@@ -410,6 +410,10 @@ Public Class MainForm
         End Try
     End Sub
 
+    Public Function GetUserTabCount() As Integer
+        Return UserTabCount
+    End Function
+
     Public Sub AddTab(tb As TabPage)
         If Me.MyTabs.InvokeRequired Then
             Me.Invoke(New cbAddTab(AddressOf AddTab), New Object() {tb})

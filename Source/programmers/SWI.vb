@@ -18,6 +18,9 @@ Public Class SWI_Programmer : Implements MemoryDeviceUSB
         Dim SWI_ID_DATA As UInt32 = (CUInt(chip_id(0)) << 16) Or (CUInt(chip_id(1)) << 8) Or CUInt(chip_id(2))
         Dim MFG_CODE As Byte = CByte(CUInt(SWI_ID_DATA >> 12) And &HF)
         Dim PART As UInt16 = CUShort(SWI_ID_DATA >> 3) And &H1FFUS
+
+        'DS2430A
+
         If MFG_CODE = &HD Then Return False
         If PART = &H40 Then
             MyFlashDevice = New SWI("Microchip AT21CS01", &HD, &H40, 128, 8)

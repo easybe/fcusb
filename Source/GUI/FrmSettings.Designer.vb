@@ -147,6 +147,9 @@ Partial Class FrmSettings
         Me.cb_retry_write = New System.Windows.Forms.ComboBox()
         Me.Label17 = New System.Windows.Forms.Label()
         Me.Label20 = New System.Windows.Forms.Label()
+        Me.rbNandWait_RBx = New System.Windows.Forms.RadioButton()
+        Me.lblNandWait = New System.Windows.Forms.Label()
+        Me.rbNandWait_SR = New System.Windows.Forms.RadioButton()
         Me.MyTabs.SuspendLayout()
         Me.TP_SPI.SuspendLayout()
         Me.group_custom.SuspendLayout()
@@ -984,6 +987,9 @@ Partial Class FrmSettings
         '
         'gb_nand_general
         '
+        Me.gb_nand_general.Controls.Add(Me.rbNandWait_SR)
+        Me.gb_nand_general.Controls.Add(Me.lblNandWait)
+        Me.gb_nand_general.Controls.Add(Me.rbNandWait_RBx)
         Me.gb_nand_general.Controls.Add(Me.cbNAND_Speed)
         Me.gb_nand_general.Controls.Add(Me.Label2)
         Me.gb_nand_general.Controls.Add(Me.cb_nand_image_readverify)
@@ -1002,7 +1008,7 @@ Partial Class FrmSettings
         Me.cbNAND_Speed.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cbNAND_Speed.FormattingEnabled = True
         Me.cbNAND_Speed.Items.AddRange(New Object() {"20 MHz", "10 MHz", "5 MHz", "1 MHz"})
-        Me.cbNAND_Speed.Location = New System.Drawing.Point(385, 43)
+        Me.cbNAND_Speed.Location = New System.Drawing.Point(273, 38)
         Me.cbNAND_Speed.Name = "cbNAND_Speed"
         Me.cbNAND_Speed.Size = New System.Drawing.Size(103, 21)
         Me.cbNAND_Speed.TabIndex = 4
@@ -1010,7 +1016,7 @@ Partial Class FrmSettings
         'Label2
         '
         Me.Label2.AutoSize = True
-        Me.Label2.Location = New System.Drawing.Point(385, 24)
+        Me.Label2.Location = New System.Drawing.Point(273, 19)
         Me.Label2.Name = "Label2"
         Me.Label2.Size = New System.Drawing.Size(103, 13)
         Me.Label2.TabIndex = 5
@@ -1443,6 +1449,38 @@ Partial Class FrmSettings
         Me.Label20.TabIndex = 46
         Me.Label20.Text = "Multi-chip select (Parallel NOR)"
         '
+        'rbNandWait_RBx
+        '
+        Me.rbNandWait_RBx.AutoSize = True
+        Me.rbNandWait_RBx.Location = New System.Drawing.Point(313, 85)
+        Me.rbNandWait_RBx.Name = "rbNandWait_RBx"
+        Me.rbNandWait_RBx.Size = New System.Drawing.Size(62, 17)
+        Me.rbNandWait_RBx.TabIndex = 6
+        Me.rbNandWait_RBx.TabStop = True
+        Me.rbNandWait_RBx.Text = "RBx pin"
+        Me.rbNandWait_RBx.UseVisualStyleBackColor = True
+        '
+        'lblNandWait
+        '
+        Me.lblNandWait.AutoSize = True
+        Me.lblNandWait.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblNandWait.Location = New System.Drawing.Point(270, 87)
+        Me.lblNandWait.Name = "lblNandWait"
+        Me.lblNandWait.Size = New System.Drawing.Size(37, 13)
+        Me.lblNandWait.TabIndex = 7
+        Me.lblNandWait.Text = "Wait:"
+        '
+        'rbNandWait_SR
+        '
+        Me.rbNandWait_SR.AutoSize = True
+        Me.rbNandWait_SR.Location = New System.Drawing.Point(391, 85)
+        Me.rbNandWait_SR.Name = "rbNandWait_SR"
+        Me.rbNandWait_SR.Size = New System.Drawing.Size(92, 17)
+        Me.rbNandWait_SR.TabIndex = 8
+        Me.rbNandWait_SR.TabStop = True
+        Me.rbNandWait_SR.Text = "Status-register"
+        Me.rbNandWait_SR.UseVisualStyleBackColor = True
+        '
         'FrmSettings
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -1621,4 +1659,7 @@ Partial Class FrmSettings
     Friend WithEvents cmdEccRemove As Button
     Friend WithEvents cmdEccAdd As Button
     Friend WithEvents Label25 As Label
+    Friend WithEvents rbNandWait_SR As RadioButton
+    Friend WithEvents lblNandWait As Label
+    Friend WithEvents rbNandWait_RBx As RadioButton
 End Class

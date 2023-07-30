@@ -11,7 +11,7 @@
     <AssemblyName>FlashcatUSB</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <MyType>WindowsFormsWithCustomSubMain</MyType>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -99,6 +99,7 @@
     <Compile Include="AppClasses.vb" />
     <Compile Include="ArrayExtension.vb" />
     <Compile Include="CFI.vb" />
+    <Compile Include="Configuration.vb" />
     <Compile Include="DetectDevice.vb" />
     <Compile Include="GUI\ComboBoxPlus.vb">
       <SubType>Component</SubType>
