@@ -8,7 +8,7 @@
     <AssemblyName>fcusb_console</AssemblyName>
     <SignAssembly>false</SignAssembly>
     <DelaySign>false</DelaySign>
-    <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
+    <ApplicationManifest>..\Source\My Project\app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
