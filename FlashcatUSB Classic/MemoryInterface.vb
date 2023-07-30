@@ -499,6 +499,7 @@ Public Module MemoryInterface
                         data_stream.Dispose()
                         BytesLeft = 0
                     Else 'Data has less data, read in from flash to fill buffer
+                        WaitUntilReady()
                         Dim b() As Byte = ReadFlash(CUInt(Params.Address + BytesLeft), (SectorLength - BytesLeft), Params.Memory_Area)
                         If b Is Nothing Then Return False
                         data_stream.Read(SectorBuffer, 0, BytesLeft)
@@ -523,7 +524,7 @@ Public Module MemoryInterface
                         data_stream.Position -= SectorBuffer.Length 'We are going to re-write these bytes to the next block
                     End If
                     Params.Address = CLng(Params.Address + SectorBuffer.Length) 'Increment the address we are writing
-                ElseIf Params.Address > SectorBase And Params.Address < (SectorBase + SectorLength) Then 'Address is greater than base address
+                ElseIf (Params.Address > SectorBase) And Params.Address < (SectorBase + SectorLength) Then 'Address is greater than base address
                     Dim DestBase As Long = CLng(Params.Address - SectorBase) 'Where the data is going (array)
                     Dim BytesToCopy As Integer = CInt(SectorLength - DestBase) 'How many bytes to copy from data array
                     Dim b() As Byte = ReadFlash(CUInt(SectorBase), CInt(DestBase), Params.Memory_Area) 'Read in what we are not writing

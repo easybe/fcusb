@@ -36,13 +36,13 @@ Public Class MainForm
         VerifyMenuItem.Checked = MySettings.VERIFY_WRITE
         BlockManagerItem_Select()
         mi_NandPreserve.Checked = MySettings.NAND_Preserve
-        Select Case MySettings.EXTIO_VPP
-            Case FlashcatSettings.SO44_VPP_SETTING.Disabled
+        Select Case MySettings.VPP_VCC
+            Case FlashcatSettings.VPP_SETTING.Disabled
                 mi_vpp_vcc_normal.Checked = True
-            Case FlashcatSettings.SO44_VPP_SETTING.Write_12v
+            Case FlashcatSettings.VPP_SETTING.Write_12v
                 mi_so44_12v_write.Checked = True
             Case Else
-                MySettings.EXTIO_VPP = FlashcatSettings.SO44_VPP_SETTING.Disabled
+                MySettings.VPP_VCC = FlashcatSettings.VPP_SETTING.Disabled
                 mi_vpp_vcc_normal.Checked = True
         End Select
         SetCheckmarkForMode()
@@ -2747,13 +2747,13 @@ ExitAvrProg:
     End Sub
 
     Private Sub mi_so44_normal_Click(sender As Object, e As EventArgs) Handles mi_vpp_vcc_normal.Click
-        MySettings.EXTIO_VPP = FlashcatSettings.SO44_VPP_SETTING.Disabled
+        MySettings.VPP_VCC = FlashcatSettings.VPP_SETTING.Disabled
         mi_vpp_vcc_normal.Checked = True
         mi_so44_12v_write.Checked = False
     End Sub
 
     Private Sub mi_so44_12v_write_Click(sender As Object, e As EventArgs) Handles mi_so44_12v_write.Click
-        MySettings.EXTIO_VPP = FlashcatSettings.SO44_VPP_SETTING.Write_12v
+        MySettings.VPP_VCC = FlashcatSettings.VPP_SETTING.Write_12v
         mi_vpp_vcc_normal.Checked = False
         mi_so44_12v_write.Checked = True
     End Sub

@@ -47,6 +47,7 @@
         BypassMode 'Writes 64 bytes using ByPass sequence
         IntelSharp 'Writes data (SA=0x40;SA=DATA;SR.7), erases sectors (SA=0x50;SA=0x60;SA=0xD0,SR.7,SA=0x20;SA=0xD0,SR.7)
         IntelBuffer 'Use Write-To-Buffer mode (x16 only)
+        SpansionBuffer 'Use Write-Buffer mode (x16 only)
     End Enum
 
     Public Enum MFP_BLKLAYOUT
@@ -399,6 +400,10 @@
             Dim MX29LV160DT As MFP_Flash = FindDevice(&HC2, &H22C4, 0, False, MemoryType.PARALLEL_NOR)
             MX29LV160DT.WRITE_HARDWARE_DELAY = 5
             MX29LV160DT.WRITE_SOFTWARE_DELAY = 0
+
+            'Dim S29GL01G As MFP_Flash = FindDevice(&H1, &H227E, &H2801, False, MemoryType.PARALLEL_NOR)
+            'S29GL01G.WRITE_HARDWARE_DELAY = 120
+            'S29GL01G.WRITE_SOFTWARE_DELAY = 0
 
 
             'CreateHtmlCatalog(MemoryType.SERIAL_NOR, 3, "d: \spi_database.html")
@@ -883,13 +888,17 @@
             FlashDB.Add(New MFP_Flash("Cypress S29GL064", &H1, &H227E, Mb064, Kb512) With {.ID2 = &HC01}) 'Top-boot
             FlashDB.Add(New MFP_Flash("Cypress S29GL064M", &H1, &H227E, Mb064, Mb001) With {.ID2 = &H1300})
             FlashDB.Add(New MFP_Flash("Cypress S29GL064M", &H1, &H227E, Mb064, Mb001) With {.ID2 = &H1301})
-            FlashDB.Add(New MFP_Flash("Cypress S29GL128", &H1, &H227E, Mb128, Mb001) With {.ID2 = &H2101})
             FlashDB.Add(New MFP_Flash("Cypress S29GL128M", &H1, &H227E, Mb128, Mb001) With {.ID2 = &H1200})
-            FlashDB.Add(New MFP_Flash("Cypress S29GL256", &H1, &H227E, Mb256, Mb001) With {.ID2 = &H2201})
             FlashDB.Add(New MFP_Flash("Cypress S29GL256M", &H1, &H227E, Mb256, Mb001) With {.ID2 = &H1201})
-            FlashDB.Add(New MFP_Flash("Cypress S29GL512", &H1, &H227E, Mb512, Mb001) With {.ID2 = &H2301})
-            FlashDB.Add(New MFP_Flash("Cypress S29GL01G", &H1, &H227E, Gb001, Mb001) With {.ID2 = &H2801})
-            FlashDB.Add(New MFP_Flash("Cypress S70GL02G", &H1, &H227E, Gb002, Mb001) With {.ID2 = &H4801})
+
+            FlashDB.Add(New MFP_Flash("Cypress S29GL128S", &H1, &H227E, Mb128, Mb001) With {.ID2 = &H2101, .WriteMode = MFP_PROG.SpansionBuffer})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL256S", &H1, &H227E, Mb256, Mb001) With {.ID2 = &H2201, .WriteMode = MFP_PROG.SpansionBuffer})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL512S", &H1, &H227E, Mb512, Mb001) With {.ID2 = &H2301, .WriteMode = MFP_PROG.SpansionBuffer})
+            FlashDB.Add(New MFP_Flash("Cypress S29GL01GS", &H1, &H227E, Gb001, Mb001) With {.ID2 = &H2801, .WriteMode = MFP_PROG.SpansionBuffer}) 'CHIP-VAULT
+
+            FlashDB.Add(New MFP_Flash("Cypress S70GL02G", &H1, &H227E, Gb002, Mb001) With {.ID2 = &H4801, .WriteMode = MFP_PROG.SpansionBuffer})
+
+
             'ST Microelectronics (now numonyx)
             FlashDB.Add(CreateMFP("ST M29W800AT", &H20, &HD7, Mb008, MFP_PROG.IntelSharp, MFP_BLKLAYOUT.Four_Top))
             FlashDB.Add(CreateMFP("ST M29W800AB", &H20, &H5B, Mb008, MFP_PROG.IntelSharp, MFP_BLKLAYOUT.Four_Btm))

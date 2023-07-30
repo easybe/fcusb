@@ -1945,6 +1945,13 @@ Namespace Utilities
             Return d.ToString("F" & LeadingZeros.ToString, Globalization.CultureInfo.InvariantCulture) & " MB"
         End Function
 
+        Public Function FormatToMegabits(ByVal bytes As UInt64, Optional LeadingZeros As Integer = 0) As String
+            Dim MB01 As Double = 1048576
+            Dim d As Double = (CDbl(bytes) / MB01)
+            Dim Mbits As UInt32 = d * 8
+            Return Mbits.ToString("F" & LeadingZeros.ToString, Globalization.CultureInfo.InvariantCulture) & " Mbit"
+        End Function
+
         Public Function FormatToKilobytes(ByVal bytes As UInt64, Optional LeadingZeros As Integer = 0) As String
             Dim KB01 As Double = 1024
             Dim d As Double = (CDbl(bytes) / KB01)

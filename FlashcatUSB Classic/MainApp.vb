@@ -14,7 +14,7 @@ Imports FlashcatUSB.FlashMemory
 
 Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.English.ResourceManager
-    Public Const Build As Integer = 462
+    Public Const Build As Integer = 464
     Public Platform As String
     Public GUI As MainForm
     Public MySettings As FlashcatSettings
@@ -62,14 +62,14 @@ Public Module MainApp
         Public Property BIT_SWAP As BitSwapMode = BitSwapMode.None 'Swaps nibbles/bytes/words
         Public Property NAND_Preserve As Boolean = True 'We want to copy SPARE data before erase
         Public Property NAND_BadBlockManager As BadBlockMarker 'Indicates how BAD BLOCKS are detected
-        Public Property EXTIO_VPP As SO44_VPP_SETTING = SO44_VPP_SETTING.Disabled 'Enables the SO-44 Adapter's 12v VPP feature
+        Public Property VPP_VCC As VPP_SETTING = VPP_SETTING.Disabled 'Enables the SO-44 Adapter's 12v VPP feature
 
         Sub New()
             VERIFY_WRITE = GetRegistryValue("VerifyData", True)
             NAND_BadBlockManager = GetRegistryValue("NAND_BadBlock", BadBlockMarker.Disabled)
             NAND_Preserve = GetRegistryValue("NandPreserve", True)
             OPERATION_MODE = CInt(GetRegistryValue("OpMode", "1")) 'Default is normal
-            EXTIO_VPP = CInt(GetRegistryValue("VPP", "1"))
+            VPP_VCC = CInt(GetRegistryValue("VPP", "1"))
             SPI_EEPROM = GetRegistryValue("SPI_EEPROM", SPI_EEPROM_DEVICE.None)
             LoadLanguageSettings()
         End Sub
@@ -80,12 +80,12 @@ Public Module MainApp
             SetRegistryValue("NAND_BadBlock", NAND_BadBlockManager)
             SetRegistryValue("NandPreserve", NAND_Preserve)
             SetRegistryValue("OpMode", CInt(OPERATION_MODE).ToString)
-            SetRegistryValue("VPP", CInt(EXTIO_VPP).ToString)
+            SetRegistryValue("VPP", CInt(VPP_VCC).ToString)
             SetRegistryValue("SPI_EEPROM", SPI_EEPROM)
             SetRegistryValue("Language", LanguageName)
         End Sub
 
-        Public Enum SO44_VPP_SETTING As Integer
+        Public Enum VPP_SETTING As Integer
             Disabled = 1 'Do not use
             Write_12v = 2 'Erase and write will enable 12v VPP
         End Enum
@@ -271,7 +271,7 @@ Public Module MainApp
     End Enum
 
     Public Enum HwVariant As Byte
-        Classic = 0 'Standard PCB 2.x
+        Classic = CByte(Asc("0")) 'Standard PCB 2.x
         xPort = CByte(Asc("E")) 'xPORT PCB 2.x (extension IO only)
     End Enum
 
