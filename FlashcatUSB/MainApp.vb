@@ -18,7 +18,7 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 565
+    Public Const Build As Integer = 566
     Public PRO3_CURRENT_FW As Single = 1.31F 'This is the embedded firmware version for pro
     Public PRO4_CURRENT_FW As Single = 1.09F 'This is the embedded firmware version for pro
     Public MACH1_PCB1_FW As Single = 1.07F 'Firmware version for Mach1

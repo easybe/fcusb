@@ -2460,14 +2460,19 @@ Public Class MainForm
     End Sub
 
     Private Sub ResizeToFitHexViewer()
-        Dim highest_Addr As Integer = 0
-        Dim current_devices() As MemoryDeviceInstance = MyTabs_GetDeviceInstances()
-        For Each dev In current_devices
-            If dev.GuiControl.GetHexAddrSize() > highest_Addr Then highest_Addr = dev.GuiControl.GetHexAddrSize()
-        Next
-        If highest_Addr = 5 Then
-            If Me.Width < 560 Then Me.Width = 560
-        End If
+        Try
+            Dim highest_Addr As Integer = 0
+            Dim current_devices() As MemoryDeviceInstance = MyTabs_GetDeviceInstances()
+            For Each dev In current_devices
+                If dev.GuiControl IsNot Nothing Then
+                    If dev.GuiControl.GetHexAddrSize() > highest_Addr Then highest_Addr = dev.GuiControl.GetHexAddrSize()
+                End If
+            Next
+            If highest_Addr = 5 Then
+                If Me.Width < 560 Then Me.Width = 560
+            End If
+        Catch ex As Exception
+        End Try
     End Sub
 
 

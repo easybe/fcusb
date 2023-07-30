@@ -187,6 +187,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Try
             WriteAddressData(&H55, &H98) 'Issue Enter CFI command
             Dim flash_data() As Byte = ReadBulk_NOR(&H20, 64)
+            If flash_data Is Nothing Then Exit Sub
             Dim cfg_table(31) As Byte
             For i = 0 To flash_data.Length - 1 Step 2
                 cfg_table(i / 2) = flash_data(i)
