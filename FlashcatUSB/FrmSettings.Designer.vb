@@ -618,7 +618,7 @@ Partial Class FrmSettings
         '
         Me.cb_spi_clock.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_spi_clock.FormattingEnabled = True
-        Me.cb_spi_clock.Items.AddRange(New Object() {"32MHz", "24Mhz", "16Mhz", "12Mhz", "8Mhz", "4Mhz", "2Mhz", "1Mhz", "", ""})
+        Me.cb_spi_clock.Items.AddRange(New Object() {"32MHz", "24Mhz", "16Mhz", "12Mhz", "8Mhz", "4Mhz", "2Mhz", "1Mhz"})
         Me.cb_spi_clock.Location = New System.Drawing.Point(15, 34)
         Me.cb_spi_clock.Name = "cb_spi_clock"
         Me.cb_spi_clock.Size = New System.Drawing.Size(90, 21)

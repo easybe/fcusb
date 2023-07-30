@@ -138,17 +138,16 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         End Get
     End Property
 
-    Friend ReadOnly Property SectorSize(sector As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As UInt32 Implements MemoryDeviceUSB.SectorSize
+    Friend ReadOnly Property SectorSize(sector As UInt32, Optional memory_area As FlashArea = FlashArea.Main) As UInt32 Implements MemoryDeviceUSB.SectorSize
         Get
             If Not MyFlashStatus = USB.DeviceStatus.Supported Then Return 0
-            Dim page_count As UInt32 = MyFlashDevice.BLOCK_SIZE / MyFlashDevice.PAGE_SIZE
             Select Case memory_area
                 Case FlashArea.Main
-                    Return (page_count * MyFlashDevice.PAGE_SIZE)
+                    Return (MyFlashDevice.PAGE_COUNT * MyFlashDevice.PAGE_SIZE)
                 Case FlashArea.OOB
-                    Return (page_count * MyFlashDevice.PAGE_EXT)
+                    Return (MyFlashDevice.PAGE_COUNT * MyFlashDevice.PAGE_EXT)
                 Case FlashArea.All
-                    Return (page_count * (MyFlashDevice.PAGE_SIZE + MyFlashDevice.PAGE_EXT))
+                    Return (MyFlashDevice.PAGE_COUNT * (MyFlashDevice.PAGE_SIZE + MyFlashDevice.PAGE_EXT))
             End Select
             Return 0
         End Get
@@ -166,7 +165,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         End Try
     End Sub
 
-    Friend Function ReadData(logical_address As Long, data_count As UInteger, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
+    Friend Function ReadData(logical_address As Long, data_count As UInteger, Optional memory_area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
         If FCUSB.SPI_NOR_IF.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady()
         Dim page_addr As UInt32 'This is the page address
         Dim page_offset As UInt16 'this is the start offset within the page
@@ -185,7 +184,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             page_addr = Math.Floor(logical_address / full_page_size)
             page_offset = logical_address - (page_addr * full_page_size)
         End If
-        Dim pages_per_block As UInt32 = (MyFlashDevice.BLOCK_SIZE / MyFlashDevice.PAGE_SIZE)
+        Dim pages_per_block As UInt32 = (MyFlashDevice.Block_Size / MyFlashDevice.PAGE_SIZE)
         Dim data_out(data_count - 1) As Byte
         Dim data_ptr As Integer = 0
         Do While (data_count > 0)
@@ -225,7 +224,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Return MyFlashDevice.BLOCK_COUNT
     End Function
 
-    Friend Function SectorFind(sector_index As UInteger, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Long Implements MemoryDeviceUSB.SectorFind
+    Friend Function SectorFind(sector_index As UInteger, Optional memory_area As FlashArea = FlashArea.Main) As Long Implements MemoryDeviceUSB.SectorFind
         Dim base_addr As UInt32 = 0
         If sector_index > 0 Then
             For i As UInt32 = 0 To sector_index - 1
@@ -246,9 +245,9 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Return Result
     End Function
 
-    Friend Function SectorErase(sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.SectorErase
+    Friend Function SectorErase(sector_index As UInt32, Optional memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.SectorErase
         If FCUSB.SPI_NOR_IF.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady()
-        Dim pages_per_block As UInt32 = (MyFlashDevice.BLOCK_SIZE / MyFlashDevice.PAGE_SIZE)
+        Dim pages_per_block As UInt32 = (MyFlashDevice.Block_Size / MyFlashDevice.PAGE_SIZE)
         Dim page_addr As UInt32 = (pages_per_block * sector_index)
         Dim local_page_addr As UInt32 = FCUSB.NAND_IF.GetPageMapping(page_addr)
         Return FCUSB.NAND_IF.ERASEBLOCK(local_page_addr, memory_area, MySettings.NAND_Preserve)

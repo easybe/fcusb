@@ -644,7 +644,7 @@ Public Class MemoryInterface
             End Try
         End Function
 
-        Private Function GetSectorInfo(sector_index As UInt32, area As Byte) As SectorInfo
+        Private Function GetSectorInfo(sector_index As UInt32, area As FlashArea) As SectorInfo
             Dim si As SectorInfo
             si.BaseAddress = GetSectorBaseAddress(sector_index, area)
             si.Size = GetSectorSize(sector_index, area)
@@ -652,7 +652,7 @@ Public Class MemoryInterface
         End Function
 
         Private Structure SectorInfo
-            Dim BaseAddress As UInt32
+            Dim BaseAddress As Long
             Dim Size As UInt32
         End Structure
         'Does the actual erase sector and program functions

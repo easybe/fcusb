@@ -424,7 +424,7 @@ Namespace USB
             End If
         End Sub
 
-        Public Function USB_SETUP_BULKOUT(RQ As USBREQ, SETUP() As Byte, BULK_OUT() As Byte, ByVal control_dt As UInt32, Optional timeout As Integer = -1) As Boolean
+        Public Function USB_SETUP_BULKOUT(RQ As USBREQ, SETUP() As Byte, BULK_OUT() As Byte, control_dt As UInt32, Optional timeout As Integer = -1) As Boolean
             Try
                 If (Me.HasLogic()) Then
                     Dim ErrCounter As Integer = 0
@@ -492,7 +492,7 @@ Namespace USB
             End Try
         End Function
         'Sends a control message with an optional byte buffer to write
-        Public Function USB_CONTROL_MSG_OUT(RQ As USBREQ, Optional buffer_out() As Byte = Nothing, Optional ByVal data As UInt32 = 0) As Boolean
+        Public Function USB_CONTROL_MSG_OUT(RQ As USBREQ, Optional buffer_out() As Byte = Nothing, Optional data As UInt32 = 0) As Boolean
             Try
                 If USBHANDLE Is Nothing Then Return False
                 Dim result As Boolean
@@ -519,7 +519,7 @@ Namespace USB
             End Try
         End Function
         'Sends a control message with a byte buffer to receive data
-        Public Function USB_CONTROL_MSG_IN(RQ As USBREQ, ByRef Buffer_in() As Byte, Optional ByVal data As UInt32 = 0) As Boolean
+        Public Function USB_CONTROL_MSG_IN(RQ As USBREQ, ByRef Buffer_in() As Byte, Optional data As UInt32 = 0) As Boolean
             Try
                 If USBHANDLE Is Nothing Then Return False
                 Dim usb_flag As Byte

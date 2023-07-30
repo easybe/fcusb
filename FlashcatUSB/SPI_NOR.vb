@@ -18,6 +18,7 @@ Namespace SPI
         Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
         Public Property DIE_SELECTED As Integer = 0
         Public Property W25M121AV_Mode As Boolean = False
+        Public Property ExtendedPage As Boolean = False 'Indicates we should use extended pages
 
         Sub New(ByVal parent_if As FCUSB_DEVICE)
             FCUSB = parent_if
@@ -25,6 +26,7 @@ Namespace SPI
 
         Friend Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
             Me.W25M121AV_Mode = False
+            Me.ExtendedPage = False
             MyFlashStatus = DeviceStatus.NotDetected
             SPIBUS_WriteRead({&HC2, 0}) 'always select die 0
             Dim ReadSuccess As Boolean = False
@@ -96,7 +98,7 @@ Namespace SPI
             End Get
         End Property
 
-        Friend ReadOnly Property SectorSize(ByVal sector As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As UInt32 Implements MemoryDeviceUSB.SectorSize
+        Friend ReadOnly Property SectorSize(sector As UInt32, Optional memory_area As FlashArea = FlashArea.Main) As UInt32 Implements MemoryDeviceUSB.SectorSize
             Get
                 If Not MyFlashStatus = USB.DeviceStatus.Supported Then Return 0
                 If MyFlashDevice.ERASE_REQUIRED Then
@@ -107,7 +109,7 @@ Namespace SPI
             End Get
         End Property
 
-        Friend Function SectorFind(ByVal sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Long Implements MemoryDeviceUSB.SectorFind
+        Friend Function SectorFind(sector_index As UInt32, Optional memory_area As FlashArea = FlashArea.Main) As Long Implements MemoryDeviceUSB.SectorFind
             If sector_index = 0 Then Return 0 'Addresses start at the base address 
             Return Me.SectorSize(0, memory_area) * sector_index
         End Function
@@ -135,11 +137,9 @@ Namespace SPI
                 read_cmd = MyFlashDevice.OP_COMMANDS.FAST_READ
             End If
             If (Me.MyFlashDevice.ProgramMode = FlashMemory.SPI_ProgramMode.Atmel45Series) Then
-                Dim PageSize As UInt32 = MyFlashDevice.PAGE_SIZE
-                If MyFlashDevice.EXTENDED_MODE Then PageSize = MyFlashDevice.PAGE_SIZE_EXTENDED
-                Dim AddrOffset As Integer = Math.Ceiling(Math.Log(PageSize, 2)) 'Number of bits the address is offset
-                Dim PageAddr As Integer = Math.Floor(flash_offset / PageSize)
-                Dim PageOffset As Integer = flash_offset - (PageAddr * PageSize)
+                Dim AddrOffset As Integer = Math.Ceiling(Math.Log(MyFlashDevice.PAGE_SIZE, 2)) 'Number of bits the address is offset
+                Dim PageAddr As Integer = Math.Floor(flash_offset / MyFlashDevice.PAGE_SIZE)
+                Dim PageOffset As Integer = flash_offset - (PageAddr * MyFlashDevice.PAGE_SIZE)
                 Dim addr_bytes() As Byte = Utilities.Bytes.FromUInt24((PageAddr << AddrOffset) + PageOffset, False)
                 Dim at45_addr As UInt32 = (PageAddr << AddrOffset) + PageOffset
                 dummy_clocks = (4 * 8) '(4 extra bytes)
@@ -175,7 +175,7 @@ Namespace SPI
             Return data_to_read
         End Function
 
-        Friend Function WriteData(ByVal flash_offset As Long, ByVal data_to_write() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
+        Friend Function WriteData(flash_offset As Long, data_to_write() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
             If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             Dim bytes_left As UInt32 = data_to_write.Length
             Dim buffer_size As UInt32 = 0
@@ -225,15 +225,14 @@ Namespace SPI
             Return False
         End Function
 
-        Friend Function SectorErase(ByVal sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.SectorErase
+        Friend Function SectorErase(sector_index As UInt32, Optional memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.SectorErase
             If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             If (Not MyFlashDevice.ERASE_REQUIRED) Then Return True 'Erase not needed
             Dim flash_offset As UInt32 = Me.SectorFind(sector_index, memory_area)
             If MyFlashDevice.ProgramMode = SPI_ProgramMode.Atmel45Series Then
-                Dim PageSize As UInt32 = MyFlashDevice.PAGE_SIZE
-                If MyFlashDevice.EXTENDED_MODE Then PageSize = MyFlashDevice.PAGE_SIZE_EXTENDED
+                Dim page_size As UInt32 = IIf(Me.ExtendedPage, MyFlashDevice.PAGE_SIZE_EXTENDED, MyFlashDevice.PAGE_SIZE)
                 Dim EraseSize As UInt32 = MyFlashDevice.ERASE_SIZE
-                Dim AddrOffset As UInt32 = Math.Ceiling(Math.Log(PageSize, 2)) 'Number of bits the address is offset
+                Dim AddrOffset As UInt32 = Math.Ceiling(Math.Log(page_size, 2)) 'Number of bits the address is offset
                 Dim blocknum As UInt32 = Math.Floor(flash_offset / EraseSize)
                 Dim addrbytes() As Byte = Utilities.Bytes.FromUInt24(blocknum << (AddrOffset + 3), False)
                 SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.SE, addrbytes(0), addrbytes(1), addrbytes(2)}, Nothing)
@@ -258,7 +257,7 @@ Namespace SPI
             Return True
         End Function
 
-        Friend Function SectorWrite(ByVal sector_index As UInt32, ByVal data() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
+        Friend Function SectorWrite(sector_index As UInt32, data() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
             If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             Dim Addr32 As UInteger = Me.SectorFind(sector_index, Params.Memory_Area)
             Return WriteData(Addr32, data, Params)
@@ -462,9 +461,7 @@ Namespace SPI
             If (MyFlashDevice.ProgramMode = SPI_ProgramMode.Atmel45Series) Then 'May need to load the current page mode
                 Dim sr() As Byte = ReadStatusRegister() 'Some devices have 2 SR
                 Dim page_size As UInt32 = MyFlashDevice.PAGE_SIZE
-                MyFlashDevice.EXTENDED_MODE = False
                 If (sr(0) And 1) = 0 Then 'Device uses extended pages
-                    MyFlashDevice.EXTENDED_MODE = True
                     page_size = MyFlashDevice.PAGE_SIZE_EXTENDED
                     MyFlashDevice.FLASH_SIZE = MyFlashDevice.PAGE_COUNT * MyFlashDevice.PAGE_SIZE_EXTENDED
                     MyFlashDevice.ERASE_SIZE = (MyFlashDevice.PAGE_SIZE_EXTENDED * 8) 'Block erase = 8 pages
@@ -514,7 +511,7 @@ Namespace SPI
             End If
         End Sub
         'Changes the Page Size configuration bit in nonvol
-        Public Function Atmel_SetPageConfiguration(EnableExtPage As Boolean) As Boolean
+        Public Function AT45_SetPageConfiguration(EnableExtPage As Boolean) As Boolean
             If (Not EnableExtPage) Then
                 Dim ReadBack As Integer = SPIBUS_WriteRead({&H3D, &H2A, &H80, &HA6}, Nothing)
                 WaitUntilReady()
@@ -652,13 +649,12 @@ Namespace SPI
         Private Function WriteData_AT45(ByVal offset As UInteger, ByVal DataOut() As Byte) As Boolean
             Try
                 Dim data_size As UInt32 = DataOut.Length
-                Dim PageSize As UInt32 = MyFlashDevice.PAGE_SIZE
-                If MyFlashDevice.EXTENDED_MODE Then PageSize = MyFlashDevice.PAGE_SIZE_EXTENDED
-                Dim AddrOffset As Integer = Math.Ceiling(Math.Log(PageSize, 2)) 'Number of bits the address is offset
+                Dim page_size As UInt32 = IIf(Me.ExtendedPage, MyFlashDevice.PAGE_SIZE_EXTENDED, MyFlashDevice.PAGE_SIZE)
+                Dim AddrOffset As Integer = Math.Ceiling(Math.Log(page_size, 2)) 'Number of bits the address is offset
                 Dim BytesLeft As UInt32 = DataOut.Length
                 Do Until BytesLeft = 0
                     Dim BytesToWrite As Integer = BytesLeft
-                    If BytesToWrite > PageSize Then BytesToWrite = PageSize
+                    If BytesToWrite > page_size Then BytesToWrite = page_size
                     Dim DataToBuffer(BytesToWrite + 3) As Byte
                     DataToBuffer(0) = MyFlashDevice.OP_COMMANDS.WRTB '0x84
                     Dim src_ind As Integer = DataOut.Length - BytesLeft
@@ -667,7 +663,7 @@ Namespace SPI
                     SPIBUS_WriteData(DataToBuffer)
                     SPIBUS_SlaveSelect_Disable()
                     WaitUntilReady()
-                    Dim PageAddr As Integer = Math.Floor(offset / PageSize)
+                    Dim PageAddr As Integer = Math.Floor(offset / page_size)
                     Dim PageCmd() As Byte = Utilities.Bytes.FromUInt24(PageAddr << AddrOffset, False)
                     Dim Cmd2() As Byte = {MyFlashDevice.OP_COMMANDS.WRFB, PageCmd(0), PageCmd(1), PageCmd(2)} '0x88
                     SPIBUS_WriteRead(Cmd2, Nothing)

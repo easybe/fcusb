@@ -92,12 +92,6 @@ Namespace FlashMemory
         RYRB = 8 'Wait for RY/BY pin to be HIGH
     End Enum
 
-    'Public Enum MICROWIRE_ORG
-    '    _8BIT = 0
-    '    _16BIT = 1
-    '    _8BIT_16BIT = 2
-    'End Enum
-
     Public Enum VCC_IF As UInt16
         UNKNOWN = 0
         SERIAL_1V8 = 1
@@ -142,6 +136,9 @@ Namespace FlashMemory
         Mb128_Samsung = 17 'Mb64_Samsung x 2
         Mb256_Samsung = 18
         EntireDevice = 19
+        'Intel P30
+        P30_Top = 20 '4x32KB; ?x128KB
+        P30_Btm = 21 '?x128KB; 4x32KB
     End Enum
 
     Public Enum EraseMethod
@@ -294,6 +291,12 @@ Namespace FlashMemory
                 Case BLKLYT.Two_Btm
                     AddSector(Kb064, 8)
                     AddSector(Kb512, blocks - 1)
+                Case BLKLYT.P30_Top
+                    AddSector(Mb001, (Size / Mb001) - 1)
+                    AddSector(Kb256, 4)
+                Case BLKLYT.P30_Btm
+                    AddSector(Kb256, 4)
+                    AddSector(Mb001, (Size / Mb001) - 1)
                 Case BLKLYT.Dual 'this device has small boot blocks on the top and bottom of the device
                     AddSector(Kb064, 8) 'bottom block
                     AddSector(Kb512, blocks - 2)
@@ -414,7 +417,6 @@ Namespace FlashMemory
         Public Property ERASE_REQUIRED As Boolean Implements Device.ERASE_REQUIRED
         'These are properties unique to SPI devices
         Public Property ADDRESSBITS As UInt32 = 24 'Number of bits the address space takes up (16/24/32)
-        Public Property PAGE_COUNT As UInt32 'The total number of pages this flash contains
         Public Property SQI_MODE As SPI_QUAD_SUPPORT = SPI_QUAD_SUPPORT.NO_QUAD
         Public Property ProgramMode As SPI_ProgramMode
         Public Property STACKED_DIES As UInt32 = 1 'If device has more than one die, set this value
@@ -428,10 +430,16 @@ Namespace FlashMemory
         Public Property SEND_EWSR As Boolean = False 'Set to TRUE to write the enable write status-register
         Public Property PAGE_SIZE As UInt32 = 256 Implements Device.PAGE_SIZE 'Number of bytes per page
         Public Property PAGE_SIZE_EXTENDED As UInt32 'Number of bytes in the extended page
-        Public Property EXTENDED_MODE As Boolean = False 'True if this device has extended bytes (used by AT45 devices)
         Public Property EEPROM As Byte = 0 'Enumerator used for the specific SPI EEPROM (0=Normal SPI flash)
 
         Public OP_COMMANDS As New SPI_Command_DEF 'Contains a list of op-codes used to read/write/erase
+
+        Public ReadOnly Property PAGE_COUNT As UInt32 'The total number of pages this flash contains
+            Get
+                If Me.FLASH_SIZE = 0 Or Me.PAGE_SIZE = 0 Then Return 0
+                Return (Me.FLASH_SIZE / Me.PAGE_SIZE)
+            End Get
+        End Property
 
         Protected Sub New(info As SerializationInfo, context As StreamingContext)
             Me.NAME = info.GetString("m_name")
@@ -481,9 +489,6 @@ Namespace FlashMemory
             Me.NAME = f_name
             Me.IFACE = f_if
             Me.FLASH_SIZE = f_size
-            If Not (f_size = 0 Or PAGE_SIZE = 0) Then
-                Me.PAGE_COUNT = (Me.FLASH_SIZE / PAGE_SIZE)
-            End If
             Me.MFG_CODE = MFG
             Me.ID1 = ID1
             If (f_size > Mb128) Then Me.ADDRESSBITS = 32
@@ -495,9 +500,6 @@ Namespace FlashMemory
             Me.NAME = f_name
             Me.IFACE = f_if
             Me.FLASH_SIZE = f_size
-            If Not (f_size = 0 Or PAGE_SIZE = 0) Then
-                Me.PAGE_COUNT = (Me.FLASH_SIZE / PAGE_SIZE)
-            End If
             Me.MFG_CODE = MFG
             Me.ID1 = ID1
             Me.OP_COMMANDS.SE = ERASECMD 'Sometimes 0xD8 or 0x20
@@ -512,9 +514,6 @@ Namespace FlashMemory
             Me.IFACE = f_if
             Me.FLASH_SIZE = f_size
             Me.PAGE_SIZE = 256
-            If Not (f_size = 0 Or PAGE_SIZE = 0) Then
-                Me.PAGE_COUNT = (Me.FLASH_SIZE / PAGE_SIZE)
-            End If
             Me.MFG_CODE = MFG
             Me.ID1 = ID1
             Me.OP_COMMANDS.SE = ERASECMD 'Sometimes 0xD8 or 0x20
@@ -1040,7 +1039,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("Winbond W25Q128JV", SPI_3V, Mb128, &HEF, &H7018) With {.SQI_MODE = SPI_QUAD})
             FlashDB.Add(New SPI_NOR("Winbond W25Q64JV", SPI_3V, Mb064, &HEF, &H7017) With {.SQI_MODE = SPI_QUAD})
             FlashDB.Add(New SPI_NOR("Winbond W25Q32JV", SPI_3V, Mb032, &HEF, &H7016) With {.SQI_MODE = SPI_QUAD})
-            FlashDB.Add(New SPI_NOR("Winbond W25Q512", SPI_3V, Mb512, &HEF, &H4020) With {.SEND_EN4B = True, .SQI_MODE = SPI_QUAD})
+            FlashDB.Add(New SPI_NOR("Winbond W25Q512JV", SPI_3V, Mb512, &HEF, &H4020) With {.SEND_EN4B = True, .SQI_MODE = SPI_QUAD})
             FlashDB.Add(New SPI_NOR("Winbond W25Q256", SPI_3V, Mb256, &HEF, &H4019) With {.SEND_EN4B = True, .SQI_MODE = SPI_QUAD})
             FlashDB.Add(New SPI_NOR("Winbond W25Q128", SPI_3V, Mb128, &HEF, &H4018) With {.SQI_MODE = SPI_QUAD})
             FlashDB.Add(New SPI_NOR("Winbond W25Q64", SPI_3V, Mb064, &HEF, &H4017) With {.SQI_MODE = SPI_QUAD})
@@ -1408,6 +1407,12 @@ Namespace FlashMemory
 
         Private Sub MFP_Database()
             'Intel
+            FlashDB.Add(New P_NOR("Intel 28F064P30(T)", &H89, &H8817, Mb064, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.Buffer1, MFP_DELAY.SR1) With {.PAGE_SIZE = 64})
+            FlashDB.Add(New P_NOR("Intel 28F064P30(B)", &H89, &H881B, Mb064, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.Buffer1, MFP_DELAY.SR1) With {.PAGE_SIZE = 64})
+            FlashDB.Add(New P_NOR("Intel 28F128P30(T)", &H89, &H8818, Mb128, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.Buffer1, MFP_DELAY.SR1) With {.PAGE_SIZE = 64})
+            FlashDB.Add(New P_NOR("Intel 28F128P30(B)", &H89, &H881B, Mb128, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.Buffer1, MFP_DELAY.SR1) With {.PAGE_SIZE = 64})
+            FlashDB.Add(New P_NOR("Intel 28F256P30(T)", &H89, &H8919, Mb256, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.Buffer1, MFP_DELAY.SR1) With {.PAGE_SIZE = 64})
+            FlashDB.Add(New P_NOR("Intel 28F256P30(B)", &H89, &H891C, Mb256, VCC_IF.X16_3V, BLKLYT.P30_Btm, MFP_PRG.Buffer1, MFP_DELAY.SR1) With {.PAGE_SIZE = 64})
             FlashDB.Add(New P_NOR("Intel A28F512", &H89, &HB8, Kb512, VCC_IF.X8_5V_12VPP, BLKLYT.EntireDevice, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("Intel 28F256J3", &H89, &H1D, Mb256, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer1, MFP_DELAY.SR1))
             FlashDB.Add(New P_NOR("Intel 28F128J3", &H89, &H18, Mb128, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer1, MFP_DELAY.SR1)) 'CV
@@ -1538,6 +1543,8 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("MXIC MX29F1610MC", &HC2, &HF8, Mb016, VCC_IF.X16_5V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 12})
             FlashDB.Add(New P_NOR("MXIC MX29F1610A", &HC2, &HFA, Mb016, VCC_IF.X16_5V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 8})
             FlashDB.Add(New P_NOR("MXIC MX29F1610B", &HC2, &HFA, Mb016, VCC_IF.X16_5V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 8})
+            FlashDB.Add(New P_NOR("MXIC MX29SL800CT", &HC2, &H22EA, Mb008, VCC_IF.X16_1V8, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.DQ7)) 'Untested
+            FlashDB.Add(New P_NOR("MXIC MX29SL800CB", &HC2, &H226B, Mb008, VCC_IF.X16_1V8, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.DQ7)) 'Untested
             FlashDB.Add(New P_NOR("MXIC MX29L3211", &HC2, &HF9, Mb032, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.SR2) With {.PAGE_SIZE = 64}) 'Actualy supports up to 256 bytes (tested build 595)
             FlashDB.Add(New P_NOR("MXIC MX29LV040", &HC2, &H4F, Mb004, VCC_IF.X8_3V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("MXIC MX29LV400T", &HC2, &H22B9, Mb004, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS))
@@ -1607,6 +1614,9 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("Cypress S29GL01GS", &H1, &H227E, Gb001, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H2401) With {.PAGE_SIZE = 512})
             FlashDB.Add(New P_NOR("Cypress S29GL01GT", &H1, &H227E, Gb001, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H2801) With {.PAGE_SIZE = 512}) '(CHIP-VAULT)
             FlashDB.Add(New P_NOR("Cypress S70GL02G", &H1, &H227E, Gb001, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H4801) With {.PAGE_SIZE = 512, .CE2 = 26, .DUAL_DIE = True}) '(CHIP-VAULT)
+            FlashDB.Add(New P_NOR("Cypress S29PL032J", &H1, &H227E, Mb032, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.BypassMode, MFP_DELAY.RYRB, &HA01))
+            FlashDB.Add(New P_NOR("Cypress S29PL064J", &H1, &H227E, Mb064, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.BypassMode, MFP_DELAY.RYRB, &H201))
+            FlashDB.Add(New P_NOR("Cypress S29PL127J", &H1, &H227E, Mb128, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.BypassMode, MFP_DELAY.RYRB, &H2000)) 'CV
             'ST Microelectronics (now numonyx)
             FlashDB.Add(New P_NOR("ST M29F200T", &H20, &HD3, Mb002, VCC_IF.X16_5V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
             FlashDB.Add(New P_NOR("ST M29F200B", &H20, &HD4, Mb002, VCC_IF.X16_5V, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
@@ -1979,6 +1989,14 @@ Namespace FlashMemory
             FlashDB.Add(New P_NAND("ESMT F59L1G81LA", &HC8, &HD1809542UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
             FlashDB.Add(New P_NAND("ESMT F59L2G81A", &HC8, &HDA909544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
             FlashDB.Add(New P_NAND("FORESEE FS33ND01GS1", &HEC, &HF1009542UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND1G08U3D", &HF8, &HF18095UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND1G16U3D", &HF8, &HC180D5UI, 2048, 64, 64, 1024, VCC_IF.X16_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND1G08S3D", &HF8, &HA18015UI, 2048, 64, 64, 1024, VCC_IF.X8_1V8)) '1Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND1G16S3D", &HF8, &HB18055UI, 2048, 64, 64, 1024, VCC_IF.X16_1V8)) '1Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND2G08U3D", &HF8, &HDA909546UI, 2048, 64, 64, 2048, VCC_IF.X8_3V)) '2Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND2G16U3D", &HF8, &HCA90D546UI, 2048, 64, 64, 2048, VCC_IF.X16_3V)) '2Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND2G08S3D", &HF8, &HAA901546UI, 2048, 64, 64, 2048, VCC_IF.X8_1V8)) '2Gb
+            FlashDB.Add(New P_NAND("Dosilicon FMND2G16S3D", &HF8, &HBA905546UI, 2048, 64, 64, 2048, VCC_IF.X16_1V8)) '2Gb
 
             'FlashDB.Add(New P_NAND("SanDisk SDTNPNAHEM-008G", &H45, &HDE989272UI, 8192, 1024, 516, 2084, VCC_IF.X8_3V) With {.ADDRESS_SCHEME = 3}) '64Gb
 
@@ -2038,7 +2056,7 @@ Namespace FlashMemory
         End Sub
         'Helper function to create the proper definition for Atmel/Adesto Series 45 SPI devices
         Private Function CreateSeries45(atName As String, mbitsize As UInt32, id1 As UInt16, id2 As UInt16, page_size As UInt32) As SPI_NOR
-            Dim atmel_spi As New SPI_NOR(atName, SPI_3V, mbitsize, &H1F, id1, &H50, page_size * 8)
+            Dim atmel_spi As New SPI_NOR(atName, SPI_3V, mbitsize, &H1F, id1, &H50, (page_size * 8))
             atmel_spi.ID2 = id2
             atmel_spi.PAGE_SIZE = page_size
             atmel_spi.PAGE_SIZE_EXTENDED = page_size + (page_size / 32) 'Additional bytes available per page

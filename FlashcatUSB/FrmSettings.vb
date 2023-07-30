@@ -172,7 +172,7 @@ Public Class FrmSettings
             Case SPI.SPI_SPEED.MHZ_1
                 cb_spi_clock.SelectedIndex = 7
             Case Else
-                cb_spi_clock.SelectedIndex = 0
+                cb_spi_clock.SelectedIndex = 4 'SPI_SPEED.MHZ_8
         End Select
         Select Case MySettings.SQI_CLOCK_MAX
             Case SPI.SQI_SPEED.MHZ_40
@@ -557,7 +557,6 @@ Public Class FrmSettings
             Case 5
                 CUSTOM_SPI_DEV.PAGE_SIZE_EXTENDED = CUSTOM_SPI_DEV.PAGE_SIZE + 128
         End Select
-        CUSTOM_SPI_DEV.PAGE_COUNT = (CUSTOM_SPI_DEV.FLASH_SIZE / CUSTOM_SPI_DEV.PAGE_SIZE)
     End Sub
 
     Private Sub SPICUSTOM_SetDensity(ByVal size As UInt32)

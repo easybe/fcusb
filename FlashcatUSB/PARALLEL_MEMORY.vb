@@ -343,7 +343,7 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
                     If Me.DUALDIE_EN Then sector_start_addr = GetAddressForMultiDie(Logical_Address, 0, 0)
                     EXPIO_EraseSector(sector_start_addr)
                     EXPIO_VPP_DISABLE()
-                    If nor_device.DELAY_MODE = MFP_DELAY.SR1 Or nor_device.DELAY_MODE = MFP_DELAY.SR2 Then
+                    If nor_device.DELAY_MODE = MFP_DELAY.SR1 Or nor_device.DELAY_MODE = MFP_DELAY.SR2 Or nor_device.DELAY_MODE = MFP_DELAY.RYRB Then
                         FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT) 'Calls the assigned WAIT function (uS, mS, SR, DQ7)
                         FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
                     Else
@@ -1041,8 +1041,12 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
 
     Private Function EXPIO_DetectNAND() As FlashDetectResult
         Dim ident_data(7) As Byte
-        Dim result As Boolean = FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_RDID, ident_data)
-        Return GetFlashResult(ident_data)
+        If FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_RDID, ident_data) Then
+            Return GetFlashResult(ident_data)
+        Else
+            RaiseEvent PrintConsole("Error detecting NAND device")
+            Return Nothing
+        End If
     End Function
     'contains AutoSelect Device ID and some CFI-ID space
     Public Structure FlashDetectResult
@@ -1088,6 +1092,8 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X8 (5V)")
                 Case VCC_IF.X8_5V_12VPP
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X16 (5V/12V VPP)")
+                Case VCC_IF.X16_1V8
+                    RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X16 (1.8V)")
                 Case VCC_IF.X16_3V
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X16 (3V)")
                 Case VCC_IF.X16_5V
@@ -1113,6 +1119,8 @@ Public Class PARALLEL_MEMORY : Implements MemoryDeviceUSB
 
     Private Function IsIFACE16X(input As VCC_IF) As Boolean
         Select Case input
+            Case VCC_IF.X16_1V8
+                Return True
             Case VCC_IF.X16_3V
                 Return True
             Case VCC_IF.X16_5V

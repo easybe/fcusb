@@ -23,8 +23,13 @@
     Private WithEvents SBAR As ScrollBar
     Private WithEvents PBOX As PictureBox
 
-    Sub New()
+    Private PTR_HEX_POINT As Integer
+    Private PTR_ASCII_POINT As Integer
+    Private PTR_END As Integer
 
+    Private PTR_CHAR_SIZE As Integer
+
+    Sub New()
         ' This call is required by the designer.
         InitializeComponent()
 
@@ -55,7 +60,7 @@
     End Sub
 
     Private Sub HexEditor_v2_Load(sender As Object, e As EventArgs) Handles Me.Load
-
+        HexEdit_Init()
     End Sub
     'This is what creates the hex viewer (streams data via event calls)
     Public Sub CreateHexViewer(ByVal Base As Long, ByVal Size As Long)
@@ -164,7 +169,7 @@
         Return 0
     End Function
 
-    Private Sub VSbar_Scroll(ByVal sender As Object, ByVal e As ScrollEventArgs) Handles SBAR.Scroll
+    Private Sub VSbar_Scroll(sender As Object, e As ScrollEventArgs) Handles SBAR.Scroll
         If InRefresh Then Exit Sub
         If DateTime.Compare(LastScroll.AddMilliseconds(50), DateTime.Now) > 0 Then
             Exit Sub 'We only want to allow a scroll to happen no closer than 250 ms
@@ -190,7 +195,7 @@
         End Try
     End Function
 
-    Private Sub SetBitmapColor(ByRef img As Bitmap, ByVal color As Brush)
+    Private Sub SetBitmapColor(ByRef img As Bitmap, color As Brush)
         Dim Img2 As Graphics = Graphics.FromImage(img)
         Dim myRect As New Rectangle(0, 0, img.Width, img.Height)
         Img2.FillRectangle(color, myRect)
@@ -251,7 +256,7 @@
                             AddrIndex += BytesPerLine
                             DataToGet -= BytesForLine.Length
                         Next
-                        DrawEditBoxHighlight(newBG)
+                        EditMode_DrawSelectedItem(newBG)
                     End If
                     PBOX.Image = newBG
                 End Using
@@ -266,7 +271,7 @@
         End If
     End Sub
 
-    Private Sub Drawline(ByVal LineIndex As Integer, ByVal FullAddr As UInt64, ByVal ByteCount As Integer, ByRef data() As Byte, ByRef gfx As Graphics)
+    Private Sub Drawline(LineIndex As Int32, FullAddr As UInt64, ByteCount As Integer, data() As Byte, gfx As Graphics)
         Dim YLOC As Integer = (LineIndex * Math.Round(char_height + 1)) + 1
         Dim AddrStr As String = Hex(FullAddr).PadLeft(Me.HexDataByteSize * 2, "0") & ": "
         gfx.DrawString(AddrStr, MyFont, Brushes.Gray, 0, YLOC)
@@ -288,9 +293,10 @@
             hex_location += (PTR_CHAR_SIZE * 2) + 2
             ascii_location += PTR_CHAR_SIZE + 2
         Next
+        PTR_END = ascii_location
     End Sub
 
-    Private Function GetAsciiForByte(ByVal b As Byte) As Char
+    Private Function GetAsciiForByte(b As Byte) As Char
         If b >= 32 And b <= 126 Then '32 to 126
             Return ChrW(b)
         Else
@@ -313,11 +319,7 @@
     Private Sub PBOX_MouseWheel(sender As Object, e As MouseEventArgs) Handles PBOX.MouseWheel
         If InRefresh Then Exit Sub
         If DateTime.Compare(LastScroll.AddMilliseconds(100), DateTime.Now) > 0 Then Exit Sub
-        EditBox_ProcessChange()
-        SELECTED_HEX_ITEM = New Point(-1, -1)
-        SELECTED_ASCII_ITEM = New Point(-1, -1)
-        If PBOX.Controls.Contains(HEX_BOX) Then PBOX.Controls.Remove(HEX_BOX)
-        If PBOX.Controls.Contains(ASCII_BOX) Then PBOX.Controls.Remove(ASCII_BOX)
+        CloseEditBoxes()
         Dim num_vis_rows As Integer = GetNumOfVisibleLines()
         Dim total_rows As Integer = SBAR.Maximum
         If e.Delta > 0 Then 'Moving up
@@ -336,21 +338,31 @@
         LastScroll = DateTime.Now
     End Sub
 
-#Region "Hex Edit Mode"
-    Private EditBoxIsMoving As Boolean = False
-    Private MouseIsMoving As Boolean = False
-    Private hidden_mouse_pt As New Point(-1, -1)
-    Private is_edit_mode As Boolean = False
+#Region "Edit Mode"
+    Public HexEdit_Changes As New List(Of DATA_HEX_CHANGE)
+
+    Private EditMode_Enabled As Boolean = False
     Private SELECTED_HEX_ITEM As New Point(-1, -1)
     Private SELECTED_ASCII_ITEM As New Point(-1, -1)
-    Private PTR_HEX_POINT As Integer
-    Private PTR_ASCII_POINT As Integer
-    Private PTR_CHAR_SIZE As Integer
-    Private ASCII_CARRY As Char = ""
+    Private EditBoxMouseClick As New Point(-1, -1)
+
     Private WithEvents HEX_BOX As HexByteBox
     Private WithEvents ASCII_BOX As AsciiByteBox
 
-    Public HexEdit_Changes As New List(Of DATA_HEX_CHANGE)
+    Private ASCII_CARRY As Char
+
+    Private Sub HexEdit_Init()
+        HEX_BOX = New HexByteBox()
+        HEX_BOX.Visible = True
+        HEX_BOX.Font = MyFont
+        HEX_BOX.Width = 20
+        HEX_BOX.BorderStyle = BorderStyle.None
+        ASCII_BOX = New AsciiByteBox
+        ASCII_BOX.Visible = True
+        ASCII_BOX.Font = MyFont
+        ASCII_BOX.Width = 12
+        ASCII_BOX.BorderStyle = BorderStyle.None
+    End Sub
 
     Public Class DATA_HEX_CHANGE
         Public address As Long
@@ -358,21 +370,62 @@
         Public new_byte As Byte
     End Class
 
-    Private Sub HexEditMode_AddChange(ByVal addr As Long, ByVal new_data As Byte, ByVal org_data As Byte)
-        For i = 0 To HexEdit_Changes.Count - 1
-            If HexEdit_Changes(i).address = addr Then
-                If HexEdit_Changes(i).original_byte = new_data Then
-                    HexEdit_Changes.RemoveAt(i)
-                Else
-                    HexEdit_Changes(i).new_byte = new_data
-                End If
-                Exit Sub
+    Public Property EDIT_MODE As Boolean
+        Get
+            Return EditMode_Enabled
+        End Get
+        Set(value As Boolean)
+            EditMode_Enabled = value
+            If value Then
+                HexEdit_Changes.Clear()
+            Else
+                CloseEditBoxes()
+                EditBoxMouseClick = New Point(-1, -1)
+                SELECTED_HEX_ITEM = New Point(-1, -1)
+                SELECTED_ASCII_ITEM = New Point(-1, -1)
             End If
-        Next
-        HexEdit_Changes.Add(New DATA_HEX_CHANGE With {.address = addr, .new_byte = new_data, .original_byte = org_data})
+            UpdateScreen()
+        End Set
+    End Property
+
+    'Draw a box around the item that is currently selected
+    Private Sub EditMode_DrawSelectedItem(img As Image)
+        Dim TotalLines As Int32 = GetNumOfVisibleLines()
+        If EditMode_HasEditBox() Then Exit Sub
+        If (SELECTED_HEX_ITEM.X > -1) Then
+            If SELECTED_HEX_ITEM.Y > (TotalLines - 1) Then Exit Sub
+            Dim box_x As Integer = (PTR_HEX_POINT + (SELECTED_HEX_ITEM.X * PTR_CHAR_SIZE * 2)) + (SELECTED_HEX_ITEM.X * 2) + 1
+            Dim box_y As Integer = (SELECTED_HEX_ITEM.Y * (char_height + 1))
+            Dim box_width As Integer = (PTR_CHAR_SIZE * 2) + 1
+            Dim box_height As Integer = Math.Round(char_height - 2) + 1
+            For x = box_x To box_x + box_width - 1
+                For y = box_y To box_y + box_height - 1
+                    If (x < img.Width) AndAlso (y < img.Height) Then
+                        Dim pixcolor As Color = DirectCast(img, Bitmap).GetPixel(x, y)
+                        pixcolor = Color.FromArgb(Not pixcolor.R, Not pixcolor.G, Not pixcolor.B)
+                        DirectCast(img, Bitmap).SetPixel(x, y, pixcolor)
+                    End If
+                Next
+            Next
+        ElseIf (SELECTED_ASCII_ITEM.X > -1) Then
+            If SELECTED_ASCII_ITEM.Y > (TotalLines - 1) Then Exit Sub
+            Dim box_x As Integer = (PTR_ASCII_POINT + (SELECTED_ASCII_ITEM.X * PTR_CHAR_SIZE * 1)) + (SELECTED_ASCII_ITEM.X * 2) + 1
+            Dim box_y As Integer = (SELECTED_ASCII_ITEM.Y * (char_height + 1))
+            Dim box_width As Integer = (PTR_CHAR_SIZE) + 1
+            Dim box_height As Integer = Math.Round(char_height - 2) + 1
+            For x = box_x To box_x + box_width - 1
+                For y = box_y To box_y + box_height - 1
+                    If (x < img.Width) AndAlso (y < img.Height) Then
+                        Dim pixcolor As Color = DirectCast(img, Bitmap).GetPixel(x, y)
+                        pixcolor = Color.FromArgb(Not pixcolor.R, Not pixcolor.G, Not pixcolor.B)
+                        DirectCast(img, Bitmap).SetPixel(x, y, pixcolor)
+                    End If
+                Next
+            Next
+        End If
     End Sub
 
-    Private Function HexEditMode_IsChanged(ByVal addr As Long, ByRef new_data As Byte) As Boolean
+    Private Function HexEditMode_IsChanged(addr As Long, ByRef new_data As Byte) As Boolean
         For i = 0 To HexEdit_Changes.Count - 1
             If HexEdit_Changes(i).address = addr Then
                 new_data = HexEdit_Changes(i).new_byte
@@ -382,220 +435,142 @@
         Return False
     End Function
 
-    Public Property EDIT_MODE As Boolean
-        Get
-            Return is_edit_mode
-        End Get
-        Set(value As Boolean)
-            is_edit_mode = value
-            If value Then
-                HexEdit_Changes.Clear()
+    Private Sub PBOX_MouseClick(sender As Object, e As MouseEventArgs) Handles PBOX.MouseClick
+        If Me.EDIT_MODE Then
+            If (SELECTED_HEX_ITEM.X > -1) Then
+                EditBoxMouseClick = Cursor.Position
+                SelectHexItem()
+            ElseIf (SELECTED_ASCII_ITEM.X > -1) Then
+                EditBoxMouseClick = Cursor.Position
+                SelectAsciiItem()
             Else
-                RemoveCurrentEditBox()
+                EditBoxMouseClick = New Point(-1, -1)
             End If
-            UpdateScreen()
-        End Set
-    End Property
+        End If
+    End Sub
 
     Private Sub PBOX_MouseMove(sender As Object, e As MouseEventArgs) Handles PBOX.MouseMove
+        Static MouseIsMoving As Boolean = False
         If MouseIsMoving Then Exit Sub
+        If Not Me.EDIT_MODE Then Exit Sub
+        Dim PerformScreenUpdate As Boolean = False
+        If Not (PointDiff(EditBoxMouseClick, Cursor.Position) > 4) Then Exit Sub
         Try : MouseIsMoving = True
-            If (Not hidden_mouse_pt.X = Cursor.Position.X) Or (Not hidden_mouse_pt.Y = Cursor.Position.Y) Then
-                Cursor.Show()
-                hidden_mouse_pt = New Point(-1, -1)
-            End If
-            If Me.EDIT_MODE Then
-                If e.X >= PTR_HEX_POINT AndAlso e.X < PTR_ASCII_POINT - 8 Then
-                    SELECTED_ASCII_ITEM = New Point(-1, -1)
-                    Dim hex_x_offset As Integer = Math.Floor(((e.X - PTR_HEX_POINT) / (PTR_CHAR_SIZE + 1)) / 2)
-                    Dim hex_y_offset As Integer = Math.Floor((e.Y / (char_height + 1)) + 0)
-                    Dim NEW_HEX_SEL_ITEM As Point = New Point(hex_x_offset, hex_y_offset)
-                    If NEW_HEX_SEL_ITEM.X = SELECTED_HEX_ITEM.X AndAlso NEW_HEX_SEL_ITEM.Y = SELECTED_HEX_ITEM.Y Then
-                    Else
-                        SELECTED_HEX_ITEM = NEW_HEX_SEL_ITEM
-                        UpdateScreen()
+            If (e.X >= PTR_HEX_POINT AndAlso e.X < PTR_ASCII_POINT - 8) Then
+                SELECTED_ASCII_ITEM = New Point(-1, -1)
+                Dim hex_x_offset As Integer = Math.Floor(((e.X - PTR_HEX_POINT) / (PTR_CHAR_SIZE + 1)) / 2)
+                Dim hex_y_offset As Integer = Math.Floor((e.Y / (char_height + 1)) + 0)
+                If Not SELECTED_HEX_ITEM.Equals(New Point(hex_x_offset, hex_y_offset)) Then
+                    SELECTED_HEX_ITEM = New Point(hex_x_offset, hex_y_offset)
+                    PerformScreenUpdate = True
+                End If
+            ElseIf (e.X >= PTR_ASCII_POINT AndAlso e.X < PTR_END) Then
+                SELECTED_HEX_ITEM = New Point(-1, -1)
+                Dim hex_x_offset As Integer = Math.Floor(((e.X - PTR_ASCII_POINT) / (PTR_CHAR_SIZE + 2)) / 1)
+                Dim hex_y_offset As Integer = Math.Floor((e.Y / (char_height + 1)) + 0)
+                If (hex_x_offset < BytesPerLine) Then
+                    If Not SELECTED_ASCII_ITEM.Equals(New Point(hex_x_offset, hex_y_offset)) Then
+                        SELECTED_ASCII_ITEM = New Point(hex_x_offset, hex_y_offset)
+                        PerformScreenUpdate = True
                     End If
-                ElseIf e.X >= PTR_ASCII_POINT Then
-                    SELECTED_HEX_ITEM = New Point(-1, -1)
-                    Dim hex_x_offset As Integer = Math.Floor(((e.X - PTR_ASCII_POINT) / (PTR_CHAR_SIZE + 2)) / 1)
-                    Dim hex_y_offset As Integer = Math.Floor((e.Y / (char_height + 1)) + 0)
-                    If hex_x_offset < BytesPerLine Then
-                        Dim NEW_ASCII_SEL_ITEM As Point = New Point(hex_x_offset, hex_y_offset)
-                        If NEW_ASCII_SEL_ITEM.X = SELECTED_ASCII_ITEM.X AndAlso NEW_ASCII_SEL_ITEM.Y = SELECTED_ASCII_ITEM.Y Then
-                        Else
-                            SELECTED_ASCII_ITEM = NEW_ASCII_SEL_ITEM
-                            UpdateScreen()
-                        End If
-                    Else
-                        RemoveCurrentEditBox()
-                    End If
-                Else
-                    RemoveCurrentEditBox()
                 End If
             Else
-                RemoveCurrentEditBox()
+                Dim BlankPt As New Point(-1, -1)
+                PerformScreenUpdate = (Not SELECTED_ASCII_ITEM.Equals(BlankPt) Or Not SELECTED_HEX_ITEM.Equals(BlankPt))
+                SELECTED_ASCII_ITEM = New Point(-1, -1)
+                SELECTED_HEX_ITEM = New Point(-1, -1)
             End If
-        Catch ex As Exception
         Finally
             MouseIsMoving = False
         End Try
+        If PerformScreenUpdate Then
+            CloseEditBoxes()
+            UpdateScreen()
+        End If
     End Sub
 
-    Private Sub RemoveCurrentEditBox()
-        If PBOX.Controls.Contains(HEX_BOX) Then
+    Private Sub PBOX_MouseLeave(sender As Object, e As EventArgs) Handles PBOX.MouseLeave
+        If Not Me.EDIT_MODE Then Exit Sub
+        If (Not EditMode_HasEditBox()) Then
+            Dim PerformScreenUpdate As Boolean = False
+            Dim BlankPt As New Point(-1, -1)
+            PerformScreenUpdate = (Not SELECTED_ASCII_ITEM.Equals(BlankPt) Or Not SELECTED_HEX_ITEM.Equals(BlankPt))
+            SELECTED_ASCII_ITEM = New Point(-1, -1)
+            SELECTED_HEX_ITEM = New Point(-1, -1)
+            If PerformScreenUpdate Then UpdateScreen()
+        End If
+    End Sub
+
+    Private Sub CloseEditBoxes()
+        Dim PerformScreenUpdate As Boolean = False
+        If (PBOX.Controls.Contains(HEX_BOX)) Then
+            If (Not HEX_BOX.ByteData = HEX_BOX.InitialData) Then
+                EditMode_AddChange(HEX_BOX.HexAddress, HEX_BOX.ByteData, HEX_BOX.InitialData)
+                PerformScreenUpdate = True
+            End If
             PBOX.Controls.Remove(HEX_BOX)
-            UpdateScreen()
-        End If
-        If PBOX.Controls.Contains(ASCII_BOX) Then
+            EditBoxMouseClick = New Point(-1, -1)
+            SELECTED_HEX_ITEM = New Point(-1, -1)
+            ShowCursor()
+        ElseIf (PBOX.Controls.Contains(ASCII_BOX)) Then
+            If (Not ASCII_BOX.ByteData = ASCII_BOX.InitialData) AndAlso ASCII_BOX.ByteData <> 0 Then
+                EditMode_AddChange(ASCII_BOX.HexAddress, ASCII_BOX.ByteData, ASCII_BOX.InitialData)
+                PerformScreenUpdate = True
+            End If
             PBOX.Controls.Remove(ASCII_BOX)
-            UpdateScreen()
+            EditBoxMouseClick = New Point(-1, -1)
+            SELECTED_ASCII_ITEM = New Point(-1, -1)
+            ShowCursor()
         End If
-        SELECTED_HEX_ITEM = New Point(-1, -1)
-        SELECTED_ASCII_ITEM = New Point(-1, -1)
+        If PerformScreenUpdate Then UpdateScreen()
     End Sub
 
-    Private Sub PBOX_MouseClick(sender As Object, e As MouseEventArgs) Handles PBOX.MouseClick
-        EditBox_ProcessChange()
-        SelectHexItem()
-    End Sub
-
-    Private Sub SelectHexItem()
-        Try
-            If SELECTED_HEX_ITEM.X > -1 Then
-                Dim box_x As Integer = (PTR_HEX_POINT + (SELECTED_HEX_ITEM.X * PTR_CHAR_SIZE * 2)) + (SELECTED_HEX_ITEM.X * 2) + 2
-                Dim box_y As Integer = (SELECTED_HEX_ITEM.Y * (char_height + 1))
-                Dim sel_data As Integer = (SELECTED_HEX_ITEM.Y * BytesPerLine) + SELECTED_HEX_ITEM.X
-                If sel_data >= ScreenData.Length Then
-                    SELECTED_HEX_ITEM = New Point(-1, -1)
-                    SELECTED_ASCII_ITEM = New Point(-1, -1)
-                    Exit Sub
-                End If
-                Dim data As Byte = ScreenData(sel_data)
-                HexEditMode_IsChanged(Me.TopAddress + sel_data, data)
-                If HEX_BOX IsNot Nothing AndAlso PBOX.Controls.Contains(HEX_BOX) Then
-                    PBOX.Controls.Remove(HEX_BOX)
-                End If
-                HEX_BOX = New HexByteBox()
-                HEX_BOX.InitialData = data
-                HEX_BOX.Font = MyFont
-                HEX_BOX.HexAddress = Me.TopAddress + sel_data
-                HEX_BOX.Width = (PTR_CHAR_SIZE * 2) + 1
-                HEX_BOX.BorderStyle = BorderStyle.None
-                HEX_BOX.Location = New Point(box_x, box_y)
-                HEX_BOX.Visible = True
-                PBOX.Controls.Add(HEX_BOX)
-                HEX_BOX.Focus()
-                HEX_BOX.SelectAll()
-            ElseIf SELECTED_ASCII_ITEM.X > -1 Then
-                Dim box_x As Integer = (PTR_ASCII_POINT + (SELECTED_ASCII_ITEM.X * PTR_CHAR_SIZE * 1)) + (SELECTED_ASCII_ITEM.X * 2) + 2
-                Dim box_y As Integer = (SELECTED_ASCII_ITEM.Y * (char_height + 1))
-                Dim sel_data As Integer = (SELECTED_ASCII_ITEM.Y * BytesPerLine) + SELECTED_ASCII_ITEM.X
-                If sel_data >= ScreenData.Length Then
-                    SELECTED_HEX_ITEM = New Point(-1, -1)
-                    SELECTED_ASCII_ITEM = New Point(-1, -1)
-                    Exit Sub
-                End If
-                Dim data As Byte = ScreenData(sel_data)
-                HexEditMode_IsChanged(Me.TopAddress + sel_data, data)
-                If ASCII_BOX IsNot Nothing AndAlso PBOX.Controls.Contains(ASCII_BOX) Then
-                    PBOX.Controls.Remove(ASCII_BOX)
-                End If
-                ASCII_BOX = New AsciiByteBox()
-                ASCII_BOX.InitialData = data
-                ASCII_BOX.Font = MyFont
-                ASCII_BOX.HexAddress = Me.TopAddress + sel_data
-                ASCII_BOX.Width = (PTR_CHAR_SIZE * 2) + 1
-                ASCII_BOX.BorderStyle = BorderStyle.None
-                ASCII_BOX.Location = New Point(box_x, box_y)
-                ASCII_BOX.Visible = True
-                PBOX.Controls.Add(ASCII_BOX)
-                ASCII_BOX.Focus()
-                If ASCII_CARRY = "" Then
-                    ASCII_BOX.SelectAll()
+    Private Sub EditMode_AddChange(device_addr As Long, new_data As Byte, org_data As Byte)
+        For i = 0 To HexEdit_Changes.Count - 1
+            If HexEdit_Changes(i).address = device_addr Then
+                If HexEdit_Changes(i).original_byte = new_data Then
+                    HexEdit_Changes.RemoveAt(i)
                 Else
-                    ASCII_BOX.Text = ASCII_CARRY
-                    ASCII_BOX.SelectionLength = 0
-                    ASCII_BOX.SelectionStart = 1
+                    HexEdit_Changes(i).new_byte = new_data
                 End If
-            Else
                 Exit Sub
             End If
-            Cursor.Hide()
-            hidden_mouse_pt = Cursor.Position
-        Catch ex As Exception
-        End Try
+        Next
+        HexEdit_Changes.Add(New DATA_HEX_CHANGE With {.address = device_addr, .new_byte = new_data, .original_byte = org_data})
     End Sub
 
-    Private Sub DrawEditBoxHighlight(ByRef img As Image)
-        If PBOX.Controls.Contains(HEX_BOX) Then Exit Sub
-        If PBOX.Controls.Contains(ASCII_BOX) Then Exit Sub
-        If EditBoxIsMoving Then Exit Sub
-        If (SELECTED_HEX_ITEM.X > -1) Then
-            Dim box_x As Integer = (PTR_HEX_POINT + (SELECTED_HEX_ITEM.X * PTR_CHAR_SIZE * 2)) + (SELECTED_HEX_ITEM.X * 2) + 1
-            Dim box_y As Integer = (SELECTED_HEX_ITEM.Y * (char_height + 1))
-            Dim box_width As Integer = (PTR_CHAR_SIZE * 2) + 1
-            Dim box_height As Integer = Math.Round(char_height - 2) + 1
-            For x = box_x To box_x + box_width - 1
-                For y = box_y To box_y + box_height - 1
-                    Dim pixcolor As Color = DirectCast(img, Bitmap).GetPixel(x, y)
-                    pixcolor = Color.FromArgb(Not pixcolor.R, Not pixcolor.G, Not pixcolor.B)
-                    DirectCast(img, Bitmap).SetPixel(x, y, pixcolor)
-                Next
-            Next
-        ElseIf SELECTED_ASCII_ITEM.X > -1 Then
-            Dim box_x As Integer = (PTR_ASCII_POINT + (SELECTED_ASCII_ITEM.X * PTR_CHAR_SIZE * 1)) + (SELECTED_ASCII_ITEM.X * 2) + 1
-            Dim box_y As Integer = (SELECTED_ASCII_ITEM.Y * (char_height + 1))
-            Dim box_width As Integer = (PTR_CHAR_SIZE) + 1
-            Dim box_height As Integer = Math.Round(char_height - 2) + 1
-            For x = box_x To box_x + box_width - 1
-                For y = box_y To box_y + box_height - 1
-                    Dim pixcolor As Color = DirectCast(img, Bitmap).GetPixel(x, y)
-                    pixcolor = Color.FromArgb(Not pixcolor.R, Not pixcolor.G, Not pixcolor.B)
-                    DirectCast(img, Bitmap).SetPixel(x, y, pixcolor)
-                Next
-            Next
+    Private Function EditMode_HasEditBox() As Boolean
+        If PBOX.Controls.Contains(HEX_BOX) Then Return True
+        If PBOX.Controls.Contains(ASCII_BOX) Then Return True
+        Return False
+    End Function
+
+    Private Sub SelectHexItem()
+        Dim box_x As Integer = (PTR_HEX_POINT + (SELECTED_HEX_ITEM.X * PTR_CHAR_SIZE * 2)) + (SELECTED_HEX_ITEM.X * 2) + 2
+        Dim box_y As Integer = (SELECTED_HEX_ITEM.Y * (char_height + 1))
+        Dim sel_data As Integer = (SELECTED_HEX_ITEM.Y * BytesPerLine) + SELECTED_HEX_ITEM.X
+        If sel_data >= ScreenData.Length Then
+            SELECTED_HEX_ITEM = New Point(-1, -1)
+            SELECTED_ASCII_ITEM = New Point(-1, -1)
+            Exit Sub
         End If
+        Dim data As Byte = ScreenData(sel_data)
+        HexEditMode_IsChanged(Me.TopAddress + sel_data, data)
+        HEX_BOX.Location = New Point(box_x, box_y)
+        HEX_BOX.InitialData = data
+        HEX_BOX.HexAddress = Me.TopAddress + sel_data
+        HEX_BOX.Width = (PTR_CHAR_SIZE * 2) + 1
+        For i = 0 To 10
+            DirectCast(PBOX.Image, Bitmap).SetPixel(box_x - 1, box_y + i, Color.White)
+        Next
+        PBOX.Refresh()
+        PBOX.Controls.Add(HEX_BOX)
+        HEX_BOX.Focus()
+        HEX_BOX.SelectAll()
+        HideCursor()
     End Sub
 
-    Private Sub EditHexBox_EnterPressed() Handles HEX_BOX.EnterKeyPressed
-        EditBoxIsMoving = True
-        EditBox_ProcessChange()
-        If (HEX_BOX.HexAddress <> BaseSize - 1) Then
-            If Not HEX_BOX.HexAddress + 1 >= Me.BaseSize Then
-                EditBox_SelectHexItem(HEX_BOX.HexAddress + 1, True)
-            End If
-        End If
-        EditBoxIsMoving = False
-    End Sub
-
-    Private Sub EditHexBox_Escape() Handles HEX_BOX.EscapeKeyPress
-        EditBox_ProcessChange()
-    End Sub
-
-    Private Sub EditAsciiBox_EnterPressed() Handles ASCII_BOX.EnterKeyPressed
-        EditBoxIsMoving = True
-        EditBox_ProcessChange()
-        If (ASCII_BOX.HexAddress <> BaseSize - 1) Then
-            If Not ASCII_BOX.HexAddress + 1 >= Me.BaseSize Then
-                EditBox_SelectHexItem(ASCII_BOX.HexAddress + 1, False)
-            End If
-        End If
-        EditBoxIsMoving = False
-    End Sub
-
-    Private Sub EditAsciiBox_Carry(ByVal carry_char As Char) Handles ASCII_BOX.CarryByte
-        EditBoxIsMoving = True
-        EditBox_ProcessChange()
-        If (ASCII_BOX.HexAddress <> BaseSize - 1) Then
-            If Not ASCII_BOX.HexAddress + 1 >= Me.BaseSize Then
-                If Not carry_char = vbCr Then ASCII_CARRY = carry_char
-                EditBox_SelectHexItem(ASCII_BOX.HexAddress + 1, False)
-            End If
-        End If
-        EditBoxIsMoving = False
-    End Sub
-
-    Private Sub EditBox_SelectHexItem(ByVal address As Long, ByVal is_hex_box As Boolean)
+    Private Sub SelectHexItem(address As Long)
         Try
             Dim topaddr As Long = Me.TopAddress
             Dim v_lines As Integer = GetNumOfVisibleLines()
@@ -603,47 +578,169 @@
             If address < Me.TopAddress Then Exit Sub
             If address > (Me.TopAddress + (v_lines * b_per_line)) Then Exit Sub
             Dim offset As Long = address - Me.TopAddress
-            If is_hex_box Then
-                SELECTED_HEX_ITEM.X = (offset Mod b_per_line)
-                SELECTED_HEX_ITEM.Y = Math.Floor(offset / v_lines)
-                SELECTED_ASCII_ITEM = New Point(-1, -1)
-            Else
-                SELECTED_ASCII_ITEM.X = (offset Mod b_per_line)
-                SELECTED_ASCII_ITEM.Y = Math.Floor(offset / v_lines)
-                SELECTED_HEX_ITEM = New Point(-1, -1)
-            End If
+            SELECTED_HEX_ITEM.X = (offset Mod b_per_line)
+            SELECTED_HEX_ITEM.Y = Math.Floor(offset / v_lines)
+            SELECTED_ASCII_ITEM = New Point(-1, -1)
             SelectHexItem()
         Catch ex As Exception
         End Try
     End Sub
 
-    Private Sub EditHexBox_LostFocus() Handles HEX_BOX.LostFocus
-        EditBox_ProcessChange()
+    Private Sub SelectAsciiItem()
+        Dim box_x As Integer = (PTR_ASCII_POINT + (SELECTED_ASCII_ITEM.X * PTR_CHAR_SIZE * 1)) + (SELECTED_ASCII_ITEM.X * 2) + 2
+        Dim box_y As Integer = (SELECTED_ASCII_ITEM.Y * (char_height + 1))
+        Dim sel_data As Integer = (SELECTED_ASCII_ITEM.Y * BytesPerLine) + SELECTED_ASCII_ITEM.X
+        If sel_data >= ScreenData.Length Then
+            SELECTED_HEX_ITEM = New Point(-1, -1)
+            SELECTED_ASCII_ITEM = New Point(-1, -1)
+            Exit Sub
+        End If
+        Dim data As Byte = ScreenData(sel_data)
+        HexEditMode_IsChanged(Me.TopAddress + sel_data, data)
+        If ASCII_BOX IsNot Nothing AndAlso PBOX.Controls.Contains(ASCII_BOX) Then
+            PBOX.Controls.Remove(ASCII_BOX)
+        End If
+        ASCII_BOX.Location = New Point(box_x, box_y)
+        ASCII_BOX.InitialData = data
+        ASCII_BOX.HexAddress = Me.TopAddress + sel_data
+        ASCII_BOX.Width = (PTR_CHAR_SIZE) + 1
+        For i = 0 To 10
+            DirectCast(PBOX.Image, Bitmap).SetPixel(box_x - 1, box_y + i, Color.White)
+        Next
+        PBOX.Refresh()
+        PBOX.Controls.Add(ASCII_BOX)
+        ASCII_BOX.Focus()
+        If ASCII_CARRY.Equals("") Then
+            ASCII_BOX.SelectAll()
+        Else
+            ASCII_BOX.Text = ASCII_CARRY
+            ASCII_BOX.SelectionLength = 0
+            ASCII_BOX.SelectionStart = 1
+        End If
+        HideCursor()
     End Sub
 
-    Private Sub EditAsciiBox_LostFocus() Handles ASCII_BOX.LostFocus
-        EditBox_ProcessChange()
+    Private Sub SelectAsciiItem(address As Long)
+        Try
+            Dim topaddr As Long = Me.TopAddress
+            Dim v_lines As Integer = GetNumOfVisibleLines()
+            Dim b_per_line As Integer = BytesPerLine
+            If address < Me.TopAddress Then Exit Sub
+            If address > (Me.TopAddress + (v_lines * b_per_line)) Then Exit Sub
+            Dim offset As Long = address - Me.TopAddress
+            SELECTED_ASCII_ITEM.X = (offset Mod b_per_line)
+            SELECTED_ASCII_ITEM.Y = Math.Floor(offset / v_lines)
+            SELECTED_HEX_ITEM = New Point(-1, -1)
+            SelectAsciiItem()
+        Catch ex As Exception
+        End Try
     End Sub
 
-    Private Sub EditBox_ProcessChange()
-        ASCII_CARRY = ""
-        If HEX_BOX IsNot Nothing AndAlso HEX_BOX.Visible Then
-            HEX_BOX.Visible = False
-            If PBOX.Controls.Contains(HEX_BOX) Then PBOX.Controls.Remove(HEX_BOX)
-            If (Not HEX_BOX.ByteData = HEX_BOX.InitialData) Then
-                HexEditMode_AddChange(HEX_BOX.HexAddress, HEX_BOX.ByteData, HEX_BOX.InitialData)
-                UpdateScreen()
-            End If
-        ElseIf ASCII_BOX IsNot Nothing AndAlso ASCII_BOX.Visible Then
-            ASCII_BOX.Visible = False
-            If PBOX.Controls.Contains(ASCII_BOX) Then PBOX.Controls.Remove(ASCII_BOX)
-            If (Not ASCII_BOX.ByteData = ASCII_BOX.InitialData) AndAlso ASCII_BOX.ByteData <> 0 Then
-                HexEditMode_AddChange(ASCII_BOX.HexAddress, ASCII_BOX.ByteData, ASCII_BOX.InitialData)
-                UpdateScreen()
+#Region "HEX_BOX Events"
+    Private Sub EditHexBox_EnterPressed() Handles HEX_BOX.EnterKeyPressed
+        If (Not HEX_BOX.ByteData = HEX_BOX.InitialData) Then
+            EditMode_AddChange(HEX_BOX.HexAddress, HEX_BOX.ByteData, HEX_BOX.InitialData)
+            UpdateScreen()
+        End If
+        If (HEX_BOX.HexAddress <> Me.BaseSize - 1) Then
+            If Not HEX_BOX.HexAddress + 1 >= Me.BaseSize Then
+                SelectHexItem(HEX_BOX.HexAddress + 1)
             End If
         End If
     End Sub
 
+    Private Sub EditHexBox_Escape() Handles HEX_BOX.EscapeKeyPress
+        CloseEditBoxes()
+    End Sub
+
+    Private Sub EditHexBox_CarryByte(carry_char As Char) Handles HEX_BOX.CarryByte
+        If carry_char = vbCr Then Exit Sub
+        If carry_char = ChrW(27) Then Exit Sub
+        Dim carry_str As String = carry_char.ToString.ToUpper
+        If Not ((carry_str Like "[A-F]") Or (carry_str Like "#")) Then Exit Sub 'HEX value check
+        If (Not HEX_BOX.ByteData = HEX_BOX.InitialData) Then
+            EditMode_AddChange(HEX_BOX.HexAddress, HEX_BOX.ByteData, HEX_BOX.InitialData)
+            UpdateScreen()
+        End If
+        If (HEX_BOX.HexAddress <> Me.BaseSize - 1) Then
+            If Not HEX_BOX.HexAddress + 1 >= Me.BaseSize Then
+                SelectHexItem(HEX_BOX.HexAddress + 1)
+                HEX_BOX.Text = carry_str
+            End If
+        End If
+    End Sub
+
+    Private Sub HEX_BOX_MouseLeave(sender As Object, e As EventArgs) Handles HEX_BOX.MouseLeave
+        If Not MouseIsOverControl(PBOX) Then
+            CloseEditBoxes()
+        End If
+    End Sub
+
 #End Region
+
+#Region "ASCII_BOX Events"
+    Private Sub EditAsciiBox_EnterPressed() Handles ASCII_BOX.EnterKeyPressed
+        If (Not ASCII_BOX.ByteData = ASCII_BOX.InitialData) AndAlso ASCII_BOX.ByteData <> 0 Then
+            EditMode_AddChange(ASCII_BOX.HexAddress, ASCII_BOX.ByteData, ASCII_BOX.InitialData)
+            UpdateScreen()
+        End If
+        If (ASCII_BOX.HexAddress <> BaseSize - 1) Then
+            If Not ASCII_BOX.HexAddress + 1 >= Me.BaseSize Then
+                SelectAsciiItem(ASCII_BOX.HexAddress + 1)
+            End If
+        End If
+    End Sub
+
+    Private Sub EditAsciiBox_Carry(carry_char As Char) Handles ASCII_BOX.CarryByte
+        If carry_char = vbCr Then
+            CloseEditBoxes()
+            Exit Sub
+        End If
+        If carry_char = ChrW(27) Then Exit Sub
+        If (Not ASCII_BOX.ByteData = ASCII_BOX.InitialData) Then
+            EditMode_AddChange(ASCII_BOX.HexAddress, ASCII_BOX.ByteData, ASCII_BOX.InitialData)
+            UpdateScreen()
+        End If
+        If (ASCII_BOX.HexAddress <> Me.BaseSize - 1) Then
+            If Not ASCII_BOX.HexAddress + 1 >= Me.BaseSize Then
+                SelectAsciiItem(ASCII_BOX.HexAddress + 1)
+                ASCII_BOX.Text = carry_char.ToString
+            End If
+        End If
+    End Sub
+
+    Private Sub ASCII_BOX_MouseLeave(sender As Object, e As EventArgs) Handles ASCII_BOX.MouseLeave
+        If Not MouseIsOverControl(PBOX) Then
+            CloseEditBoxes()
+        End If
+    End Sub
+
+#End Region
+
+#End Region
+
+    Dim CursorVisible As Boolean = True
+
+    Private Sub HideCursor()
+        If CursorVisible Then
+            Cursor.Hide()
+            CursorVisible = False
+        End If
+    End Sub
+
+    Private Sub ShowCursor()
+        If Not CursorVisible Then
+            Cursor.Show()
+            CursorVisible = True
+        End If
+    End Sub
+    'Number of pixels between two points
+    Private Function PointDiff(p1 As Point, p2 As Point) As Integer
+        Return Math.Sqrt((Math.Abs(p2.X - p1.X) ^ 2) + (Math.Abs(p2.Y - p1.Y) ^ 2))
+    End Function
+
+    Public Function MouseIsOverControl(c As Control) As Boolean
+        Return c.ClientRectangle.Contains(c.PointToClient(Control.MousePosition))
+    End Function
 
 End Class

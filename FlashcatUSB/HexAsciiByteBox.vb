@@ -8,6 +8,7 @@
     Public Event EscapeKeyPress()
 
     Private my_data As Byte
+    Public Property HexAddress As Long = 0
 
     Public Property InitialData As Byte
         Get
@@ -33,8 +34,6 @@
             Me.Text = Hex(value).PadLeft(2, "0").ToUpper
         End Set
     End Property
-
-    Public Property HexAddress As Long = 0
 
     Sub New()
 
@@ -98,7 +97,9 @@ Public Class AsciiByteBox
 
     Public Event CarryByte(k As Char) 'Indicates the user has entered more data
     Public Event EnterKeyPressed()
+
     Private my_data As Byte
+    Public Property HexAddress As Long = 0
 
     Public Property InitialData As Byte
         Get
@@ -125,8 +126,6 @@ Public Class AsciiByteBox
             Me.Text = value.ToString
         End Set
     End Property
-
-    Public Property HexAddress As Long = 0
 
     Sub New()
 

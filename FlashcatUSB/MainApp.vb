@@ -17,10 +17,10 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 604
+    Public Const Build As Integer = 606
 
     Private Const PRO_PCB5_FW As Single = 1.06F 'This is the embedded firmware version for pro
-    Private Const MACH1_PCB2_FW As Single = 2.18F 'Firmware version for Mach1
+    Private Const MACH1_PCB2_FW As Single = 2.19F 'Firmware version for Mach1
     Private Const XPORT_PCB2_FW As Single = 5.17F 'XPORT PCB 2.x
 
     Private Const CLASSIC_FW As Single = 4.5F 'Min revision allowed for classic (PCB 2.x)
@@ -1286,7 +1286,7 @@ Public Module MainApp
             Me.VERIFY_COUNT = GetRegistryValue("VERIFY_COUNT", 2)
             Me.BIT_ENDIAN = BitEndianMode.BigEndian32
             Me.BIT_SWAP = BitSwapMode.None
-            Me.SPI_CLOCK_MAX = GetRegistryValue("SPI_CLOCK_MAX", 10000000)
+            Me.SPI_CLOCK_MAX = GetRegistryValue("SPI_CLOCK_MAX", SPI_SPEED.MHZ_8)
             Me.SQI_CLOCK_MAX = GetRegistryValue("SPI_QUAD_SPEED", SQI_SPEED.MHZ_10)
             Me.SPI_BIT_ORDER = GetRegistryValue("SPI_ORDER", SPI_ORDER.SPI_ORDER_MSB_FIRST)
             Me.SPI_FASTREAD = GetRegistryValue("SPI_FASTREAD", False)

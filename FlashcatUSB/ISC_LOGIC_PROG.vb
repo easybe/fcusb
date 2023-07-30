@@ -26,8 +26,7 @@ Public Class ISC_LOGIC_PROG
     Public Function SSPI_Init(spi_mode As UInt32, spi_select As UInt32, speed_mhz As UInt32) As Boolean
         Try
             Dim w32 As UInt32 = (spi_mode << 24) Or (spi_select << 16) Or speed_mhz
-            Dim result As Boolean = sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, w32)
-            Return result
+            Return sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, w32)
         Catch ex As Exception
             Return False
         End Try
