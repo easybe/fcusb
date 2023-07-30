@@ -1198,10 +1198,10 @@
     <value>Enabled</value>
   </data>
   <data name="nandecc_read_operation" xml:space="preserve">
-    <value>Read operation (auto-correct)</value>
+    <value>Read operation</value>
   </data>
   <data name="nandecc_write_operation" xml:space="preserve">
-    <value>Write operation (write ECC)</value>
+    <value>Write operation</value>
   </data>
   <data name="nandecc_groupbox" xml:space="preserve">
     <value>Software ECC Feature</value>

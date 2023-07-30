@@ -20,7 +20,7 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
         Dim org_mode As UInt32 = MySettings.S93_DEVICE_ORG '0=8-bit,1=16-bit
         If Not MySettings.S93_DEVICE.Equals("") Then
             For Each device In s93_devices
-                If device.NAME.ToUpper.Equals(MySettings.S93_DEVICE) Then
+                If device.NAME.ToUpper.Equals(MySettings.S93_DEVICE.ToUpper) Then
                     Me.MICROWIRE_DEVIE = device
                     Exit For
                 End If
@@ -103,7 +103,9 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
             setup_data(6) = ((flash_offset >> 8) And 255)
             setup_data(7) = (flash_offset And 255)
             result = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.S93_WRITEEEPROM, setup_data, data_to_write, data_count)
+            Utilities.Sleep(100)
             FCUSB.USB_WaitForComplete()
+            If result Then ReadData(0, 16) 'Some devices need us to read a page of data
             Return result
         Catch ex As Exception
         End Try

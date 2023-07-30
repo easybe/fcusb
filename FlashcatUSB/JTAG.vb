@@ -45,6 +45,8 @@ Namespace JTAG
                 Else
                     If ((FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional_PCB4) Or (FCUSB.HWBOARD = USB.FCUSB_BOARD.Mach1)) Then
                         FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_INIT, Nothing, (1 << 16) Or Me.TCK_SPEED)
+                    Else
+                        FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_INIT, Nothing, 0)
                     End If
                     JSP.Actual_Hertz = 500000
                     TAP_EnableSoftwareStateMachine()
@@ -57,7 +59,6 @@ Namespace JTAG
                     WriteConsole("JEDEC ID: 0x" & Hex(Devices(i).IDCODE).PadLeft(8, "0") & " (" & jtag_dev_name & ")")
                 Next
                 Select_Device(0) 'By defailt, select the first chain item
-
                 If Devices(0).IDCODE = &HBA02477 Then
                     Dim tdo(3) As Byte
                     Dim tdi(3) As Byte

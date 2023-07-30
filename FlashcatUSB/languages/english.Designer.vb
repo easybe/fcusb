@@ -2477,7 +2477,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Read operation (auto-correct).
+        '''  Looks up a localized string similar to Read operation.
         '''</summary>
         Friend Shared ReadOnly Property nandecc_read_operation() As String
             Get
@@ -2504,7 +2504,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Write operation (write ECC).
+        '''  Looks up a localized string similar to Write operation.
         '''</summary>
         Friend Shared ReadOnly Property nandecc_write_operation() As String
             Get

@@ -26,9 +26,10 @@ Namespace SPI
 
         Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
             MyFlashStatus = DeviceStatus.NotDetected
+            Dim FLASH_IDENT As SPI_IDENT = Nothing
             FCUSB.USB_VCC_OFF()
-            SQIBUS_Setup()
-            If FCUSB.IsProfessional OrElse FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+            SQIBUS_Setup() 'Puts device into SPI mode first
+            If (FCUSB.IsProfessional() OrElse FCUSB.HWBOARD = FCUSB_BOARD.Mach1) Then
                 If MySettings.VOLT_SELECT = Voltage.V1_8 Then
                     FCUSB.USB_VCC_1V8()
                 Else
@@ -36,7 +37,8 @@ Namespace SPI
                 End If
             End If
             Utilities.Sleep(200)
-            Dim FLASH_IDENT As SPI_IDENT = ReadDeviceID(MULTI_IO_MODE.Quad)
+            ReadDeviceID(MULTI_IO_MODE.Single) 'Read ID first, then see if we can access QUAD/DUAL
+            FLASH_IDENT = ReadDeviceID(MULTI_IO_MODE.Quad)
             If Not FLASH_IDENT.DETECTED Then FLASH_IDENT = ReadDeviceID(MULTI_IO_MODE.Dual)
             If Not FLASH_IDENT.DETECTED Then FLASH_IDENT = ReadDeviceID(MULTI_IO_MODE.Single)
             If FLASH_IDENT.DETECTED Then
@@ -200,7 +202,7 @@ Namespace SPI
             End Get
         End Property
 
-        Friend ReadOnly Property SectorSize(ByVal sector As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As UInt32 Implements MemoryDeviceUSB.SectorSize
+        Friend ReadOnly Property SectorSize(sector As UInt32, Optional memory_area As FlashArea = FlashArea.Main) As UInt32 Implements MemoryDeviceUSB.SectorSize
             Get
                 If Not MyFlashStatus = USB.DeviceStatus.Supported Then Return 0
                 If MyFlashDevice.ERASE_REQUIRED Then
@@ -211,7 +213,7 @@ Namespace SPI
             End Get
         End Property
 
-        Friend Function SectorFind(ByVal sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Long Implements MemoryDeviceUSB.SectorFind
+        Friend Function SectorFind(sector_index As UInt32, Optional memory_area As FlashArea = FlashArea.Main) As Long Implements MemoryDeviceUSB.SectorFind
             If sector_index = 0 Then Return 0 'Addresses start at the base address 
             Return Me.SectorSize(0, memory_area) * sector_index
         End Function
@@ -243,31 +245,11 @@ Namespace SPI
                 READ_CMD = MyFlashDevice.OP_COMMANDS.QUAD_READ
                 DUMMY = MyFlashDevice.SQI_DUMMY
             End If
-            If FCUSB.IsProfessional OrElse FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
-                Dim setup_class As New ReadSetupPacket(READ_CMD, flash_offset, data_to_read.Length, MyFlashDevice.AddressBytes)
-                setup_class.SPI_MODE = Me.SQI_DEVICE_MODE
-                setup_class.DUMMY = DUMMY
-                Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.SQI_RD_FLASH, setup_class.ToBytes, data_to_read, 0)
-                If Not result Then Return Nothing
-            Else
-                SQIBUS_SlaveSelect_Enable()
-                Dim rd_cmd() As Byte = SQI_GetSetup(READ_CMD, CUInt(flash_offset))
-                If Me.SQI_DEVICE_MODE = SPI.SQI_IO_MODE.QUAD_ONLY Then
-                    SQIBUS_WriteData(rd_cmd, MULTI_IO_MODE.Quad)
-                Else
-                    SQIBUS_WriteData(rd_cmd, MULTI_IO_MODE.Single)
-                End If
-                If DUMMY Then
-                    Dim dummmy_data((DUMMY / 8) - 1) As Byte
-                    SQIBUS_ReadData(dummmy_data, MULTI_IO_MODE.Single)
-                End If
-                If Me.SQI_DEVICE_MODE = SPI.SQI_IO_MODE.QUAD_ONLY OrElse Me.SQI_DEVICE_MODE = SPI.SQI_IO_MODE.SPI_QUAD Then
-                    SQIBUS_ReadData(data_to_read, MULTI_IO_MODE.Quad)
-                Else
-                    SQIBUS_ReadData(data_to_read, MULTI_IO_MODE.Single)
-                End If
-                SQIBUS_SlaveSelect_Disable()
-            End If
+            Dim setup_class As New ReadSetupPacket(READ_CMD, flash_offset, data_to_read.Length, MyFlashDevice.AddressBytes)
+            setup_class.SPI_MODE = Me.SQI_DEVICE_MODE
+            setup_class.DUMMY = DUMMY
+            Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.SQI_RD_FLASH, setup_class.ToBytes, data_to_read, 0)
+            If Not result Then Return Nothing
             Return data_to_read
         End Function
 
@@ -306,16 +288,16 @@ Namespace SPI
         Private Function SQI_GetSetup(cmd As Byte, flash_offset As UInt32) As Byte()
             Dim payload(MyFlashDevice.AddressBytes) As Byte
             payload(0) = cmd
-            If MyFlashDevice.AddressBytes = 4 Then
+            If (MyFlashDevice.AddressBytes = 4) Then
                 payload(1) = CByte((flash_offset And &HFF000000) >> 24)
                 payload(2) = CByte((flash_offset And &HFF0000) >> 16)
                 payload(3) = CByte((flash_offset And &HFF00) >> 8)
                 payload(4) = CByte(flash_offset And &HFF)
-            ElseIf MyFlashDevice.AddressBytes = 3 Then
+            ElseIf (MyFlashDevice.AddressBytes = 3) Then
                 payload(1) = CByte((flash_offset And &HFF0000) >> 16)
                 payload(2) = CByte((flash_offset And &HFF00) >> 8)
                 payload(3) = CByte(flash_offset And &HFF)
-            ElseIf MyFlashDevice.AddressBytes = 2 Then
+            ElseIf (MyFlashDevice.AddressBytes = 2) Then
                 payload(1) = CByte((flash_offset And &HFF00) >> 8)
                 payload(2) = CByte(flash_offset And &HFF)
             End If
@@ -415,7 +397,7 @@ Namespace SPI
 #Region "SPIBUS"
 
         Public Sub SQIBUS_Setup()
-            If FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
+            If FCUSB.IsProfessional() Then
                 If MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_20 Then
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "20 MHz"))
                     FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 0)
@@ -469,13 +451,13 @@ Namespace SPI
             End If
         End Function
 
-        Public Function SQIBUS_SendCommand(ByVal spi_cmd As Byte) As Boolean
+        Public Function SQIBUS_SendCommand(spi_cmd As Byte) As Boolean
             Dim we As Boolean = SQIBUS_WriteEnable()
             If Not we Then Return False
             Return SQIBUS_WriteRead({spi_cmd}, Nothing)
         End Function
 
-        Public Function SQIBUS_WriteRead(ByVal WriteBuffer() As Byte, Optional ByRef ReadBuffer() As Byte = Nothing) As UInt32
+        Public Function SQIBUS_WriteRead(WriteBuffer() As Byte, Optional ByRef ReadBuffer() As Byte = Nothing) As UInt32
             If WriteBuffer Is Nothing And ReadBuffer Is Nothing Then Return 0
             Dim TotalBytesTransfered As UInt32 = 0
             SQIBUS_SlaveSelect_Enable()
@@ -510,14 +492,14 @@ Namespace SPI
             End Try
         End Sub
 
-        Private Function SQIBUS_WriteData(ByVal DataOut() As Byte, ByVal io_mode As MULTI_IO_MODE) As Boolean
+        Private Function SQIBUS_WriteData(DataOut() As Byte, io_mode As MULTI_IO_MODE) As Boolean
             Dim value_index As UInt32 = (CUInt(io_mode) << 24) Or (DataOut.Length And &HFFFFFF)
             Dim Success As Boolean = FCUSB.USB_SETUP_BULKOUT(USBREQ.SQI_WR_DATA, Nothing, DataOut, value_index)
             Utilities.Sleep(2)
             Return Success
         End Function
 
-        Private Function SQIBUS_ReadData(ByRef Data_In() As Byte, ByVal io_mode As MULTI_IO_MODE) As Boolean
+        Private Function SQIBUS_ReadData(ByRef Data_In() As Byte, io_mode As MULTI_IO_MODE) As Boolean
             Dim value_index As UInt32 = (CUInt(io_mode) << 24) Or (Data_In.Length And &HFFFFFF)
             Dim Success As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.SQI_RD_DATA, Nothing, Data_In, value_index)
             Return Success

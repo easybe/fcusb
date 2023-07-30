@@ -2199,54 +2199,53 @@ Namespace Utilities
             End Try
         End Function
 
-        Public Function FormatToDataSize(ByVal bytes As UInt64) As String
+        Public Function FormatToDataSize(bytes As UInt64) As String
             Dim MB01 As UInt64 = 1048576UL
             Dim GB01 As UInt64 = 1073741824UL
             Dim TB01 As UInt64 = 1099511627776UL
             If (bytes < MB01) Then
                 Return FormatToMegabytes(bytes, 2)
-            ElseIf (bytes > MB01 And bytes < GB01) Then
+            ElseIf (bytes >= MB01) AndAlso (bytes < GB01) Then
                 Return FormatToMegabytes(bytes, 2)
-            ElseIf (bytes > GB01 And bytes < TB01) Then
+            ElseIf (bytes >= GB01) AndAlso (bytes < TB01) Then
                 Return FormatToGigabytes(bytes, 2)
             Else
                 Return FormatToTerabytes(bytes, 2)
             End If
         End Function
 
-        Public Function FormatToMegabytes(ByVal bytes As UInt64, Optional LeadingZeros As Integer = 0) As String
+        Public Function FormatToMegabytes(bytes As UInt64, Optional LeadingZeros As Integer = 0) As String
             Dim MB01 As Double = 1048576
             Dim d As Double = (CDbl(bytes) / MB01)
             Return d.ToString("F" & LeadingZeros.ToString, Globalization.CultureInfo.InvariantCulture) & " MB"
         End Function
 
-        Public Function FormatToMegabits(ByVal bytes As UInt64, Optional LeadingZeros As Integer = 0) As String
+        Public Function FormatToMegabits(bytes As UInt64, Optional LeadingZeros As Integer = 0) As String
             Dim MB01 As Double = 1048576
             Dim d As Double = (CDbl(bytes) / MB01)
             Dim Mbits As UInt32 = d * 8
             Return Mbits.ToString("F" & LeadingZeros.ToString, Globalization.CultureInfo.InvariantCulture) & " Mbit"
         End Function
 
-        Public Function FormatToKilobytes(ByVal bytes As UInt64, Optional LeadingZeros As Integer = 0) As String
+        Public Function FormatToKilobytes(bytes As UInt64, Optional LeadingZeros As Integer = 0) As String
             Dim KB01 As Double = 1024
             Dim d As Double = (CDbl(bytes) / KB01)
             Return d.ToString("F" & LeadingZeros.ToString, Globalization.CultureInfo.InvariantCulture) & " KB"
         End Function
 
-        Public Function FormatToGigabytes(ByVal bytes As UInt64, Optional LeadingZeros As Integer = 0) As String
+        Public Function FormatToGigabytes(bytes As UInt64, Optional LeadingZeros As Integer = 0) As String
             Dim GB01 As Double = 1073741824
             Dim d As Double = (CDbl(bytes) / GB01)
             Return d.ToString("F" & LeadingZeros.ToString, Globalization.CultureInfo.InvariantCulture) & " GBs"
         End Function
 
-        Public Function FormatToTerabytes(ByVal bytes As UInt64, Optional LeadingZeros As Integer = 0) As String
+        Public Function FormatToTerabytes(bytes As UInt64, Optional LeadingZeros As Integer = 0) As String
             Dim TB01 As Double = 1099511627776
             Dim d As Double = (CDbl(bytes) / TB01)
             Return d.ToString("F" & LeadingZeros.ToString, Globalization.CultureInfo.InvariantCulture) & " TBs"
         End Function
-
         'Returns the number of bits the input value requires
-        Public Function BitSize(ByVal input As Long) As Integer
+        Public Function BitSize(input As Long) As Integer
             Dim Counter As Integer = 0
             Do Until input = 0
                 input = (input >> 1)

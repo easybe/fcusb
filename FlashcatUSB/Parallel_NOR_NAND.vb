@@ -25,7 +25,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
 
     Public Property MULTI_DIE As Boolean = False
     Public Property DIE_SELECTED As Integer = 0
-    Public Property ECC_LAST_RESULT As decode_result = decode_result.NoErrors
+    Public Property ECC_LAST_RESULT As ECC_DECODE_RESULT = ECC_DECODE_RESULT.NoErrors
 
     Sub New(parent_if As FCUSB_DEVICE)
         FCUSB = parent_if
@@ -49,7 +49,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                 If (FLASH_IDENT.ID1 >> 8 = 255) Then FLASH_IDENT.ID1 = (FLASH_IDENT.ID1 And 255) 'XPORT IO is a little different than the EXTIO for X8 devices
             End If
             Dim device_matches() As Device
-            If (MyAdapter = MEM_PROTOCOL.NAND_X8) Then
+            If (MyAdapter = MEM_PROTOCOL.NAND_X8_ASYNC) Then
                 device_matches = FlashDatabase.FindDevices(FLASH_IDENT.MFG, FLASH_IDENT.ID1, FLASH_IDENT.ID2, MemoryType.NAND)
             Else
                 If MyAdapter = MEM_PROTOCOL.NOR_X8 Then
@@ -60,7 +60,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                     device_matches = FlashDatabase.FindDevices(FLASH_IDENT.MFG, FLASH_IDENT.ID1, FLASH_IDENT.ID2, MemoryType.PARALLEL_NOR)
                 End If
             End If
-            If ((MyAdapter = MEM_PROTOCOL.NAND_X8) Or (MyAdapter = MEM_PROTOCOL.NAND_X16)) Then
+            If ((MyAdapter = MEM_PROTOCOL.NAND_X8_ASYNC) Or (MyAdapter = MEM_PROTOCOL.NAND_X16_ASYNC)) Then
                 Me.ONFI = New NAND_ONFI(NAND_GetONFITable())
             Else
                 Me.CFI = New NOR_CFI(EXPIO_NOR_GetCFI())
@@ -107,8 +107,9 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                     End If
                     WaitForReady()
                 ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.NAND Then
-                    RaiseEvent PrintConsole(String.Format(RM.GetString("ext_page_size"), MyFlashDevice.PAGE_SIZE, DirectCast(MyFlashDevice, P_NAND).EXT_PAGE_SIZE))
-                    RaiseEvent PrintConsole("Block size: " & Utilities.FormatToDataSize(DirectCast(MyFlashDevice, P_NAND).BLOCK_SIZE))
+                    Dim page_info As String = String.Format(RM.GetString("ext_page_size"), Strings.Format(MyFlashDevice.PAGE_SIZE, "#,###"), DirectCast(MyFlashDevice, P_NAND).EXT_PAGE_SIZE)
+                    RaiseEvent PrintConsole(page_info)
+                    RaiseEvent PrintConsole("Block size: " & Strings.Format((DirectCast(MyFlashDevice, P_NAND).BLOCK_SIZE), "#,###") & " bytes")
                     Dim nand_mem As P_NAND = DirectCast(MyFlashDevice, P_NAND)
                     If nand_mem.IFACE = VCC_IF.X8_3V Then
                         RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NAND (X8 3.3V)")
@@ -116,14 +117,20 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                         RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NAND (X8 1.8V)")
                     ElseIf nand_mem.IFACE = VCC_IF.X16_3V Then
                         RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NAND (X16 3.3V)")
-                        RaiseEvent PrintConsole("This NAND device uses X16 IO and is not compatible with this programmer")
-                        MyFlashStatus = DeviceStatus.NotCompatible
-                        Return False
                     ElseIf nand_mem.IFACE = VCC_IF.X16_1V8 Then
                         RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NAND (X16 1.8V)")
-                        RaiseEvent PrintConsole("This NAND device uses X16 IO and is not compatible with this programmer")
-                        MyFlashStatus = DeviceStatus.NotCompatible
-                        Return False
+                    End If
+                    If ((FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB1) Or (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB2)) Then
+                        If (Not nand_mem.IFACE = VCC_IF.X8_3V) Then
+                            RaiseEvent PrintConsole("This NAND device is not compatible with this programmer")
+                            MyFlashStatus = DeviceStatus.NotCompatible
+                            Return False
+                        End If
+                    End If
+                    If nand_mem.IFACE = VCC_IF.X16_3V Or nand_mem.IFACE = VCC_IF.X16_1V8 Then
+                        RaiseEvent PrintConsole("NAND interface changed to X16")
+                        EXPIO_SETUP_USB(MEM_PROTOCOL.NAND_X16_ASYNC)
+                        Me.MyAdapter = MEM_PROTOCOL.NAND_X16_ASYNC
                     End If
                     If (nand_mem.FLASH_SIZE > Gb004) Then 'Remove this check if you wish
                         If (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB1) Or (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB2) Then
@@ -162,7 +169,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
             MyFlashDevice = device_matches(0)
             Exit Sub
         End If
-        If ((MyAdapter = MEM_PROTOCOL.NAND_X8) Or (MyAdapter = MEM_PROTOCOL.NAND_X16)) Then
+        If ((MyAdapter = MEM_PROTOCOL.NAND_X8_ASYNC) Or (MyAdapter = MEM_PROTOCOL.NAND_X16_ASYNC)) Then
             If Me.ONFI.IS_VALID Then
                 For i = 0 To device_matches.Count - 1
                     Dim PART As String = device_matches(i).NAME.ToUpper
@@ -198,8 +205,8 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                     End If
                 End If
             End If
-            MyFlashDevice = device_matches(0)
         End If
+        If MyFlashDevice Is Nothing Then MyFlashDevice = device_matches(0)
     End Sub
 
 #Region "Public Interface"
@@ -636,11 +643,11 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         RaiseEvent SetProgress(percent)
     End Sub
 
-    Public Sub NAND_ReadPages(ByVal page_addr As UInt32, ByVal page_offset As UInt16, ByVal data_count As UInt32, ByVal memory_area As FlashArea, ByRef data() As Byte)
+    Public Sub NAND_ReadPages(page_addr As UInt32, page_offset As UInt16, data_count As UInt32, memory_area As FlashArea, ByRef data() As Byte)
         data = ReadBulk_NAND(page_addr, page_offset, data_count, memory_area)
     End Sub
 
-    Private Sub NAND_WritePages(ByVal page_addr As UInt32, ByVal main() As Byte, ByVal oob() As Byte, ByVal memory_area As FlashArea, ByRef write_result As Boolean)
+    Private Sub NAND_WritePages(page_addr As UInt32, main() As Byte, oob() As Byte, memory_area As FlashArea, ByRef write_result As Boolean)
         write_result = WriteBulk_NAND(page_addr, main, oob, memory_area)
     End Sub
 
@@ -673,7 +680,6 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
 
 #Region "EPROM / OTP"
     'Private Property EPROM_X16_MODE As Boolean
-
     Public Function EPROM_Init() As Boolean
         MyFlashDevice = Nothing
         If EPROM_Detect(True) Then 'X16
@@ -869,9 +875,9 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                         Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X16
                     Case MEM_PROTOCOL.NOR_X16_X8
                         Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X16
-                    Case MEM_PROTOCOL.NAND_X8
+                    Case MEM_PROTOCOL.NAND_X8_ASYNC
                         Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X8
-                    Case MEM_PROTOCOL.NAND_X16
+                    Case MEM_PROTOCOL.NAND_X16_ASYNC
                         Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X16
                     Case MEM_PROTOCOL.FWH
                         Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X8
@@ -925,7 +931,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
 
     Private Function EXPIO_SETUP_WRITEDELAY(ByVal delay_cycles As UInt16) As Boolean
         Try
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_DELAY, Nothing, delay_cycles)
+            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_DELAY, Nothing, delay_cycles)
             Threading.Thread.Sleep(25)
             Return result
         Catch ex As Exception
@@ -1175,25 +1181,12 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         RaiseEvent PrintConsole(RM.GetString("ext_detecting_device")) 'Attempting to automatically detect Flash device
         Dim LAST_DETECT As FlashDetectResult = Nothing
         LAST_DETECT.MFG = 0
-        If (FCUSB.HWBOARD = FCUSB_BOARD.Mach1) Then
-            Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NAND_X16)
-            If Me.FLASH_IDENT.Successful Then
-                Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, Me.FLASH_IDENT.ID2, MemoryType.NAND)
-                If (d.Count > 0) Then
-                    RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NAND X16"))
-                    MyAdapter = MEM_PROTOCOL.NAND_X8
-                    Return True
-                Else
-                    LAST_DETECT = Me.FLASH_IDENT
-                End If
-            End If
-        End If
-        Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NAND_X8)
+        Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NAND_X8_ASYNC) 'X16 and X8 are detected with X8
         If Me.FLASH_IDENT.Successful Then
             Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, Me.FLASH_IDENT.ID2, MemoryType.NAND)
             If (d.Count > 0) Then
-                RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NAND X8"))
-                MyAdapter = MEM_PROTOCOL.NAND_X8
+                RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NAND"))
+                MyAdapter = MEM_PROTOCOL.NAND_X8_ASYNC
                 Return True
             Else
                 LAST_DETECT = Me.FLASH_IDENT
@@ -1271,13 +1264,9 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
             Case MEM_PROTOCOL.FWH
                 mode_name = "FWH"
                 result = EXPIO_DetectFWH()
-            Case MEM_PROTOCOL.NAND_X8
-                mode_name = "NAND X8"
-                EXPIO_SETUP_USB(MEM_PROTOCOL.NAND_X8)
-                result = EXPIO_DetectNAND()
-            Case MEM_PROTOCOL.NAND_X16
-                mode_name = "NAND X16"
-                EXPIO_SETUP_USB(MEM_PROTOCOL.NAND_X16)
+            Case MEM_PROTOCOL.NAND_X8_ASYNC
+                mode_name = "NAND X8 ASYNC"
+                EXPIO_SETUP_USB(MEM_PROTOCOL.NAND_X8_ASYNC)
                 result = EXPIO_DetectNAND()
         End Select
         If result.Successful Then
@@ -1513,8 +1502,8 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                     read_count += 1
                 End If
             End If
-            Dim setup_data() As Byte = GetSetupPacket_NOR(address, read_count, MyFlashDevice.PAGE_SIZE)
             Dim data_out(read_count - 1) As Byte 'Bytes we want to read
+            Dim setup_data() As Byte = GetSetupPacket_NOR(address, read_count, MyFlashDevice.PAGE_SIZE)
             Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, data_out, 0)
             If Not result Then Return Nothing
             If addr_offset Then
@@ -1540,7 +1529,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Return False
     End Function
 
-    Public Function ReadBulk_NAND(ByVal page_addr As UInt32, ByVal page_offset As UInt16, ByVal count As UInt32, ByVal memory_area As FlashArea) As Byte()
+    Public Function ReadBulk_NAND(page_addr As UInt32, page_offset As UInt16, count As UInt32, memory_area As FlashArea) As Byte()
         Try
             Dim result As Boolean
             If MySettings.ECC_READ_ENABLED AndAlso (memory_area = FlashArea.Main) Then 'We need to auto-correct data uisng ECC
@@ -1558,6 +1547,10 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                 If Not result Then Return Nothing
                 Dim ecc_data() As Byte = NAND_ECC_ENG.GetEccFromSpare(oob_area_data, NAND_DEV.PAGE_SIZE, NAND_DEV.EXT_PAGE_SIZE) 'This strips out the ecc data from the spare area
                 ECC_LAST_RESULT = NAND_ECC_ENG.ReadData(main_area_data, ecc_data) 'This processes the flash data (512 bytes at a time) and corrects for any errors using the ECC
+                If ECC_LAST_RESULT = ECC_DECODE_RESULT.Uncorractable Then
+                    Dim logical_addr As Long = (page_addr * CLng(MyFlashDevice.PAGE_SIZE)) + page_offset
+                    RaiseEvent PrintConsole("ECC failed at: 0x" & Hex(logical_addr).PadLeft(8, "0"))
+                End If
                 Dim data_out(count - 1) As Byte 'This is the data the user requested
                 Array.Copy(main_area_data, page_offset, data_out, 0, data_out.Length)
                 Return data_out
@@ -1573,7 +1566,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Return Nothing
     End Function
 
-    Private Function WriteBulk_NAND(ByVal page_addr As UInt32, main_data() As Byte, oob_data() As Byte, ByVal memory_area As FlashArea) As Boolean
+    Private Function WriteBulk_NAND(page_addr As UInt32, main_data() As Byte, oob_data() As Byte, memory_area As FlashArea) As Boolean
         Try
             If main_data Is Nothing And oob_data Is Nothing Then Return False
             Dim NAND_DEV As P_NAND = DirectCast(MyFlashDevice, P_NAND)
@@ -1599,7 +1592,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
             ElseIf memory_area = FlashArea.OOB Then
                 page_aligned = CreatePageAligned(MyFlashDevice, main_data, oob_data)
             End If
-            Dim pages_to_write As UInt32 = page_aligned.Length / page_size_tot
+            Dim pages_to_write As UInt32 = (page_aligned.Length / page_size_tot)
             Dim array_ptr As UInt32 = 0
             Do Until pages_to_write = 0
                 Dim page_count_max As Integer = 0 'Number of total pages to write per operation
@@ -1661,7 +1654,6 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Utilities.Sleep(300)
         HardwareControl(EXPIO_CTRL.CE_LOW)
         Utilities.Sleep(300)
-
         For i = 0 To 27
             WriteCommandData(1 << i, 0)
             Utilities.Sleep(300)
@@ -1669,7 +1661,5 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         WriteCommandData(0, 0)
         SetStatus("Parallel I/O output test complete")
     End Sub
-
-
 
 End Class

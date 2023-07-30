@@ -4,8 +4,8 @@
 Public Class NAND_BLOCK_IF
     Public Event PrintConsole(msg As String)
     Public Event SetProgress(percent As Integer)
-    Public Event ReadPages(page_addr As UInt32, ByVal page_offset As UInt16, ByVal count As UInt32, ByVal area As FlashArea, ByRef data() As Byte)
-    Public Event WritePages(page_addr As UInt32, ByVal main() As Byte, ByVal oob() As Byte, ByVal area As FlashArea, ByRef write_result As Boolean)
+    Public Event ReadPages(page_addr As UInt32, page_offset As UInt16, count As UInt32, area As FlashArea, ByRef data() As Byte)
+    Public Event WritePages(page_addr As UInt32, main() As Byte, oob() As Byte, area As FlashArea, ByRef write_result As Boolean)
     Public Event EraseSector(page_addr As UInt32, ByRef erase_result As Boolean)
     Public Event Ready() 'Checks the RD/BSY pin or register (WAS WaitForReady)
     Public MAP As New List(Of MAPPING)
@@ -58,54 +58,59 @@ Public Class NAND_BLOCK_IF
         Next
     End Sub
 
-    Public Sub EnableBlockManager()
-        If MySettings.NAND_BadBlockManager = FlashcatSettings.BadBlockMode.Disabled Or MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then
-            RaiseEvent PrintConsole(RM.GetString("nand_block_manager_disabled"))
-            Exit Sub
-        Else
-            SetStatus(RM.GetString("nand_mem_device_detected"))
-            RaiseEvent PrintConsole(RM.GetString("nand_mem_map_loading"))
-        End If
-        Dim BlockCount As Integer = NAND_SIZE / BLOCK_SIZE
-        Dim PagesPerBlock As UInt32 = BLOCK_SIZE / PAGE_MAIN
-        Dim page_addr As UInt32 = 0
-        For i As UInt32 = 0 To BlockCount - 1
-            Dim LastPageAddr As UInt32 = (page_addr + PagesPerBlock - 1) 'The last page of this block
-            Dim page_one() As Byte = Nothing
-            Dim page_two() As Byte = Nothing
-            Dim page_last() As Byte = Nothing
-            Dim valid_block As Boolean = True
-            Dim markers As Integer = MySettings.NAND_BadBlockMarkers
-            If (markers And FlashcatSettings.BadBlockMarker._1stByte_FirstPage) > 0 Then
-                If page_one Is Nothing Then RaiseEvent ReadPages(page_addr, 0, 6, FlashArea.OOB, page_one)
-                If Not ((page_one(0)) = 255) Then valid_block = False
-            End If
-            If (markers And FlashcatSettings.BadBlockMarker._1stByte_SecondPage) > 0 Then
-                If page_two Is Nothing Then RaiseEvent ReadPages(page_addr + 1, 0, 6, FlashArea.OOB, page_two)
-                If Not ((page_two(0)) = 255) Then valid_block = False
-            End If
-            If (markers And FlashcatSettings.BadBlockMarker._1stByte_LastPage) > 0 Then
-                If page_last Is Nothing Then RaiseEvent ReadPages(LastPageAddr, 0, 6, FlashArea.OOB, page_last)
-                If Not ((page_last(0)) = 255) Then valid_block = False
-            End If
-            If (markers And FlashcatSettings.BadBlockMarker._6thByte_FirstPage) > 0 Then
-                If page_one Is Nothing Then RaiseEvent ReadPages(page_addr, 0, 6, FlashArea.OOB, page_one)
-                If Not ((page_one(5)) = 255) Then valid_block = False
-            End If
-            If (markers And FlashcatSettings.BadBlockMarker._6thByte_SecondPage) > 0 Then
-                If page_two Is Nothing Then RaiseEvent ReadPages(page_addr + 1, 0, 6, FlashArea.OOB, page_two)
-                If Not ((page_two(5)) = 255) Then valid_block = False
-            End If
-            If (Not valid_block) Then
-                Application.DoEvents()
-                RaiseEvent PrintConsole(String.Format(RM.GetString("mem_bad_nand_block"), Hex(page_addr).PadLeft(6, "0"), i.ToString))
-                MAP(i).Status = BLOCK_STATUS.Bad_Manager
+    Public Function EnableBlockManager() As Boolean
+        Try
+            If MySettings.NAND_BadBlockManager = FlashcatSettings.BadBlockMode.Disabled Or MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then
+                RaiseEvent PrintConsole(RM.GetString("nand_block_manager_disabled"))
+                Return True
             Else
-                MAP(i).Status = BLOCK_STATUS.Valid
+                SetStatus(RM.GetString("nand_mem_device_detected"))
+                RaiseEvent PrintConsole(RM.GetString("nand_mem_map_loading"))
             End If
-            page_addr += PagesPerBlock
-        Next
-    End Sub
+            Dim BlockCount As Integer = NAND_SIZE / BLOCK_SIZE
+            Dim PagesPerBlock As UInt32 = BLOCK_SIZE / PAGE_MAIN
+            Dim page_addr As UInt32 = 0
+            For i As UInt32 = 0 To BlockCount - 1
+                Dim LastPageAddr As UInt32 = (page_addr + PagesPerBlock - 1) 'The last page of this block
+                Dim page_one() As Byte = Nothing
+                Dim page_two() As Byte = Nothing
+                Dim page_last() As Byte = Nothing
+                Dim valid_block As Boolean = True
+                Dim markers As Integer = MySettings.NAND_BadBlockMarkers
+                If (markers And FlashcatSettings.BadBlockMarker._1stByte_FirstPage) > 0 Then
+                    If page_one Is Nothing Then RaiseEvent ReadPages(page_addr, 0, 6, FlashArea.OOB, page_one)
+                    If Not ((page_one(0)) = 255) Then valid_block = False
+                End If
+                If (markers And FlashcatSettings.BadBlockMarker._1stByte_SecondPage) > 0 Then
+                    If page_two Is Nothing Then RaiseEvent ReadPages(page_addr + 1, 0, 6, FlashArea.OOB, page_two)
+                    If Not ((page_two(0)) = 255) Then valid_block = False
+                End If
+                If (markers And FlashcatSettings.BadBlockMarker._1stByte_LastPage) > 0 Then
+                    If page_last Is Nothing Then RaiseEvent ReadPages(LastPageAddr, 0, 6, FlashArea.OOB, page_last)
+                    If Not ((page_last(0)) = 255) Then valid_block = False
+                End If
+                If (markers And FlashcatSettings.BadBlockMarker._6thByte_FirstPage) > 0 Then
+                    If page_one Is Nothing Then RaiseEvent ReadPages(page_addr, 0, 6, FlashArea.OOB, page_one)
+                    If Not ((page_one(5)) = 255) Then valid_block = False
+                End If
+                If (markers And FlashcatSettings.BadBlockMarker._6thByte_SecondPage) > 0 Then
+                    If page_two Is Nothing Then RaiseEvent ReadPages(page_addr + 1, 0, 6, FlashArea.OOB, page_two)
+                    If Not ((page_two(5)) = 255) Then valid_block = False
+                End If
+                If (Not valid_block) Then
+                    Application.DoEvents()
+                    RaiseEvent PrintConsole(String.Format(RM.GetString("mem_bad_nand_block"), Hex(page_addr).PadLeft(6, "0"), i.ToString))
+                    MAP(i).Status = BLOCK_STATUS.Bad_Manager
+                Else
+                    MAP(i).Status = BLOCK_STATUS.Valid
+                End If
+                page_addr += PagesPerBlock
+            Next
+            Return True
+        Catch ex As Exception
+        End Try
+        Return False
+    End Function
 
     Public Sub ProcessMap()
         Me.MAPPED_PAGES = 0
@@ -123,7 +128,7 @@ Public Class NAND_BLOCK_IF
         RaiseEvent PrintConsole(String.Format(RM.GetString("nand_mem_map_complete"), Format(MAPPED_PAGES, "#,###")))
     End Sub
     'Returns the physical page address from the logical page address
-    Public Function GetPageMapping(ByVal page_index As UInt32) As UInt32
+    Public Function GetPageMapping(page_index As UInt32) As UInt32
         Dim PagesPerBlock As UInt32 = BLOCK_SIZE / PAGE_MAIN
         For i As UInt32 = 0 To MAP.Count - 1
             If (MAP(i).Status = BLOCK_STATUS.Valid) Then
@@ -143,7 +148,7 @@ Public Class NAND_BLOCK_IF
         Return PageExtraSize
     End Function
 
-    Public Function ERASEBLOCK(ByVal page_address As Long, ByVal Memory_area As FlashArea, ByVal CopyOtherArea As Boolean) As Boolean
+    Public Function ERASEBLOCK(page_address As Long, Memory_area As FlashArea, CopyOtherArea As Boolean) As Boolean
         MEMORY_AREA_ERASED = Nothing
         If CopyOtherArea AndAlso Not Memory_area = FlashArea.All Then
             Dim page_count As Integer = (BLOCK_SIZE / PAGE_MAIN) 'number of pages per block
@@ -163,7 +168,7 @@ Public Class NAND_BLOCK_IF
         Return True
     End Function
     'This writes the data to a page
-    Public Function WRITEPAGE(ByVal page_address As Long, ByVal data_to_write() As Byte, ByVal memory_area As FlashArea) As Boolean
+    Public Function WRITEPAGE(page_address As Long, data_to_write() As Byte, memory_area As FlashArea) As Boolean
         Try
             Dim main_data() As Byte = Nothing
             Dim oob_data() As Byte = Nothing
@@ -192,7 +197,7 @@ Public Class NAND_BLOCK_IF
         End Try
     End Function
 
-    Public Function READPAGE(ByVal page_addr As Long, ByVal page_offset As UInt16, ByVal count As UInt32, ByVal memory_area As FlashArea) As Byte()
+    Public Function READPAGE(page_addr As Long, page_offset As UInt16, count As UInt32, memory_area As FlashArea) As Byte()
         Dim data_out() As Byte = Nothing
         RaiseEvent ReadPages(page_addr, page_offset, count, memory_area, data_out)
         Return data_out
@@ -203,9 +208,11 @@ Public Class NAND_BLOCK_IF
         Dim BlockCount As UInt32 = (NAND_SIZE / BLOCK_SIZE)
         Dim PageAddr As Long = 0
         For i = 0 To BlockCount - 1
-            Dim Result As Boolean = ERASEBLOCK(PageAddr, FlashArea.Main, MySettings.NAND_Preserve)
+            Dim preserve As Boolean = MySettings.NAND_Preserve
+            If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then preserve = False
+            Dim Result As Boolean = ERASEBLOCK(PageAddr, FlashArea.Main, preserve)
             If Not Result Then Return False
-            If (MySettings.NAND_Preserve) AndAlso Me.MEMORY_AREA_ERASED IsNot Nothing Then 'We need to write back the OOB
+            If preserve AndAlso Me.MEMORY_AREA_ERASED IsNot Nothing Then 'We need to write back the OOB
                 RaiseEvent WritePages(PageAddr, Nothing, MEMORY_AREA_ERASED, FlashArea.OOB, Result)
                 MEMORY_AREA_ERASED = Nothing
             End If

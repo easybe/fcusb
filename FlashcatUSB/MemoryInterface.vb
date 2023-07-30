@@ -257,7 +257,7 @@ Public Class MemoryInterface
             addr = GetSectorBaseAddress(sector_int, area)
         End Sub
 
-        Private Sub OnGetEccLastResult(ByRef result As ECC_LIB.decode_result) Handles GuiControl.GetEccLastResult
+        Private Sub OnGetEccLastResult(ByRef result As ECC_LIB.ECC_DECODE_RESULT) Handles GuiControl.GetEccLastResult
             Select Case Me.FlashType
                 Case MemoryType.NAND
                     result = FCUSB.EXT_IF.ECC_LAST_RESULT
@@ -333,7 +333,6 @@ Public Class MemoryInterface
                     Dim rd_label As String = String.Format(RM.GetString("mem_reading_memory"), Format(Params.Count, "#,###"))
                     Params.Status.UpdateTask.DynamicInvoke(rd_label)
                 End If
-                Params.Timer = New Stopwatch
                 Dim BytesRemaining As Long = Params.Count
                 For i = 1 To Loops
                     Dim BytesCountToRead As Long = BytesRemaining
@@ -347,6 +346,7 @@ Public Class MemoryInterface
                         Dim percent_done As Single = CSng((i / Loops) * 100) 'Calulate % done
                         Params.Status.UpdatePercent.DynamicInvoke(CInt(percent_done))
                     End If
+                    Params.Timer = New Stopwatch
                     Params.Timer.Start()
                     read_buffer = ReadFlash(FlashAddress, BytesCountToRead, Params.Memory_Area)
                     Params.Timer.Stop()
@@ -359,7 +359,7 @@ Public Class MemoryInterface
                         Try
                             Threading.Thread.CurrentThread.Join(10) 'Pump a message
                             If Params.Status.UpdateSpeed IsNot Nothing Then
-                                Dim bytes_per_second As UInt32 = Math.Round(BytesRead / (Params.Timer.ElapsedMilliseconds / 1000))
+                                Dim bytes_per_second As UInt32 = Math.Round(BytesCountToRead / (Params.Timer.ElapsedMilliseconds / 1000))
                                 Dim speed_text As String = UpdateSpeed_GetText(bytes_per_second)
                                 Params.Status.UpdateSpeed.DynamicInvoke(speed_text)
                             End If
@@ -441,7 +441,10 @@ Public Class MemoryInterface
 
         Private Function WriteBytes_EPROM(data_stream As IO.Stream, Params As WriteParameters) As Boolean
             Me.WaitUntilReady() 'Some flash devices requires us to wait before sending data
+            Dim FailedAttempts As Integer = 0
+            Dim ReadResult As Boolean
             Dim BlockSize As UInt32 = 8192
+
             While (Params.BytesLeft > 0)
                 If Params.AbortOperation Then Return False
                 Dim PacketSize As Integer = Params.BytesLeft
@@ -474,24 +477,29 @@ Public Class MemoryInterface
                     If FlashType = MemoryType.OTP_EPROM Then
                         FCUSB.EXT_IF.EPROM_ReadData(Params.Address, BlockSize) 'Before we verify, we should read the entire block once
                     End If
-                    Dim ReadResult As Boolean = WriteBytes_VerifyWrite(Params.Address, packet_data, Params.Memory_Area)
-                    If Not ReadResult Then Return False
+                    ReadResult = WriteBytes_VerifyWrite(Params.Address, packet_data, Params.Memory_Area)
                     If ReadResult Then
+                        FailedAttempts = 0
                         If Params.Status.UpdateTask IsNot Nothing Then
                             Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_okay"))
                             Application.DoEvents()
                             Utilities.Sleep(500)
                         End If
                     Else
-                        RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(Params.Address)))
-                        If Params.Status.UpdateOperation IsNot Nothing Then
-                            Params.Status.UpdateOperation.DynamicInvoke(5) 'ERROR IMG
+                        FailedAttempts += 1
+                        If FailedAttempts = (MySettings.VERIFY_COUNT + 1) Then
+                            RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(Params.Address)))
+                            If Params.Status.UpdateOperation IsNot Nothing Then
+                                Params.Status.UpdateOperation.DynamicInvoke(5) 'ERROR IMG
+                            End If
+                            If Params.Status.UpdateTask IsNot Nothing Then
+                                Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_failed"))
+                                Utilities.Sleep(1000)
+                                Application.DoEvents()
+                            End If
+                            Return False
                         End If
-                        If Params.Status.UpdateTask IsNot Nothing Then
-                            Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_failed"))
-                            Utilities.Sleep(1000)
-                            Application.DoEvents()
-                        End If
+                        Utilities.Sleep(500)
                     End If
                 End If
                 Params.BytesWritten += PacketSize
@@ -719,7 +727,7 @@ Public Class MemoryInterface
                                 Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_okay"))
                             End If
                         Else
-                            FailedAttempts = FailedAttempts + 1
+                            FailedAttempts += 1
                             If FailedAttempts = (MySettings.VERIFY_COUNT + 1) Then
                                 If (FlashType = FlashMemory.MemoryType.NAND) Then
                                     Dim n_dev As P_NAND = DirectCast(FCUSB.EXT_IF.MyFlashDevice, P_NAND)
@@ -788,7 +796,7 @@ Public Class MemoryInterface
                     MiscountCounter = MiscountCounter + 1
                 End If
             Next
-            If MiscountCounter = 0 Then 'Verification successful
+            If (MiscountCounter = 0) Then 'Verification successful
                 Return True
             Else 'Error!
                 RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_mismatches"), "0x" & Hex(FirstWrongAddr), "0x" & Hex(FirstWrongByteShould), "0x" & Hex(FirstWrongByteIs), MiscountCounter))

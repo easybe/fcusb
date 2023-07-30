@@ -46,7 +46,7 @@ Namespace ECC_LIB
 #End Region
 
         'Creates ECC (24-bit) for 512 bytes - 1 bit correctable, 2 bit detectable
-        Public Function GenerateECC(ByVal block() As Byte) As Byte()
+        Public Function GenerateECC(block() As Byte) As Byte()
             Dim ecc_code(2) As Byte
             Dim word_reg As UInt16
             Dim LP0, LP1, LP2, LP3, LP4, LP5, LP6, LP7, LP8, LP9, LP10, LP11, LP12, LP13, LP14, LP15, LP16, LP17 As UInt32
@@ -122,14 +122,14 @@ Namespace ECC_LIB
             Return ecc_code
         End Function
         'Processed a block of 512 bytes with 24-bit ecc code word data, corrects if needed
-        Public Function ProcessECC(ByRef block() As Byte, ByRef stored_ecc() As Byte) As decode_result
+        Public Function ProcessECC(block() As Byte, stored_ecc() As Byte) As ECC_DECODE_RESULT
             Dim new_ecc() As Byte = GenerateECC(block)
             Dim ecc_xor(2) As Byte
             ecc_xor(0) = new_ecc(0) Xor stored_ecc(0)
             ecc_xor(1) = new_ecc(1) Xor stored_ecc(1)
             ecc_xor(2) = new_ecc(2) Xor stored_ecc(2)
             If ((ecc_xor(0) Or ecc_xor(1) Or ecc_xor(2)) = 0) Then
-                Return decode_result.NoErrors
+                Return ECC_DECODE_RESULT.NoErrors
             Else
                 Dim bit_count As Integer = BitCount(ecc_xor) 'Counts the bit number
                 If (bit_count = 12) Then
@@ -142,18 +142,17 @@ Namespace ECC_LIB
                            (ecc_xor(1) And &H80) Or ((CUShort(ecc_xor(2)) << 7) And &H100)
 
                     block(byte_addr - 1) = block(byte_addr - 1) Xor (1 << bit_addr)
-
-                    Return decode_result.Correctable
+                    Return ECC_DECODE_RESULT.Correctable
                 ElseIf (bit_count = 1) Then
                     stored_ecc = new_ecc
-                    Return decode_result.EccError
+                    Return ECC_DECODE_RESULT.EccError
                 Else
-                    Return decode_result.Uncorractable
+                    Return ECC_DECODE_RESULT.Uncorractable
                 End If
             End If
         End Function
 
-        Private Function BitCount(ByVal data() As Byte) As Integer
+        Private Function BitCount(data() As Byte) As Integer
             Dim counter As Integer
             For i = 0 To data.Length - 1
                 Dim temp As Byte = data(i)
@@ -168,33 +167,15 @@ Namespace ECC_LIB
     End Class
 
     Public Class RS_ECC
-        Private RS_CONST_T As Integer = 4 'Number of symbols to correct
-        Private RS_SYM_W As Integer = 9 'Number of bits per symbol
-
-        Public Property PARITY_BITS As Integer
-            Get
-                Return RS_CONST_T
-            End Get
-            Set(value As Integer)
-                RS_CONST_T = value
-            End Set
-        End Property
-
-        Public Property SYM_WIDTH As Integer
-            Get
-                Return RS_SYM_W
-            End Get
-            Set(value As Integer)
-                RS_SYM_W = value
-            End Set
-        End Property
+        Public Property PARITY_BITS As Integer 'RS_CONST_T (Number of symbols to correct)
+        Public Property SYM_WIDTH As Integer 'RS_SYM_W (Number of bits per symbol)
 
         Sub New()
 
         End Sub
 
         Public Function GetEccSize() As Integer
-            If Me.RS_SYM_W = 9 Then
+            If Me.SYM_WIDTH = 9 Then
                 Select Case PARITY_BITS
                     Case 1
                         Return 3
@@ -209,7 +190,7 @@ Namespace ECC_LIB
                     Case 14
                         Return 32
                 End Select
-            ElseIf Me.RS_SYM_W = 10 Then
+            ElseIf Me.SYM_WIDTH = 10 Then
                 Select Case PARITY_BITS
                     Case 1
                         Return 3
@@ -228,37 +209,37 @@ Namespace ECC_LIB
             Return -1
         End Function
 
-        Public Function GenerateECC(ByVal block() As Byte) As Byte()
-            Dim sym_data() As Integer = bytes_to_symbols(block, Me.RS_SYM_W)
-            Using RS As New ECC.ReedSolomon(Me.RS_SYM_W, GetPolynomial(Me.RS_SYM_W), 0, 2, RS_CONST_T * 2)
-                Dim Symbols() As Integer = bytes_to_symbols(block, Me.RS_SYM_W)
+        Public Function GenerateECC(block() As Byte) As Byte()
+            Dim sym_data() As Integer = bytes_to_symbols(block, Me.SYM_WIDTH)
+            Using RS As New ECC.ReedSolomon(Me.SYM_WIDTH, GetPolynomial(Me.SYM_WIDTH), 0, 2, Me.PARITY_BITS * 2)
+                Dim Symbols() As Integer = bytes_to_symbols(block, Me.SYM_WIDTH)
                 Dim result() As Integer = RS.Encode(Symbols)
-                Dim ecc_data() As Byte = symbols_to_bytes(result, Me.RS_SYM_W)
+                Dim ecc_data() As Byte = symbols_to_bytes(result, Me.SYM_WIDTH)
                 Return ecc_data
             End Using
         End Function
 
-        Public Function ProcessECC(ByRef block() As Byte, ByRef stored_ecc() As Byte) As decode_result
-            Dim sym_data() As Integer = bytes_to_symbols(block, Me.RS_SYM_W)
-            Using RS As New ECC.ReedSolomon(Me.RS_SYM_W, GetPolynomial(Me.RS_SYM_W), 0, 2, RS_CONST_T * 2)
-                Dim Symbols() As Integer = bytes_to_symbols(block, Me.RS_SYM_W)
-                Dim EccData() As Integer = bytes_to_symbols(stored_ecc, Me.RS_SYM_W)
+        Public Function ProcessECC(ByRef block() As Byte, ByRef stored_ecc() As Byte) As ECC_DECODE_RESULT
+            Dim sym_data() As Integer = bytes_to_symbols(block, Me.SYM_WIDTH)
+            Using RS As New ECC.ReedSolomon(Me.SYM_WIDTH, GetPolynomial(Me.SYM_WIDTH), 0, 2, Me.PARITY_BITS * 2)
+                Dim Symbols() As Integer = bytes_to_symbols(block, Me.SYM_WIDTH)
+                Dim EccData() As Integer = bytes_to_symbols(stored_ecc, Me.SYM_WIDTH)
                 Dim cmp_result As ECC.CompareResult = RS.Decode(Symbols, EccData)
                 Select Case cmp_result
                     Case ECC.CompareResult.NoError
-                        Return decode_result.NoErrors
+                        Return ECC_DECODE_RESULT.NoErrors
                     Case ECC.CompareResult.EccError
                         Dim org_size As Integer = stored_ecc.Length
-                        stored_ecc = symbols_to_bytes(EccData, Me.RS_SYM_W)
+                        stored_ecc = symbols_to_bytes(EccData, Me.SYM_WIDTH)
                         ReDim Preserve stored_ecc(org_size - 1)
-                        Return decode_result.EccError
+                        Return ECC_DECODE_RESULT.EccError
                     Case ECC.CompareResult.Correctable
                         Dim org_size As Integer = block.Length
-                        block = symbols_to_bytes(Symbols, Me.RS_SYM_W)
+                        block = symbols_to_bytes(Symbols, Me.SYM_WIDTH)
                         ReDim Preserve block(org_size - 1)
-                        Return decode_result.Correctable
+                        Return ECC_DECODE_RESULT.Correctable
                     Case Else
-                        Return decode_result.Uncorractable
+                        Return ECC_DECODE_RESULT.Uncorractable
                 End Select
             End Using
         End Function
@@ -407,18 +388,18 @@ Namespace ECC_LIB
             End Using
         End Function
 
-        Public Function ProcessECC(ByRef block() As Byte, ByRef stored_ecc() As Byte) As decode_result
+        Public Function ProcessECC(ByRef block() As Byte, ByRef stored_ecc() As Byte) As ECC_DECODE_RESULT
             Using BchControl As New ECC.BCH(BCH_CONST_M, BCH_CONST_T)
                 Dim cmp_result As ECC.CompareResult = BchControl.Decode(block, stored_ecc)
                 Select Case cmp_result
                     Case ECC.CompareResult.NoError
-                        Return decode_result.NoErrors
+                        Return ECC_DECODE_RESULT.NoErrors
                     Case ECC.CompareResult.EccError
-                        Return decode_result.EccError
+                        Return ECC_DECODE_RESULT.EccError
                     Case ECC.CompareResult.Correctable
-                        Return decode_result.Correctable
+                        Return ECC_DECODE_RESULT.Correctable
                     Case Else
-                        Return decode_result.Uncorractable
+                        Return ECC_DECODE_RESULT.Uncorractable
                 End Select
             End Using
         End Function
@@ -435,7 +416,7 @@ Namespace ECC_LIB
         Public Property ECC_SEPERATE As Boolean 'We need to seperate each spare into sections
         Public Property REVERSE_ARRAY As Boolean = False 'RS option allows to reverse the input byte array
 
-        Sub New(ByVal mode As ecc_algorithum, ByVal parity_level As Integer)
+        Sub New(mode As ecc_algorithum, parity_level As Integer)
             Me.ecc_mode = mode
             Select Case ecc_mode
                 Case ecc_algorithum.hamming 'Hamming only supports 1-bit ECC correction
@@ -446,7 +427,7 @@ Namespace ECC_LIB
             End Select
         End Sub
 
-        Public Function GenerateECC(ByVal data_in() As Byte) As Byte()
+        Public Function GenerateECC(data_in() As Byte) As Byte()
             If Me.REVERSE_ARRAY Then Array.Reverse(data_in)
             Select Case Me.ecc_mode
                 Case ecc_algorithum.hamming 'Hamming only supports 1-bit ECC correction
@@ -459,11 +440,11 @@ Namespace ECC_LIB
             Return Nothing
         End Function
         'Processes blocks of 512 bytes and returns the last decoded result
-        Public Function ReadData(ByRef data_in() As Byte, ByVal ecc() As Byte) As decode_result
-            Dim result As decode_result
+        Public Function ReadData(data_in() As Byte, ecc() As Byte) As ECC_DECODE_RESULT
+            Dim result As ECC_DECODE_RESULT = ECC_DECODE_RESULT.NoErrors
             Try
-                If Utilities.IsByteArrayFilled(ecc, 255) Then Return decode_result.NoErrors 'ECC area does not contain ECC data
-                If Not (data_in.Length Mod 512 = 0) Then Return decode_result.data_input_error
+                If Utilities.IsByteArrayFilled(ecc, 255) Then Return ECC_DECODE_RESULT.NoErrors 'ECC area does not contain ECC data
+                If Not (data_in.Length Mod 512 = 0) Then Return ECC_DECODE_RESULT.InputError
                 If Me.REVERSE_ARRAY Then Array.Reverse(data_in)
                 Dim ecc_byte_size As Integer = GetEccByteSize()
                 Dim ecc_ptr As Integer = 0
@@ -480,9 +461,9 @@ Namespace ECC_LIB
                         Case ecc_algorithum.bhc
                             result = ecc_bhc.ProcessECC(block, ecc_data)
                     End Select
-                    If result = decode_result.Uncorractable Then
-                        Return decode_result.Uncorractable
-                    ElseIf result = decode_result.Correctable Then
+                    If result = ECC_DECODE_RESULT.Uncorractable Then
+                        Return ECC_DECODE_RESULT.Uncorractable
+                    ElseIf result = ECC_DECODE_RESULT.Correctable Then
                         Array.Copy(block, 0, data_in, i - 1, 512)
                     End If
                     ecc_ptr += ecc_byte_size
@@ -492,7 +473,7 @@ Namespace ECC_LIB
             Return result
         End Function
 
-        Public Sub WriteData(ByVal data_in() As Byte, ByRef ecc() As Byte)
+        Public Sub WriteData(data_in() As Byte, ByRef ecc() As Byte)
             Try
                 If Not (data_in.Length Mod 512 = 0) Then Exit Sub
                 If Me.REVERSE_ARRAY Then Array.Reverse(data_in)
@@ -532,7 +513,7 @@ Namespace ECC_LIB
             Return -1
         End Function
 
-        Public Function GetEccFromSpare(ByVal spare() As Byte, ByVal page_size As UInt16, ByVal oob_size As UInt16) As Byte()
+        Public Function GetEccFromSpare(spare() As Byte, page_size As UInt16, oob_size As UInt16) As Byte()
             Dim bytes_per_ecc As Integer = Me.GetEccByteSize
             Dim sub_pages As Integer = (page_size / 512)
             Dim page_count As Integer = (spare.Length / oob_size)
@@ -563,7 +544,7 @@ Namespace ECC_LIB
             Return ecc_data
         End Function
         'Writes the ECC bytes into the spare area
-        Public Sub SetEccToSpare(ByRef spare() As Byte, ecc_data() As Byte, ByVal page_size As UInt16, ByVal oob_size As UInt16)
+        Public Sub SetEccToSpare(spare() As Byte, ecc_data() As Byte, page_size As UInt16, oob_size As UInt16)
             Dim bytes_per_ecc As Integer = Me.GetEccByteSize
             Dim sub_pages As Integer = (page_size / 512)
             Dim page_count As Integer = (spare.Length / oob_size)
@@ -592,7 +573,7 @@ Namespace ECC_LIB
             Next
         End Sub
 
-        Public Sub SetSymbolWidth(ByVal bit_width As Integer)
+        Public Sub SetSymbolWidth(bit_width As Integer)
             If Me.ecc_mode = ecc_algorithum.reedsolomon Then
                 ecc_reedsolomon.SYM_WIDTH = bit_width
             End If
@@ -600,12 +581,12 @@ Namespace ECC_LIB
 
     End Class
 
-    Public Enum decode_result
+    Public Enum ECC_DECODE_RESULT
         NoErrors 'all bits and parity match
         Correctable 'one or more bits dont match but was corrected
         EccError 'the error is in the ecc
         Uncorractable 'more errors than are correctable
-        data_input_error 'User sent data that was not in 512 byte segments
+        InputError 'User sent data that was not in 512 byte segments
     End Enum
 
     Public Enum ecc_algorithum As Integer
@@ -614,5 +595,26 @@ Namespace ECC_LIB
         bhc = 2
     End Enum
 
+    Public Module Common
+
+        Public Function ECC_GetErrorMessage(err As ECC_DECODE_RESULT) As String
+            Select Case err
+                Case ECC_DECODE_RESULT.NoErrors
+                    Return "No Errors found"
+                Case ECC_DECODE_RESULT.Correctable
+                    Return "Data Corrected"
+                Case ECC_DECODE_RESULT.EccError
+                    Return "ECC data error"
+                Case ECC_DECODE_RESULT.Uncorractable
+                    Return "Too many errors"
+                Case ECC_DECODE_RESULT.InputError
+                    Return "Block data was invalid"
+                Case Else
+                    Return ""
+            End Select
+        End Function
+
+
+    End Module
 
 End Namespace

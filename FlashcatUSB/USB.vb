@@ -432,6 +432,7 @@ Namespace USB
                     USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
                     Utilities.Sleep(250)
                     USB_CONTROL_MSG_OUT(USBREQ.LOGIC_1V8)
+                    Utilities.Sleep(100)
                     MySettings.VOLT_SELECT = Voltage.V1_8
                 End If
             End Sub
@@ -441,6 +442,7 @@ Namespace USB
                     USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
                     Utilities.Sleep(250)
                     USB_CONTROL_MSG_OUT(USBREQ.LOGIC_3V3)
+                    Utilities.Sleep(100)
                     MySettings.VOLT_SELECT = Voltage.V3_3
                 End If
             End Sub

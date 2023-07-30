@@ -124,7 +124,7 @@ Namespace SPI
             Return 0
         End Function
 
-        Friend Function ReadData(ByVal flash_offset As Long, ByVal data_count As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
+        Friend Function ReadData(flash_offset As Long, data_count As UInt32, Optional memory_area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
             If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             Dim data_to_read(data_count - 1) As Byte
             Dim bytes_left As UInt32 = data_count
@@ -132,7 +132,7 @@ Namespace SPI
             Dim array_ptr As UInt32 = 0
             Dim read_cmd As Byte = MyFlashDevice.OP_COMMANDS.READ
             Dim dummy_clocks As Byte = 0
-            If MySettings.SPI_FASTREAD AndAlso FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
+            If MySettings.SPI_FASTREAD AndAlso FCUSB.IsProfessional() Then
                 read_cmd = MyFlashDevice.OP_COMMANDS.FAST_READ
             End If
             If (Me.MyFlashDevice.ProgramMode = FlashMemory.SPI_ProgramMode.Atmel45Series) Then
@@ -156,7 +156,7 @@ Namespace SPI
                     FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_READFLASH, setup_class.ToBytes, data_to_read, 0)
                 End If
             Else 'Normal SPI READ
-                If MySettings.SPI_FASTREAD AndAlso (FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB4) Then
+                If MySettings.SPI_FASTREAD AndAlso (FCUSB.IsProfessional()) Then
                     dummy_clocks = MyFlashDevice.SPI_DUMMY
                 End If
                 If (MyFlashDevice.STACKED_DIES > 1) Then
@@ -699,7 +699,7 @@ Namespace SPI
             Return SPIBUS_WriteRead({spi_cmd}, Nothing)
         End Function
 
-        Public Function SPIBUS_WriteRead(ByVal WriteBuffer() As Byte, Optional ByRef ReadBuffer() As Byte = Nothing) As UInt32
+        Public Function SPIBUS_WriteRead(WriteBuffer() As Byte, Optional ByRef ReadBuffer() As Byte = Nothing) As UInt32
             If WriteBuffer Is Nothing And ReadBuffer Is Nothing Then Return 0
             Dim TotalBytesTransfered As UInt32 = 0
             SPIBUS_SlaveSelect_Enable()
@@ -797,9 +797,9 @@ Namespace SPI
         Property COUNT As UInt32
         Property ADDR_BYTES As Byte 'Number of bytes used for the read command (MyFlashDevice.AddressBytes)
         Property DUMMY As Integer = 0 'Number of clock toggles before reading data
-        Property SPI_MODE As SPI_QUAD_SUPPORT = SPI_QUAD_SUPPORT.NO_QUAD
+        Property SPI_MODE As SQI_IO_MODE = SQI_IO_MODE.SPI_ONLY
 
-        Sub New(ByVal cmd As Byte, ByVal offset As UInt32, ByVal d_count As UInt32, ByVal addr_size As Byte)
+        Sub New(cmd As Byte, offset As UInt32, d_count As UInt32, addr_size As Byte)
             Me.READ_CMD = cmd
             Me.DATA_OFFSET = offset
             Me.COUNT = d_count
@@ -817,7 +817,7 @@ Namespace SPI
             setup_data(6) = CByte((COUNT And &HFF0000) >> 16)
             setup_data(7) = CByte((COUNT And &HFF00) >> 8)
             setup_data(8) = CByte(COUNT And &HFF)
-            setup_data(9) = DUMMY 'Number of dummy bytes
+            setup_data(9) = Me.DUMMY 'Number of dummy bytes
             setup_data(10) = Me.SPI_MODE
             Return setup_data
         End Function

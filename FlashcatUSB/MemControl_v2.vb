@@ -33,7 +33,7 @@ Public Class MemControl_v2
     Public Event GetSectorSize(sector_int As UInt32, area As FlashMemory.FlashArea, ByRef sector_size As UInt32)
     Public Event EraseMemory()
     Public Event SuccessfulWrite(ByVal mydev As USB.HostClient.FCUSB_DEVICE, ByVal x As XFER_Operation)
-    Public Event GetEccLastResult(ByRef result As decode_result)
+    Public Event GetEccLastResult(ByRef result As ECC_DECODE_RESULT)
 
     Public Property IN_OPERATION As Boolean = False
     Public Property USER_HIT_CANCEL As Boolean = False
@@ -602,9 +602,9 @@ Public Class MemControl_v2
 
     Private Sub UpdateEccResultImg()
         If MySettings.ECC_READ_ENABLED Then
-            Dim result As decode_result
+            Dim result As ECC_DECODE_RESULT
             RaiseEvent GetEccLastResult(result)
-            If result = decode_result.NoErrors Then
+            If result = ECC_DECODE_RESULT.NoErrors Then
                 pb_ecc.Image = My.Resources.ecc_valid
             Else
                 pb_ecc.Image = My.Resources.ecc_blue
@@ -1072,13 +1072,13 @@ Public Class MemControl_v2
         If OpenFileForCompare(v_parm.Local_File) Then
             v_parm.Count = v_parm.Local_File.Length
             Dim dbox As New DynamicRangeBox
-            If (v_parm.Local_File.Extension.ToUpper = ".HEX") AndAlso v_parm.Local_File.Length < (1048576 * 16) Then
+            If (v_parm.Local_File.Extension.ToUpper.Equals(".HEX")) AndAlso v_parm.Local_File.Length < (1048576 * 16) Then
                 Dim entire_file() As Byte = Utilities.FileIO.ReadBytes(v_parm.Local_File.FullName)
                 If Utilities.IsIntelHex(entire_file) Then
                     v_parm.converted_file = Utilities.IntelHexToBin(entire_file)
                     v_parm.Count = v_parm.converted_file.Length
                 End If
-            ElseIf (v_parm.Local_File.Extension.ToUpper = ".SREC") AndAlso v_parm.Local_File.Length < (1048576 * 16) Then
+            ElseIf (v_parm.Local_File.Extension.ToUpper.Equals(".SREC")) AndAlso v_parm.Local_File.Length < (1048576 * 16) Then
                 Dim entire_file() As Byte = Utilities.FileIO.ReadBytes(v_parm.Local_File.FullName)
                 If Utilities.SREC_IsValid(entire_file) Then
                     Dim data_size As Integer = 8
@@ -1097,36 +1097,7 @@ Public Class MemControl_v2
         End If
     End Sub
 
-    Private Class CompareParams
-        Public BaseOffset As UInt32 = 0
-        Public Count As UInt32
-        Public Local_File As IO.FileInfo
-        Public converted_file() As Byte = Nothing
-    End Class
-
-    Private Function CompareFlash_Read(ByVal base As UInt32, ByVal count As UInt32) As Byte()
-        Try
-            ReadingParams = New ReadParameters
-            ReadingParams.Address = base
-            ReadingParams.Count = count
-            ReadingParams.Timer = New Stopwatch
-            ReadingParams.Memory_Area = AreaSelected
-            ReadingParams.Status.UpdateBase = New cbStatus_UpdateBase(AddressOf Status_UpdateBase)
-            ReadingParams.Status.UpdateTask = New cbStatus_UpdateTask(AddressOf Status_UpdateTask)
-            Using data_stream As New IO.MemoryStream
-                RaiseEvent ReadStream(data_stream, ReadingParams)
-                If ReadingParams.AbortOperation Then Return Nothing
-                data_stream.Position = 0
-                Dim data_out(count - 1) As Byte
-                data_stream.Read(data_out, 0, data_out.Length)
-                Return data_out
-            End Using
-        Catch ex As Exception
-            Return Nothing
-        End Try
-    End Function
-
-    Private Sub CompareFlashTd(ByVal param As CompareParams)
+    Private Sub CompareFlashTd(param As CompareParams)
         Dim TotalMismatches As UInt32 = 0
         Dim CompareCount As UInt32 = param.Count 'org size
         Dim StartingAddress As UInt32 = param.BaseOffset
@@ -1241,11 +1212,43 @@ Public Class MemControl_v2
                                                        CompareResultForm.Top = CInt(GUI.Top + ((GUI.Height / 2) - (CompareResultForm.Height / 2)))
                                                        CompareResultForm.Left = CInt(GUI.Left + ((GUI.Width / 2) - (CompareResultForm.Width / 2)))
                                                    End Sub
+
+                RaiseEvent SetStatus(RM.GetString("mc_compare_results") & ": " & percent_formatted & "% match")
+
                 CompareResultForm.ShowDialog()
             End If
         Catch ex As Exception
         End Try
     End Sub
+
+    Private Class CompareParams
+        Public BaseOffset As UInt32 = 0
+        Public Count As UInt32 = 0
+        Public Local_File As IO.FileInfo
+        Public converted_file() As Byte = Nothing
+    End Class
+
+    Private Function CompareFlash_Read(ByVal base As UInt32, ByVal count As UInt32) As Byte()
+        Try
+            ReadingParams = New ReadParameters
+            ReadingParams.Address = base
+            ReadingParams.Count = count
+            ReadingParams.Timer = New Stopwatch
+            ReadingParams.Memory_Area = AreaSelected
+            ReadingParams.Status.UpdateBase = New cbStatus_UpdateBase(AddressOf Status_UpdateBase)
+            ReadingParams.Status.UpdateTask = New cbStatus_UpdateTask(AddressOf Status_UpdateTask)
+            Using data_stream As New IO.MemoryStream
+                RaiseEvent ReadStream(data_stream, ReadingParams)
+                If ReadingParams.AbortOperation Then Return Nothing
+                data_stream.Position = 0
+                Dim data_out(count - 1) As Byte
+                data_stream.Read(data_out, 0, data_out.Length)
+                Return data_out
+            End Using
+        Catch ex As Exception
+            Return Nothing
+        End Try
+    End Function
 
     Private Shared Function UpdateSpeed_GetText(ByVal bytes_per_second As Integer) As String
         Dim Mb008 As UInt32 = 1048576

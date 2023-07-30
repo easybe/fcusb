@@ -2311,6 +2311,34 @@ Public Class MainForm
 
 #End Region
 
+#Region "License"
+
+    Private Sub mi_license_menu_Click(sender As Object, e As EventArgs) Handles mi_license_menu.Click
+        Dim n As New FrmLicense
+        n.ShowDialog()
+        License_Init()
+    End Sub
+
+    Private Sub License_Init()
+        Try
+            Dim left_part As String = "FlashcatUSB (Build " & Build & ")"
+            If MySettings.LICENSED_TO.Equals("") Then
+                Me.Text = left_part & " - NOT LICENSED"
+            Else
+                If MySettings.LICENSE_EXP.Date.Year = 1 Then
+                    Me.Text = left_part & " - Licensed to " & MySettings.LICENSED_TO
+                ElseIf Date.Compare(DateTime.Now, MySettings.LICENSE_EXP.Date) > 0 Then
+                    Me.Text = left_part & " - LICENSE EXPIRED!"
+                Else
+                    Me.Text = left_part & " - Licensed to " & MySettings.LICENSED_TO
+                End If
+            End If
+        Catch ex As Exception
+        End Try
+    End Sub
+
+#End Region
+
     Public Sub SetConnectionStatus(ByVal usb_dev As FCUSB_DEVICE)
         If Me.InvokeRequired Then
             Dim d As New cbSetConnectionStatus(AddressOf SetConnectionStatus)
@@ -2482,40 +2510,9 @@ Public Class MainForm
                     If dev.GuiControl.GetHexAddrSize() > highest_Addr Then highest_Addr = dev.GuiControl.GetHexAddrSize()
                 End If
             Next
-            If highest_Addr = 5 Then
-                If Me.Width < 560 Then Me.Width = 560
-            End If
         Catch ex As Exception
         End Try
     End Sub
-
-#Region "License"
-
-    Private Sub mi_license_menu_Click(sender As Object, e As EventArgs) Handles mi_license_menu.Click
-        Dim n As New FrmLicense
-        n.ShowDialog()
-        License_Init()
-    End Sub
-
-    Private Sub License_Init()
-        Try
-            Dim left_part As String = "FlashcatUSB (Build " & Build & ")"
-            If MySettings.LICENSED_TO.Equals("") Then
-                Me.Text = left_part & " - NOT LICENSED"
-            Else
-                If MySettings.LICENSE_EXP.Date.Year = 1 Then
-                    Me.Text = left_part & " - Licensed to " & MySettings.LICENSED_TO
-                ElseIf Date.Compare(DateTime.Now, MySettings.LICENSE_EXP.Date) > 0 Then
-                    Me.Text = left_part & " - LICENSE EXPIRED!"
-                Else
-                    Me.Text = left_part & " - Licensed to " & MySettings.LICENSED_TO
-                End If
-            End If
-        Catch ex As Exception
-        End Try
-    End Sub
-
-#End Region
 
     Private Sub Mi_blank_check_Click(sender As Object, e As EventArgs) Handles mi_blank_check.Click
         Try

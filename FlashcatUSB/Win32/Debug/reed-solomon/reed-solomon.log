@@ -1,3 +1,0 @@
-﻿C:\Program Files (x86)\MSBuild\14.0\bin\Microsoft.Common.CurrentVersion.targets(1611,5): warning : The referenced project '..\tbb\tbb.vcxproj' does not exist.
-  galois.cpp
-  reed-solomon.vcxproj -> C:\Users\Admin\Documents\EmbeddedComputers\Source Code\FlashcatUSB\Win32\Debug\reed-solomon.lib

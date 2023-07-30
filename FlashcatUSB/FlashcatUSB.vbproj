@@ -114,6 +114,7 @@
     <Compile Include="FrmLicense.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="ISC_LOGIC_PROG.vb" />
     <Compile Include="Parallel_NOR_NAND.vb" />
     <Compile Include="FlashMemory.vb" />
     <Compile Include="FrmSettings.designer.vb">
@@ -221,7 +222,6 @@
     </Compile>
     <Compile Include="NAND_Block_Manager.vb" />
     <Compile Include="SPI_QUAD.vb" />
-    <Compile Include="SSPIEm_DLL.vb" />
     <Compile Include="SWI.vb" />
     <Compile Include="vendor\vendor_microchip_at21.Designer.vb">
       <DependentUpon>vendor_microchip_at21.vb</DependentUpon>
@@ -247,7 +247,7 @@
     <Compile Include="vendor\vendor_issi.vb">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="ScriptEng.vb" />
+    <Compile Include="ScriptEngine.vb" />
     <Compile Include="SPI_NOR.vb" />
     <Compile Include="SPI_NAND.vb" />
     <Compile Include="USB.vb" />
@@ -358,9 +358,12 @@
     <EmbeddedResource Include="firmware\PCB4_QUAD_1V8.svf" />
     <EmbeddedResource Include="firmware\PCB4_BL_1.02.bin" />
     <EmbeddedResource Include="firmware\PCB4_BL_APP.bin" />
-    <EmbeddedResource Include="firmware\MACH1_PCB2_3V3.svf" />
+    <EmbeddedResource Include="firmware\MACH1_3V3.svf" />
     <EmbeddedResource Include="firmware\Mach1_v2_Source.bin" />
-    <EmbeddedResource Include="firmware\MACH1_PCB2_1V8.svf" />
+    <EmbeddedResource Include="firmware\MACH1_1V8.svf" />
+    <EmbeddedResource Include="firmware\MACH1_ERASE.svf" />
+    <EmbeddedResource Include="firmware\MACH1_3V3.bit" />
+    <EmbeddedResource Include="firmware\MACH1_1V8.bit" />
     <None Include="My Project\app.manifest" />
     <None Include="My Project\Application.myapp">
       <Generator>MyApplicationCodeGenerator</Generator>

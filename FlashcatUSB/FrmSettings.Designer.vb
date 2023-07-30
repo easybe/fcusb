@@ -125,6 +125,7 @@ Partial Class FrmSettings
         Me.lbl_nandecc_biterror = New System.Windows.Forms.Label()
         Me.TP_GEN = New System.Windows.Forms.TabPage()
         Me.GroupBox7 = New System.Windows.Forms.GroupBox()
+        Me.lbl_s93_size = New System.Windows.Forms.Label()
         Me.cb_s93_devices = New System.Windows.Forms.ComboBox()
         Me.Label18 = New System.Windows.Forms.Label()
         Me.cb_s93_org = New System.Windows.Forms.ComboBox()
@@ -140,7 +141,6 @@ Partial Class FrmSettings
         Me.Label17 = New System.Windows.Forms.Label()
         Me.Label20 = New System.Windows.Forms.Label()
         Me.cb_multi_ce = New System.Windows.Forms.ComboBox()
-        Me.lbl_s93_size = New System.Windows.Forms.Label()
         Me.MyTabs.SuspendLayout()
         Me.TP_SPI.SuspendLayout()
         Me.group_custom.SuspendLayout()
@@ -1201,9 +1201,9 @@ Partial Class FrmSettings
         Me.cb_ECC_WriteEnable.AutoSize = True
         Me.cb_ECC_WriteEnable.Location = New System.Drawing.Point(9, 67)
         Me.cb_ECC_WriteEnable.Name = "cb_ECC_WriteEnable"
-        Me.cb_ECC_WriteEnable.Size = New System.Drawing.Size(153, 17)
+        Me.cb_ECC_WriteEnable.Size = New System.Drawing.Size(98, 17)
         Me.cb_ECC_WriteEnable.TabIndex = 6
-        Me.cb_ECC_WriteEnable.Text = "Write operation (write ECC)"
+        Me.cb_ECC_WriteEnable.Text = "Write operation"
         Me.cb_ECC_WriteEnable.UseVisualStyleBackColor = True
         '
         'cb_ECC_ReadEnable
@@ -1211,9 +1211,9 @@ Partial Class FrmSettings
         Me.cb_ECC_ReadEnable.AutoSize = True
         Me.cb_ECC_ReadEnable.Location = New System.Drawing.Point(9, 44)
         Me.cb_ECC_ReadEnable.Name = "cb_ECC_ReadEnable"
-        Me.cb_ECC_ReadEnable.Size = New System.Drawing.Size(165, 17)
+        Me.cb_ECC_ReadEnable.Size = New System.Drawing.Size(99, 17)
         Me.cb_ECC_ReadEnable.TabIndex = 0
-        Me.cb_ECC_ReadEnable.Text = "Read operation (auto-correct)"
+        Me.cb_ECC_ReadEnable.Text = "Read operation"
         Me.cb_ECC_ReadEnable.UseVisualStyleBackColor = True
         '
         'lbl_nandecc_enabled
@@ -1272,6 +1272,15 @@ Partial Class FrmSettings
         Me.GroupBox7.TabIndex = 53
         Me.GroupBox7.TabStop = False
         Me.GroupBox7.Text = "Microwire"
+        '
+        'lbl_s93_size
+        '
+        Me.lbl_s93_size.AutoSize = True
+        Me.lbl_s93_size.Location = New System.Drawing.Point(12, 76)
+        Me.lbl_s93_size.Name = "lbl_s93_size"
+        Me.lbl_s93_size.Size = New System.Drawing.Size(84, 13)
+        Me.lbl_s93_size.TabIndex = 54
+        Me.lbl_s93_size.Text = "Device Size: XX"
         '
         'cb_s93_devices
         '
@@ -1422,15 +1431,6 @@ Partial Class FrmSettings
         Me.cb_multi_ce.Name = "cb_multi_ce"
         Me.cb_multi_ce.Size = New System.Drawing.Size(83, 21)
         Me.cb_multi_ce.TabIndex = 45
-        '
-        'lbl_s93_size
-        '
-        Me.lbl_s93_size.AutoSize = True
-        Me.lbl_s93_size.Location = New System.Drawing.Point(12, 76)
-        Me.lbl_s93_size.Name = "lbl_s93_size"
-        Me.lbl_s93_size.Size = New System.Drawing.Size(84, 13)
-        Me.lbl_s93_size.TabIndex = 54
-        Me.lbl_s93_size.Text = "Device Size: XX"
         '
         'FrmSettings
         '
