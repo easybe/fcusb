@@ -60,8 +60,12 @@ Public Class DfuControl
         Dim Res As Boolean = False
         cmdAvrProg.Enabled = False 'Prevents user from double clicking program button
         cmdAvrStart.Enabled = False
-        Dim DfuSize As Integer = FCUSB.DFU_IF.GetFlashSize
-        If FwHexBin.Length > DfuSize Then
+        Dim DfuSize As Integer = FCUSB.DFU_IF.GetFlashSize()
+        If DfuSize = 0 Then
+            SetStatus("Device is no longer in DFU mode")
+            GoTo ExitAvrProg
+        End If
+        If (FwHexBin.Length > DfuSize) Then
             SetStatus("Error: failed to retrieve board firmware version") 'Error: The hex file data is larger than the size of the DFU memory
             GoTo ExitAvrProg
         End If

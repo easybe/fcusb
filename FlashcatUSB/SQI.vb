@@ -28,7 +28,7 @@ Namespace SPI
             MyFlashStatus = DeviceStatus.NotDetected
             FCUSB.USB_VCC_OFF()
             SQIBUS_Setup()
-            If FCUSB.HWBOARD = FCUSB_BOARD.Professional OrElse FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+            If FCUSB.IsProfessional OrElse FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
                 If MySettings.VOLT_SELECT = Voltage.V1_8 Then
                     FCUSB.USB_VCC_1V8()
                 Else
@@ -243,7 +243,7 @@ Namespace SPI
                 READ_CMD = MyFlashDevice.OP_COMMANDS.QUAD_READ
                 DUMMY = MyFlashDevice.SQI_DUMMY
             End If
-            If FCUSB.HWBOARD = FCUSB_BOARD.Professional OrElse FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+            If FCUSB.IsProfessional OrElse FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
                 Dim setup_class As New ReadSetupPacket(READ_CMD, flash_offset, data_to_read.Length, MyFlashDevice.AddressBytes)
                 setup_class.SPI_MODE = Me.SQI_DEVICE_MODE
                 setup_class.DUMMY = DUMMY
@@ -415,11 +415,31 @@ Namespace SPI
 #Region "SPIBUS"
 
         Public Sub SQIBUS_Setup()
-            If FCUSB.HWBOARD = FCUSB_BOARD.Professional Then
+            If FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
                 If MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_20 Then
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "20 MHz"))
                     FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 0)
                 Else
+                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
+                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 1)
+                End If
+            ElseIf FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
+                If MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_80 Then
+                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "20 MHz"))
+                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 0)
+                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_40 Then
+                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
+                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 1)
+                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_20 Then
+                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
+                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 1)
+                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_10 Then
+                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
+                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 1)
+                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_5 Then
+                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
+                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 1)
+                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_1 Then
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
                     FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 1)
                 End If

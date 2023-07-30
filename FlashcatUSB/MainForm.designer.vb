@@ -53,13 +53,13 @@ Partial Class MainForm
         Me.mi_3V3 = New System.Windows.Forms.ToolStripMenuItem()
         Me.ToolStripSeparator7 = New System.Windows.Forms.ToolStripSeparator()
         Me.mi_mode_spi = New System.Windows.Forms.ToolStripMenuItem()
-        Me.mi_mode_quad = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_mode_sqi = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_spi_nand = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_spieeprom = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_i2c = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_1wire = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_3wire = New System.Windows.Forms.ToolStripMenuItem()
-        Me.mi_mode_extio = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_mode_nornand = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_eprom_otp = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_hyperflash = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_jtag = New System.Windows.Forms.ToolStripMenuItem()
@@ -211,7 +211,7 @@ Partial Class MainForm
         '
         'mi_mode_menu
         '
-        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.mi_vcc_seperator, Me.mi_1V8, Me.mi_3V3, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_quad, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_3wire, Me.mi_mode_extio, Me.mi_mode_eprom_otp, Me.mi_mode_hyperflash, Me.mi_mode_jtag})
+        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.mi_vcc_seperator, Me.mi_1V8, Me.mi_3V3, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_sqi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_3wire, Me.mi_mode_nornand, Me.mi_mode_eprom_otp, Me.mi_mode_hyperflash, Me.mi_mode_jtag})
         Me.mi_mode_menu.Name = "mi_mode_menu"
         Me.mi_mode_menu.Size = New System.Drawing.Size(50, 20)
         Me.mi_mode_menu.Text = "Mode"
@@ -328,9 +328,9 @@ Partial Class MainForm
         '
         'mi_mode_quad
         '
-        Me.mi_mode_quad.Name = "mi_mode_quad"
-        Me.mi_mode_quad.Size = New System.Drawing.Size(225, 22)
-        Me.mi_mode_quad.Text = "SPI QUAD FLASH"
+        Me.mi_mode_sqi.Name = "mi_mode_quad"
+        Me.mi_mode_sqi.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_sqi.Text = "SPI QUAD FLASH"
         '
         'mi_mode_spi_nand
         '
@@ -364,9 +364,9 @@ Partial Class MainForm
         '
         'mi_mode_extio
         '
-        Me.mi_mode_extio.Name = "mi_mode_extio"
-        Me.mi_mode_extio.Size = New System.Drawing.Size(225, 22)
-        Me.mi_mode_extio.Text = "Parallel FLASH (NOR/NAND)"
+        Me.mi_mode_nornand.Name = "mi_mode_extio"
+        Me.mi_mode_nornand.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_nornand.Text = "Parallel FLASH (NOR/NAND)"
         '
         'mi_mode_eprom_otp
         '
@@ -973,7 +973,7 @@ Partial Class MainForm
     Friend WithEvents mi_mode_jtag As ToolStripMenuItem
     Friend WithEvents mi_mode_i2c As ToolStripMenuItem
     Friend WithEvents mi_mode_spieeprom As ToolStripMenuItem
-    Friend WithEvents mi_mode_extio As ToolStripMenuItem
+    Friend WithEvents mi_mode_nornand As ToolStripMenuItem
     Friend WithEvents mi_script_selected As ToolStripMenuItem
     Friend WithEvents mi_script_load As ToolStripMenuItem
     Friend WithEvents mi_script_unload As ToolStripMenuItem
@@ -1033,7 +1033,7 @@ Partial Class MainForm
     Friend WithEvents mi_usb_performance As ToolStripMenuItem
     Friend WithEvents ToolStripSeparator6 As ToolStripSeparator
     Friend WithEvents mi_mode_hyperflash As ToolStripMenuItem
-    Friend WithEvents mi_mode_quad As ToolStripMenuItem
+    Friend WithEvents mi_mode_sqi As ToolStripMenuItem
     Friend WithEvents mi_langauge_german As ToolStripMenuItem
     Friend WithEvents mi_cfi_info As ToolStripMenuItem
     Friend WithEvents mi_license_menu As ToolStripMenuItem

@@ -32,7 +32,7 @@ Namespace JTAG
                 Me.Chain_Length = -1
                 Me.SELECTED_INDEX = 0
                 Devices.Clear()
-                If ((FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional) Or (FCUSB.HWBOARD = USB.FCUSB_BOARD.Mach1)) And (Not internal_logic) Then
+                If ((FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional_PCB4) Or (FCUSB.HWBOARD = USB.FCUSB_BOARD.Mach1)) And (Not internal_logic) Then
                     If Me.TCK_SPEED = JTAG_SPEED._10MHZ Then
                         WriteConsole("JTAG TCK speed: 10 MHz")
                         JSP.Actual_Hertz = 10000000
@@ -42,7 +42,7 @@ Namespace JTAG
                     End If
                     FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_INIT, Nothing, Me.TCK_SPEED)
                 Else
-                    If ((FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional) Or (FCUSB.HWBOARD = USB.FCUSB_BOARD.Mach1)) Then
+                    If ((FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional_PCB4) Or (FCUSB.HWBOARD = USB.FCUSB_BOARD.Mach1)) Then
                         FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_INIT, Nothing, (1 << 16) Or Me.TCK_SPEED)
                     End If
                     JSP.Actual_Hertz = 500000
@@ -317,7 +317,7 @@ Namespace JTAG
 
         Public Function BoundaryScan_Detect() As Boolean
             WriteConsole("JTAG Boundary Scan Programmer")
-            If (Not FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional) Then
+            If (Not (FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional_PCB4 Or FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional_PCB5)) Then
                 WriteConsole("Error: this feature is only available using FlashcatUSB Professional") : Return False
             End If
             If Not BSDL_Is_Configured() Then Return False
@@ -1352,7 +1352,7 @@ Namespace JTAG
                     End If
                 End If
             ElseIf spi_if = JTAG_SPI_Type.BCM_ARM Then
-                If Not FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional Then
+                If Not FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional_PCB4 Then
                     WriteConsole("JTAG: Error, ARM extension is only supported on FlashcatUSB Professional")
                     Return False
                 End If

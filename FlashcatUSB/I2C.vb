@@ -7,22 +7,39 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
     Public Event PrintConsole(message As String) Implements MemoryDeviceUSB.PrintConsole
     Public Event SetProgress(percent As Integer) Implements MemoryDeviceUSB.SetProgress
 
-    Private eeprom_size As UInt32 = 0
+    Public I2C_EEPROM_LIST As List(Of I2C_DEVICE)
+    Private I2C_EEPROM_SELECTED As I2C_DEVICE = Nothing
 
-    Sub New(ByVal parent_if As FCUSB_DEVICE)
+    Sub New(parent_if As FCUSB_DEVICE)
         FCUSB = parent_if
-        Create_I2C_EEPROM_List()
+        I2C_EEPROM_LIST = New List(Of I2C_DEVICE)
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX01", 128, 1, 8))
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX02", 256, 1, 8))
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX03", 256, 1, 16))
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX04", 512, 1, 16))
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX05", 512, 1, 32))
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX08", 1024, 1, 16))
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX16", 2048, 1, 16))
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX32", 4096, 2, 32))
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX64", 8192, 2, 32))
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX128", 16384, 2, 32))
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX256", 32768, 2, 32))
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX256", 65536, 2, 32))
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XXM01", 131072, 2, 32))
+        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XXM02", 262144, 2, 32))
     End Sub
 
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
-        eeprom_size = MySettings.I2C_SIZE
-        Dim page_size As Byte
-        Dim addr_size As Byte
-        GetAddressPageSize(addr_size, page_size)
+        If MySettings.I2C_INDEX = 0 Then
+            Return False 'No device selected
+        Else
+            I2C_EEPROM_SELECTED = I2C_EEPROM_LIST.Item(MySettings.I2C_INDEX - 1)
+        End If
         Dim cd_value As UInt16 = (CUShort(MySettings.I2C_SPEED) << 8) Or (MySettings.I2C_ADDRESS) '02A0
-        Dim cd_index As UInt16 = (CUShort(addr_size) << 8) Or (page_size) 'addr size, page size   '0220
+        Dim cd_index As UInt16 = (CUShort(I2C_EEPROM_SELECTED.AddressSize) << 8) Or (I2C_EEPROM_SELECTED.PageSize) 'addr size, page size   '0220
         Dim config_data As UInt32 = (CUInt(cd_value) << 16) Or cd_index
         Dim detect_result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.I2C_INIT, Nothing, config_data)
+        Utilities.Sleep(50) 'Wait for IO VCC to charge up
         Return detect_result
     End Function
 
@@ -41,17 +58,17 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
 
     End Class
 
-    Public I2C_EEPROM_LIST As New List(Of I2C_DEVICE)
-
     Public ReadOnly Property DeviceName As String Implements MemoryDeviceUSB.DeviceName
         Get
-            Return GetConfiguredDeviceName(Me.DeviceSize)
+            If I2C_EEPROM_SELECTED Is Nothing Then Return ""
+            Return I2C_EEPROM_SELECTED.Name
         End Get
     End Property
 
     Public ReadOnly Property DeviceSize As Long Implements MemoryDeviceUSB.DeviceSize
         Get
-            Return eeprom_size
+            If I2C_EEPROM_SELECTED Is Nothing Then Return 0
+            Return I2C_EEPROM_SELECTED.Size
         End Get
     End Property
 
@@ -61,25 +78,8 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         End Get
     End Property
 
-    Private Sub Create_I2C_EEPROM_List()
-        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX01", 128, 1, 8))
-        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX02", 256, 1, 8))
-        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX04", 512, 1, 16))
-        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX08", 1024, 1, 16))
-        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX16", 2048, 1, 16))
-        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX32", 4096, 2, 32))
-        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX64", 8192, 2, 32))
-        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX128", 16384, 2, 32))
-        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX256", 32768, 2, 32))
-        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX256", 65536, 2, 32))
-        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XXM01", 131072, 2, 32))
-        I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XXM02", 262144, 2, 32))
-    End Sub
-
     Public Function IsConnected() As Boolean
         Try
-            Me.DeviceInit()
-            Utilities.Sleep(20) 'Wait for IO VCC to charge up
             Dim test_data() As Byte = Me.ReadData(0, 16) 'This does a test read to see if data is read
             If test_data Is Nothing Then Return False
             Return True
@@ -87,78 +87,6 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         End Try
         Return False
     End Function
-
-    Public Function GetConfiguredDeviceName(ByVal device_size As Integer) As String
-        Select Case device_size
-            Case 128
-                Return "24XX01"
-            Case 256
-                Return "24XX02"
-            Case 512
-                Return "24XX04"
-            Case 1024
-                Return "24XX08"
-            Case 2048
-                Return "24XX16"
-            Case 4096
-                Return "24XX32"
-            Case 8192
-                Return "24XX64"
-            Case 16384
-                Return "24XX128"
-            Case 32768
-                Return "24XX256"
-            Case 65536
-                Return "24XX512"
-            Case 131072
-                Return "M24M01"
-            Case 262144
-                Return "M24M02"
-            Case Else
-                Return ""
-        End Select
-    End Function
-
-    Private Sub GetAddressPageSize(ByRef addr_size As Byte, ByRef page_size As Byte)
-        Select Case MySettings.I2C_SIZE
-            Case 128
-                addr_size = 1
-                page_size = 8
-            Case 256
-                addr_size = 1
-                page_size = 8
-            Case 512
-                addr_size = 1
-                page_size = 16
-            Case 1024
-                addr_size = 1
-                page_size = 16
-            Case 2048
-                addr_size = 1
-                page_size = 16
-            Case 4096
-                addr_size = 2
-                page_size = 32
-            Case 8192
-                addr_size = 2
-                page_size = 32
-            Case 16384
-                addr_size = 2
-                page_size = 32
-            Case 32768
-                addr_size = 2
-                page_size = 32
-            Case 65536
-                addr_size = 2
-                page_size = 32
-            Case 131072
-                addr_size = 2
-                page_size = 32
-            Case 262144
-                addr_size = 2
-                page_size = 32
-        End Select
-    End Sub
 
     Private Function GetResultStatus() As I2C_STATUS
         Try

@@ -220,6 +220,7 @@
     </Compile>
     <Compile Include="NAND_Block_Manager.vb" />
     <Compile Include="SQI.vb" />
+    <Compile Include="SSPIEm_DLL.vb" />
     <Compile Include="SWI.vb" />
     <Compile Include="vendor\vendor_microchip_at21.Designer.vb">
       <DependentUpon>vendor_microchip_at21.vb</DependentUpon>

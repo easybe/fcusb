@@ -103,7 +103,7 @@ Public Class FrmUSBPerformance
         Dim counter As Integer = 0
         t.Start()
         Do
-            Dim result As Boolean = USBCLIENT.FCUSB(0).USB_SETUP_BULKIN(USB.USBREQ.SAM3U_TEST_READ, Nothing, data_test, data_test.Length)
+            Dim result As Boolean = USBCLIENT.FCUSB(0).USB_SETUP_BULKIN(USB.USBREQ.TEST_READ, Nothing, data_test, data_test.Length)
             If Not result Then
                 MsgBox("Error on USB Bulk In operation")
                 IS_ERROR = True
@@ -128,7 +128,7 @@ Public Class FrmUSBPerformance
         Dim bytes_transfered As Integer = 0
         t.Start()
         Do
-            Dim result As Boolean = USBCLIENT.FCUSB(0).USB_SETUP_BULKOUT(USB.USBREQ.SAM3U_TEST_WRITE, Nothing, data_test, data_test.Length)
+            Dim result As Boolean = USBCLIENT.FCUSB(0).USB_SETUP_BULKOUT(USB.USBREQ.TEST_WRITE, Nothing, data_test, data_test.Length)
             If Not result Then
                 MsgBox("Error on USB Bulk Out operation")
                 IS_ERROR = True

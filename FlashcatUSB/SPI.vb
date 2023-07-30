@@ -132,7 +132,7 @@ Namespace SPI
             Dim array_ptr As UInt32 = 0
             Dim read_cmd As Byte = MyFlashDevice.OP_COMMANDS.READ
             Dim dummy_clocks As Byte = 0
-            If MySettings.SPI_FASTREAD AndAlso FCUSB.HWBOARD = FCUSB_BOARD.Professional Then
+            If MySettings.SPI_FASTREAD AndAlso FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
                 read_cmd = MyFlashDevice.OP_COMMANDS.FAST_READ
             End If
             If (Me.MyFlashDevice.ProgramMode = FlashMemory.SPI_ProgramMode.Atmel45Series) Then
@@ -156,7 +156,7 @@ Namespace SPI
                     FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_READFLASH, setup_class.ToBytes, data_to_read, 0)
                 End If
             Else 'Normal SPI READ
-                If MySettings.SPI_FASTREAD AndAlso (FCUSB.HWBOARD = FCUSB_BOARD.Professional) Then
+                If MySettings.SPI_FASTREAD AndAlso (FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB4) Then
                     dummy_clocks = MyFlashDevice.SPI_DUMMY
                 End If
                 If (MyFlashDevice.STACKED_DIES > 1) Then
@@ -355,6 +355,7 @@ Namespace SPI
         Private Sub LoadDeviceConfigurations()
             If MyFlashDevice.VENDOR_SPECIFIC = VENDOR_FEATURE.NotSupported Then 'We don't want to do this for vendor enabled devices
                 WriteStatusRegister({0})
+                Utilities.Sleep(100) 'Needed, some devices will lock up if else.
             End If
             If (MyFlashDevice.STACKED_DIES > 1) Then 'Multi-die support
                 For i = 0 To MyFlashDevice.STACKED_DIES - 1
@@ -483,6 +484,21 @@ Namespace SPI
                 Dim id As SPI_IDENT = ReadDeviceID()
                 If (id.RDID = &HEFAB2100UI) Then Me.W25M121AV_Mode = True
             End If
+            If (MyFlashDevice.MFG_CODE = &H34) Then 'Cypress MFG ID
+                Dim IsCypressSemper As Boolean = False
+                If MyFlashDevice.ID1 = &H2A19 Then IsCypressSemper = True
+                If MyFlashDevice.ID1 = &H2A1A Then IsCypressSemper = True
+                If MyFlashDevice.ID1 = &H2A1B Then IsCypressSemper = True
+                If MyFlashDevice.ID1 = &H2B19 Then IsCypressSemper = True
+                If MyFlashDevice.ID1 = &H2B1A Then IsCypressSemper = True
+                If MyFlashDevice.ID1 = &H2B1B Then IsCypressSemper = True
+                If IsCypressSemper Then
+                    RaiseEvent PrintConsole("Configuring Cypress Semper Flash via SPI")
+                    SPIBUS_WriteEnable()
+                    SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.EWSR})
+                    SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.WRSR, 0, 0, &H88, &H18}) 'Set sector to uniform 256KB / 512B Page size
+                End If
+            End If
         End Sub
         'Changes the Page Size configuration bit in nonvol
         Public Function Atmel_SetPageConfiguration(ByVal EnableExtPage As Boolean) As Boolean
@@ -527,7 +543,7 @@ Namespace SPI
         Private Function WriteData_Flash(ByVal setup_packet As WriteSetupPacket, ByVal data_out() As Byte) As Boolean
             Try
                 Dim result As Boolean
-                If (FCUSB.HWBOARD = FCUSB_BOARD.Professional) Then
+                If (FCUSB.IsProfessional) Then
                     Dim DataToWrite As UInt32 = data_out.Length
                     Dim PacketSize As UInt32 = 8192
                     Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / PacketSize)) 'Calcuates iterations
@@ -766,10 +782,13 @@ Namespace SPI
     End Enum
 
     Public Enum SQI_SPEED As Integer
-        MHZ_20 = 0
-        MHZ_10 = 1
-        MHZ_5 = 2
-        MHZ_2 = 3
+        MHZ_80
+        MHZ_40
+        MHZ_20
+        MHZ_10
+        MHZ_5
+        MHZ_2
+        MHZ_1
     End Enum
 
     Friend Class ReadSetupPacket
@@ -868,6 +887,7 @@ Namespace SPI
             Get
                 If Me.MANU = 0 OrElse Me.MANU = &HFF Then Return False
                 If Me.RDID = 0 OrElse Me.RDID = &HFFFF Then Return False
+                If Me.MANU = CByte(Me.RDID And 255) And Me.MANU = CByte((Me.RDID >> 8) And 255) Then Return False
                 Return True
             End Get
         End Property

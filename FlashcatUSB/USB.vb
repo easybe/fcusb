@@ -74,6 +74,19 @@ Namespace USB
 
             Public Event UpdateProgress(ByVal percent As Integer, ByRef device As FCUSB_DEVICE)
 
+            Public ReadOnly Property IsProfessional As Boolean
+                Get
+                    If Me.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
+                        Return True
+                    ElseIf Me.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
+                        Return True
+                    Else
+                        Return False
+                    End If
+                End Get
+            End Property
+
+
             Sub New()
                 AddHandler SPI_NOR_IF.PrintConsole, AddressOf WriteConsole 'Lets set text output to the console
                 AddHandler SQI_NOR_IF.PrintConsole, AddressOf WriteConsole
@@ -99,7 +112,7 @@ Namespace USB
             Public Sub USB_SPI_SETUP(ByVal mode As SPIBUS_MODE, ByVal bit_order As SPI_ORDER)
                 Try
                     Dim clock_speed As UInt32 = GetSpiClock(Me.HWBOARD, 8000000)
-                    If (Me.HWBOARD = FCUSB_BOARD.Professional) Then
+                    If (Me.HWBOARD = FCUSB_BOARD.Professional_PCB4) Then
                         USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, clock_speed)
                     Else
                         SPI_ORDER_BYTE = 0
@@ -138,7 +151,7 @@ Namespace USB
             End Sub
 
             Public Sub USB_SPI_SETSPEED(ByVal MHZ As UInt32)
-                If (Me.HWBOARD = FCUSB_BOARD.Professional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
                     USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, MHZ)
                 Else
                     Dim clock_byte As Byte
@@ -159,7 +172,7 @@ Namespace USB
 
             Public Function USB_SETUP_BULKOUT(RQ As USBREQ, SETUP() As Byte, BULK_OUT() As Byte, ByVal control_dt As UInt32, Optional timeout As Integer = -1) As Boolean
                 Try
-                    If (Me.HWBOARD = FCUSB_BOARD.Professional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
                         Dim ErrCounter As Integer = 0
                         Dim result As Boolean = True
                         Do
@@ -196,7 +209,7 @@ Namespace USB
             Public Function USB_SETUP_BULKIN(RQ As USBREQ, SETUP() As Byte, ByRef DATA_IN() As Byte, ByVal control_dt As UInt32, Optional timeout As Integer = -1) As Boolean
                 Try
                     Dim result As Boolean
-                    If (Me.HWBOARD = FCUSB_BOARD.Professional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
                         Dim ErrCounter As Integer = 0
                         Do
                             result = True
@@ -230,7 +243,7 @@ Namespace USB
                     If USBHANDLE Is Nothing Then Return False
                     Dim result As Boolean
                     Dim usb_flag As Byte
-                    If (Me.HWBOARD = FCUSB_BOARD.Professional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
                         usb_flag = (UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Interface Or UsbCtrlFlags.Direction_Out)
                     Else
                         usb_flag = (UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Device Or UsbCtrlFlags.Direction_Out)
@@ -257,7 +270,7 @@ Namespace USB
                     If USBHANDLE Is Nothing Then Return False
                     Dim usb_flag As Byte
                     Dim bytes_xfer As Integer = 0
-                    If (Me.HWBOARD = FCUSB_BOARD.Professional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
                         usb_flag = UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Interface Or UsbCtrlFlags.Direction_In
                     Else
                         usb_flag = UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Device Or UsbCtrlFlags.Direction_In
@@ -277,7 +290,7 @@ Namespace USB
             Public Function USB_BULK_IN(ByRef buffer_in() As Byte, Optional Timeout As Integer = -1) As Boolean
                 Try
                     If Timeout = -1 Then Timeout = USB_TIMEOUT_VALUE
-                    If (Me.HWBOARD = FCUSB_BOARD.Professional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
                         Dim xfer As Integer = 0
                         Using ep_reader As UsbEndpointReader = USBHANDLE.OpenEndpointReader(ReadEndpointID.Ep01, buffer_in.Length, EndpointType.Bulk)
                             Dim ec2 As ErrorCode = ep_reader.Read(buffer_in, 0, CInt(buffer_in.Length), Timeout, xfer) '5 second timeout
@@ -303,7 +316,7 @@ Namespace USB
             Public Function USB_BULK_OUT(ByVal buffer_out() As Byte, Optional Timeout As Integer = -1) As Boolean
                 Try
                     If Timeout = -1 Then Timeout = USB_TIMEOUT_VALUE
-                    If (Me.HWBOARD = FCUSB_BOARD.Professional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
                         Dim xfer As Integer = 0
                         Using ep_writer As UsbEndpointWriter = USBHANDLE.OpenEndpointWriter(WriteEndpointID.Ep02, EndpointType.Bulk)
                             Dim ec2 As ErrorCode = ep_writer.Write(buffer_out, 0, CInt(buffer_out.Length), Timeout, xfer) '5 second timeout
@@ -400,25 +413,25 @@ Namespace USB
             End Function
 
             Public Sub USB_VCC_OFF()
-                If (Me.HWBOARD = FCUSB_BOARD.Professional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
-                    USB_CONTROL_MSG_OUT(USBREQ.CPLD_OFF)
+                If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
                 End If
             End Sub
 
             Public Sub USB_VCC_1V8()
-                If (Me.HWBOARD = FCUSB_BOARD.Professional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
-                    USB_CONTROL_MSG_OUT(USBREQ.CPLD_OFF)
+                If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
                     Utilities.Sleep(250)
-                    USB_CONTROL_MSG_OUT(USBREQ.CPLD_1V8)
+                    USB_CONTROL_MSG_OUT(USBREQ.LOGIC_1V8)
                     MySettings.VOLT_SELECT = Voltage.V1_8
                 End If
             End Sub
 
             Public Sub USB_VCC_3V()
-                If (Me.HWBOARD = FCUSB_BOARD.Professional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
-                    USB_CONTROL_MSG_OUT(USBREQ.CPLD_OFF)
+                If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
                     Utilities.Sleep(250)
-                    USB_CONTROL_MSG_OUT(USBREQ.CPLD_3V3)
+                    USB_CONTROL_MSG_OUT(USBREQ.LOGIC_3V3)
                     MySettings.VOLT_SELECT = Voltage.V3_3
                 End If
             End Sub
@@ -450,7 +463,7 @@ Namespace USB
                         Me.HWBOARD = FCUSB_BOARD.Classic_BL
                         Me.FW_VERSION = "1.00"
                     ElseIf USBHANDLE.UsbRegistryInfo.Pid = USB_PID_FCUSB_PRO Then
-                        Me.HWBOARD = FCUSB_BOARD.Professional
+                        Me.HWBOARD = FCUSB_BOARD.Professional_PCB4
                         Dim b(3) As Byte
                         If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, b) Then Return False
                         Me.FW_VERSION = Utilities.Bytes.ToChrString({b(1), Asc("."), b(2), b(3)})
@@ -458,6 +471,8 @@ Namespace USB
                             Me.USB_IsBootloaderMode = True
                         ElseIf (b(0) = Asc("F")) Then
                             Me.USB_IsAppUpdaterMode = True
+                        ElseIf (b(0) = Asc("T")) Then
+                            Me.HWBOARD = FCUSB_BOARD.Professional_PCB5
                         End If
                         Return True
                     ElseIf USBHANDLE.UsbRegistryInfo.Pid = USB_PID_FCUSB_MACH Then
@@ -477,12 +492,16 @@ Namespace USB
                         If USBHANDLE.Info.Descriptor.ProductID = USB_PID_FCUSB_JTAG Then
                             Me.HWBOARD = FCUSB_BOARD.Classic_JTAG
                         Else
-                            If hw_byte = CByte(Asc("0")) Then
+                            If hw_byte = CByte(Asc("C")) Then
                                 Me.HWBOARD = FCUSB_BOARD.Classic_SPI
                             ElseIf hw_byte = CByte(Asc("E")) Then
-                                Me.HWBOARD = FCUSB_BOARD.Classic_XPORT
+                                Me.HWBOARD = FCUSB_BOARD.XPORT_PCB1
+                            ElseIf hw_byte = CByte(Asc("X")) Then
+                                Me.HWBOARD = FCUSB_BOARD.XPORT_PCB2
                             ElseIf hw_byte = CByte(Asc("W")) Then
                                 Me.HWBOARD = FCUSB_BOARD.Classic_SWI
+                            ElseIf hw_byte = CByte(Asc("0")) Then
+                                Me.HWBOARD = FCUSB_BOARD.Classic_SPI
                             End If
                         End If
                         data_out(3) = buff(3)
@@ -503,7 +522,7 @@ Namespace USB
 
             Public Function SAM3U_FirmwareUpdate(ByVal new_fw() As Byte, fw_version As Single) As Boolean
                 Try
-                    Dim result As Boolean = USB_CONTROL_MSG_OUT(USBREQ.UPDATE_FW, Nothing, new_fw.Length)
+                    Dim result As Boolean = USB_CONTROL_MSG_OUT(USBREQ.FW_UPDATE, Nothing, new_fw.Length)
                     If Not result Then Return False
                     Dim bytes_left As UInt32 = new_fw.Length
                     Dim ptr As Integer = 0
@@ -530,16 +549,16 @@ Namespace USB
                 End Try
             End Function
 
-            Public Function CPLD_GetVersion() As UInt32
+            Public Function LOGIC_GetVersion() As UInt32
                 Dim cpld_data(3) As Byte
-                USB_CONTROL_MSG_IN(USBREQ.CPLD_VERSION_GET, cpld_data)
+                USB_CONTROL_MSG_IN(USBREQ.LOGIC_VERSION_GET, cpld_data)
                 Array.Reverse(cpld_data)
                 Dim result As UInt32 = Utilities.Bytes.ToUInt32(cpld_data)
                 Return result
             End Function
 
             Public Function LOGIC_SetVersion(new_ver As UInt32) As Boolean
-                Dim result As Boolean = USB_CONTROL_MSG_OUT(USBREQ.CPLD_VERSION_SET, Nothing, new_ver)
+                Dim result As Boolean = USB_CONTROL_MSG_OUT(USBREQ.LOGIC_VERSION_SET, Nothing, new_ver)
                 Return result
             End Function
 
@@ -564,7 +583,7 @@ Namespace USB
                         For i = 0 To FCUSB.Count - 1
                             If FCUSB(i).USB_PATH = fcusb_path Then Found = True : Exit For
                         Next
-                        If Not Found Then 'New device connected
+                        If (Not Found) Then 'New device connected
                             For i = 0 To FCUSB.Count - 1
                                 If (FCUSB(i).USB_PATH = "") Then 'This slot is available
                                     Dim this_dev As UsbDevice = this_fcusb.Device
@@ -821,10 +840,89 @@ Namespace USB
         V3_3 = 2 'Default
     End Enum
 
-    'USB commands when using SPI firmware
+    'USB commands
     Public Enum USBREQ As Byte
-        SAM3U_TEST_READ = &HA1
-        SAM3U_TEST_WRITE = &HA2
+        JTAG_DETECT = &H10
+        JTAG_RESET = &H11
+        JTAG_SELECT = &H12
+        JTAG_READ_B = &H13
+        JTAG_READ_H = &H14
+        JTAG_READ_W = &H15
+        JTAG_WRITE = &H16
+        JTAG_READMEM = &H17
+        JTAG_WRITEMEM = &H18
+        JTAG_ARM_INIT = &H19
+        JTAG_INIT = &H1A
+        JTAG_FLASHSPI_BRCM = &H1B
+        JTAG_FLASHSPI_ATH = &H1C
+        JTAG_FLASHWRITE_I16 = &H1D
+        JTAG_FLASHWRITE_A16 = &H1E
+        JTAG_FLASHWRITE_SST = &H1F
+        JTAG_FLASHWRITE_AMDNB = &H20
+        JTAG_SCAN = &H21
+        JTAG_TOGGLE = &H22
+        JTAG_GOTO_STATE = &H23
+        JTAG_SET_OPTION = &H24
+        JTAG_REGISTERS = &H25
+        JTAG_SHIFT_TMS = &H26
+        JTAG_SHIFT_DATA = &H27
+        JTAG_BDR_RD = &H28
+        JTAG_BDR_WR = &H29
+        JTAG_BDR_SETUP = &H30
+        JTAG_BDR_INIT = &H31
+        JTAG_BDR_ADDPIN = &H32
+        JTAG_BDR_RDFLASH = &H33
+        JTAG_BDR_WRFLASH = &H34
+        SPI_INIT = &H40
+        SPI_SS_ENABLE = &H41
+        SPI_SS_DISABLE = &H42
+        SPI_PROG = &H43
+        SPI_RD_DATA = &H44
+        SPI_WR_DATA = &H45
+        SPI_READFLASH = &H46
+        SPI_WRITEFLASH = &H47
+        SPI_WRITEDATA_AAI = &H48
+        S93_INIT = &H49
+        S93_READEEPROM = &H4A
+        S93_WRITEEEPROM = &H4B
+        S93_ERASE = &H4C
+        SQI_SETUP = &H50
+        SQI_SS_ENABLE = &H51
+        SQI_SS_DISABLE = &H52
+        SQI_RD_DATA = &H53
+        SQI_WR_DATA = &H54
+        SQI_RD_FLASH = &H55
+        SQI_WR_FLASH = &H56
+        SPINAND_READFLASH = &H5B
+        SPINAND_WRITEFLASH = &H5C
+        I2C_INIT = &H60
+        I2C_READEEPROM = &H61
+        I2C_WRITEEEPROM = &H62
+        I2C_RESULT = &H63
+        EXPIO_INIT = &H64
+        EXPIO_ADDRESS = &H65
+        EXPIO_WRITEDATA = &H66
+        EXPIO_READDATA = &H67
+        EXPIO_RDID = &H68
+        EXPIO_CHIPERASE = &H69
+        EXPIO_SECTORERASE = &H6A
+        EXPIO_WRITEPAGE = &H6B
+        EXPIO_NAND_SR = &H6D
+        EXPIO_NAND_PAGEOFFSET = &H6E
+        EXPIO_MODE_ADDRESS = &H6F
+        EXPIO_MODE_IDENT = &H70
+        EXPIO_MODE_ERSCR = &H71
+        EXPIO_MODE_ERCHP = &H72
+        EXPIO_MODE_READ = &H73
+        EXPIO_MODE_WRITE = &H74
+        EXPIO_MODE_DELAY = &H75
+        EXPIO_CTRL = &H76
+        EXPIO_DELAY = &H78
+        EXPIO_RESET = &H79
+        EXPIO_WAIT = &H7A
+        EXPIO_CPEN = &H7D  'Mach1
+        EXPIO_SR = &H7E  'Mach1
+        EXPIO_WRADRDATA = &H7F
         VERSION = &H80
         ECHO = &H81
         LEDON = &H82
@@ -841,121 +939,36 @@ Namespace USB
         VCC_ON = &H8D
         VCC_OFF = &H8E
         GET_TASK = &H8F
-        LOAD_PAYLOAD = &H90 'We want to fill the TX_BUFFER
-        READ_PAYLOAD = &H91 'We want to read data from the buffer
-        LOAD_BOOTLOADER = &H92 'Load data to the bootloader
-        PROG_BOOTLOADER = &H93 'Write payload to bootloader
-        UPDATE_FW = &H94 'Update the firmware
-        FW_VERS = &H95 '4-bytes of the firmware version (0xFFFF=none)
-        FW_REBOOT = &H97 'Write new FW key and then reboot. use 0 to just reboot
-        'JTAG OPCOMANDS
-        JTAG_DETECT = &H10
-        JTAG_RESET = &H11 'Resets the TAP to Scan-DR
-        JTAG_SELECT = &H12
-        JTAG_READ_B = &H14
-        JTAG_READ_H = &H15
-        JTAG_READ_W = &H16
-        JTAG_WRITE = &H17
-        JTAG_READMEM = &H1A
-        JTAG_WRITEMEM = &H1B
-        JTAG_ARM_INIT = &H1C
-        JTAG_INIT = &H1F
-        JTAG_FLASHSPI_BRCM = &H24
-        JTAG_FLASHSPI_ATH = &H25
-        JTAG_FLASHWRITE_I16 = &H26
-        JTAG_FLASHWRITE_A16 = &H27
-        JTAG_FLASHWRITE_SST = &H28
-        JTAG_FLASHWRITE_AMDNB = &H29
-        JTAG_SCAN = &H2A
-        JTAG_TOGGLE = &H2B
-        JTAG_GOTO_STATE = &H2C
-        JTAG_SET_OPTION = &H2E
-        JTAG_REGISTERS = &H30
-        JTAG_SHIFT_TMS = &H31
-        JTAG_SHIFT_DATA = &H32
-        JTAG_BDR_RD = &H33
-        JTAG_BDR_WR = &H34
-        JTAG_BDR_SETUP = &H35
-        JTAG_BDR_INIT = &H36
-        JTAG_BDR_ADDPIN = &H37
-        JTAG_BDR_RDFLASH = &H38
-        JTAG_BDR_WRFLASH = &H39
-        'SPI
-        SPI_INIT = &H40
-        SPI_SS_ENABLE = &H41
-        SPI_SS_DISABLE = &H42
-        SPI_PROG = &H43 'Change this to be able to control the pin
-        SPI_RD_DATA = &H44
-        SPI_WR_DATA = &H45
-        SPI_READFLASH = &H46
-        SPI_WRITEFLASH = &H47
-        SPI_WRITEDATA_AAI = &H48
-        '3-Wire
-        S93_INIT = &H49
-        S93_READEEPROM = &H4A
-        S93_WRITEEEPROM = &H4B
-        S93_ERASE = &H4C
-        'SQI
-        SQI_SETUP = &H50
-        SQI_SS_ENABLE = &H51
-        SQI_SS_DISABLE = &H52
-        SQI_RD_DATA = &H53
-        SQI_WR_DATA = &H54
-        SQI_RD_FLASH = &H55
-        SQI_WR_FLASH = &H56
-        'SPI NAND
-        SPINAND_READFLASH = &H5B
-        SPINAND_WRITEFLASH = &H5C
-        'I2C
-        I2C_INIT = &H60
-        I2C_READEEPROM = &H61
-        I2C_WRITEEEPROM = &H62
-        I2C_RESULT = &H63
-        'EXPIO
-        EXPIO_INIT = &H64
-        EXPIO_ADDRESS = &H65
-        EXPIO_WRITEDATA = &H66
-        EXPIO_READDATA = &H67
-        EXPIO_RDID = &H68
-        EXPIO_CHIPERASE = &H69
-        EXPIO_SECTORERASE = &H6A
-        EXPIO_WRITEPAGE = &H6B
-        EXPIO_TEST = &H6C 'DEBUG TEST
-        EXPIO_NAND_SR = &H6D
-        EXPIO_MODE_ADDRESS = &H6F 'Sets the write address mode
-        EXPIO_MODE_IDENT = &H70 'Detects the ident
-        EXPIO_MODE_ERSCR = &H71 'Erases the sector
-        EXPIO_MODE_ERCHP = &H72 'erases the chip
-        EXPIO_MODE_READ = &H73
-        EXPIO_MODE_WRITE = &H74 'Write data (64 bytes)
-        EXPIO_MODE_DELAY = &H75
-        EXPIO_CE_HIGH = &H76 'Sets CHIPENABLE to HIGH
-        EXPIO_CE_LOW = &H77 'Sets CHIPENABLE to LOW
-        EXPIO_DELAY = &H78
-        EXPIO_RESET = &H79 'Issue device reset/read mode
-        EXPIO_WAIT = &H7A   'Uses the currently assigned WAIT mode
-        EXPIO_WE_HIGH = &H7B 'Sets WE to HIGH
-        EXPIO_WE_LOW = &H7C 'Sets WE to LOW
-        EXPIO_CPEN = &H7D 'Sets CPEN pin (Mach1 only)
-        EXPIO_SR = &H7E 'Mach1 for now, will add to EXTIO later 
-        EXPIO_WRADRDATA = &H7F 'Writes address (24/26-bit) and data (8/16-bit)
-        EXPIO_OE_HIGH = &HF0
-        EXPIO_OE_LOW = &HF1
-        EXPIO_EPROM_VPP = &HF2
-        '1-Wire
+        LOAD_PAYLOAD = &H90
+        READ_PAYLOAD = &H91
+        FW_UPDATE = &H94 'Update the firmware
+        FW_REBOOT = &H97
+        TEST_READ = &HA1
+        TEST_WRITE = &HA2
         SWI_DETECT = &HB0
         SWI_READ = &HB1
         SWI_WRITE = &HB2
         SWI_RD_REG = &HB3
         SWI_WR_REG = &HB4
         SWI_LOCK_REG = &HB5
-        'CPLD / FPGA
-        CPLD_STATUS = &HC0  '0=OFF,1=3V3,2=1V8
-        CPLD_OFF = &HC1 'Turns off CPLD circuit
-        CPLD_1V8 = &HC2 'Turns On 1.8V And Then CPLD
-        CPLD_3V3 = &HC3 'Turns On 3.3V And Then CPLD
-        CPLD_VERSION_GET = &HC4
-        CPLD_VERSION_SET = &HC5
+        LOGIC_STATUS = &HC0
+        LOGIC_OFF = &HC1  'Turns off LOGIC circuit
+        LOGIC_1V8 = &HC2  'Turns on 1.8V and then LOGIC
+        LOGIC_3V3 = &HC3  'Turns on 3.3V and then LOGIC
+        LOGIC_VERSION_GET = &HC4  'returns the LOGIC version from the Flash
+        LOGIC_VERSION_SET = &HC5  'Writes the LOGIC to the Flash
+    End Enum
+
+    Public Enum EXPIO_CTRL As Byte
+        WE_HIGH = 1
+        WE_LOW = 2
+        OE_HIGH = 3
+        OE_LOW = 4
+        CE_HIGH = 5
+        CE_LOW = 6
+        VPP_0V = 7
+        VPP_5V = 8
+        VPP_12V = 9
     End Enum
 
     Public Enum DeviceStatus
@@ -971,9 +984,11 @@ Namespace USB
         Classic_BL 'Bootloader
         Classic_JTAG 'JTAG firmware
         Classic_SPI 'SPI firmware
-        Classic_XPORT 'xPORT firmware
         Classic_SWI 'Single-wire interface
-        Professional 'Professional (PCB 4.x)
+        XPORT_PCB1 'XPORT firmware (PCB 1.x)
+        XPORT_PCB2 'XPORT firmware (PCB 2.x)
+        Professional_PCB4 'Professional (PCB 4.x)
+        Professional_PCB5 'FPGA version
         Mach1 '(PCB 2.x)
     End Enum
 

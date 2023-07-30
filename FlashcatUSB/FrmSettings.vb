@@ -102,7 +102,7 @@ Public Class FrmSettings
         SetupSpiEeprom()
         Setup_I2C_SWI_tab()
         If USBCLIENT.HW_MODE = FCUSB_BOARD.NotConnected Then
-        ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional) Then
+        ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB4) Then
         Else
             rb_speed_100khz.Enabled = False
             rb_speed_1mhz.Enabled = False
@@ -174,6 +174,8 @@ Public Class FrmSettings
                 cb_sqi_speed.SelectedIndex = 2
             Case SPI.SQI_SPEED.MHZ_2
                 cb_sqi_speed.SelectedIndex = 3
+            Case Else
+                cb_sqi_speed.SelectedIndex = 1
         End Select
     End Sub
 
@@ -297,34 +299,7 @@ Public Class FrmSettings
         ElseIf rb_speed_1mhz.Checked Then
             MySettings.I2C_SPEED = FlashcatSettings.I2C_SPEED_MODE._1MHz
         End If
-        Select Case cbi2cDensity.SelectedIndex
-            Case 0
-                MySettings.I2C_SIZE = 0
-            Case 1
-                MySettings.I2C_SIZE = 128
-            Case 2
-                MySettings.I2C_SIZE = 256
-            Case 3
-                MySettings.I2C_SIZE = 512
-            Case 4
-                MySettings.I2C_SIZE = 1024
-            Case 5
-                MySettings.I2C_SIZE = 2048
-            Case 6
-                MySettings.I2C_SIZE = 4096
-            Case 7
-                MySettings.I2C_SIZE = 8192
-            Case 8
-                MySettings.I2C_SIZE = 16384
-            Case 9
-                MySettings.I2C_SIZE = 32768
-            Case 10
-                MySettings.I2C_SIZE = 65536
-            Case 11
-                MySettings.I2C_SIZE = 131072
-            Case 12
-                MySettings.I2C_SIZE = 262144
-        End Select
+        MySettings.I2C_INDEX = cb_i2c_device.SelectedIndex
         MySettings.SPI_EEPROM = cb_spi_eeprom.SelectedIndex
         MySettings.SPI_NAND_DISABLE_ECC = cb_spinand_disable_ecc.Checked
         MySettings.NAND_Verify = cb_nand_image_readverify.Checked
@@ -694,36 +669,19 @@ Public Class FrmSettings
         If ((MySettings.SWI_ADDRESS And (1 << 1)) > 0) Then
             cb_swi_a0.Checked = True
         End If
-        Select Case MySettings.I2C_SIZE
-            Case 0
-                cbi2cDensity.SelectedIndex = 0
-            Case 128
-                cbi2cDensity.SelectedIndex = 1
-            Case 256
-                cbi2cDensity.SelectedIndex = 2
-            Case 512
-                cbi2cDensity.SelectedIndex = 3
-            Case 1024
-                cbi2cDensity.SelectedIndex = 4
-            Case 2048
-                cbi2cDensity.SelectedIndex = 5
-            Case 4096
-                cbi2cDensity.SelectedIndex = 6
-            Case 8192
-                cbi2cDensity.SelectedIndex = 7
-            Case 16384
-                cbi2cDensity.SelectedIndex = 8
-            Case 32768
-                cbi2cDensity.SelectedIndex = 9
-            Case 65536
-                cbi2cDensity.SelectedIndex = 10
-            Case 131072
-                cbi2cDensity.SelectedIndex = 11
-            Case 262144
-                cbi2cDensity.SelectedIndex = 12
-            Case Else
-                cbi2cDensity.SelectedIndex = 7
-        End Select
+        Dim i2c_if As New I2C_Programmer(Nothing)
+        cb_i2c_device.Items.Add("(Not selected)")
+        For Each i2c_eeprom In i2c_if.I2C_EEPROM_LIST
+            Dim dev_size_str As String
+            If i2c_eeprom.Size >= 1024 Then
+                dev_size_str = (i2c_eeprom.Size / 1024).ToString & "K"
+            Else
+                dev_size_str = i2c_eeprom.Size.ToString
+            End If
+            Dim dev_name As String = (dev_size_str & " bytes ").PadRight(12, " ")
+            cb_i2c_device.Items.Add(dev_name & " (" & i2c_eeprom.Name & ")")
+        Next
+        cb_i2c_device.SelectedIndex = MySettings.I2C_INDEX
         Select Case MySettings.I2C_SPEED
             Case FlashcatSettings.I2C_SPEED_MODE._100kHz
                 rb_speed_100khz.Checked = True
@@ -734,19 +692,8 @@ Public Class FrmSettings
         End Select
     End Sub
 
-    Private Sub cbi2cDensity_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbi2cDensity.SelectedIndexChanged
-        cb_i2c_a0.Enabled = True
-        cb_i2c_a1.Enabled = True
-        cb_i2c_a2.Enabled = True
-        If cbi2cDensity.SelectedIndex = 11 Then
-            cb_i2c_a0.Checked = False
-            cb_i2c_a0.Enabled = False
-        ElseIf cbi2cDensity.SelectedIndex = 12 Then
-            cb_i2c_a0.Checked = False
-            cb_i2c_a1.Checked = False
-            cb_i2c_a0.Enabled = False
-            cb_i2c_a1.Enabled = False
-        End If
+    Private Sub cbi2cDensity_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cb_i2c_device.SelectedIndexChanged
+
     End Sub
 
     Private Sub SetupSpiEeprom()

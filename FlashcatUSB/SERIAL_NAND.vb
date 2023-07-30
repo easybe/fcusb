@@ -478,7 +478,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         Try
             Dim bytes_left As UInt32 = data_count
             Dim data_out(data_count - 1) As Byte
-            If (FCUSB.HWBOARD = FCUSB_BOARD.Professional) Then 'Hardware-enabled routine
+            If (FCUSB.IsProfessional Or FCUSB.HWBOARD = FCUSB_BOARD.Mach1) Then 'Hardware-enabled routine
                 Dim setup() As Byte = SetupPacket_NAND(page_addr, page_offset, data_count, memory_area)
                 Dim param As UInt32 = Utilities.BoolToInt(MyFlashDevice.PLANE_SELECT)
                 Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.SPINAND_READFLASH, setup, data_out, param)
@@ -604,7 +604,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
     Private Function USB_WritePageAlignedData(ByRef page_addr As UInt32, ByVal page_aligned() As Byte) As Boolean
         Dim page_size_tot As UInt16 = (MyFlashDevice.PAGE_SIZE + MyFlashDevice.EXT_PAGE_SIZE)
         Dim pages_to_write As UInt32 = (page_aligned.Length / page_size_tot)
-        If (FCUSB.HWBOARD = FCUSB_BOARD.Professional) Then
+        If (FCUSB.IsProfessional Or FCUSB.HWBOARD = FCUSB_BOARD.Mach1) Then 'Hardware-enabled routine
             Dim array_ptr As UInt32 = 0
             Do Until pages_to_write = 0
                 Dim max_page_count As Integer = 8192 / MyFlashDevice.PAGE_SIZE
@@ -649,7 +649,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             Return False
         End If
         Dim pages_to_write As UInt32 = (area_data.Length / page_size)
-        If (FCUSB.HWBOARD = FCUSB_BOARD.Professional) Then
+        If (FCUSB.IsProfessional Or FCUSB.HWBOARD = FCUSB_BOARD.Mach1) Then 'Hardware-enabled routine
             Dim array_ptr As UInt32 = 0
             Do Until pages_to_write = 0
                 Dim max_page_count As Integer = (8192 / page_size)

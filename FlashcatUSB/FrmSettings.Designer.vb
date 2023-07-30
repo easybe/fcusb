@@ -74,7 +74,7 @@ Partial Class FrmSettings
         Me.cb_swi_a1 = New System.Windows.Forms.CheckBox()
         Me.cb_swi_a2 = New System.Windows.Forms.CheckBox()
         Me.GroupBox6 = New System.Windows.Forms.GroupBox()
-        Me.cbi2cDensity = New System.Windows.Forms.ComboBox()
+        Me.cb_i2c_device = New System.Windows.Forms.ComboBox()
         Me.GroupBox5 = New System.Windows.Forms.GroupBox()
         Me.cb_i2c_a0 = New System.Windows.Forms.CheckBox()
         Me.cb_i2c_a1 = New System.Windows.Forms.CheckBox()
@@ -706,7 +706,7 @@ Partial Class FrmSettings
         '
         'GroupBox6
         '
-        Me.GroupBox6.Controls.Add(Me.cbi2cDensity)
+        Me.GroupBox6.Controls.Add(Me.cb_i2c_device)
         Me.GroupBox6.Location = New System.Drawing.Point(6, 57)
         Me.GroupBox6.Name = "GroupBox6"
         Me.GroupBox6.Size = New System.Drawing.Size(512, 51)
@@ -714,15 +714,15 @@ Partial Class FrmSettings
         Me.GroupBox6.TabStop = False
         Me.GroupBox6.Text = "I2C Device"
         '
-        'cbi2cDensity
+        'cb_i2c_device
         '
-        Me.cbi2cDensity.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cbi2cDensity.FormattingEnabled = True
-        Me.cbi2cDensity.Items.AddRange(New Object() {"(Not Selected)", "128 Bytes (128 x 8) - 24XX01", "256 Bytes (256 x 8) - 24XX02", "512 Bytes (512 x 8) - 24XX04", "1024 Bytes (1K x 8) - 24XX08", "2048 Bytes (2K x 8) - 24XX16", "4096 Bytes (4K x 8) - 24XX32", "8192 Bytes (8K x 8) - 24XX64", "16K Bytes (16K x 8) - 24XX128", "32K Bytes (32K x 8) - 24XX256", "64K Bytes (64K x 8) - 24XX512", "128K Bytes (128K x 8) - 24XXM01", "256K Bytes (256K x 8) - 24XXM02"})
-        Me.cbi2cDensity.Location = New System.Drawing.Point(137, 19)
-        Me.cbi2cDensity.Name = "cbi2cDensity"
-        Me.cbi2cDensity.Size = New System.Drawing.Size(187, 21)
-        Me.cbi2cDensity.TabIndex = 36
+        Me.cb_i2c_device.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_i2c_device.Font = New System.Drawing.Font("Consolas", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.cb_i2c_device.FormattingEnabled = True
+        Me.cb_i2c_device.Location = New System.Drawing.Point(137, 19)
+        Me.cb_i2c_device.Name = "cb_i2c_device"
+        Me.cb_i2c_device.Size = New System.Drawing.Size(187, 22)
+        Me.cb_i2c_device.TabIndex = 36
         '
         'GroupBox5
         '
@@ -1550,7 +1550,7 @@ Partial Class FrmSettings
     Friend WithEvents rb_speed_100khz As RadioButton
     Friend WithEvents GroupBox5 As GroupBox
     Friend WithEvents GroupBox6 As GroupBox
-    Friend WithEvents cbi2cDensity As ComboBox
+    Friend WithEvents cb_i2c_device As ComboBox
     Friend WithEvents cb_spi_eeprom As ComboBox
     Friend WithEvents Label3 As Label
     Friend WithEvents Label6 As Label

@@ -702,7 +702,9 @@ Public Class MainForm
         End If
         If USBCLIENT.HW_MODE = FCUSB_BOARD.Mach1 Then
             mi_usb_performance.Enabled = True
-        ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Professional Then
+        ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB4 Then
+            mi_usb_performance.Enabled = True
+        ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB5 Then
             mi_usb_performance.Enabled = True
         End If
     End Sub
@@ -720,11 +722,11 @@ Public Class MainForm
         mi_bitendian_little_8.Checked = False
         'OP MODES
         mi_mode_spi.Checked = False
-        mi_mode_quad.Checked = False
+        mi_mode_sqi.Checked = False
         mi_mode_jtag.Checked = False
         mi_mode_i2c.Checked = False
         mi_mode_spieeprom.Checked = False
-        mi_mode_extio.Checked = False
+        mi_mode_nornand.Checked = False
         mi_mode_1wire.Checked = False
         mi_mode_spi_nand.Checked = False
         mi_mode_eprom_otp.Checked = False
@@ -751,77 +753,62 @@ Public Class MainForm
         mi_1V8.Enabled = enabled
         mi_3V3.Enabled = enabled
         mi_mode_spi.Enabled = enabled
-        mi_mode_quad.Enabled = enabled
+        mi_mode_sqi.Enabled = enabled
         mi_mode_spi_nand.Enabled = enabled
         mi_mode_spieeprom.Enabled = enabled
         mi_mode_i2c.Enabled = enabled
         mi_mode_1wire.Enabled = enabled
         mi_mode_3wire.Enabled = enabled
-        mi_mode_extio.Enabled = enabled
+        mi_mode_nornand.Enabled = enabled
         mi_mode_eprom_otp.Enabled = enabled
         mi_mode_hyperflash.Enabled = enabled
         mi_mode_jtag.Enabled = enabled
     End Sub
 
     Private Sub mi_mode_enable_supported_modes()
-        If USBCLIENT.HW_MODE = FCUSB_BOARD.Professional Then
+        If USBCLIENT.HW_MODE = FCUSB_BOARD.NotConnected Then
             mi_1V8.Enabled = True
             mi_3V3.Enabled = True
             mi_mode_spi.Enabled = True
-            mi_mode_quad.Enabled = True
-            mi_mode_spi_nand.Enabled = True
-            mi_mode_i2c.Enabled = True
-            mi_mode_spieeprom.Enabled = True
-            mi_mode_3wire.Enabled = True
-            mi_mode_extio.Enabled = True
-            mi_mode_eprom_otp.Enabled = True
-            mi_mode_jtag.Enabled = True
-        ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Classic_XPORT Then
-            mi_mode_spi.Enabled = True
-            mi_mode_quad.Enabled = True
+            mi_mode_sqi.Enabled = True
             mi_mode_spieeprom.Enabled = True
             mi_mode_spi_nand.Enabled = True
             mi_mode_i2c.Enabled = True
-            mi_mode_eprom_otp.Enabled = True
-            mi_mode_extio.Enabled = True
-        ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Classic_JTAG Then
-            mi_mode_jtag.Enabled = True
-        ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Classic_SWI Then
             mi_mode_1wire.Enabled = True
-        ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Classic_SPI Then
-            mi_mode_spi.Enabled = True
-            mi_mode_quad.Enabled = True
-            mi_mode_spieeprom.Enabled = True
-            mi_mode_spi_nand.Enabled = True
-            mi_mode_i2c.Enabled = True
             mi_mode_3wire.Enabled = True
             mi_mode_eprom_otp.Enabled = True
-            mi_mode_extio.Enabled = True
-        ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Mach1 Then
-            mi_1V8.Enabled = True
-            mi_3V3.Enabled = True
-            mi_mode_quad.Enabled = True
-            mi_mode_extio.Enabled = True
+            mi_mode_nornand.Enabled = True
+            mi_mode_jtag.Enabled = True
             mi_mode_hyperflash.Enabled = True
         Else
-            mi_1V8.Enabled = True
-            mi_3V3.Enabled = True
-            mi_mode_spi.Enabled = True
-            mi_mode_quad.Enabled = True
-            mi_mode_spieeprom.Enabled = True
-            mi_mode_spi_nand.Enabled = True
-            mi_mode_i2c.Enabled = True
-            mi_mode_1wire.Enabled = True
-            mi_mode_3wire.Enabled = True
-            mi_mode_eprom_otp.Enabled = True
-            mi_mode_extio.Enabled = True
-            mi_mode_jtag.Enabled = True
-            mi_mode_hyperflash.Enabled = True
+            Dim SupportedModes() As FlashcatSettings.DeviceMode = GetSupportedModes(USBCLIENT.FCUSB(0))
+            If (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB4) Then
+                mi_1V8.Enabled = True
+                mi_3V3.Enabled = True
+            ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB5) Then
+                mi_1V8.Enabled = True
+                mi_3V3.Enabled = True
+            ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Mach1) Then
+                mi_1V8.Enabled = True
+                mi_3V3.Enabled = True
+            End If
+            For Each mode In SupportedModes
+                If mode = FlashcatSettings.DeviceMode.SPI Then mi_mode_spi.Enabled = True
+                If mode = FlashcatSettings.DeviceMode.SQI Then mi_mode_sqi.Enabled = True
+                If mode = FlashcatSettings.DeviceMode.JTAG Then mi_mode_jtag.Enabled = True
+                If mode = FlashcatSettings.DeviceMode.I2C_EEPROM Then mi_mode_i2c.Enabled = True
+                If mode = FlashcatSettings.DeviceMode.SPI_EEPROM Then mi_mode_spieeprom.Enabled = True
+                If mode = FlashcatSettings.DeviceMode.NOR_NAND Then mi_mode_nornand.Enabled = True
+                If mode = FlashcatSettings.DeviceMode.SINGLE_WIRE Then mi_mode_1wire.Enabled = True
+                If mode = FlashcatSettings.DeviceMode.EPROM Then mi_mode_eprom_otp.Enabled = True
+                If mode = FlashcatSettings.DeviceMode.HyperFlash Then mi_mode_hyperflash.Enabled = True
+                If mode = FlashcatSettings.DeviceMode.Microwire Then mi_mode_3wire.Enabled = True
+            Next
+            If mi_mode_i2c.Enabled AndAlso MySettings.I2C_INDEX = 0 Then mi_mode_i2c.Enabled = False
+            If mi_mode_eprom_otp.Enabled AndAlso MySettings.OTP_MFG = 0 Then mi_mode_eprom_otp.Enabled = False
+            If mi_mode_spieeprom.Enabled AndAlso MySettings.SPI_EEPROM = SPI_EEPROM.None Then mi_mode_spieeprom.Enabled = False
+            If mi_mode_3wire.Enabled AndAlso MySettings.S93_DEVICE_INDEX = 0 Then mi_mode_3wire.Enabled = False
         End If
-        If mi_mode_i2c.Enabled AndAlso MySettings.I2C_SIZE = 0 Then mi_mode_i2c.Enabled = False
-        If mi_mode_eprom_otp.Enabled AndAlso MySettings.OTP_MFG = 0 Then mi_mode_eprom_otp.Enabled = False
-        If mi_mode_spieeprom.Enabled AndAlso MySettings.SPI_EEPROM = SPI_EEPROM.None Then mi_mode_spieeprom.Enabled = False
-        If mi_mode_3wire.Enabled AndAlso MySettings.S93_DEVICE_INDEX = 0 Then mi_mode_3wire.Enabled = False
     End Sub
 
     Private Sub mi_mode_DropDownOpening(sender As Object, e As EventArgs) Handles mi_mode_menu.DropDownOpening
@@ -856,7 +843,7 @@ Public Class MainForm
             Case FlashcatSettings.DeviceMode.SPI
                 mi_mode_spi.Checked = True
             Case FlashcatSettings.DeviceMode.SQI
-                mi_mode_quad.Checked = True
+                mi_mode_sqi.Checked = True
             Case FlashcatSettings.DeviceMode.JTAG
                 mi_mode_jtag.Checked = True
             Case FlashcatSettings.DeviceMode.I2C_EEPROM
@@ -864,7 +851,7 @@ Public Class MainForm
             Case FlashcatSettings.DeviceMode.SPI_EEPROM
                 mi_mode_spieeprom.Checked = True
             Case FlashcatSettings.DeviceMode.NOR_NAND
-                mi_mode_extio.Checked = True
+                mi_mode_nornand.Checked = True
             Case FlashcatSettings.DeviceMode.SINGLE_WIRE
                 mi_mode_1wire.Checked = True
             Case FlashcatSettings.DeviceMode.SPI_NAND
@@ -979,7 +966,7 @@ Public Class MainForm
                     ElseIf mem_instance.FlashType = MemoryType.SERIAL_QUAD Then
                         Exit Sub 'Accept the above
                     ElseIf mem_instance.FlashType = MemoryType.PARALLEL_NOR Then
-                        If mem_instance.FCUSB.EXT_IF.MyFlashCFI IsNot Nothing Then
+                        If mem_instance.FCUSB.EXT_IF.CFI_table IsNot Nothing Then
                             mi_cfi_info.Enabled = True
                         End If
                         Exit Sub 'Accept the above
@@ -1120,7 +1107,7 @@ Public Class MainForm
             Case FlashcatSettings.DeviceMode.SPI
                 mi_mode_spi.Checked = True
             Case FlashcatSettings.DeviceMode.SQI
-                mi_mode_quad.Checked = True
+                mi_mode_sqi.Checked = True
             Case FlashcatSettings.DeviceMode.SPI_EEPROM
                 mi_mode_spieeprom.Checked = True
             Case FlashcatSettings.DeviceMode.SPI_NAND
@@ -1130,7 +1117,7 @@ Public Class MainForm
             Case FlashcatSettings.DeviceMode.I2C_EEPROM
                 mi_mode_i2c.Checked = True
             Case FlashcatSettings.DeviceMode.NOR_NAND
-                mi_mode_extio.Checked = True
+                mi_mode_nornand.Checked = True
             Case FlashcatSettings.DeviceMode.EPROM
                 mi_mode_eprom_otp.Checked = True
             Case FlashcatSettings.DeviceMode.Microwire
@@ -1143,7 +1130,7 @@ Public Class MainForm
                 mi_mode_spi.Checked = True
             End If
         ElseIf MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.I2C_EEPROM Then
-            If MySettings.I2C_SIZE = 0 Then
+            If MySettings.I2C_INDEX = 0 Then
                 MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI
                 Menu_Mode_UncheckAll()
                 mi_mode_spi.Checked = True
@@ -1197,10 +1184,10 @@ Public Class MainForm
     Private Sub Menu_Mode_UncheckAll()
         Try
             mi_mode_spi.Checked = False
-            mi_mode_quad.Checked = False
+            mi_mode_sqi.Checked = False
             mi_mode_spieeprom.Checked = False
             mi_mode_i2c.Checked = False
-            mi_mode_extio.Checked = False
+            mi_mode_nornand.Checked = False
             mi_mode_1wire.Checked = False
             mi_mode_3wire.Checked = False
             mi_mode_eprom_otp.Checked = False
@@ -1219,7 +1206,7 @@ Public Class MainForm
         detect_event()
     End Sub
 
-    Private Sub mi_spi_quad_Click(sender As Object, e As EventArgs) Handles mi_mode_quad.Click
+    Private Sub mi_spi_quad_Click(sender As Object, e As EventArgs) Handles mi_mode_sqi.Click
         Menu_Mode_UncheckAll()
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SQI
@@ -1259,7 +1246,7 @@ Public Class MainForm
         detect_event()
     End Sub
 
-    Private Sub mi_mode_extio_Click(sender As Object, e As EventArgs) Handles mi_mode_extio.Click
+    Private Sub mi_mode_extio_Click(sender As Object, e As EventArgs) Handles mi_mode_nornand.Click
         Menu_Mode_UncheckAll()
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND
@@ -2426,7 +2413,7 @@ Public Class MainForm
 
     Private Sub mi_cfi_info_Click(sender As Object, e As EventArgs) Handles mi_cfi_info.Click
         Dim memDev As MemoryDeviceInstance = GetSelectedMemoryInterface()
-        Dim cfi_table() As Byte = memDev.FCUSB.EXT_IF.MyFlashCFI
+        Dim cfi_table() As Byte = memDev.FCUSB.EXT_IF.CFI_table
         Dim if_str() As String = {"X8 ONLY", "X16 ONLY", "X8/X16", "X32", "SPI"}
         Dim frmCFI As New Form With {.Width = 330, .Height = 10}
         frmCFI.FormBorderStyle = FormBorderStyle.FixedSingle
