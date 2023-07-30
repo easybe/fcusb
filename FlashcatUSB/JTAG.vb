@@ -18,37 +18,42 @@ Public Class JTAG_IF
 
     Public Property VIA_CPLD As Boolean = False
 
+    Public STATUS As New JTAG_RESULT With {.detected = False}
+
     Sub New(ByVal parent_if As FCUSB_DEVICE)
         FCUSB = parent_if
         TAP = Nothing
     End Sub
     'Connects to the target device
-
     Public Function Init() As Boolean
         Try
             TargetDevice = New JTAG_DEVICE 'Re-init
-            Dim ChipIrLen As Integer = TAP_Detect()
-            If ChipIrLen = 0 Then Return False
-            If Not SetIRLen(ChipIrLen) Then Return False 'Makes us select this chip for communication
-            WriteConsole(String.Format("JTAG: IR length set to {0}", ChipIrLen.ToString))
+            TAP_Detect() 'Sets me.Status
+            If Not Me.STATUS.detected Then Return False
+            WriteConsole("JTAG chain detected: " & Me.STATUS.count & " devices")
+            WriteConsole("JTAG TDI size: " & Me.STATUS.chain_len & " bits")
+            For i = 0 To Me.STATUS.count - 1
+                WriteConsole("JTAG DEVICE " & i & ": JEDEC ID 0x" & Hex(Me.STATUS.devices(i)).PadLeft(8, "0"))
+            Next
             TAP = New JTAG_STATE_CONTROLLER
             AddHandler TAP.ShiftBits, AddressOf Tap_ShiftBits
             TAP.Reset()
-            Dim IMPCODE As UInt32 = ReadWriteData(EJTAG_OPCODE.IMPCODE)
-            Dim id_readback As UInt32 = ReadWriteData(1)
-            If (id_readback <> 0) AndAlso (id_readback <> &HFFFFFFFFUI) Then 'IDCODE used by most devices
-                TargetDevice.LoadDevice(id_readback, ChipIrLen, IMPCODE)
+            If (Me.STATUS.count = 1) Then
+                If Not SetIRLen(Me.STATUS.chain_len) Then Return False 'Makes us select this chip for communication
+                WriteConsole(String.Format("JTAG IR length set to {0}", Me.STATUS.chain_len.ToString))
+                Dim IMPCODE As UInt32 = ReadWriteData(EJTAG_OPCODE.IMPCODE)
+                TargetDevice.LoadDevice(Me.STATUS.devices(0), Me.STATUS.chain_len, IMPCODE)
+                If (TargetDevice.CONTROLLER = JTAG_CONTROLLER.Broadcom) Then
+                    EJTAG_LoadCapabilities(IMPCODE) 'Only supported by MIPS/EJTAG devices
+                End If
+                If Me.DMA_SUPPORTED Then
+                    Dim r As UInteger = DMA_ReadData(&HFF300000UI, DataWidth.Word) 'Returns 2000001E 
+                    r = r And &HFFFFFFFBUI '2000001A
+                    DMA_WriteData(&HFF300000UI, r, DataWidth.Word)
+                End If
+                Return True
             Else
-                id_readback = ReadWriteData(6) 'IDCODE used by Altera
-                If (id_readback <> 0) AndAlso (id_readback <> &HFFFFFFFFUI) Then TargetDevice.LoadDevice(id_readback, ChipIrLen, IMPCODE)
-            End If
-            If (TargetDevice.CONTROLLER = JTAG_CONTROLLER.Broadcom) Then
-                EJTAG_LoadCapabilities(IMPCODE) 'Only supported by MIPS/EJTAG devices
-            End If
-            If Me.DMA_SUPPORTED Then
-                Dim r As UInteger = DMA_ReadData(&HFF300000UI, DataWidth.Word) 'Returns 2000001E 
-                r = r And &HFFFFFFFBUI '2000001A
-                DMA_WriteData(&HFF300000UI, r, DataWidth.Word)
+                WriteConsole("Multiple devices detected, enabling SVF player")
             End If
             Return True
         Catch ex As Exception
@@ -75,9 +80,9 @@ Public Class JTAG_IF
 
     Public Enum EJTAG_CTRL As UInt32
         '/* EJTAG 3.1 Control Register Bits */
-        VPED = (1 <<23)       '/* R    */
+        VPED = (1 << 23)       '/* R    */
         '/* EJTAG 2.6 Control Register Bits */
-                           Rocc = (1UI << 31)     '/* R/W0 */
+        Rocc = (1UI << 31)     '/* R/W0 */
         Psz1 = (1 << 30)       '/* R    */
         Psz0 = (1 << 29)       '/* R    */
         Doze = (1 << 22)       '/* R    */
@@ -914,22 +919,46 @@ Public Class JTAG_IF
         End Try
     End Sub
     'Attempts to auto-detect a JTAG device on the TAP, returns the IR Length of the device
-    Private Function TAP_Detect() As UInt32
-        Dim chipiddata(3) As Byte
+    Private Sub TAP_Detect()
+        STATUS.detected = False
+        STATUS.count = 0
+        STATUS.chain_len = 0
+        STATUS.devices = Nothing
+        Dim r_data(63) As Byte
         If Me.VIA_CPLD Then
-            If Not FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.CPLD_JTAG_DETECT, chipiddata) Then Return 0 'Error
+            FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.CPLD_JTAG_DETECT, r_data)
         Else
-            If Not FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_DETECT, chipiddata) Then Return 0 'Error
+            FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_DETECT, r_data)
         End If
-        Dim dint As UInteger = BitConverter.ToUInt32(chipiddata, 0)
-        If (Utilities.HWeight32(dint) <> 1) Then Return 0
-        Dim ir As UInt32 = 0
-        While (dint <> 0)
-            dint >>= 1
-            ir += 1
-        End While
-        Return ir
-    End Function
+        STATUS.count = r_data(0)
+        STATUS.chain_len = r_data(1)
+        Dim ptr As Integer = 2
+        If (STATUS.count > 0) Then
+            ReDim STATUS.devices(STATUS.count - 1)
+            For i = 0 To STATUS.count - 1
+                Dim id As UInt32 = (CUInt(r_data(ptr)) << 24)
+                id = id Or (CUInt(r_data(ptr + 1)) << 16)
+                id = id Or (CUInt(r_data(ptr + 2)) << 8)
+                id = id Or (CUInt(r_data(ptr + 3)) << 0)
+                ptr += 4
+                STATUS.devices(i) = id
+            Next
+            If STATUS.devices(0) = 0 Or STATUS.devices(0) = &HFFFFFFFFUI Then
+            Else
+                STATUS.detected = True
+            End If
+        End If
+    End Sub
+
+    Public Class JTAG_RESULT
+        Public Property detected As Boolean
+        Public Property count As Integer
+        Public Property chain_len As Integer
+
+        Public devices() As UInt32
+
+    End Class
+
     'Sets the IR len for embedded functions
     Public Function SetIRLen(ByVal IRLen As UInteger) As Boolean
         Try

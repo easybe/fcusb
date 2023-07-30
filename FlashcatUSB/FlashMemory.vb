@@ -31,7 +31,8 @@ Namespace FlashMemory
 
     Public Enum MemoryType
         UNSPECIFIED
-        PARALLEL_NOR 'CFI devices
+        PARALLEL_NOR
+        OTP_EPROM
         SERIAL_NOR 'SPI devices
         SERIAL_I2C 'I2C EEPROMs
         SERIAL_MICROWIRE
@@ -197,7 +198,7 @@ Namespace FlashMemory
         Public ReadOnly Property MFG_CODE As Byte Implements Device.MFG_CODE
         Public ReadOnly Property ID1 As UInt16 Implements Device.ID1
         Public Property ID2 As UInt16 = 0 Implements Device.ID2 'Not used
-        Public ReadOnly Property FLASH_TYPE As MemoryType = MemoryType.PARALLEL_NOR Implements Device.FLASH_TYPE
+        Public ReadOnly Property FLASH_TYPE As MemoryType = MemoryType.OTP_EPROM Implements Device.FLASH_TYPE
         Public ReadOnly Property FLASH_SIZE As Long Implements Device.FLASH_SIZE
         Public ReadOnly Property Sector_Count As UInt32 = 1 Implements Device.Sector_Count 'We will have to write the entire array
         Public Property PAGE_SIZE As UInt32 = 0 Implements Device.PAGE_SIZE 'Not used
@@ -389,7 +390,8 @@ Namespace FlashMemory
         Public Property SEND_RDFS As Boolean = False 'Set to True to read the flag status register
         Public Property ERASE_SIZE As UInt32 = &H10000 'Number of bytes per page that are erased(typically 64KB)
         Public Property VENDOR_SPECIFIC As VENDOR_FEATURE = VENDOR_FEATURE.NotSupported 'Indicates we can load a unique vendor specific tab
-        Public Property DUMMY_CLOCK_CYCLES As Integer = 8 'Number of dummy bytes to use when using FAST READ (0x0B OP COMMAND)
+        Public Property SPI_DUMMY As Integer = 8 'Number of cycles after read in SPI operation
+        Public Property SQI_DUMMY As Integer = 2 'Number of cycles after read in QUAD operation
         Public Property CHIP_ERASE As EraseMethod = EraseMethod.Standard 'How to erase the entire device
         Public Property SEND_EWSR As Boolean = False 'Set to TRUE to write the enable write status-register
         Public Property PAGE_SIZE As UInt32 Implements Device.PAGE_SIZE  'Number of bytes per page
@@ -484,8 +486,8 @@ Namespace FlashMemory
             Me.ERASE_REQUIRED = True
             Me.FLASH_TYPE = MemoryType.SERIAL_NOR
         End Sub
-
-        Sub New(ByVal f_name As String, ByVal f_size As UInt32, ByVal MFG As Byte, ByVal ID1 As UInt16, ByVal ERASECMD As Byte, ByVal ERASESIZE As UInt32, ByVal READCMD As Byte, ByVal WRITECMD As Byte)
+        '32-bit setup command
+        Sub New(ByVal f_name As String, ByVal f_size As UInt32, ByVal MFG As Byte, ByVal ID1 As UInt16, ByVal ERASECMD As Byte, ByVal ERASESIZE As UInt32, ByVal READCMD As Byte, ByVal FASTCMD As Byte, ByVal WRITECMD As Byte)
             Me.NAME = f_name
             Me.FLASH_SIZE = f_size
             Me.PAGE_SIZE = 256
@@ -496,6 +498,7 @@ Namespace FlashMemory
             Me.ID1 = ID1
             OP_COMMANDS.SE = ERASECMD 'Sometimes 0xD8 or 0x20
             OP_COMMANDS.READ = READCMD
+            OP_COMMANDS.FAST_READ = FASTCMD
             OP_COMMANDS.PROG = WRITECMD
             Me.ERASE_SIZE = ERASESIZE
             If (f_size > Mb128) Then Me.ADDRESSBITS = 32
@@ -672,6 +675,15 @@ Namespace FlashMemory
             Dim IS25WP020D As SPI_NOR_FLASH = FindDevice(&H9D, &H7012, 0, MemoryType.SERIAL_NOR)
             IS25WP020D.QUAD = SPI_QUADMODE.all_quadio
             IS25WP020D.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
+            Dim IS25LP256 As SPI_NOR_FLASH = FindDevice(&H9D, &H6019, 0, MemoryType.SERIAL_NOR)
+            IS25LP256.QUAD = SPI_QUADMODE.all_quadio
+            IS25LP256.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
+            Dim IS25WP256 As SPI_NOR_FLASH = FindDevice(&H9D, &H7019, 0, MemoryType.SERIAL_NOR)
+            IS25WP256.QUAD = SPI_QUADMODE.all_quadio
+            IS25WP256.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
+            Dim IS25LP128 As SPI_NOR_FLASH = FindDevice(&H9D, &H6018, 0, MemoryType.SERIAL_NOR)
+            IS25LP128.QUAD = SPI_QUADMODE.all_quadio
+            IS25LP128.VENDOR_SPECIFIC = VENDOR_FEATURE.ISSI
 
             'CreateHtmlCatalog(MemoryType.SERIAL_NOR, 3, "d: \spi_database.html")
             'CreateHtmlCatalog(MemoryType.SERIAL_NAND, 3, "d:\spinand_database.html")
@@ -713,11 +725,11 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("Adesto AT25XV041", Mb004, &H1F, &H4402))
             FlashDB.Add(New SPI_NOR_FLASH("Adesto AT25XV021", Mb002, &H1F, &H4301))
             'Cypress 25FL Series (formely Spansion)
-            FlashDB.Add(New SPI_NOR_FLASH("Cypress S70FL01GS", Gb001, &H1, &H221, &HDC, &H40000, &H13, &H12))
-            FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL512S", Mb512, &H1, &H220, &HDC, &H40000, &H13, &H12))
+            FlashDB.Add(New SPI_NOR_FLASH("Cypress S70FL01GS", Gb001, &H1, &H221, &HDC, &H40000, &H13, &HC, &H12))
+            FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL512S", Mb512, &H1, &H220, &HDC, &H40000, &H13, &HC, &H12))
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S70FL256P", Mb256, 0)) 'Placeholder (uses two S25FL128S, PIN6 is CS2)
-            FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL256S", Mb256, &H1, &H219, &HDC, &H40000, &H13, &H12) With {.ID2 = &H4D00}) 'Confirmed (build 371)
-            FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL256S", Mb256, &H1, &H219, &HDC, &H10000, &H13, &H12) With {.ID2 = &H4D01})
+            FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL256S", Mb256, &H1, &H219, &HDC, &H40000, &H13, &HC, &H12) With {.ID2 = &H4D00}) 'Confirmed (build 371)
+            FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL256S", Mb256, &H1, &H219, &HDC, &H10000, &H13, &HC, &H12) With {.ID2 = &H4D01})
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL128P", Mb128, &H1, &H2018) With {.ERASE_SIZE = Kb512, .ID2 = &H301}) '0301h X
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL128P", Mb128, &H1, &H2018) With {.ERASE_SIZE = Mb002, .ID2 = &H300}) '0300h X
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL129P", Mb128, &H1, &H2018) With {.ERASE_SIZE = Kb512, .ID2 = &H4D01}) '4D01h X
@@ -786,7 +798,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q256JV", Mb256, &HEF, &H7019) With {.SEND_EN4B = True})
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q256", Mb256, &HEF, &H4019) With {.SEND_EN4B = True})
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q128JV", Mb128, &HEF, &H7018))
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q128", Mb128, &HEF, &H4018))
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q128", Mb128, &HEF, &H4018)) 'CV
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q64", Mb064, &HEF, &H4017))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q32", Mb032, &HEF, &H4016))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q16", Mb016, &HEF, &H4015)) 'Confirmed (Build 350)
@@ -1372,14 +1384,13 @@ Namespace FlashMemory
             FlashDB.Add(New SLC_NAND_Flash("Micron MT29F2G08ABBFA", &H2C, &HAA901504UI, Gb002, 2048, 224, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Micron MT29F2G08ABAFA", &H2C, &HDA909504UI, Gb002, 2048, 224, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Micron MT29F2G08ABBEA", &H2C, &HAA901560UI, Gb002, 2048, 64, Mb001, ND_IF.X8_3V))
-            FlashDB.Add(New SLC_NAND_Flash("Micron MT29F2G08ABAEA", &H2C, &HDA909560UI, Gb002, 2048, 64, Mb001, ND_IF.X8_3V))
+            FlashDB.Add(New SLC_NAND_Flash("Micron MT29F2G08ABAEA", &H2C, &HDA909506UI, Gb002, 2048, 64, Mb001, ND_IF.X8_3V)) 'Fixed
             FlashDB.Add(New SLC_NAND_Flash("Micron MT29F4G08BAB", &H2C, &HDC0015, Gb004, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Micron MT29F4G08AAA", &H2C, &HDC909554UI, Gb004, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Micron MT29F4G08ABA", &H2C, &HDC909556UI, Gb004, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Micron MT29F4G08ABADAWP", &H2C, &H90A0B0CUI, Gb002, 2048, 64, Mb001, ND_IF.X8_3V)) 'Fixed/CV
             FlashDB.Add(New SLC_NAND_Flash("Micron MT29F8G08BAA", &H2C, &HD3D19558UI, Gb008, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Micron MT29F8G08ABABA", &H2C, &H38002685UI, Gb008, 4096, 224, Mb004, ND_IF.X8_3V))
-
             'Toshiba SLC 8x NAND devices
             FlashDB.Add(New SLC_NAND_Flash("Toshiba TC58DVM92A5TA10", &H98, &H76A5C029UI, Mb512, 512, 16, Kb128, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Toshiba TC58BVG0S3HTA00", &H98, &HF08014F2UI, Gb001, 2048, 64, Mb001, ND_IF.X8_3V))
@@ -1488,6 +1499,9 @@ Namespace FlashMemory
             FlashDB.Add(New OTP_EPROM("ST M27C1001", &H20, &H5, Mb001, MFP_IF.X8_5V_12V))
             FlashDB.Add(New OTP_EPROM("ST M27C2001", &H20, &H61, Mb002, MFP_IF.X8_5V_12V))
             FlashDB.Add(New OTP_EPROM("ST M27C4001", &H20, &H41, Mb004, MFP_IF.X8_5V_12V))
+            FlashDB.Add(New OTP_EPROM("ST M27C801", &H20, &H42, Mb008, MFP_IF.X8_5V_12V))
+            FlashDB.Add(New OTP_EPROM("ST M27C160", &H20, &HB1, Mb016, MFP_IF.X16_5V_12V)) 'DIP42,SO44,PLCC44
+            FlashDB.Add(New OTP_EPROM("ST M27C322", &H20, &H34, Mb032, MFP_IF.X16_5V_12V)) 'DIP42
             FlashDB.Add(New OTP_EPROM("ATMEL AT27C010", &H1E, &H5, Mb001, MFP_IF.X8_5V_12V))
             FlashDB.Add(New OTP_EPROM("ATMEL AT27C020", &H1E, &H86, Mb002, MFP_IF.X8_5V_12V))
             FlashDB.Add(New OTP_EPROM("ATMEL AT27C040", &H1E, &HB, Mb004, MFP_IF.X8_5V_12V))
@@ -1549,6 +1563,23 @@ Namespace FlashMemory
                 Case MemoryType.PARALLEL_NOR
                     For Each flash In FlashDB
                         If flash.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
+                            If flash.MFG_CODE = MFG Then
+                                If ID2 = 0 Then 'Only checks the LSB of ID1 (and ignore ID2)
+                                    If (flash.ID1 = ID1) Then Return flash
+                                    If ((ID1 >> 8) = 0) OrElse ((ID1 >> 8) = 255) Then
+                                        If (ID1 And 255) = (flash.ID1 And 255) Then Return flash
+                                    End If
+                                Else
+                                    If (flash.ID1 = ID1) Then
+                                        If flash.ID2 = 0 OrElse flash.ID2 = ID2 Then Return flash
+                                    End If
+                                End If
+                            End If
+                        End If
+                    Next
+                Case MemoryType.OTP_EPROM
+                    For Each flash In FlashDB
+                        If flash.FLASH_TYPE = MemoryType.OTP_EPROM Then
                             If flash.MFG_CODE = MFG Then
                                 If ID2 = 0 Then 'Only checks the LSB of ID1 (and ignore ID2)
                                     If (flash.ID1 = ID1) Then Return flash
@@ -1745,6 +1776,12 @@ Namespace FlashMemory
             If type = MemoryType.PARALLEL_NOR Then 'Search only CFI devices
                 For Each flash In FlashDB
                     If flash.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
+                        dev.Add(flash)
+                    End If
+                Next
+            ElseIf type = MemoryType.OTP_EPROM Then
+                For Each flash In FlashDB
+                    If flash.FLASH_TYPE = MemoryType.OTP_EPROM Then
                         dev.Add(flash)
                     End If
                 Next

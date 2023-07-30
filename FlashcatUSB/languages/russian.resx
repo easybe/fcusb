@@ -328,7 +328,7 @@
     <value>Начало обновления прошивки (отправляется {0} байт)</value>
   </data>
   <data name="i2c_addr_byte" xml:space="preserve">
-    <value>Байты адреса: 0x{0}</value>
+    <value>I2C Байты адреса: 0x{0}</value>
     <comment>I2C EEPROM ADDRESS</comment>
   </data>
   <data name="i2c_attempt_detect" xml:space="preserve">

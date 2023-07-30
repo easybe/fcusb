@@ -329,7 +329,7 @@
     <value>Aggiornamento del firmware sta iniziando (invio di {0} byte)</value>
   </data>
   <data name="i2c_addr_byte" xml:space="preserve">
-    <value>Byte dell'indirizzo: 0x {0}</value>
+    <value>I2C Byte dell'indirizzo: 0x {0}</value>
     <comment>I2C EEPROM ADDRESS</comment>
   </data>
   <data name="i2c_attempt_detect" xml:space="preserve">

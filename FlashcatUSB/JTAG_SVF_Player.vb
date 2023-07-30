@@ -355,7 +355,7 @@ Namespace JTAG
                 Select Case Params(Counter + 1).Trim.ToUpper
                     Case "TCK" 'Toggle test-clock
                         Dim ticks As UInt32 = CUInt(wait_time)
-                        If MY_JTAG.FCUSB.HWBOARD = FCUSB_BOARD.Classic_JTAG Then
+                        If MY_JTAG.FCUSB.HWBOARD = USB.FCUSB_BOARD.Classic_JTAG Then
                             MY_JTAG.TAP.ShiftOut(Nothing, ticks, False)
                         Else
                             MY_JTAG.Tap_Toggle(ticks) 'New boards can toggle via a command

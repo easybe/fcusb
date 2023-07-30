@@ -1433,7 +1433,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Байты адреса: 0x{0}.
+        '''  Looks up a localized string similar to I2C Байты адреса: 0x{0}.
         '''</summary>
         Friend Shared ReadOnly Property i2c_addr_byte() As String
             Get

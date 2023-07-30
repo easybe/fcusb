@@ -49,7 +49,6 @@ Public Class MemControl_v2
         InitializeComponent()
 
         ' Add any initialization after the InitializeComponent() call.
-
     End Sub
 
     Private Sub MemControl_v2_Load(ByVal sender As Object, e As EventArgs) Handles Me.Load
@@ -77,29 +76,38 @@ Public Class MemControl_v2
         StatusLabels(4) = New ToolStripStatusLabel '"100%"
         StatusLabels(0).Image = Nothing
         StatusLabels(0).Width = 20
+
         StatusLabels(1).BorderSides = ToolStripStatusLabelBorderSides.Left
         StatusLabels(1).BorderStyle = Border3DStyle.Etched
         StatusLabels(1).AutoSize = False
         StatusLabels(1).Text = ""
-        StatusLabels(1).TextAlign = ContentAlignment.MiddleCenter
-        StatusLabels(1).Width = 70
+        StatusLabels(1).TextAlign = ContentAlignment.MiddleLeft
+        StatusLabels(1).Width = 80
+        StatusLabels(1).Font = New Font("Courier New", 9.0F, FontStyle.Bold)
+
         StatusLabels(2).BorderSides = ToolStripStatusLabelBorderSides.Left
         StatusLabels(2).BorderStyle = Border3DStyle.Etched
         StatusLabels(2).Spring = True
         StatusLabels(2).Text = ""
         StatusLabels(2).TextAlign = ContentAlignment.MiddleLeft
-        StatusLabels(2).Width = 200
+        StatusLabels(2).Width = 100
+        'StatusLabels(2).Font = New Font("Courier New", 9.0F, FontStyle.Regular)
+
         StatusLabels(3).BorderSides = ToolStripStatusLabelBorderSides.Left
         StatusLabels(3).BorderStyle = Border3DStyle.Etched
         StatusLabels(3).AutoSize = False
         StatusLabels(3).Text = ""
         StatusLabels(3).TextAlign = ContentAlignment.MiddleLeft
-        StatusLabels(3).Width = 104
+        StatusLabels(3).Width = 80 '104
+        'StatusLabels(3).Font = New Font("Courier New", 9.0F, FontStyle.Regular)
+
         StatusLabels(4).BorderSides = ToolStripStatusLabelBorderSides.Left
         StatusLabels(4).BorderStyle = Border3DStyle.Etched
         StatusLabels(4).Text = ""
         StatusLabels(4).TextAlign = ContentAlignment.MiddleLeft
         StatusLabels(4).Width = 60
+        'StatusLabels(4).Font = New Font("Courier New", 9.0F, FontStyle.Regular)
+
     End Sub
 
     Public Sub StatusBar_ImgIndex(ByVal ind As Integer)
@@ -126,13 +134,16 @@ Public Class MemControl_v2
     End Sub
 
     Public Sub StatusBar_SetTextBaseAddress(ByVal addr As UInt32)
-        If Me.InvokeRequired Then
-            Dim d As New cbStatusBar_Address(AddressOf StatusBar_SetTextBaseAddress)
-            Me.Invoke(d, {addr})
-        Else
-            StatusLabels(1).Text = "0x" & Hex(addr).PadLeft(8, "0")
-            Application.DoEvents()
-        End If
+        Try
+            If Me.InvokeRequired Then
+                Dim d As New cbStatusBar_Address(AddressOf StatusBar_SetTextBaseAddress)
+                Me.Invoke(d, {addr})
+            Else
+                StatusLabels(1).Text = "0x" & Hex(addr).PadLeft(8, "0")
+                Application.DoEvents()
+            End If
+        Catch ex As Exception
+        End Try
     End Sub
 
     Public Sub StatusBar_SetTextTask(ByVal current_task As String)
@@ -158,23 +169,29 @@ Public Class MemControl_v2
     End Sub
 
     Public Sub StatusBar_SetTextSpeed(ByVal speed_str As String)
-        If Me.InvokeRequired Then
-            Dim d As New cbStatusBar_String(AddressOf StatusBar_SetTextSpeed)
-            Me.Invoke(d, {speed_str})
-        Else
-            StatusLabels(3).Text = speed_str
-            Application.DoEvents()
-        End If
+        Try
+            If Me.InvokeRequired Then
+                Dim d As New cbStatusBar_String(AddressOf StatusBar_SetTextSpeed)
+                Me.Invoke(d, {speed_str})
+            Else
+                StatusLabels(3).Text = speed_str
+                Application.DoEvents()
+            End If
+        Catch ex As Exception
+        End Try
     End Sub
 
     Public Sub StatusBar_SetPercent(ByVal value As Integer)
-        If Me.InvokeRequired Then
-            Dim d As New cbStatusBar_Percent(AddressOf StatusBar_SetPercent)
-            Me.Invoke(d, {value})
-        Else
-            StatusLabels(4).Text = value & "%"
-            Application.DoEvents()
-        End If
+        Try
+            If Me.InvokeRequired Then
+                Dim d As New cbStatusBar_Percent(AddressOf StatusBar_SetPercent)
+                Me.Invoke(d, {value})
+            Else
+                StatusLabels(4).Text = value & "%"
+                Application.DoEvents()
+            End If
+        Catch ex As Exception
+        End Try
     End Sub
 
 #End Region

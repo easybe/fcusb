@@ -23,7 +23,8 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
         Dim cd_value As UInt16 = (CUShort(MySettings.I2C_SPEED) << 8) Or (MySettings.I2C_ADDRESS) '02A0
         Dim cd_index As UInt16 = (CUShort(addr_size) << 8) Or (page_size) 'addr size, page size   '0220
         Dim config_data As UInt32 = (CUInt(cd_value) << 16) Or cd_index
-        Return FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.I2C_INIT, Nothing, config_data)
+        Dim detect_result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.I2C_INIT, Nothing, config_data)
+        Return detect_result
     End Function
 
     Public Class I2C_DEVICE

@@ -1,6 +1,7 @@
 ﻿Imports System.ComponentModel
 Imports FlashcatUSB.FlashMemory
 Imports FlashcatUSB.MemoryInterface
+Imports FlashcatUSB.USB
 Imports FlashcatUSB.USB.HostClient
 
 Public Class MainForm
@@ -799,6 +800,7 @@ Public Class MainForm
         ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Pro_PCB4 Then
             mi_mode_spi.Enabled = True
             mi_mode_spi_nand.Enabled = True
+            mi_mode_i2c.Enabled = True
             mi_mode_spieeprom.Enabled = True
             mi_mode_3wire.Enabled = True
             mi_mode_extio.Enabled = True
@@ -868,7 +870,7 @@ Public Class MainForm
                 mi_mode_1wire.Checked = True
             Case FlashcatSettings.DeviceMode.Microwire
                 mi_mode_3wire.Checked = True
-            Case FlashcatSettings.DeviceMode.EPROM_OTP
+            Case FlashcatSettings.DeviceMode.EPROM
                 mi_mode_eprom_otp.Checked = True
             Case FlashcatSettings.DeviceMode.JTAG
                 mi_mode_jtag.Checked = True
@@ -1099,7 +1101,7 @@ Public Class MainForm
                 mi_mode_i2c.Checked = True
             Case FlashcatSettings.DeviceMode.NOR_NAND
                 mi_mode_extio.Checked = True
-            Case FlashcatSettings.DeviceMode.EPROM_OTP
+            Case FlashcatSettings.DeviceMode.EPROM
                 mi_mode_eprom_otp.Checked = True
             Case FlashcatSettings.DeviceMode.Microwire
                 mi_mode_3wire.Checked = True
@@ -1186,6 +1188,7 @@ Public Class MainForm
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI
         MySettings.Save()
+        detect_event()
     End Sub
 
     Private Sub mi_mode_spi_eeprom_Click(sender As Object, e As EventArgs) Handles mi_mode_spieeprom.Click
@@ -1193,6 +1196,7 @@ Public Class MainForm
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_EEPROM
         MySettings.Save()
+        detect_event()
     End Sub
 
     Private Sub mi_mode_i2c_Click(sender As Object, e As EventArgs) Handles mi_mode_i2c.Click
@@ -1200,6 +1204,7 @@ Public Class MainForm
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.I2C_EEPROM
         MySettings.Save()
+        detect_event()
     End Sub
 
     Private Sub mi_mode_1wire_Click(sender As Object, e As EventArgs) Handles mi_mode_1wire.Click
@@ -1207,6 +1212,7 @@ Public Class MainForm
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.DOW
         MySettings.Save()
+        detect_event()
     End Sub
 
     Private Sub mi_mode_jtag_Click(sender As Object, e As EventArgs) Handles mi_mode_jtag.Click
@@ -1214,6 +1220,7 @@ Public Class MainForm
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.JTAG
         MySettings.Save()
+        detect_event()
     End Sub
 
     Private Sub mi_mode_extio_Click(sender As Object, e As EventArgs) Handles mi_mode_extio.Click
@@ -1221,13 +1228,15 @@ Public Class MainForm
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND
         MySettings.Save()
+        detect_event()
     End Sub
 
     Private Sub mi_mode_eprom_otp_Click(sender As Object, e As EventArgs) Handles mi_mode_eprom_otp.Click
         Menu_Mode_UncheckAll()
         DirectCast(sender, ToolStripMenuItem).Checked = True
-        MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.EPROM_OTP
+        MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.EPROM
         MySettings.Save()
+        detect_event()
     End Sub
 
     Private Sub mi_mode_spi_nand_Click(sender As Object, e As EventArgs) Handles mi_mode_spi_nand.Click
@@ -1235,6 +1244,7 @@ Public Class MainForm
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_NAND
         MySettings.Save()
+        detect_event()
     End Sub
 
     Private Sub mi_mode_3wire_Click(sender As Object, e As EventArgs) Handles mi_mode_3wire.Click
@@ -1242,6 +1252,7 @@ Public Class MainForm
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.Microwire
         MySettings.Save()
+        detect_event()
     End Sub
 
     Private Sub MachToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles mi_mode_mach1.Click
@@ -2267,7 +2278,7 @@ Public Class MainForm
     End Sub
 
     Private Function IsAnyDeviceBusy() As Boolean
-        If USBCLIENT.HW_UPDATING Then Return True
+        If USBCLIENT.HW_BUSY Then Return True
         For i = 0 To MEM_IF.DeviceCount - 1
             If MEM_IF.GetDevice(i).IsBusy Or MEM_IF.GetDevice(i).IsTaskRunning Then Return True
             If MEM_IF.GetDevice(i).GuiControl IsNot Nothing Then
@@ -2314,11 +2325,11 @@ Public Class MainForm
                 If Not (spi_dev.VENDOR_SPECIFIC = FlashMemory.VENDOR_FEATURE.NotSupported) Then
                     mem_instance.VendorMenu = Nothing
                     If (spi_dev.VENDOR_SPECIFIC = FlashMemory.VENDOR_FEATURE.Micron) Then
-                        mem_instance.VendorMenu = New NonVol_1(usb_dev)
+                        mem_instance.VendorMenu = New vendor_micron(usb_dev)
                     ElseIf (spi_dev.VENDOR_SPECIFIC = FlashMemory.VENDOR_FEATURE.Spansion) Then
-                        mem_instance.VendorMenu = New NonVol_2(usb_dev)
+                        mem_instance.VendorMenu = New vendor_spansion(usb_dev)
                     ElseIf (spi_dev.VENDOR_SPECIFIC = FlashMemory.VENDOR_FEATURE.ISSI) Then
-                        mem_instance.VendorMenu = New NonVol_3(usb_dev)
+                        mem_instance.VendorMenu = New vendor_issi(usb_dev)
                     End If
                 End If
             End If
@@ -2555,7 +2566,6 @@ Public Class MainForm
 
 
 #End Region
-
 
 
 End Class

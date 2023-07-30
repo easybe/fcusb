@@ -5,6 +5,7 @@
 'ACKNOWLEDGEMENT: USB driver functionality provided by LibUsbDotNet (sourceforge.net/projects/libusbdotnet) 
 
 Imports FlashcatUSB.FlashMemory
+Imports FlashcatUSB.USB
 Imports FlashcatUSB.USB.HostClient
 
 Public Class SPINAND_Programmer : Implements MemoryDeviceUSB

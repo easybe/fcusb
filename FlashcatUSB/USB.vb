@@ -10,7 +10,7 @@ Namespace USB
         Public Event DeviceConnected(ByVal usb_dev As FCUSB_DEVICE)
         Public Event DeviceDisconnected(ByVal usb_dev As FCUSB_DEVICE)
 
-        Private Const DEFAULT_TIMEOUT As Integer = 5000
+        Private Const DEFAULT_TIMEOUT As Integer = 5000000
         Private Const USB_VID_ATMEL As Integer = &H3EB
         Private Const USB_VID_EC As Integer = &H16C0
         Private Const USB_PID_FCUSB_PRO As Integer = &H5E0 'FCUSB 3.x
@@ -20,7 +20,7 @@ Namespace USB
         Public FCUSB() As FCUSB_DEVICE
         'The first board to connect sets the hardware for multi-device
         Public Property HW_MODE As FCUSB_BOARD = FCUSB_BOARD.NotConnected
-        Public Property HW_UPDATING As Boolean = False
+        Public Property HW_BUSY As Boolean = False
 
         Sub New()
             ReDim FCUSB(4)
@@ -90,7 +90,7 @@ Namespace USB
 
             Public Sub USB_SPI_SETUP(PORT As SPI_Programmer.SPIBUS_PORT, ByVal mode As SPI_Programmer.SPIBUS_MODE, ByVal bit_order As SPI_ORDER)
                 Try
-                    Dim clock_speed As UInt32 = GetSpiClock(Me.HWBOARD, 10000000) 'No faster than 10MHz
+                    Dim clock_speed As UInt32 = GetSpiClock(Me.HWBOARD, 8000000)
                     If (Me.HWBOARD = FCUSB_BOARD.Pro_PCB3) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
                         Select Case PORT
                             Case SPI_Programmer.SPIBUS_PORT.Port_A
@@ -152,7 +152,8 @@ Namespace USB
                             clock_byte = &H1 'SPI_CLOCK_FOSC_16
                     End Select
                     Dim spiConf As UInt16 = CUShort(clock_byte Or SPI_MODE_BYTE Or SPI_ORDER_BYTE)
-                    USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, CUInt(spiConf) << 16)
+                    'USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, CUInt(spiConf) << 16)
+                    USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, CUInt(spiConf))
                 End If
             End Sub
 
@@ -429,6 +430,14 @@ Namespace USB
                     Return False
                 End Try
             End Function
+
+            Public Sub USB_VCC_OFF()
+                If Me.HWBOARD = FCUSB_BOARD.Pro_PCB3 Then
+                ElseIf Me.HWBOARD = FCUSB_BOARD.Pro_PCB4 Then
+                    USB_CONTROL_MSG_OUT(USBREQ.CPLD_OFF)
+                    VCC_OPTION = Voltage.OFF
+                End If
+            End Sub
 
             Public Sub USB_VCC_1V8()
                 If Me.HWBOARD = FCUSB_BOARD.Pro_PCB3 Then
@@ -900,6 +909,7 @@ Namespace USB
     End Class
 
     Public Enum Voltage As Integer
+        OFF = 0
         V1_8 = 1 'Low (300ma max)
         V3_3 = 2 'Default
         V5_0 = 3 'High (500ma max)
@@ -931,7 +941,7 @@ Namespace USB
         PROG_BOOTLOADER = &H93 'Write payload to bootloader
         UPDATE_FW = &H94 'Update the firmware
         FW_VERS = &H95 '4-bytes of the firmware version (0xFFFF=none)
-        FW_REBOOT = &H97 'Write new FW key and then reboot
+        FW_REBOOT = &H97 'Write new FW key and then reboot. use 0 to just reboot
         'JTAG OPCOMANDS
         JTAG_DETECT = &H10
         JTAG_RESET = &H11 'Resets the TAP to Scan-DR
@@ -1034,6 +1044,17 @@ Namespace USB
         Supported = 2
         NotSupported = 3
         NotCompatible = 4
+    End Enum
+
+    Public Enum FCUSB_BOARD
+        NotConnected = 0
+        Classic_BL 'Bootloader
+        Classic_JTAG 'JTAG firmware
+        Classic_SPI 'SPI firmware
+        Classic_XPORT 'xPORT firmware
+        Pro_PCB3 'Professional PCB 3.x
+        Pro_PCB4 'Professional PCB 4.x
+        Mach1
     End Enum
 
 End Namespace

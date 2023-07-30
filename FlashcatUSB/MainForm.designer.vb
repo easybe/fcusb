@@ -360,7 +360,7 @@ Partial Class MainForm
         '
         Me.mi_mode_eprom_otp.Name = "mi_mode_eprom_otp"
         Me.mi_mode_eprom_otp.Size = New System.Drawing.Size(225, 22)
-        Me.mi_mode_eprom_otp.Text = "EPROM OTP"
+        Me.mi_mode_eprom_otp.Text = "EPROM"
         '
         'mi_mode_jtag
         '
@@ -385,21 +385,21 @@ Partial Class MainForm
         '
         Me.mi_script_selected.Image = Global.FlashcatUSB.My.Resources.Resources.config
         Me.mi_script_selected.Name = "mi_script_selected"
-        Me.mi_script_selected.Size = New System.Drawing.Size(152, 22)
+        Me.mi_script_selected.Size = New System.Drawing.Size(144, 22)
         Me.mi_script_selected.Text = "Select script"
         '
         'mi_script_load
         '
         Me.mi_script_load.Image = Global.FlashcatUSB.My.Resources.Resources.openfile
         Me.mi_script_load.Name = "mi_script_load"
-        Me.mi_script_load.Size = New System.Drawing.Size(152, 22)
+        Me.mi_script_load.Size = New System.Drawing.Size(144, 22)
         Me.mi_script_load.Text = "Load script"
         '
         'mi_script_unload
         '
         Me.mi_script_unload.Image = Global.FlashcatUSB.My.Resources.Resources.clear_x
         Me.mi_script_unload.Name = "mi_script_unload"
-        Me.mi_script_unload.Size = New System.Drawing.Size(152, 22)
+        Me.mi_script_unload.Size = New System.Drawing.Size(144, 22)
         Me.mi_script_unload.Text = "Unload script"
         '
         'mi_tools_menu
@@ -470,49 +470,49 @@ Partial Class MainForm
         '
         Me.mi_language_english.Image = Global.FlashcatUSB.My.Resources.Resources.English
         Me.mi_language_english.Name = "mi_language_english"
-        Me.mi_language_english.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_english.Size = New System.Drawing.Size(134, 22)
         Me.mi_language_english.Text = "English"
         '
         'mi_language_spanish
         '
         Me.mi_language_spanish.Image = Global.FlashcatUSB.My.Resources.Resources.spain
         Me.mi_language_spanish.Name = "mi_language_spanish"
-        Me.mi_language_spanish.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_spanish.Size = New System.Drawing.Size(134, 22)
         Me.mi_language_spanish.Text = "Spanish"
         '
         'mi_language_french
         '
         Me.mi_language_french.Image = Global.FlashcatUSB.My.Resources.Resources.france
         Me.mi_language_french.Name = "mi_language_french"
-        Me.mi_language_french.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_french.Size = New System.Drawing.Size(134, 22)
         Me.mi_language_french.Text = "French"
         '
         'mi_language_portuguese
         '
         Me.mi_language_portuguese.Image = Global.FlashcatUSB.My.Resources.Resources.portugal
         Me.mi_language_portuguese.Name = "mi_language_portuguese"
-        Me.mi_language_portuguese.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_portuguese.Size = New System.Drawing.Size(134, 22)
         Me.mi_language_portuguese.Text = "Portuguese"
         '
         'mi_language_russian
         '
         Me.mi_language_russian.Image = Global.FlashcatUSB.My.Resources.Resources.russia
         Me.mi_language_russian.Name = "mi_language_russian"
-        Me.mi_language_russian.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_russian.Size = New System.Drawing.Size(134, 22)
         Me.mi_language_russian.Text = "Russian"
         '
         'mi_language_chinese
         '
         Me.mi_language_chinese.Image = Global.FlashcatUSB.My.Resources.Resources.china
         Me.mi_language_chinese.Name = "mi_language_chinese"
-        Me.mi_language_chinese.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_chinese.Size = New System.Drawing.Size(134, 22)
         Me.mi_language_chinese.Text = "Chinese"
         '
         'mi_language_italian
         '
         Me.mi_language_italian.Image = Global.FlashcatUSB.My.Resources.Resources.Italy
         Me.mi_language_italian.Name = "mi_language_italian"
-        Me.mi_language_italian.Size = New System.Drawing.Size(152, 22)
+        Me.mi_language_italian.Size = New System.Drawing.Size(134, 22)
         Me.mi_language_italian.Text = "Italian"
         '
         'FlashStatus

@@ -337,8 +337,9 @@ Public Class MemoryInterface
                         Try
                             Threading.Thread.CurrentThread.Join(10) 'Pump a message
                             If Params.Status.UpdateSpeed IsNot Nothing Then
-                                Dim speed_str As String = Format(Math.Round(BytesRead / (Params.Timer.ElapsedMilliseconds / 1000)), "#,###") & " Bytes/s"
-                                Params.Status.UpdateSpeed.DynamicInvoke(speed_str)
+                                Dim bytes_per_second As UInt32 = Math.Round(BytesRead / (Params.Timer.ElapsedMilliseconds / 1000))
+                                Dim speed_text As String = UpdateSpeed_GetText(bytes_per_second)
+                                Params.Status.UpdateSpeed.DynamicInvoke(speed_text)
                             End If
                             data_stream.Flush()
                         Catch ex As Exception
@@ -399,7 +400,9 @@ Public Class MemoryInterface
                 Dim result As Boolean = FCUSB.EJ_IF.WriteMemory(Params.Address + BytesTransfered, DataOut)
                 If Not result Then Return False
                 If Params.Status.UpdateSpeed IsNot Nothing Then
-                    Params.Status.UpdateSpeed.DynamicInvoke(Format(Math.Round(BytesTransfered / (Params.Timer.ElapsedMilliseconds / 1000)), "#,###") & " Bytes/s")
+                    Dim bytes_per_second As UInt32 = Math.Round(BytesTransfered / (Params.Timer.ElapsedMilliseconds / 1000))
+                    Dim speed_text As String = UpdateSpeed_GetText(bytes_per_second)
+                    Params.Status.UpdateSpeed.DynamicInvoke(speed_text)
                 End If
                 If Params.Status.UpdatePercent IsNot Nothing Then
                     Dim percent_done As Single = CSng((BytesTransfered / Params.BytesLeft) * 100)
@@ -447,8 +450,9 @@ Public Class MemoryInterface
                         Params.Address = sector.BaseAddress + sector.Size
                         percent_done = CSng(CSng((Params.BytesWritten) / CSng(Params.BytesTotal)) * 100)
                         If Params.Status.UpdateSpeed IsNot Nothing Then
-                            Dim speed_str As String = Format(Math.Round(Params.BytesWritten / (Params.Timer.ElapsedMilliseconds / 1000)), "#,###") & " Bytes/s"
-                            Params.Status.UpdateSpeed.DynamicInvoke(speed_str)
+                            Dim bytes_per_second As UInt32 = Math.Round(Params.BytesWritten / (Params.Timer.ElapsedMilliseconds / 1000))
+                            Dim speed_text As String = UpdateSpeed_GetText(bytes_per_second)
+                            Params.Status.UpdateSpeed.DynamicInvoke(speed_text)
                         End If
                         If Params.Status.UpdatePercent IsNot Nothing Then
                             Params.Status.UpdatePercent.DynamicInvoke(CInt(percent_done))
@@ -536,8 +540,9 @@ Public Class MemoryInterface
                         Params.Address += PacketSize
                         percent_done = CSng(CSng((BytesTransfered) / CSng(TotalSize)) * 100)
                         If Params.Status.UpdateSpeed IsNot Nothing Then
-                            Dim speed_str As String = Format(Math.Round(BytesTransfered / (Params.Timer.ElapsedMilliseconds / 1000)), "#,###") & " Bytes/s"
-                            Params.Status.UpdateSpeed.DynamicInvoke(speed_str)
+                            Dim bytes_per_second As UInt32 = Math.Round(BytesTransfered / (Params.Timer.ElapsedMilliseconds / 1000))
+                            Dim speed_text As String = UpdateSpeed_GetText(bytes_per_second)
+                            Params.Status.UpdateSpeed.DynamicInvoke(speed_text)
                         End If
                         If Params.Status.UpdatePercent IsNot Nothing Then
                             Params.Status.UpdatePercent.DynamicInvoke(CInt(percent_done))
@@ -989,5 +994,16 @@ Public Class MemoryInterface
         End Try
     End Sub
 
+    Private Shared Function UpdateSpeed_GetText(ByVal bytes_per_second As Integer) As String
+        Dim speed_str As String
+        If (bytes_per_second > (Mb008 - 1)) Then '1MB or higher
+            speed_str = Format(CSng(bytes_per_second / Mb008), "#,###.000") & " MB/s"
+        ElseIf (bytes_per_second > 8191) Then
+            speed_str = Format(CSng(bytes_per_second / 1024), "#,###.00") & " KB/s"
+        Else
+            speed_str = Format(bytes_per_second, "#,###") & " B/s"
+        End If
+        Return speed_str
+    End Function
 
 End Class

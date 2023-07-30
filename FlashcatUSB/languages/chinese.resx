@@ -329,7 +329,7 @@
     <value>更新开始（发送中{0}字节）</value>
   </data>
   <data name="i2c_addr_byte" xml:space="preserve">
-    <value>字节地址：0x{0}</value>
+    <value>I2C 字节地址：0x{0}</value>
     <comment>I2C EEPROM ADDRESS</comment>
   </data>
   <data name="i2c_attempt_detect" xml:space="preserve">

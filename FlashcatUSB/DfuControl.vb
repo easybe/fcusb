@@ -35,9 +35,13 @@ Public Class DfuControl
         Dim OpenMe As New OpenFileDialog
         OpenMe.AddExtension = True
         OpenMe.InitialDirectory = Application.StartupPath & "\Firmware"
-        OpenMe.Title = "Choose AVR firmware to program"
+        OpenMe.Title = "Choose firmware to program"
         OpenMe.CheckPathExists = True
-        OpenMe.Filter = "Intel Hex Format (*.hex)|*.hex"
+        If FCUSB.USBHANDLE.UsbRegistryInfo.Vid = &H3EB AndAlso FCUSB.USBHANDLE.UsbRegistryInfo.Pid = &H2FF9 Then
+            OpenMe.Filter = "XPORT Hex Format (*XPORT*.hex)|*XPORT*.hex"
+        Else
+            OpenMe.Filter = "Classic Hex Format (*CLASSIC*.hex)|*CLASSIC*.hex"
+        End If
         If OpenMe.ShowDialog = DialogResult.OK Then
             Dim finfo As New IO.FileInfo(OpenMe.FileName)
             Dim FileData() As Byte = Utilities.FileIO.ReadBytes(finfo.FullName)

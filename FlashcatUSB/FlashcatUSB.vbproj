@@ -195,22 +195,22 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="NAND_Block_Manager.vb" />
-    <Compile Include="NonVol_1.designer.vb">
-      <DependentUpon>NonVol_1.vb</DependentUpon>
+    <Compile Include="vendor_micron.designer.vb">
+      <DependentUpon>vendor_micron.vb</DependentUpon>
     </Compile>
-    <Compile Include="NonVol_1.vb">
+    <Compile Include="vendor_micron.vb">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="NonVol_2.designer.vb">
-      <DependentUpon>NonVol_2.vb</DependentUpon>
+    <Compile Include="vendor_spansion.designer.vb">
+      <DependentUpon>vendor_spansion.vb</DependentUpon>
     </Compile>
-    <Compile Include="NonVol_2.vb">
+    <Compile Include="vendor_spansion.vb">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="NonVol_3.designer.vb">
-      <DependentUpon>NonVol_3.vb</DependentUpon>
+    <Compile Include="vendor_issi.designer.vb">
+      <DependentUpon>vendor_issi.vb</DependentUpon>
     </Compile>
-    <Compile Include="NonVol_3.vb">
+    <Compile Include="vendor_issi.vb">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="ScriptEng.vb" />
@@ -285,20 +285,21 @@
     <EmbeddedResource Include="NAND_Block_Management.resx">
       <DependentUpon>NAND_Block_Management.vb</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="NonVol_1.resx">
-      <DependentUpon>NonVol_1.vb</DependentUpon>
+    <EmbeddedResource Include="vendor_micron.resx">
+      <DependentUpon>vendor_micron.vb</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="NonVol_2.resx">
-      <DependentUpon>NonVol_2.vb</DependentUpon>
+    <EmbeddedResource Include="vendor_spansion.resx">
+      <DependentUpon>vendor_spansion.vb</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="NonVol_3.resx">
-      <DependentUpon>NonVol_3.vb</DependentUpon>
+    <EmbeddedResource Include="vendor_issi.resx">
+      <DependentUpon>vendor_issi.vb</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <EmbeddedResource Include="firmware\FCUSB_BOOT_v2.bin" />
-    <EmbeddedResource Include="firmware\FCUSB_BLUPDATE.bin" />
+    <EmbeddedResource Include="firmware\PCB3_Boot.bin" />
+    <EmbeddedResource Include="firmware\PCB3_BLUPDATE.bin" />
+    <EmbeddedResource Include="firmware\PCB4_I2C.svf" />
     <None Include="My Project\Application.myapp">
       <Generator>MyApplicationCodeGenerator</Generator>
       <LastGenOutput>Application.Designer.vb</LastGenOutput>

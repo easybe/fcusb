@@ -779,14 +779,20 @@ Namespace Utilities
     Friend Module Main
 
         Public Sub FillByteArray(ByRef data() As Byte, ByVal value As Byte)
+            If data Is Nothing Then Exit Sub
             For i = 0 To data.Length - 1
                 data(i) = value
             Next
         End Sub
 
         Public Function IsByteArrayFilled(ByRef data() As Byte, ByVal value As Byte) As Boolean
+            If data Is Nothing Then Return False
+            Dim counter As Long = 0
             For Each d In data
-                If Not d = value Then Return False
+                If Not d = value Then
+                    Return False
+                End If
+                counter += 1
             Next
             Return True
         End Function

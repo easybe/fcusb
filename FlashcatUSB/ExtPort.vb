@@ -1,5 +1,6 @@
 ﻿Imports FlashcatUSB.ECC_LIB
 Imports FlashcatUSB.FlashMemory
+Imports FlashcatUSB.USB
 Imports FlashcatUSB.USB.HostClient
 
 Public Class ExtPort : Implements MemoryDeviceUSB
@@ -176,23 +177,50 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         Else
             RaiseEvent PrintConsole(RM.GetString("ext_board_initalized"))
         End If
-        MyFlashDevice = FlashDatabase.FindDevice(MySettings.OTP_MFG, MySettings.OTP_ID, 0, MemoryType.PARALLEL_NOR)
-        MyAdapter = AdatperType.X8_Type1
-        EXPIO_SETUP_USB(EXPIO_Mode.NOR_x8)
-        EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type9)
-        RaiseEvent PrintConsole("Device mode set to EPROM OTP")
-        RaiseEvent PrintConsole("Memory name: " & MyFlashDevice.NAME & ", size: " & Format(MyFlashDevice.FLASH_SIZE, "#,###") & " bytes")
-        SetStatus("Performing EPROM blank check")
-        Dim d() As Byte = ReadBulk_NOR(0, MyFlashDevice.FLASH_SIZE)
-        If Utilities.IsByteArrayFilled(d, 255) Then
-            RaiseEvent PrintConsole("EPROM device is blank and can be programmed")
-            DirectCast(MyFlashDevice, OTP_EPROM).IS_BLANK = True
+        MyFlashDevice = FlashDatabase.FindDevice(MySettings.OTP_MFG, MySettings.OTP_ID, 0, MemoryType.OTP_EPROM)
+        Dim s27_eprom As OTP_EPROM = DirectCast(MyFlashDevice, OTP_EPROM)
+        EXPIO_SETUP_DELAY(MFP_DELAY.uS)
+        EXPIO_SETUP_WRITEDELAY(s27_eprom.HARDWARE_DELAY)
+        If IsIFACE8X(s27_eprom.IFACE) Then
+            MyAdapter = AdatperType.X8_Type1
+            EXPIO_SETUP_USB(EXPIO_Mode.NOR_x8)
+            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type9)
+            RaiseEvent PrintConsole("Device mode set to EPROM (8-bit)")
         Else
-            RaiseEvent PrintConsole("EPROM device is not blank")
+            MyAdapter = AdatperType.X16_Type1
+            EXPIO_SETUP_USB(EXPIO_Mode.NOR_x16)
+            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type10)
+            RaiseEvent PrintConsole("Device mode set to EPROM (16-bit)")
         End If
-        SetStatus("EPROM OTP ready for operation")
+        RaiseEvent PrintConsole("Memory name: " & MyFlashDevice.NAME & ", size: " & Format(MyFlashDevice.FLASH_SIZE, "#,###") & " bytes")
+        DirectCast(MyFlashDevice, OTP_EPROM).IS_BLANK = True
+        'DirectCast(MyFlashDevice, OTP_EPROM).IS_BLANK = EPROM_BlankCheck()
+        SetStatus("EPROM mode ready for operation")
         MyFlashStatus = USB.DeviceStatus.Supported
         Return True
+    End Function
+
+    Public Function EPROM_BlankCheck() As Boolean
+        SetStatus("Performing EPROM blank check")
+        RaiseEvent SetProgress(0)
+        Dim entire_data(MyFlashDevice.FLASH_SIZE - 1) As Byte
+        Dim BlockCount As Integer = (entire_data.Length / 8192)
+        For i = 0 To BlockCount - 1
+            If AppIsClosing Then Return False
+            Dim block() As Byte = ReadBulk_NOR(i * 8191, 8191)
+            Array.Copy(block, 0, entire_data, i * 8191, 8191)
+            Dim percent As Single = (i / BlockCount) * 100
+            RaiseEvent SetProgress(Math.Floor(percent))
+        Next
+        If Utilities.IsByteArrayFilled(entire_data, 255) Then
+            RaiseEvent PrintConsole("EPROM device is blank and can be programmed")
+            DirectCast(MyFlashDevice, OTP_EPROM).IS_BLANK = True
+            Return True
+        Else
+            RaiseEvent PrintConsole("EPROM device is not blank")
+            DirectCast(MyFlashDevice, OTP_EPROM).IS_BLANK = False
+            Return False
+        End If
     End Function
 
 #Region "Public Interface"
@@ -223,6 +251,9 @@ Public Class ExtPort : Implements MemoryDeviceUSB
             ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
                 Dim NOR_FLASH As MFP_Flash = DirectCast(MyFlashDevice, MFP_Flash)
                 Return NOR_FLASH.AVAILABLE_SIZE
+            ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM Then
+                Dim NOR_FLASH As OTP_EPROM = DirectCast(MyFlashDevice, OTP_EPROM)
+                Return NOR_FLASH.FLASH_SIZE
             Else
                 Return Me.MyFlashDevice.FLASH_SIZE
             End If
@@ -372,8 +403,8 @@ Public Class ExtPort : Implements MemoryDeviceUSB
             Dim result As Boolean = FCUSB.NAND_IF.WRITEPAGE(page_addr, data_to_write, Params.Memory_Area) 'We will write the whole block instead
             FCUSB.USB_WaitForComplete()
             Return result
-        ElseIf MyFlashDevice.GetType Is GetType(OTP_EPROM) Then
-            Return WriteData_OTP(logical_address, data_to_write, Params)
+        ElseIf (MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM) Then
+            Return WriteData_EPROM(logical_address, data_to_write, Params)
         Else
             Dim nor_device As MFP_Flash = DirectCast(MyFlashDevice, MFP_Flash)
             Try
@@ -414,7 +445,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         Return False
     End Function
 
-    Private Function WriteData_OTP(ByVal logical_address As UInt32, ByVal data_to_write() As Byte, ByRef Params As WriteParameters) As Boolean
+    Private Function WriteData_EPROM(ByVal logical_address As UInt32, ByVal data_to_write() As Byte, ByRef Params As WriteParameters) As Boolean
         Dim eprom_device As OTP_EPROM = DirectCast(MyFlashDevice, OTP_EPROM)
         Try
             EXPIO_VPP_START()
@@ -466,6 +497,8 @@ Public Class ExtPort : Implements MemoryDeviceUSB
             FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_NAND_WAIT)
         ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
             Utilities.Sleep(100) 'Some flash devices have registers, some rely on delays
+        ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM Then
+            Utilities.Sleep(100)
         End If
     End Sub
 
@@ -501,8 +534,8 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                 Else
                     RaiseEvent PrintConsole(RM.GetString("nand_erase_failed"))
                 End If
-            ElseIf MyFlashDevice.GetType Is GetType(OTP_EPROM) Then
-                RaiseEvent PrintConsole("EPROM OTP devices are not able to be erased")
+            ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM Then
+                RaiseEvent PrintConsole("EPROM devices are not able to be erased")
             Else
                 Try
                     EXPIO_VPP_START()
@@ -549,12 +582,10 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         Get
             If Not MyFlashStatus = USB.DeviceStatus.Supported Then Return 0
             If FCUSB.EXT_IF.MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
-                If MyFlashDevice.GetType Is GetType(OTP_EPROM) Then
-                    Return MyFlashDevice.FLASH_SIZE 'We will need to program the entire array
-                Else
-                    If MySettings.MUTLI_NOR Then sector = ((MyFlashDevice.Sector_Count - 1) And sector)
-                    Return DirectCast(MyFlashDevice, MFP_Flash).GetSectorSize(sector)
-                End If
+                If MySettings.MUTLI_NOR Then sector = ((MyFlashDevice.Sector_Count - 1) And sector)
+                Return DirectCast(MyFlashDevice, MFP_Flash).GetSectorSize(sector)
+            ElseIf FCUSB.EXT_IF.MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM Then
+                Return MyFlashDevice.FLASH_SIZE 'We will need to program the entire array
             Else
                 Dim nand_dev As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
                 Dim page_count As UInt32 = (nand_dev.BLOCK_SIZE / nand_dev.PAGE_SIZE)
@@ -660,7 +691,8 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         Type6 = 6 '(Page)0x5555,0x2AAA,0x5555;(BA/DATA)
         Type7 = 7 '(Buffer)0xE8...0xD0
         Type8 = 8 '(buffer)0x555=0xAA,0x2AA=0x55,SA=0x25,SA=(WC-1)..
-        Type9 = 9 '(VPP=HIGH) ADDR/DATA (EPROM)
+        Type9 = 9 '(VPP=HIGH) ADDR/DATA (EPROM_8BIT)
+        Type10 = 10 '(VPP=HIGH) ADDR/DATA (EPROM_16BIT)
     End Enum
 
     Private Function EXPIO_SETUP_USB(ByVal mode As EXPIO_Mode) As Boolean
@@ -762,11 +794,11 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         Else
             Exit Sub
         End If
-        If DirectCast(MyFlashDevice, MFP_Flash).IFACE = MFP_IF.X16_5V_12V Then
+        If if_type = MFP_IF.X16_5V_12V Then
             VPP_FEAT_EN = True
-        ElseIf DirectCast(MyFlashDevice, MFP_Flash).IFACE = MFP_IF.X16_3V_12V Then
+        ElseIf if_type = MFP_IF.X16_3V_12V Then
             VPP_FEAT_EN = True
-        ElseIf DirectCast(MyFlashDevice, MFP_Flash).IFACE = MFP_IF.X8_5V_12V Then
+        ElseIf if_type = MFP_IF.X8_5V_12V Then
             VPP_FEAT_EN = True
         End If
         If VPP_FEAT_EN Then
@@ -786,11 +818,11 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         Else
             Exit Sub
         End If
-        If DirectCast(MyFlashDevice, MFP_Flash).IFACE = MFP_IF.X16_5V_12V Then
+        If if_type = MFP_IF.X16_5V_12V Then
             VPP_FEAT_EN = True
-        ElseIf DirectCast(MyFlashDevice, MFP_Flash).IFACE = MFP_IF.X16_3V_12V Then
+        ElseIf if_type = MFP_IF.X16_3V_12V Then
             VPP_FEAT_EN = True
-        ElseIf DirectCast(MyFlashDevice, MFP_Flash).IFACE = MFP_IF.X8_5V_12V Then
+        ElseIf if_type = MFP_IF.X8_5V_12V Then
             VPP_FEAT_EN = True
         End If
         If VPP_FEAT_EN Then
@@ -972,7 +1004,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
     End Class
 
     Private Sub SetupFlashDevice()
-        If MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
+        If (MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR) Or (MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM) Then
             Select Case DirectCast(MyFlashDevice, MFP_Flash).IFACE
                 Case MFP_IF.X8_3V
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X8 (3V)")
@@ -1069,6 +1101,10 @@ Public Class ExtPort : Implements MemoryDeviceUSB
     Public Function ResetDevice() As Boolean
         Try
             If MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
+                Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_RESET)
+                Utilities.Sleep(50)
+                Return result
+            ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM Then
                 Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_RESET)
                 Utilities.Sleep(50)
                 Return result

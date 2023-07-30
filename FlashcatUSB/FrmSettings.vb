@@ -1,5 +1,6 @@
 ﻿Imports System.ComponentModel
 Imports FlashcatUSB.ECC_LIB
+Imports FlashcatUSB.USB
 
 Public Class FrmSettings
     Private otp_devices As New List(Of FlashMemory.OTP_EPROM)
@@ -133,24 +134,22 @@ Public Class FrmSettings
         Dim otp_index As Integer = 0
         Dim otp_counter As Integer = 1
         cb_otp_device_list.Items.Add("(Not Selected)")
-        Dim d() As FlashMemory.Device = FlashDatabase.GetFlashDevices(FlashMemory.MemoryType.PARALLEL_NOR)
+        Dim d() As FlashMemory.Device = FlashDatabase.GetFlashDevices(FlashMemory.MemoryType.OTP_EPROM)
         For Each mem In d
-            If mem.GetType Is GetType(FlashMemory.OTP_EPROM) Then
-                Dim o As FlashMemory.OTP_EPROM = DirectCast(mem, FlashMemory.OTP_EPROM)
-                otp_devices.Add(o)
-                Dim size_str As String
-                If (o.FLASH_SIZE < 131072) Then
-                    size_str = (o.FLASH_SIZE / 128).ToString & "Kbit"
-                Else
-                    size_str = (o.FLASH_SIZE / 131072).ToString & "Mbit"
-                End If
-                Dim list_str As String = o.NAME & " (" & size_str & ")"
-                cb_otp_device_list.Items.Add(list_str)
-                If o.MFG_CODE = MySettings.OTP_MFG AndAlso o.ID1 = MySettings.OTP_ID Then
-                    otp_index = otp_counter
-                End If
-                otp_counter += 1
+            Dim o As FlashMemory.OTP_EPROM = DirectCast(mem, FlashMemory.OTP_EPROM)
+            otp_devices.Add(o)
+            Dim size_str As String
+            If (o.FLASH_SIZE < 131072) Then
+                size_str = (o.FLASH_SIZE / 128).ToString & "Kbit"
+            Else
+                size_str = (o.FLASH_SIZE / 131072).ToString & "Mbit"
             End If
+            Dim list_str As String = o.NAME & " (" & size_str & ")"
+            cb_otp_device_list.Items.Add(list_str)
+            If o.MFG_CODE = MySettings.OTP_MFG AndAlso o.ID1 = MySettings.OTP_ID Then
+                otp_index = otp_counter
+            End If
+            otp_counter += 1
         Next
         cb_otp_device_list.SelectedIndex = otp_index
         cb_s93_devices.SelectedIndex = MySettings.S93_DEVICE_INDEX
@@ -336,7 +335,7 @@ Public Class FrmSettings
         MySettings.VERIFY_COUNT = cb_retry_write.SelectedIndex + 1
         MySettings.S93_DEVICE_INDEX = cb_s93_devices.SelectedIndex
         MySettings.S93_DEVICE_ORG = cb_s93_org.SelectedIndex
-        
+
         MySettings.SREC_BITMODE = cbSrec.SelectedIndex
     End Sub
 

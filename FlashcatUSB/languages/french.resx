@@ -328,7 +328,7 @@
     <value>La mise à jour du firmware démarre (envoie de {0} octets)</value>
   </data>
   <data name="i2c_addr_byte" xml:space="preserve">
-    <value>Octet d'adresse: 0x{0}</value>
+    <value>I2C Octet d'adresse: 0x{0}</value>
     <comment>I2C EEPROM ADDRESS</comment>
   </data>
   <data name="i2c_attempt_detect" xml:space="preserve">
