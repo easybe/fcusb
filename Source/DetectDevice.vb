@@ -1,0 +1,315 @@
+﻿Imports FlashcatUSB.FlashMemory
+Imports FlashcatUSB.USB
+Imports FlashcatUSB.MemoryInterface
+Imports FlashcatUSB.SPI
+
+Public Module DetectDevice
+
+    Public Structure DetectParams
+        Public OPER_MODE As DeviceMode
+        Public SPI_AUTO As Boolean
+        Public SPI_CLOCK As SPI_SPEED
+        Public SQI_CLOCK As SQI_SPEED
+        Public SPI_EEPROM As String
+        Public I2C_INDEX As Integer
+        Public I2C_SPEED As I2C_SPEED_MODE
+        Public I2C_ADDRESS As Byte
+        Public NOR_READ_ACCESS As Integer
+        Public NOR_WE_PULSE As Integer
+        Public NAND_Layout As NandMemLayout
+    End Structure
+
+    Public Function Device(usb_dev As FCUSB_DEVICE, Params As DetectParams) As Boolean
+        Dim m As MemoryDeviceUSB = CreateProgrammer(usb_dev, Params.OPER_MODE)
+        If m Is Nothing Then Return False
+        CURRENT_DEVICE_MODE = Params.OPER_MODE
+        NAND_LayoutTool = New NAND_LAYOUT_TOOL(Params.NAND_Layout)
+        PrintConsole(RM.GetString("detecting_device"), True)
+        Utilities.Sleep(100) 'Allow time for USB to power up devices
+        If Params.OPER_MODE = DeviceMode.SPI Then
+            Return DetectDevice_SPI(m, Params)
+        ElseIf Params.OPER_MODE = DeviceMode.SQI Then
+            Return DetectDevice_SQI(m, Params)
+        ElseIf Params.OPER_MODE = DeviceMode.SPI_NAND Then
+            Return DetectDevice_SPI_NAND(m, Params)
+        ElseIf Params.OPER_MODE = DeviceMode.SPI_EEPROM Then
+            Return DetectDevice_SPI_EEPROM(m, Params)
+        ElseIf Params.OPER_MODE = DeviceMode.I2C_EEPROM Then
+            Return DetectDevice_I2C_EEPROM(m, Params)
+        ElseIf Params.OPER_MODE = DeviceMode.ONE_WIRE Then
+            Return DetectDevice_ONE_WIRE(m, Params)
+        ElseIf Params.OPER_MODE = DeviceMode.Microwire Then
+            Return DetectDevice_Microwire(m, Params)
+        ElseIf Params.OPER_MODE = DeviceMode.PNOR Then
+            Return DetectDevice_PNOR(m, Params)
+        ElseIf Params.OPER_MODE = DeviceMode.PNAND Then
+            Return DetectDevice_PNAND(m, Params)
+        ElseIf Params.OPER_MODE = DeviceMode.FWH Then
+            Return DetectDevice_FWH(m, Params)
+        ElseIf Params.OPER_MODE = DeviceMode.HyperFlash Then
+            Return DetectDevice_HyperFlash(m, Params)
+        ElseIf Params.OPER_MODE = DeviceMode.EPROM Then
+            Return DetectDevice_EPROM(m, Params)
+        Else '(OTHER MODES)
+        End If
+        Return False
+    End Function
+
+    Public Function DetectDevice_SPI(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
+        Dim SPI_IF As SPI_Programmer = CType(prg_if, SPI_Programmer)
+        PrintConsole("Initializing SPI device mode")
+        If Params.SPI_AUTO Then
+            PrintConsole(RM.GetString("spi_attempting_detect"))
+            SPI_IF.SPIBUS_Setup(GetMaxSpiClock(MAIN_FCUSB.HWBOARD, SPI_SPEED.MHZ_8))
+            If SPI_IF.DeviceInit() Then
+                SPI_IF.SPIBUS_Setup(GetMaxSpiClock(MAIN_FCUSB.HWBOARD, Params.SPI_CLOCK))
+                Dim block_size As Integer = 65536
+                If MAIN_FCUSB.HasLogic() Then block_size = 262144
+                Connected_Event(prg_if, block_size)
+                PrintConsole(RM.GetString("spi_detected_spi")) '"Detected SPI Flash on high-speed SPI port" 
+                PrintConsole(String.Format(RM.GetString("spi_set_clock"), GetSpiClockString(MAIN_FCUSB, Params.SPI_CLOCK)))
+                Return True
+            Else
+                Select Case SPI_IF.MyFlashStatus
+                    Case DeviceStatus.NotDetected
+                        PrintConsole(RM.GetString("spi_not_detected"), True) '"Unable to detect to SPI NOR Flash device"
+                    Case DeviceStatus.NotSupported
+                        PrintConsole(RM.GetString("mem_not_supported"), True) '"Flash memory detected but not found in Flash library"
+                End Select
+            End If
+        Else 'We are using a specified device
+            SPI_IF.MyFlashStatus = DeviceStatus.Supported
+            SPI_IF.MyFlashDevice = CUSTOM_SPI_DEV
+            Connected_Event(prg_if, 65536)
+            PrintConsole(String.Format(RM.GetString("spi_set_clock"), GetSpiClockString(MAIN_FCUSB, Params.SPI_CLOCK)))
+            Return True
+        End If
+        Return False
+    End Function
+
+    Public Function DetectDevice_SQI(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
+        Dim SQI_IF As SQI_Programmer = CType(prg_if, SQI_Programmer)
+        PrintConsole("Initializing QUAD SPI device mode")
+        SQI_IF.SQIBUS_Setup(GetMaxSqiClock(MAIN_FCUSB.HWBOARD, SQI_SPEED.MHZ_10))
+        If SQI_IF.DeviceInit() Then
+            SQI_IF.SQIBUS_Setup(GetMaxSqiClock(MAIN_FCUSB.HWBOARD, Params.SQI_CLOCK))
+            Dim packet_size As Integer = 16384
+            If MAIN_FCUSB.HasLogic() AndAlso (Params.SQI_CLOCK > SQI_SPEED.MHZ_10) Then
+                If SQI_IF.SQI_DEVICE_MODE = SQI_IO_MODE.QUAD_ONLY Then
+                    packet_size = 524288 'I feel the need... the need for speed
+                ElseIf SQI_IF.SQI_DEVICE_MODE = SQI_IO_MODE.SPI_QUAD Then
+                    packet_size = 524288
+                ElseIf SQI_IF.SQI_DEVICE_MODE = SQI_IO_MODE.DUAL_ONLY Then
+                    packet_size = 262144
+                ElseIf SQI_IF.SQI_DEVICE_MODE = SQI_IO_MODE.SPI_DUAL Then
+                    packet_size = 262144
+                Else
+                    packet_size = 131072
+                End If
+            End If
+            Connected_Event(prg_if, packet_size)
+            PrintConsole(RM.GetString("spi_detected_sqi"))
+            Return True
+        Else
+            Select Case SQI_IF.MyFlashStatus
+                Case DeviceStatus.NotDetected
+                    PrintConsole(RM.GetString("spi_not_detected"), True) '"Unable to detect to SPI NOR Flash device"
+                Case DeviceStatus.NotSupported
+                    PrintConsole(RM.GetString("mem_not_supported"), True) '"Flash memory detected but not found in Flash library"
+            End Select
+        End If
+        Return False
+    End Function
+
+    Public Function DetectDevice_SPI_NAND(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
+        Dim SNAND_IF As SPINAND_Programmer = CType(prg_if, SPINAND_Programmer)
+        PrintConsole("Initializing SPI NAND device mode")
+        If SNAND_IF.DeviceInit() Then
+            Connected_Event(prg_if, 65536)
+            PrintConsole(RM.GetString("spi_nand_detected"))
+            PrintConsole(String.Format(RM.GetString("spi_set_clock"), GetSpiClockString(MAIN_FCUSB, Params.SPI_CLOCK)))
+            Return True
+        Else
+            Select Case SNAND_IF.MyFlashStatus
+                Case DeviceStatus.NotDetected
+                    PrintConsole(RM.GetString("spi_nand_unable_to_detect"), True)
+                Case DeviceStatus.NotSupported
+                    PrintConsole(RM.GetString("mem_not_supported"), True)
+            End Select
+        End If
+        Return False
+    End Function
+
+    Public Function DetectDevice_SPI_EEPROM(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
+        Dim SPI_IF As SPI_Programmer = CType(prg_if, SPI_Programmer)
+        PrintConsole("Initializing SPI EEPROM device mode")
+        If Not SPIEEPROM_Configure(SPI_IF, Params.SPI_EEPROM) Then
+            PrintConsole("ERROR: SPI EEPROM not configured correctly")
+            Return False
+        End If
+        Dim md As MemoryDeviceInstance = Connected_Event(prg_if, 1024)
+        If (Not SPI_IF.MyFlashDevice.ERASE_REQUIRED) Then
+            md.GuiControl.AllowFullErase = False
+        End If
+        Utilities.Sleep(100) 'Wait for device to be configured
+        PrintConsole(RM.GetString("spi_eeprom_cfg"))
+        Return True
+    End Function
+
+    Public Function DetectDevice_I2C_EEPROM(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
+        Dim I2C_IF As I2C_Programmer = CType(prg_if, I2C_Programmer)
+        PrintConsole("Initializing I2C EEPROM device mode")
+        I2C_IF.SelectDeviceIndex(Params.I2C_INDEX)
+        If Not I2C_IF.DeviceInit() Then Return False
+        MainApp.PrintConsole(RM.GetString("i2c_attempt_detect"))
+        MainApp.PrintConsole(String.Format(RM.GetString("i2c_addr_byte"), Hex(Params.I2C_ADDRESS)))
+        MainApp.PrintConsole(String.Format(RM.GetString("i2c_eeprom_size"), Format(I2C_IF.DeviceSize, "#,###")))
+        Select Case Params.I2C_SPEED
+            Case I2C_SPEED_MODE._100kHz
+                MainApp.PrintConsole(RM.GetString("i2c_protocol_speed") & ": 100kHz")
+            Case I2C_SPEED_MODE._400kHz
+                MainApp.PrintConsole(RM.GetString("i2c_protocol_speed") & ": 400kHz")
+            Case I2C_SPEED_MODE._1MHz
+                MainApp.PrintConsole(RM.GetString("i2c_protocol_speed") & ": 1MHz (Fm+)")
+        End Select
+        If I2C_IF.IsConnected() Then
+            Connected_Event(prg_if, 512)
+            PrintConsole(RM.GetString("i2c_detected"), True) '"I2C EEPROM detected and ready for operation"
+            Return True
+        Else
+            PrintConsole(RM.GetString("i2c_not_detected"), True)
+        End If
+        Return False
+    End Function
+
+    Public Function DetectDevice_ONE_WIRE(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
+        PrintConsole("Initializing 1-Wire device mode")
+        If prg_if.DeviceInit() Then
+            Dim mi As MemoryDeviceInstance = Connected_Event(prg_if, 128)
+            mi.GuiControl.AllowFullErase = False
+            mi.VendorMenu = New vendor_microchip_at21(MAIN_FCUSB)
+            Return True
+        Else
+            PrintConsole("1-wire device not detected", True)
+        End If
+        Return False
+    End Function
+
+    Public Function DetectDevice_Microwire(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
+        PrintConsole("Initializing Microwire device mode")
+        If prg_if.DeviceInit() Then
+            MainApp.Connected_Event(prg_if, 256)
+            Return True
+        Else
+            PrintConsole("Microwire device not detected", True)
+        End If
+        Return False
+    End Function
+
+    Public Function DetectDevice_PNOR(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
+        Dim PNOR_IF As PARALLEL_NOR = CType(prg_if, PARALLEL_NOR)
+        PrintConsole("Initializing Parallel NOR device mode")
+        Utilities.Sleep(150) 'Wait for IO board vcc to charge
+        PNOR_IF.DeviceInit()
+        Select Case PNOR_IF.MyFlashStatus
+            Case DeviceStatus.Supported
+                PrintConsole(RM.GetString("mem_flash_supported"), True) '"Flash device successfully detected and ready for operation"
+                If MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+                    Connected_Event(prg_if, 262144)
+                    PNOR_IF.EXPIO_SetTiming(Params.NOR_READ_ACCESS, Params.NOR_WE_PULSE)
+                Else
+                    Connected_Event(prg_if, 16384)
+                End If
+                Return True
+            Case DeviceStatus.NotSupported
+                PrintConsole(RM.GetString("mem_not_supported"), True) '"Flash memory detected but not found in Flash library"
+            Case DeviceStatus.NotDetected
+                PrintConsole(RM.GetString("ext_not_detected"), True) '"Flash device not detected in Parallel I/O mode"
+            Case DeviceStatus.ExtIoNotConnected
+                PrintConsole(RM.GetString("ext_board_not_detected"), True) '"Unable to connect to the Parallel I/O board"
+            Case DeviceStatus.NotCompatible
+                PrintConsole("Flash memory is not compatible with this FlashcatUSB programmer model", True)
+        End Select
+        Return False
+    End Function
+
+    Public Function DetectDevice_PNAND(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
+        Dim PNAND_IF As PARALLEL_NAND = CType(prg_if, PARALLEL_NAND)
+        PrintConsole("Initializing Parallel NAND device mode")
+        Utilities.Sleep(150) 'Wait for IO board vcc to charge
+        PNAND_IF.DeviceInit()
+        Select Case PNAND_IF.MyFlashStatus
+            Case DeviceStatus.Supported
+                PrintConsole(RM.GetString("mem_flash_supported"), True) '"Flash device successfully detected and ready for operation"
+                If (PNAND_IF.MyAdapter = MEM_PROTOCOL.NAND_X16_ASYNC) Then
+                    If MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+                        Connected_Event(prg_if, 524288)
+                    Else
+                        Connected_Event(prg_if, 65536)
+                    End If
+                ElseIf (PNAND_IF.MyAdapter = MEM_PROTOCOL.NAND_X8_ASYNC) Then
+                    If MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+                        Connected_Event(prg_if, 524288)
+                    Else
+                        Connected_Event(prg_if, 65536)
+                    End If
+                End If
+                Return True
+            Case DeviceStatus.NotSupported
+                PrintConsole(RM.GetString("mem_not_supported"), True) '"Flash memory detected but not found in Flash library"
+            Case DeviceStatus.NotDetected
+                PrintConsole(RM.GetString("ext_not_detected"), True) '"Flash device not detected in Parallel I/O mode"
+            Case DeviceStatus.ExtIoNotConnected
+                PrintConsole(RM.GetString("ext_board_not_detected"), True) '"Unable to connect to the Parallel I/O board"
+            Case DeviceStatus.NotCompatible
+                PrintConsole("Flash memory is not compatible with this FlashcatUSB programmer model", True)
+        End Select
+        Return False
+    End Function
+
+    Public Function DetectDevice_FWH(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
+        Dim FWH_IF As FWH_Programmer = CType(prg_if, FWH_Programmer)
+        PrintConsole("Initializing FWH device mode")
+        FWH_IF.DeviceInit()
+        Select Case FWH_IF.MyFlashStatus
+            Case DeviceStatus.Supported
+                Connected_Event(prg_if, 4096)
+                Return True
+            Case DeviceStatus.NotSupported
+                PrintConsole(RM.GetString("mem_not_supported"), True) '"Flash memory detected but not found in Flash library"
+            Case DeviceStatus.NotDetected
+                PrintConsole("FWH device not detected", True)
+        End Select
+        Return False
+    End Function
+
+    Public Function DetectDevice_HyperFlash(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
+        Dim HF_IF As HF_Programmer = CType(prg_if, HF_Programmer)
+        PrintConsole("Initializing HyperFlash device mode")
+        Utilities.Sleep(250) 'Wait for IO board vcc to charge
+        HF_IF.DeviceInit()
+        Select Case HF_IF.MyFlashStatus
+            Case DeviceStatus.Supported
+                Connected_Event(prg_if, 262144)
+                Return True
+            Case DeviceStatus.NotSupported
+                PrintConsole(RM.GetString("mem_not_supported"), True) '"Flash memory detected but not found in Flash library"
+            Case DeviceStatus.NotDetected
+                PrintConsole("HyperFlash device not detected", True)
+        End Select
+        Return False
+    End Function
+
+    Public Function DetectDevice_EPROM(prg_if As MemoryDeviceUSB, Params As DetectParams) As Boolean
+        PrintConsole("Initializing EPROM/OTP device mode")
+        If prg_if.DeviceInit() Then
+            Dim mi As MemoryDeviceInstance = Connected_Event(prg_if, 16384)
+            mi.GuiControl.AllowFullErase = False
+            Return True
+        Else
+            PrintConsole("EPROM device not detected", True)
+        End If
+        Return False
+    End Function
+
+End Module
