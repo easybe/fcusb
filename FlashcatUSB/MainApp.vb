@@ -18,16 +18,17 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 545
+    Public Const Build As Integer = 550
     Public PRO3_CURRENT_FW As Single = 1.29F 'This is the embedded firmware version for pro
     Public PRO4_CURRENT_FW As Single = 1.07F 'This is the embedded firmware version for pro
-    Public MACH1_CURRENT_FW As Single = 1.02F 'Firmware version for Mach1
+    Public MACH1_CURRENT_FW As Single = 1.03F 'Firmware version for Mach1
     Public CLASSIC_CURRENT_FW_SPI As Single = 4.41F 'Min revision allowed for classic, xport
     Public CLASSIC_CURRENT_FW_JTAG As Single = 7.12F 'Min version for JTAG support
     Public PRO4_CPLD_3V3 As UInt32 = &HCD330001UI 'The CPLD version code for 3.3v
     Public PRO4_CPLD_1V8 As UInt32 = &HCD180001UI 'The CPLD version code for 1.8v
     Public PRO4_CPLD_I2C As UInt32 = &HCD330002UI 'The CPLD version for I2C (3.3v)
-    Public MACH_CPLD_NAND_3V3 As UInt32 = &HAD330001UI 'CPLD logic: NAND 3.3v (version 1)
+    Public MACH_CPLD_NAND_1V8 As UInt32 = &HAD180002UI 'CPLD logic: NAND 1.8v (version 2)
+    Public MACH_CPLD_NAND_3V3 As UInt32 = &HAD330002UI 'CPLD logic: NAND 3.3v (version 2)
     Public VCC_OPTION As Voltage = Voltage.OFF  'Only Pro supports software VCC changing
     Public AppIsClosing As Boolean = False
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
@@ -40,9 +41,6 @@ Public Module MainApp
     Private FcMutex As Mutex
     Public NAND_ECC_ENG As ECC_LIB.Engine
     Public IS_DEBUG_VER As Boolean = False
-
-    '1.00E+06
-    'ElseIf line.ToUpper.StartsWith("FREQUENCY ") Then
 
     Sub Main(ByVal Args() As String)
         Try 'This makes it only allow one instance
@@ -2012,7 +2010,8 @@ Public Module MainApp
                 'GUI.SetStatusPageProgress(0)
             End If
             If usb_dev.EXT_IF.EPROM_Init() Then
-                Connected_Event(usb_dev, MemoryType.PARALLEL_NOR, "EPROM", 16384)
+                Dim md As MemoryDeviceInstance = Connected_Event(usb_dev, MemoryType.OTP_EPROM, "EPROM", 8192)
+                md.GuiControl.AllowFullErase = False
             End If
             If GUI IsNot Nothing Then
                 RemoveHandler usb_dev.EXT_IF.SetProgress, AddressOf GUI.SetStatusPageProgress
@@ -2065,6 +2064,8 @@ Public Module MainApp
                 Case MemoryType.SERIAL_MICROWIRE
                     mem_dev = usb_dev.MW_IF
                 Case MemoryType.FWH_NOR
+                    mem_dev = usb_dev.EXT_IF
+                Case MemoryType.OTP_EPROM
                     mem_dev = usb_dev.EXT_IF
             End Select
             Dim dev_inst As MemoryDeviceInstance = MEM_IF.Add(usb_dev, mem_type, mem_dev.DeviceName, mem_dev.DeviceSize)
@@ -2351,7 +2352,8 @@ Public Module MainApp
         IO_3V 'Standard GPIO/SPI @ 3.3V
         IO_1V8 'Standard GPIO/SPI @ 1.8V
         I2C 'I2C only mode @ 3.3V
-        NAND_3V 'NAND mode @ 3.3V (Mach1 only)
+        NAND_1V8 'NAND mode @ 1.8V
+        NAND_3V3 'NAND mode @ 3.3V
     End Enum
 
     Public Function FCUSBPRO_Mach1_Init(ByVal usb_dev As FCUSB_DEVICE) As Boolean
@@ -2363,14 +2365,24 @@ Public Module MainApp
         MySettings.VOLT_SELECT = Voltage.V3_3 'Mach1 Only supports 3.3v (for now)
         FCUSBPRO_SetDeviceVoltage(usb_dev) 'Power on CPLD
         Dim mode_needed As CPLD_MODE = CPLD_MODE.NotSelected
-        mode_needed = CPLD_MODE.NAND_3V 'Only supported at the moment
+        If MySettings.VOLT_SELECT = Voltage.V1_8 Then
+            mode_needed = CPLD_MODE.NAND_1V8
+        ElseIf MySettings.VOLT_SELECT = Voltage.V3_3 Then
+            mode_needed = CPLD_MODE.NAND_3V3
+        Else
+            MySettings.VOLT_SELECT = Voltage.V3_3
+            mode_needed = CPLD_MODE.NAND_3V3
+        End If
         Dim svf_data() As Byte = Nothing
         Dim svf_code As UInt32 = 0
-        If mode_needed = CPLD_MODE.NAND_3V And (Not cpld32 = MACH_CPLD_NAND_3V3) Then
-            svf_data = Utilities.GetResourceAsBytes("MACH1_NAND_3V.svf")
+        If mode_needed = CPLD_MODE.NAND_1V8 And (Not cpld32 = MACH_CPLD_NAND_1V8) Then
+            svf_data = Utilities.GetResourceAsBytes("MACH1_NAND_1V8.svf")
+            svf_code = MACH_CPLD_NAND_1V8
+        ElseIf mode_needed = CPLD_MODE.NAND_3V3 And (Not cpld32 = MACH_CPLD_NAND_3V3) Then
+            svf_data = Utilities.GetResourceAsBytes("MACH1_NAND_3V3.svf")
             svf_code = MACH_CPLD_NAND_3V3
         End If
-        If svf_data IsNot Nothing Then
+        If (svf_data IsNot Nothing) Then
             ProgramOnboardCPLD(usb_dev, svf_data, svf_code)
             Return False 'Stop
         End If

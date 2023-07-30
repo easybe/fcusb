@@ -31,8 +31,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
             PART = &HAA21 'We need to override AB21 to indicate 1Gbit NAND die
         Else
             Me.FCUSB.USB_SPI_SETUP(SPI.SPI_Programmer.SPIBUS_PORT.Port_A, MySettings.SPI_MODE, MySettings.SPI_BIT_ORDER)
-            'NAND devives use 1 dummy byte, then MFG and ID1 (and sometimes, ID2)
-            SPIBUS_WriteRead({SPI_Command_DEF.RDID}, rdid)
+            SPIBUS_WriteRead({SPI_Command_DEF.RDID}, rdid) 'NAND devives use 1 dummy byte, then MFG and ID1 (and sometimes, ID2)
             If Not (rdid(0) = 0 Or rdid(0) = 255) Then Return False
             If rdid(1) = 0 OrElse rdid(1) = 255 Then Return False
             If rdid(2) = 0 OrElse rdid(2) = 255 Then Return False
@@ -46,12 +45,15 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
         RaiseEvent PrintConsole(String.Format(RM.GetString("spinand_connected"), RDID_Str))
         MyFlashDevice = FlashDatabase.FindDevice(MFG, PART, 0, MemoryType.SERIAL_NAND)
         If MyFlashDevice IsNot Nothing Then
-            MyFlashStatus = USB.DeviceStatus.Supported
+            MyFlashStatus = DeviceStatus.Supported
             RaiseEvent PrintConsole(String.Format(RM.GetString("spinand_flash_size"), MyFlashDevice.NAME, MyFlashDevice.FLASH_SIZE))
             RaiseEvent PrintConsole(String.Format(RM.GetString("spinand_page_size"), MyFlashDevice.PAGE_SIZE, MyFlashDevice.EXT_PAGE_SIZE))
             NANDHELPER_SetupHandlers()
             Me.ECC_ENABLED = Not MySettings.SPI_NAND_DISABLE_ECC
-            If FCUSB.SPI_NOR_IF.W25M121AV_Mode Then
+            If MFG = &HEF AndAlso PART = &HAA21 Then 'W25M121AV
+                SPIBUS_WriteRead({OPCMD_GETFEAT, &HB0}, sr)
+                SPIBUS_WriteRead({OPCMD_SETFEAT, &HB0, (sr(0) Or 8)}) 'Set bit 3 to ON (BUF=1)
+            ElseIf MFG = &HEF AndAlso PART = &HAB21 Then 'W25M02GV
                 SPIBUS_WriteRead({OPCMD_GETFEAT, &HB0}, sr)
                 SPIBUS_WriteRead({OPCMD_SETFEAT, &HB0, (sr(0) Or 8)}) 'Set bit 3 to ON (BUF=1)
             Else

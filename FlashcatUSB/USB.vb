@@ -1045,7 +1045,8 @@ Namespace USB
         EXPIO_DELAY = &H78
         EXPIO_RESET = &H79 'Issue device reset/read mode
         EXPIO_WAIT = &H7A   'Uses the currently assigned WAIT mode
-
+        EXPIO_WE_HIGH = &H7B 'Sets WE to HIGH
+        EXPIO_WE_LOW = &H7C 'Sets WE to LOW
         CPLD_STATUS = &HC0  '0=OFF,1=3V3,2=1V8
         CPLD_OFF = &HC1 'Turns off CPLD circuit
         CPLD_1V8 = &HC2 'Turns On 1.8V And Then CPLD

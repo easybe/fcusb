@@ -153,6 +153,8 @@ Public Class MemoryInterface
                     Return "SPI Flash"
                 Case MemoryType.DFU_MODE
                     Return "DFU Mode"
+                Case MemoryType.OTP_EPROM
+                    Return "EPROM"
                 Case Else
                     Return ""
             End Select
@@ -371,6 +373,8 @@ Public Class MemoryInterface
                         Return WriteBytes_Volatile(data_stream, params)
                     ElseIf FlashType = MemoryType.SERIAL_I2C Then
                         Return WriteBytes_I2C(data_stream, params)
+                    ElseIf FlashType = MemoryType.OTP_EPROM Then
+                        Return WriteBytes_EPROM(data_stream, params)
                     Else 'Non-Volatile memory
                         Return WriteBytes_NonVolatile(data_stream, params)
                     End If
@@ -412,6 +416,55 @@ Public Class MemoryInterface
                 BytesLeft -= BytesThisPacket
             End While
             Return True
+        End Function
+
+        Private Function WriteBytes_EPROM(ByVal data_stream As IO.Stream, ByRef Params As WriteParameters) As Boolean
+            Me.WaitUntilReady() 'Some flash devices requires us to wait before sending data
+            Dim BlockSize As UInt32 = 8192
+            Dim BytesLeft As Integer = data_stream.Length
+            Dim BytesTransfered As Integer = 0
+            While (BytesLeft > 0)
+                If Params.AbortOperation Then Return False
+                Dim PacketSize As Integer = BytesLeft
+                If PacketSize > BlockSize Then PacketSize = BlockSize
+                If Params.Status.UpdateBase IsNot Nothing Then Params.Status.UpdateBase.DynamicInvoke(Params.Address)
+                If Params.Status.UpdateOperation IsNot Nothing Then Params.Status.UpdateOperation.DynamicInvoke(2) 'WRITE IMG
+                If Params.Status.UpdateTask IsNot Nothing Then
+                    Dim wr_label As String = String.Format(RM.GetString("mem_writing_memory"), Format(PacketSize, "#,###"))
+                    Params.Status.UpdateTask.DynamicInvoke(wr_label)
+                End If
+                Dim packet_data(PacketSize - 1) As Byte
+                data_stream.Read(packet_data, 0, PacketSize) 'Reads data from the stream
+                Params.Timer.Start()
+                FCUSB.EXT_IF.WriteData(Params.Address, packet_data, Params)
+                Params.Timer.Stop()
+                If Params.AbortOperation Then Return False
+                If Not Me.NoErrors Then Return False
+                Threading.Thread.CurrentThread.Join(10) 'Pump a message
+                If Params.Verify Then 'Verify is enabled and we are monitoring this
+                    If Params.Status.UpdateOperation IsNot Nothing Then Params.Status.UpdateOperation.DynamicInvoke(3) 'VERIFY IMG
+                    If Params.Status.UpdateTask IsNot Nothing Then
+                        Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_data"))
+                    End If
+                    Application.DoEvents()
+                    Utilities.Sleep(50)
+                    Dim ReadResult As Boolean = VerifyDataSub(Params.Address, packet_data, Params.Memory_Area)
+                    If Not ReadResult Then Return False
+                End If
+                BytesTransfered += PacketSize
+                BytesLeft -= PacketSize
+                Params.Address += PacketSize
+                If Params.Status.UpdateSpeed IsNot Nothing Then
+                    Dim bytes_per_second As UInt32 = Math.Round(BytesTransfered / (Params.Timer.ElapsedMilliseconds / 1000))
+                    Dim speed_text As String = UpdateSpeed_GetText(bytes_per_second)
+                    Params.Status.UpdateSpeed.DynamicInvoke(speed_text)
+                End If
+                If Params.Status.UpdatePercent IsNot Nothing Then
+                    Dim percent_done As Single = CSng((BytesTransfered / Params.BytesLeft) * 100)
+                    Params.Status.UpdatePercent.DynamicInvoke(CInt(percent_done))
+                End If
+            End While
+            Return True 'Operation was successful
         End Function
 
         Private Function WriteBytes_NonVolatile(ByVal data_stream As IO.Stream, ByRef Params As WriteParameters) As Boolean
@@ -575,9 +628,7 @@ Public Class MemoryInterface
                 Dim FailedAttempts As Integer = 0
                 Dim ReadResult As Boolean
                 Do
-                    If Params.Status.UpdateBase IsNot Nothing Then
-                        Params.Status.UpdateBase.DynamicInvoke(Params.Address)
-                    End If
+                    If Params.Status.UpdateBase IsNot Nothing Then Params.Status.UpdateBase.DynamicInvoke(Params.Address)
                     If Params.AbortOperation Then Return False
                     If Not Me.NoErrors Then Return False
                     If Params.EraseSector Then
@@ -674,15 +725,17 @@ Public Class MemoryInterface
         Private Function VerifyDataSub(ByVal BaseAddress As UInt32, ByVal Data() As Byte, ByVal memory_area As Byte) As Boolean
             Dim Verify() As Byte 'The data to check against
             Dim MiscountCounter As Integer = 0
-            Dim FirstWrongByte As Byte = Nothing
+            Dim FirstWrongByteIs As Byte = Nothing
             Dim FirstWrongAddr As Integer = 0
+            Dim FirstWrongByteShould As Byte = 0
             WaitUntilReady()
             Verify = ReadFlash(BaseAddress, Data.Length, memory_area)
             If Verify Is Nothing OrElse (Not Verify.Length = Data.Length) Then Return False
             For i As Integer = 0 To Data.Length - 1
-                If Not Data(i) = Verify(i) Then
+                If (Not Data(i) = Verify(i)) Then
                     If MiscountCounter = 0 Then
-                        FirstWrongByte = Verify(i)
+                        FirstWrongByteIs = Verify(i)
+                        FirstWrongByteShould = Data(i)
                         FirstWrongAddr = CInt(BaseAddress + i)
                     End If
                     MiscountCounter = MiscountCounter + 1
@@ -691,8 +744,7 @@ Public Class MemoryInterface
             If MiscountCounter = 0 Then 'Verification successful
                 Return True
             Else 'Error!
-                Dim DataShouldBe As Byte = Data(CUInt(FirstWrongAddr - BaseAddress))
-                RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_mismatches"), "0x" & Hex(FirstWrongAddr), "0x" & Hex(DataShouldBe), "0x" & Hex(FirstWrongByte), MiscountCounter))
+                RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_mismatches"), "0x" & Hex(FirstWrongAddr), "0x" & Hex(FirstWrongByteShould), "0x" & Hex(FirstWrongByteIs), MiscountCounter))
                 Return False 'Error!
             End If
         End Function
@@ -740,6 +792,8 @@ Public Class MemoryInterface
                     FCUSB.EJ_IF.SPI_WaitUntilReady()
                 Case MemoryType.SERIAL_MICROWIRE
                     FCUSB.MW_IF.WaitUntilReady()
+                Case MemoryType.OTP_EPROM
+                    FCUSB.EXT_IF.WaitForReady()
                 Case Else 'Including I2C
                     Utilities.Sleep(100)
             End Select
@@ -755,6 +809,7 @@ Public Class MemoryInterface
                 Case MemoryType.JTAG_DMA_CFI
                     FCUSB.EJ_IF.CFI_ReadMode()
                 Case MemoryType.JTAG_SPI
+                Case MemoryType.OTP_EPROM
             End Select
         End Sub
 
@@ -795,6 +850,8 @@ Public Class MemoryInterface
                         Case MemoryType.JTAG_SPI
                             data_out = FCUSB.EJ_IF.SPI_ReadFlash(data_offset, data_read_count)
                         Case MemoryType.FWH_NOR
+                            data_out = FCUSB.EXT_IF.ReadData(data_offset, data_read_count, memory_area)
+                        Case MemoryType.OTP_EPROM
                             data_out = FCUSB.EXT_IF.ReadData(data_offset, data_read_count, memory_area)
                     End Select
                 Catch ex As Exception
@@ -840,6 +897,8 @@ Public Class MemoryInterface
                         FCUSB.EJ_IF.SPI_EraseBulk()
                     Case MemoryType.FWH_NOR
                         Return FCUSB.EXT_IF.EraseDevice()
+                    Case MemoryType.OTP_EPROM
+                        Return True 'Not supported
                     Case MemoryType.DFU_MODE
                         Return True 'Not supported
                 End Select
@@ -872,6 +931,8 @@ Public Class MemoryInterface
                         Me.NoErrors = FCUSB.MW_IF.Sector_Erase(sector_index)
                     Case MemoryType.FWH_NOR
                         Me.NoErrors = FCUSB.EXT_IF.Sector_Erase(sector_index, area)
+                    Case MemoryType.OTP_EPROM
+                        Me.NoErrors = True 'Not supported
                 End Select
             Finally
                 Threading.Monitor.Exit(InterfaceLock)
@@ -905,6 +966,8 @@ Public Class MemoryInterface
                         Me.NoErrors = FCUSB.MW_IF.Sector_Write(sector_index, DataToWrite)
                     Case MemoryType.FWH_NOR
                         Me.NoErrors = FCUSB.EXT_IF.Sector_Write(sector_index, DataToWrite, Params)
+                    Case MemoryType.OTP_EPROM
+                        Me.NoErrors = FCUSB.EXT_IF.Sector_Write(sector_index, DataToWrite, Params)
                 End Select
                 If Params IsNot Nothing Then Params.Timer.Stop()
             Finally
@@ -932,6 +995,8 @@ Public Class MemoryInterface
                     Return FCUSB.MW_IF.Sector_Count()
                 Case MemoryType.FWH_NOR
                     Return FCUSB.EXT_IF.Sector_Count()
+                Case MemoryType.OTP_EPROM
+                    Return FCUSB.EXT_IF.Sector_Count()
                 Case Else
                     Return 1
             End Select
@@ -955,6 +1020,8 @@ Public Class MemoryInterface
                     Return FCUSB.MW_IF.SectorSize(sector_index)
                 Case MemoryType.FWH_NOR
                     Return FCUSB.EXT_IF.SectorSize(sector_index, area)
+                Case MemoryType.OTP_EPROM
+                    Return FCUSB.EXT_IF.SectorSize(sector_index, area)
             End Select
             Return 0
         End Function
@@ -976,6 +1043,8 @@ Public Class MemoryInterface
                 Case MemoryType.SERIAL_MICROWIRE
                     Return FCUSB.MW_IF.SectorFind(sector_index)
                 Case MemoryType.FWH_NOR
+                    Return FCUSB.EXT_IF.SectorFind(sector_index, area)
+                Case MemoryType.OTP_EPROM
                     Return FCUSB.EXT_IF.SectorFind(sector_index, area)
                 Case Else
                     Return 0

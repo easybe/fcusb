@@ -1,14 +1,14 @@
-1. This is an agreement between Licensor and Licensee, who is being licensed to use the enclosed FlashcatUSB software, further referred to as "Software.". This applies to the compiled binaries (i.e. FlashcatUSB.exe), firmware and the open-source files.
+1. This is an agreement between Licensor (Embedded Computers, LLC) and Licensee, who is being licensed to use the FlashcatUSB software, further referred to as "Software". This applies to the compiled binaries (i.e. FlashcatUSB.exe), firmware and the open-source software.
 
 2. Licensee acknowledges that this is only a limited nonexclusive license. Licensor is and remains the owner of all titles, rights, and interests in the Software.
 
-3. The Software is provided free for personal use, any comercial or business use must be accompanied by an additional license purchased by the Licensee from EmbeddedComputers.net. Any any company that uses the software for comercial or business use, must register the Software with EmbeddedComputers.net
+3. The Software is provided free for personal use only. Any commercial use is strictly prohibited unless Licensee receives written permission or acquires an additional commercial license directly from Embedded Computers LLC (email: contact@embeddedcomputers.net) or any authorized representative.
 
-4. The Licensee MAY not SELL or PUBLISH the Software without prior written permission from EmbeddedComputers.net
+4. The Licensee MUST NOT SELL or PUBLISH the Software without prior written permission from Embedded Computers LLC.
 
-5. EmbeddedComputers.net retains the right to change the terms of this license without notice at anytime for any reason.
+5. Embedded Computers LLC retains the right to change the terms of this license without notice at any time for any reason.
 
-6. The Licensee MAY NOT use the Software on non authentic hardware or any device not manufactured by EmbeddedComputers.net, this includes hardware clones, standalone microcontroller kits or other development kits of any kind. Only GENUINE hardware produced by EmbeddedComputers.net and sold through authorized reseller channels may constitute authentic hardware. 
+6. The Licensee MUST NOT use the Software on non-authentic hardware or any device not manufactured by Embedded Computers LLC, this includes hardware clones, standalone microcontroller kits or other development kits of any kind. Only GENUINE hardware produced by EmbeddedComputers.net and sold through authorized reseller channels may constitute authentic hardware. 
 
 7. This Software is subject to a limited warranty.
 

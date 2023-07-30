@@ -1305,28 +1305,17 @@ Public Class MemControl_v2
             x.DataStream = x.FileName.OpenRead
         End If
         Dim BaseAddress As UInt32 = 0 'The starting address to write the data
-        If (Me.MY_ACCESS = access_mode.WriteOnce) Then 'We must write the whole file
-            Dim file_data_len As UInt32 = x.DataStream.Length
-            If (Not file_data_len = FlashAvailable) Then
-                MsgBox("The file selected must be the same size as the destination EPROM device (" & Format(FlashAvailable, "#,###") & " bytes).", MsgBoxStyle.Critical, "Invalid file")
-                RaiseEvent SetStatus("Invalid file selected for write operation")
+        If (x.Size = 0) Then
+            RaiseEvent SetStatus(String.Format(RM.GetString("mc_select_range"), FlashName))
+            Dim dbox As New DynamicRangeBox
+            Dim NumberToWrite As UInt32 = x.DataStream.Length 'The total number of bytes to write
+            If Not dbox.ShowRangeBox(BaseAddress, NumberToWrite, FlashAvailable) Then
+                RaiseEvent SetStatus(RM.GetString("mc_wr_user_canceled"))
                 Exit Sub
             End If
-            x.Offset = 0
-            x.Size = file_data_len
-        Else
-            If (x.Size = 0) Then
-                RaiseEvent SetStatus(String.Format(RM.GetString("mc_select_range"), FlashName))
-                Dim dbox As New DynamicRangeBox
-                Dim NumberToWrite As UInt32 = x.DataStream.Length 'The total number of bytes to write
-                If Not dbox.ShowRangeBox(BaseAddress, NumberToWrite, FlashAvailable) Then
-                    RaiseEvent SetStatus(RM.GetString("mc_wr_user_canceled"))
-                    Exit Sub
-                End If
-                If NumberToWrite = 0 Then Exit Sub
-                x.Offset = BaseAddress
-                x.Size = NumberToWrite
-            End If
+            If NumberToWrite = 0 Then Exit Sub
+            x.Offset = BaseAddress
+            x.Size = NumberToWrite
         End If
         RaiseEvent SetStatus(String.Format(RM.GetString("mc_wr_oper_status"), x.FileName.Name, FlashName, Format(x.Size, "#,###")))
         x.DataStream.Position = 0

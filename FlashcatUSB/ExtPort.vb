@@ -529,7 +529,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
         Dim eprom_device As OTP_EPROM = DirectCast(MyFlashDevice, OTP_EPROM)
         Try
             EXPIO_VPP_START()
-            Utilities.Sleep(500)
+            Utilities.Sleep(250)
             Dim PacketSize As UInt32 = 1024
             Dim BytesWritten As UInt32 = 0
             Dim DataToWrite As UInt32 = data_to_write.Length
@@ -546,22 +546,9 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                 logical_address += data.Length
                 DataToWrite -= data.Length
                 BytesWritten += data.Length
-                If (i Mod 4 = 0) Then
-                    Dim UpdatedTotal As UInt32 = Params.BytesWritten + BytesWritten
-                    Dim percent As Single = CSng(CSng((UpdatedTotal) / CSng(Params.BytesTotal)) * 100)
-                    If Params.Status.UpdateSpeed IsNot Nothing Then
-                        Dim speed_str As String = Format(Math.Round(UpdatedTotal / (Params.Timer.ElapsedMilliseconds / 1000)), "#,###") & " B/s"
-                        Params.Status.UpdateSpeed.DynamicInvoke(speed_str)
-                    End If
-                    If Params.Status.UpdatePercent IsNot Nothing Then
-                        Params.Status.UpdatePercent.DynamicInvoke(CInt(percent))
-                    End If
-                End If
             Next
         Catch ex As Exception
         Finally
-            'If Params.Status.UpdateSpeed IsNot Nothing Then Params.Status.UpdateSpeed.DynamicInvoke("")
-            'If Params.Status.UpdatePercent IsNot Nothing Then Params.Status.UpdatePercent.DynamicInvoke(0)
             EXPIO_VPP_STOP()
         End Try
         Return True
@@ -671,7 +658,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                 If MySettings.MUTLI_NOR Then sector = ((MyFlashDevice.Sector_Count - 1) And sector)
                 Return DirectCast(MyFlashDevice, MFP_Flash).GetSectorSize(sector)
             ElseIf FCUSB.EXT_IF.MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM Then
-                Return MyFlashDevice.FLASH_SIZE 'We will need to program the entire array
+                Return 8192 'Program 8KB at a time
             ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.FWH_NOR Then
                 Return DirectCast(MyFlashDevice, FWH_Flash).SECTOR_SIZE
             Else
@@ -941,24 +928,27 @@ Public Class ExtPort : Implements MemoryDeviceUSB
     End Sub
 
     Private Sub EXPIO_PrintCurrentWriteMode()
-        Select Case CURRENT_WRITE_MODE
-            Case E_EXPIO_WRITEDATA.Type1 '0x5555=0xAA;0x2AAA=0x55;0x5555=0xA0;SA=DATA;DELAY
-                RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-1 (Byte Program)")
-            Case E_EXPIO_WRITEDATA.Type2 '0xAAA=0xAA;0x555=0x55;0xAAA=0xA0;SA=DATA;DELAY
-                RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-2 (Word Program)")
-            Case E_EXPIO_WRITEDATA.Type3 '0x555=0xAA;0x2AA=0x55;0x555=0xA0,SA=DATA;DELAY
-                RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-3 (Word Program)")
-            Case E_EXPIO_WRITEDATA.Type4 'SA=0x40;SA=DATA;SR.7
-                RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-4 (Auto-Word Program)")
-            Case E_EXPIO_WRITEDATA.Type5 '0x555=0xAA;0x2AA=55;0x555=20;(0x00=0xA0;SA=DATA;...)0x00=0x90;0x00=0x00
-                RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-5 (Bypass Mode)")
-            Case E_EXPIO_WRITEDATA.Type6 '0x5555,0x2AAA,0x5555;(BA/DATA)
-                RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-6 (Page Write)")
-            Case E_EXPIO_WRITEDATA.Type7 '0xE8...0xD0
-                RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-7 (Write-to-Buffer)")
-            Case E_EXPIO_WRITEDATA.Type8 '0x555=0xAA,0x2AA=0x55,SA=0x25,SA=(WC-1)..
-                RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-8 (Write-to-Buffer)")
-        End Select
+        If (MyFlashDevice.FLASH_TYPE = MemoryType.SLC_NAND) Then
+        Else
+            Select Case CURRENT_WRITE_MODE
+                Case E_EXPIO_WRITEDATA.Type1 '0x5555=0xAA;0x2AAA=0x55;0x5555=0xA0;SA=DATA;DELAY
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-1 (Byte Program)")
+                Case E_EXPIO_WRITEDATA.Type2 '0xAAA=0xAA;0x555=0x55;0xAAA=0xA0;SA=DATA;DELAY
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-2 (Word Program)")
+                Case E_EXPIO_WRITEDATA.Type3 '0x555=0xAA;0x2AA=0x55;0x555=0xA0,SA=DATA;DELAY
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-3 (Word Program)")
+                Case E_EXPIO_WRITEDATA.Type4 'SA=0x40;SA=DATA;SR.7
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-4 (Auto-Word Program)")
+                Case E_EXPIO_WRITEDATA.Type5 '0x555=0xAA;0x2AA=55;0x555=20;(0x00=0xA0;SA=DATA;...)0x00=0x90;0x00=0x00
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-5 (Bypass Mode)")
+                Case E_EXPIO_WRITEDATA.Type6 '0x5555,0x2AAA,0x5555;(BA/DATA)
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-6 (Page Write)")
+                Case E_EXPIO_WRITEDATA.Type7 '0xE8...0xD0
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-7 (Write-to-Buffer)")
+                Case E_EXPIO_WRITEDATA.Type8 '0x555=0xAA,0x2AA=0x55,SA=0x25,SA=(WC-1)..
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-8 (Write-to-Buffer)")
+            End Select
+        End If
     End Sub
 
 #End Region
@@ -1321,7 +1311,9 @@ Public Class ExtPort : Implements MemoryDeviceUSB
             End If
             Dim setup_data() As Byte = GetSetupPacket(address, read_count, MyFlashDevice.PAGE_SIZE)
             Dim data_out(read_count - 1) As Byte 'Bytes we want to read
+            If MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM Then FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WE_LOW) : Utilities.Sleep(10)
             Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, data_out, 0)
+            If MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM Then FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WE_HIGH)
             If Not result Then Return Nothing
             If addr_offset Then
                 Dim new_data(count - 1) As Byte

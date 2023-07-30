@@ -31,539 +31,539 @@ Public Class JTAG_STATE_CONTROLLER
     'Shift out bits on tms to move the state machine to our desired state (this code was auto-generated for performance)
     Public Sub GotoState(ByVal to_state As MachineState)
         If Me.STATE = to_state Then Exit Sub
-        Dim tms As UInt64 = 0
-        Dim bits As Integer = 0
+        Dim tms_bits As UInt64 = 0
+        Dim tms_count As Integer = 0
         Select Case Me.STATE
             Case MachineState.TestLogicReset
                 Select Case to_state
                     Case MachineState.RunTestIdle
-                        tms = 0 : bits = 1 '0
+                        tms_bits = 0 : tms_count = 1 '0
                     Case MachineState.Select_DR
-                        tms = 2 : bits = 2 '10
+                        tms_bits = 2 : tms_count = 2 '10
                     Case MachineState.Capture_DR
-                        tms = 2 : bits = 3 '010
+                        tms_bits = 2 : tms_count = 3 '010
                     Case MachineState.Shift_DR
-                        tms = 2 : bits = 4 '0010
+                        tms_bits = 2 : tms_count = 4 '0010
                     Case MachineState.Exit1_DR
-                        tms = 10 : bits = 4 '1010
+                        tms_bits = 10 : tms_count = 4 '1010
                     Case MachineState.Pause_DR
-                        tms = 10 : bits = 5 '01010
+                        tms_bits = 10 : tms_count = 5 '01010
                     Case MachineState.Exit2_DR
-                        tms = 42 : bits = 6 '101010
+                        tms_bits = 42 : tms_count = 6 '101010
                     Case MachineState.Update_DR
-                        tms = 26 : bits = 5 '11010
+                        tms_bits = 26 : tms_count = 5 '11010
                     Case MachineState.Select_IR
-                        tms = 6 : bits = 3 '110
+                        tms_bits = 6 : tms_count = 3 '110
                     Case MachineState.Capture_IR
-                        tms = 6 : bits = 4 '0110
+                        tms_bits = 6 : tms_count = 4 '0110
                     Case MachineState.Shift_IR
-                        tms = 6 : bits = 5 '00110
+                        tms_bits = 6 : tms_count = 5 '00110
                     Case MachineState.Exit1_IR
-                        tms = 22 : bits = 5 '10110
+                        tms_bits = 22 : tms_count = 5 '10110
                     Case MachineState.Pause_IR
-                        tms = 22 : bits = 6 '010110
+                        tms_bits = 22 : tms_count = 6 '010110
                     Case MachineState.Exit2_IR
-                        tms = 86 : bits = 7 '1010110
+                        tms_bits = 86 : tms_count = 7 '1010110
                     Case MachineState.Update_IR
-                        tms = 54 : bits = 6 '110110
+                        tms_bits = 54 : tms_count = 6 '110110
                 End Select
             Case MachineState.RunTestIdle
                 Select Case to_state
                     Case MachineState.TestLogicReset
-                        tms = 7 : bits = 3 '111
+                        tms_bits = 7 : tms_count = 3 '111
                     Case MachineState.Select_DR
-                        tms = 1 : bits = 1 '1
+                        tms_bits = 1 : tms_count = 1 '1
                     Case MachineState.Capture_DR
-                        tms = 1 : bits = 2 '01
+                        tms_bits = 1 : tms_count = 2 '01
                     Case MachineState.Shift_DR
-                        tms = 1 : bits = 3 '001
+                        tms_bits = 1 : tms_count = 3 '001
                     Case MachineState.Exit1_DR
-                        tms = 5 : bits = 3 '101
+                        tms_bits = 5 : tms_count = 3 '101
                     Case MachineState.Pause_DR
-                        tms = 5 : bits = 4 '0101
+                        tms_bits = 5 : tms_count = 4 '0101
                     Case MachineState.Exit2_DR
-                        tms = 21 : bits = 5 '10101
+                        tms_bits = 21 : tms_count = 5 '10101
                     Case MachineState.Update_DR
-                        tms = 13 : bits = 4 '1101
+                        tms_bits = 13 : tms_count = 4 '1101
                     Case MachineState.Select_IR
-                        tms = 3 : bits = 2 '11
+                        tms_bits = 3 : tms_count = 2 '11
                     Case MachineState.Capture_IR
-                        tms = 3 : bits = 3 '011
+                        tms_bits = 3 : tms_count = 3 '011
                     Case MachineState.Shift_IR
-                        tms = 3 : bits = 4 '0011
+                        tms_bits = 3 : tms_count = 4 '0011
                     Case MachineState.Exit1_IR
-                        tms = 11 : bits = 4 '1011
+                        tms_bits = 11 : tms_count = 4 '1011
                     Case MachineState.Pause_IR
-                        tms = 11 : bits = 5 '01011
+                        tms_bits = 11 : tms_count = 5 '01011
                     Case MachineState.Exit2_IR
-                        tms = 43 : bits = 6 '101011
+                        tms_bits = 43 : tms_count = 6 '101011
                     Case MachineState.Update_IR
-                        tms = 27 : bits = 5 '11011
+                        tms_bits = 27 : tms_count = 5 '11011
                 End Select
             Case MachineState.Select_DR
                 Select Case to_state
                     Case MachineState.TestLogicReset
-                        tms = 3 : bits = 2 '11
+                        tms_bits = 3 : tms_count = 2 '11
                     Case MachineState.RunTestIdle
-                        tms = 3 : bits = 3 '011
+                        tms_bits = 3 : tms_count = 3 '011
                     Case MachineState.Capture_DR
-                        tms = 0 : bits = 1 '0
+                        tms_bits = 0 : tms_count = 1 '0
                     Case MachineState.Shift_DR
-                        tms = 0 : bits = 2 '00
+                        tms_bits = 0 : tms_count = 2 '00
                     Case MachineState.Exit1_DR
-                        tms = 2 : bits = 2 '10
+                        tms_bits = 2 : tms_count = 2 '10
                     Case MachineState.Pause_DR
-                        tms = 2 : bits = 3 '010
+                        tms_bits = 2 : tms_count = 3 '010
                     Case MachineState.Exit2_DR
-                        tms = 10 : bits = 4 '1010
+                        tms_bits = 10 : tms_count = 4 '1010
                     Case MachineState.Update_DR
-                        tms = 6 : bits = 3 '110
+                        tms_bits = 6 : tms_count = 3 '110
                     Case MachineState.Select_IR
-                        tms = 1 : bits = 1 '1
+                        tms_bits = 1 : tms_count = 1 '1
                     Case MachineState.Capture_IR
-                        tms = 1 : bits = 2 '01
+                        tms_bits = 1 : tms_count = 2 '01
                     Case MachineState.Shift_IR
-                        tms = 1 : bits = 3 '001
+                        tms_bits = 1 : tms_count = 3 '001
                     Case MachineState.Exit1_IR
-                        tms = 5 : bits = 3 '101
+                        tms_bits = 5 : tms_count = 3 '101
                     Case MachineState.Pause_IR
-                        tms = 5 : bits = 4 '0101
+                        tms_bits = 5 : tms_count = 4 '0101
                     Case MachineState.Exit2_IR
-                        tms = 21 : bits = 5 '10101
+                        tms_bits = 21 : tms_count = 5 '10101
                     Case MachineState.Update_IR
-                        tms = 13 : bits = 4 '1101
+                        tms_bits = 13 : tms_count = 4 '1101
                 End Select
             Case MachineState.Capture_DR
                 Select Case to_state
                     Case MachineState.TestLogicReset
-                        tms = 31 : bits = 5 '11111
+                        tms_bits = 31 : tms_count = 5 '11111
                     Case MachineState.RunTestIdle
-                        tms = 3 : bits = 3 '011
+                        tms_bits = 3 : tms_count = 3 '011
                     Case MachineState.Select_DR
-                        tms = 7 : bits = 3 '111
+                        tms_bits = 7 : tms_count = 3 '111
                     Case MachineState.Shift_DR
-                        tms = 0 : bits = 1 '0
+                        tms_bits = 0 : tms_count = 1 '0
                     Case MachineState.Exit1_DR
-                        tms = 1 : bits = 1 '1
+                        tms_bits = 1 : tms_count = 1 '1
                     Case MachineState.Pause_DR
-                        tms = 1 : bits = 2 '01
+                        tms_bits = 1 : tms_count = 2 '01
                     Case MachineState.Exit2_DR
-                        tms = 5 : bits = 3 '101
+                        tms_bits = 5 : tms_count = 3 '101
                     Case MachineState.Update_DR
-                        tms = 3 : bits = 2 '11
+                        tms_bits = 3 : tms_count = 2 '11
                     Case MachineState.Select_IR
-                        tms = 15 : bits = 4 '1111
+                        tms_bits = 15 : tms_count = 4 '1111
                     Case MachineState.Capture_IR
-                        tms = 15 : bits = 5 '01111
+                        tms_bits = 15 : tms_count = 5 '01111
                     Case MachineState.Shift_IR
-                        tms = 15 : bits = 6 '001111
+                        tms_bits = 15 : tms_count = 6 '001111
                     Case MachineState.Exit1_IR
-                        tms = 47 : bits = 6 '101111
+                        tms_bits = 47 : tms_count = 6 '101111
                     Case MachineState.Pause_IR
-                        tms = 47 : bits = 7 '0101111
+                        tms_bits = 47 : tms_count = 7 '0101111
                     Case MachineState.Exit2_IR
-                        tms = 175 : bits = 8 '10101111
+                        tms_bits = 175 : tms_count = 8 '10101111
                     Case MachineState.Update_IR
-                        tms = 111 : bits = 7 '1101111
+                        tms_bits = 111 : tms_count = 7 '1101111
                 End Select
             Case MachineState.Shift_DR
                 Select Case to_state
                     Case MachineState.TestLogicReset
-                        tms = 31 : bits = 5 '11111
+                        tms_bits = 31 : tms_count = 5 '11111
                     Case MachineState.RunTestIdle
-                        tms = 3 : bits = 3 '011
+                        tms_bits = 3 : tms_count = 3 '011
                     Case MachineState.Select_DR
-                        tms = 7 : bits = 3 '111
+                        tms_bits = 7 : tms_count = 3 '111
                     Case MachineState.Capture_DR
-                        tms = 7 : bits = 4 '0111
+                        tms_bits = 7 : tms_count = 4 '0111
                     Case MachineState.Exit1_DR
-                        tms = 1 : bits = 1 '1
+                        tms_bits = 1 : tms_count = 1 '1
                     Case MachineState.Pause_DR
-                        tms = 1 : bits = 2 '01
+                        tms_bits = 1 : tms_count = 2 '01
                     Case MachineState.Exit2_DR
-                        tms = 5 : bits = 3 '101
+                        tms_bits = 5 : tms_count = 3 '101
                     Case MachineState.Update_DR
-                        tms = 3 : bits = 2 '11
+                        tms_bits = 3 : tms_count = 2 '11
                     Case MachineState.Select_IR
-                        tms = 15 : bits = 4 '1111
+                        tms_bits = 15 : tms_count = 4 '1111
                     Case MachineState.Capture_IR
-                        tms = 15 : bits = 5 '01111
+                        tms_bits = 15 : tms_count = 5 '01111
                     Case MachineState.Shift_IR
-                        tms = 15 : bits = 6 '001111
+                        tms_bits = 15 : tms_count = 6 '001111
                     Case MachineState.Exit1_IR
-                        tms = 47 : bits = 6 '101111
+                        tms_bits = 47 : tms_count = 6 '101111
                     Case MachineState.Pause_IR
-                        tms = 47 : bits = 7 '0101111
+                        tms_bits = 47 : tms_count = 7 '0101111
                     Case MachineState.Exit2_IR
-                        tms = 175 : bits = 8 '10101111
+                        tms_bits = 175 : tms_count = 8 '10101111
                     Case MachineState.Update_IR
-                        tms = 111 : bits = 7 '1101111
+                        tms_bits = 111 : tms_count = 7 '1101111
                 End Select
             Case MachineState.Exit1_DR
                 Select Case to_state
                     Case MachineState.TestLogicReset
-                        tms = 15 : bits = 4 '1111
+                        tms_bits = 15 : tms_count = 4 '1111
                     Case MachineState.RunTestIdle
-                        tms = 1 : bits = 2 '01
+                        tms_bits = 1 : tms_count = 2 '01
                     Case MachineState.Select_DR
-                        tms = 3 : bits = 2 '11
+                        tms_bits = 3 : tms_count = 2 '11
                     Case MachineState.Capture_DR
-                        tms = 3 : bits = 3 '011
+                        tms_bits = 3 : tms_count = 3 '011
                     Case MachineState.Shift_DR
-                        tms = 2 : bits = 3 '010
+                        tms_bits = 2 : tms_count = 3 '010
                     Case MachineState.Pause_DR
-                        tms = 0 : bits = 1 '0
+                        tms_bits = 0 : tms_count = 1 '0
                     Case MachineState.Exit2_DR
-                        tms = 2 : bits = 2 '10
+                        tms_bits = 2 : tms_count = 2 '10
                     Case MachineState.Update_DR
-                        tms = 1 : bits = 1 '1
+                        tms_bits = 1 : tms_count = 1 '1
                     Case MachineState.Select_IR
-                        tms = 7 : bits = 3 '111
+                        tms_bits = 7 : tms_count = 3 '111
                     Case MachineState.Capture_IR
-                        tms = 7 : bits = 4 '0111
+                        tms_bits = 7 : tms_count = 4 '0111
                     Case MachineState.Shift_IR
-                        tms = 7 : bits = 5 '00111
+                        tms_bits = 7 : tms_count = 5 '00111
                     Case MachineState.Exit1_IR
-                        tms = 23 : bits = 5 '10111
+                        tms_bits = 23 : tms_count = 5 '10111
                     Case MachineState.Pause_IR
-                        tms = 23 : bits = 6 '010111
+                        tms_bits = 23 : tms_count = 6 '010111
                     Case MachineState.Exit2_IR
-                        tms = 87 : bits = 7 '1010111
+                        tms_bits = 87 : tms_count = 7 '1010111
                     Case MachineState.Update_IR
-                        tms = 55 : bits = 6 '110111
+                        tms_bits = 55 : tms_count = 6 '110111
                 End Select
             Case MachineState.Pause_DR
                 Select Case to_state
                     Case MachineState.TestLogicReset
-                        tms = 31 : bits = 5 '11111
+                        tms_bits = 31 : tms_count = 5 '11111
                     Case MachineState.RunTestIdle
-                        tms = 3 : bits = 3 '011
+                        tms_bits = 3 : tms_count = 3 '011
                     Case MachineState.Select_DR
-                        tms = 7 : bits = 3 '111
+                        tms_bits = 7 : tms_count = 3 '111
                     Case MachineState.Capture_DR
-                        tms = 7 : bits = 4 '0111
+                        tms_bits = 7 : tms_count = 4 '0111
                     Case MachineState.Shift_DR
-                        tms = 1 : bits = 2 '01
+                        tms_bits = 1 : tms_count = 2 '01
                     Case MachineState.Exit1_DR
-                        tms = 5 : bits = 3 '101
+                        tms_bits = 5 : tms_count = 3 '101
                     Case MachineState.Exit2_DR
-                        tms = 1 : bits = 1 '1
+                        tms_bits = 1 : tms_count = 1 '1
                     Case MachineState.Update_DR
-                        tms = 3 : bits = 2 '11
+                        tms_bits = 3 : tms_count = 2 '11
                     Case MachineState.Select_IR
-                        tms = 15 : bits = 4 '1111
+                        tms_bits = 15 : tms_count = 4 '1111
                     Case MachineState.Capture_IR
-                        tms = 15 : bits = 5 '01111
+                        tms_bits = 15 : tms_count = 5 '01111
                     Case MachineState.Shift_IR
-                        tms = 15 : bits = 6 '001111
+                        tms_bits = 15 : tms_count = 6 '001111
                     Case MachineState.Exit1_IR
-                        tms = 47 : bits = 6 '101111
+                        tms_bits = 47 : tms_count = 6 '101111
                     Case MachineState.Pause_IR
-                        tms = 47 : bits = 7 '0101111
+                        tms_bits = 47 : tms_count = 7 '0101111
                     Case MachineState.Exit2_IR
-                        tms = 175 : bits = 8 '10101111
+                        tms_bits = 175 : tms_count = 8 '10101111
                     Case MachineState.Update_IR
-                        tms = 111 : bits = 7 '1101111
+                        tms_bits = 111 : tms_count = 7 '1101111
                 End Select
             Case MachineState.Exit2_DR
                 Select Case to_state
                     Case MachineState.TestLogicReset
-                        tms = 15 : bits = 4 '1111
+                        tms_bits = 15 : tms_count = 4 '1111
                     Case MachineState.RunTestIdle
-                        tms = 1 : bits = 2 '01
+                        tms_bits = 1 : tms_count = 2 '01
                     Case MachineState.Select_DR
-                        tms = 3 : bits = 2 '11
+                        tms_bits = 3 : tms_count = 2 '11
                     Case MachineState.Capture_DR
-                        tms = 3 : bits = 3 '011
+                        tms_bits = 3 : tms_count = 3 '011
                     Case MachineState.Shift_DR
-                        tms = 0 : bits = 1 '0
+                        tms_bits = 0 : tms_count = 1 '0
                     Case MachineState.Exit1_DR
-                        tms = 2 : bits = 2 '10
+                        tms_bits = 2 : tms_count = 2 '10
                     Case MachineState.Pause_DR
-                        tms = 2 : bits = 3 '010
+                        tms_bits = 2 : tms_count = 3 '010
                     Case MachineState.Update_DR
-                        tms = 1 : bits = 1 '1
+                        tms_bits = 1 : tms_count = 1 '1
                     Case MachineState.Select_IR
-                        tms = 7 : bits = 3 '111
+                        tms_bits = 7 : tms_count = 3 '111
                     Case MachineState.Capture_IR
-                        tms = 7 : bits = 4 '0111
+                        tms_bits = 7 : tms_count = 4 '0111
                     Case MachineState.Shift_IR
-                        tms = 7 : bits = 5 '00111
+                        tms_bits = 7 : tms_count = 5 '00111
                     Case MachineState.Exit1_IR
-                        tms = 23 : bits = 5 '10111
+                        tms_bits = 23 : tms_count = 5 '10111
                     Case MachineState.Pause_IR
-                        tms = 23 : bits = 6 '010111
+                        tms_bits = 23 : tms_count = 6 '010111
                     Case MachineState.Exit2_IR
-                        tms = 87 : bits = 7 '1010111
+                        tms_bits = 87 : tms_count = 7 '1010111
                     Case MachineState.Update_IR
-                        tms = 55 : bits = 6 '110111
+                        tms_bits = 55 : tms_count = 6 '110111
                 End Select
             Case MachineState.Update_DR
                 Select Case to_state
                     Case MachineState.TestLogicReset
-                        tms = 7 : bits = 3 '111
+                        tms_bits = 7 : tms_count = 3 '111
                     Case MachineState.RunTestIdle
-                        tms = 0 : bits = 1 '0
+                        tms_bits = 0 : tms_count = 1 '0
                     Case MachineState.Select_DR
-                        tms = 1 : bits = 1 '1
+                        tms_bits = 1 : tms_count = 1 '1
                     Case MachineState.Capture_DR
-                        tms = 1 : bits = 2 '01
+                        tms_bits = 1 : tms_count = 2 '01
                     Case MachineState.Shift_DR
-                        tms = 1 : bits = 3 '001
+                        tms_bits = 1 : tms_count = 3 '001
                     Case MachineState.Exit1_DR
-                        tms = 5 : bits = 3 '101
+                        tms_bits = 5 : tms_count = 3 '101
                     Case MachineState.Pause_DR
-                        tms = 5 : bits = 4 '0101
+                        tms_bits = 5 : tms_count = 4 '0101
                     Case MachineState.Exit2_DR
-                        tms = 21 : bits = 5 '10101
+                        tms_bits = 21 : tms_count = 5 '10101
                     Case MachineState.Select_IR
-                        tms = 3 : bits = 2 '11
+                        tms_bits = 3 : tms_count = 2 '11
                     Case MachineState.Capture_IR
-                        tms = 3 : bits = 3 '011
+                        tms_bits = 3 : tms_count = 3 '011
                     Case MachineState.Shift_IR
-                        tms = 3 : bits = 4 '0011
+                        tms_bits = 3 : tms_count = 4 '0011
                     Case MachineState.Exit1_IR
-                        tms = 11 : bits = 4 '1011
+                        tms_bits = 11 : tms_count = 4 '1011
                     Case MachineState.Pause_IR
-                        tms = 11 : bits = 5 '01011
+                        tms_bits = 11 : tms_count = 5 '01011
                     Case MachineState.Exit2_IR
-                        tms = 43 : bits = 6 '101011
+                        tms_bits = 43 : tms_count = 6 '101011
                     Case MachineState.Update_IR
-                        tms = 27 : bits = 5 '11011
+                        tms_bits = 27 : tms_count = 5 '11011
                 End Select
             Case MachineState.Select_IR
                 Select Case to_state
                     Case MachineState.TestLogicReset
-                        tms = 1 : bits = 1 '1
+                        tms_bits = 1 : tms_count = 1 '1
                     Case MachineState.RunTestIdle
-                        tms = 1 : bits = 2 '01
+                        tms_bits = 1 : tms_count = 2 '01
                     Case MachineState.Select_DR
-                        tms = 5 : bits = 3 '101
+                        tms_bits = 5 : tms_count = 3 '101
                     Case MachineState.Capture_DR
-                        tms = 5 : bits = 4 '0101
+                        tms_bits = 5 : tms_count = 4 '0101
                     Case MachineState.Shift_DR
-                        tms = 5 : bits = 5 '00101
+                        tms_bits = 5 : tms_count = 5 '00101
                     Case MachineState.Exit1_DR
-                        tms = 21 : bits = 5 '10101
+                        tms_bits = 21 : tms_count = 5 '10101
                     Case MachineState.Pause_DR
-                        tms = 21 : bits = 6 '010101
+                        tms_bits = 21 : tms_count = 6 '010101
                     Case MachineState.Exit2_DR
-                        tms = 85 : bits = 7 '1010101
+                        tms_bits = 85 : tms_count = 7 '1010101
                     Case MachineState.Update_DR
-                        tms = 53 : bits = 6 '110101
+                        tms_bits = 53 : tms_count = 6 '110101
                     Case MachineState.Capture_IR
-                        tms = 0 : bits = 1 '0
+                        tms_bits = 0 : tms_count = 1 '0
                     Case MachineState.Shift_IR
-                        tms = 0 : bits = 2 '00
+                        tms_bits = 0 : tms_count = 2 '00
                     Case MachineState.Exit1_IR
-                        tms = 2 : bits = 2 '10
+                        tms_bits = 2 : tms_count = 2 '10
                     Case MachineState.Pause_IR
-                        tms = 2 : bits = 3 '010
+                        tms_bits = 2 : tms_count = 3 '010
                     Case MachineState.Exit2_IR
-                        tms = 10 : bits = 4 '1010
+                        tms_bits = 10 : tms_count = 4 '1010
                     Case MachineState.Update_IR
-                        tms = 6 : bits = 3 '110
+                        tms_bits = 6 : tms_count = 3 '110
                 End Select
             Case MachineState.Capture_IR
                 Select Case to_state
                     Case MachineState.TestLogicReset
-                        tms = 31 : bits = 5 '11111
+                        tms_bits = 31 : tms_count = 5 '11111
                     Case MachineState.RunTestIdle
-                        tms = 3 : bits = 3 '011
+                        tms_bits = 3 : tms_count = 3 '011
                     Case MachineState.Select_DR
-                        tms = 7 : bits = 3 '111
+                        tms_bits = 7 : tms_count = 3 '111
                     Case MachineState.Capture_DR
-                        tms = 7 : bits = 4 '0111
+                        tms_bits = 7 : tms_count = 4 '0111
                     Case MachineState.Shift_DR
-                        tms = 7 : bits = 5 '00111
+                        tms_bits = 7 : tms_count = 5 '00111
                     Case MachineState.Exit1_DR
-                        tms = 23 : bits = 5 '10111
+                        tms_bits = 23 : tms_count = 5 '10111
                     Case MachineState.Pause_DR
-                        tms = 23 : bits = 6 '010111
+                        tms_bits = 23 : tms_count = 6 '010111
                     Case MachineState.Exit2_DR
-                        tms = 87 : bits = 7 '1010111
+                        tms_bits = 87 : tms_count = 7 '1010111
                     Case MachineState.Update_DR
-                        tms = 55 : bits = 6 '110111
+                        tms_bits = 55 : tms_count = 6 '110111
                     Case MachineState.Select_IR
-                        tms = 15 : bits = 4 '1111
+                        tms_bits = 15 : tms_count = 4 '1111
                     Case MachineState.Shift_IR
-                        tms = 0 : bits = 1 '0
+                        tms_bits = 0 : tms_count = 1 '0
                     Case MachineState.Exit1_IR
-                        tms = 1 : bits = 1 '1
+                        tms_bits = 1 : tms_count = 1 '1
                     Case MachineState.Pause_IR
-                        tms = 1 : bits = 2 '01
+                        tms_bits = 1 : tms_count = 2 '01
                     Case MachineState.Exit2_IR
-                        tms = 5 : bits = 3 '101
+                        tms_bits = 5 : tms_count = 3 '101
                     Case MachineState.Update_IR
-                        tms = 3 : bits = 2 '11
+                        tms_bits = 3 : tms_count = 2 '11
                 End Select
             Case MachineState.Shift_IR
                 Select Case to_state
                     Case MachineState.TestLogicReset
-                        tms = 31 : bits = 5 '11111
+                        tms_bits = 31 : tms_count = 5 '11111
                     Case MachineState.RunTestIdle
-                        tms = 3 : bits = 3 '011
+                        tms_bits = 3 : tms_count = 3 '011
                     Case MachineState.Select_DR
-                        tms = 7 : bits = 3 '111
+                        tms_bits = 7 : tms_count = 3 '111
                     Case MachineState.Capture_DR
-                        tms = 7 : bits = 4 '0111
+                        tms_bits = 7 : tms_count = 4 '0111
                     Case MachineState.Shift_DR
-                        tms = 7 : bits = 5 '00111
+                        tms_bits = 7 : tms_count = 5 '00111
                     Case MachineState.Exit1_DR
-                        tms = 23 : bits = 5 '10111
+                        tms_bits = 23 : tms_count = 5 '10111
                     Case MachineState.Pause_DR
-                        tms = 23 : bits = 6 '010111
+                        tms_bits = 23 : tms_count = 6 '010111
                     Case MachineState.Exit2_DR
-                        tms = 87 : bits = 7 '1010111
+                        tms_bits = 87 : tms_count = 7 '1010111
                     Case MachineState.Update_DR
-                        tms = 55 : bits = 6 '110111
+                        tms_bits = 55 : tms_count = 6 '110111
                     Case MachineState.Select_IR
-                        tms = 15 : bits = 4 '1111
+                        tms_bits = 15 : tms_count = 4 '1111
                     Case MachineState.Capture_IR
-                        tms = 15 : bits = 5 '01111
+                        tms_bits = 15 : tms_count = 5 '01111
                     Case MachineState.Exit1_IR
-                        tms = 1 : bits = 1 '1
+                        tms_bits = 1 : tms_count = 1 '1
                     Case MachineState.Pause_IR
-                        tms = 1 : bits = 2 '01
+                        tms_bits = 1 : tms_count = 2 '01
                     Case MachineState.Exit2_IR
-                        tms = 5 : bits = 3 '101
+                        tms_bits = 5 : tms_count = 3 '101
                     Case MachineState.Update_IR
-                        tms = 3 : bits = 2 '11
+                        tms_bits = 3 : tms_count = 2 '11
                 End Select
             Case MachineState.Exit1_IR
                 Select Case to_state
                     Case MachineState.TestLogicReset
-                        tms = 15 : bits = 4 '1111
+                        tms_bits = 15 : tms_count = 4 '1111
                     Case MachineState.RunTestIdle
-                        tms = 1 : bits = 2 '01
+                        tms_bits = 1 : tms_count = 2 '01
                     Case MachineState.Select_DR
-                        tms = 3 : bits = 2 '11
+                        tms_bits = 3 : tms_count = 2 '11
                     Case MachineState.Capture_DR
-                        tms = 3 : bits = 3 '011
+                        tms_bits = 3 : tms_count = 3 '011
                     Case MachineState.Shift_DR
-                        tms = 3 : bits = 4 '0011
+                        tms_bits = 3 : tms_count = 4 '0011
                     Case MachineState.Exit1_DR
-                        tms = 11 : bits = 4 '1011
+                        tms_bits = 11 : tms_count = 4 '1011
                     Case MachineState.Pause_DR
-                        tms = 11 : bits = 5 '01011
+                        tms_bits = 11 : tms_count = 5 '01011
                     Case MachineState.Exit2_DR
-                        tms = 43 : bits = 6 '101011
+                        tms_bits = 43 : tms_count = 6 '101011
                     Case MachineState.Update_DR
-                        tms = 27 : bits = 5 '11011
+                        tms_bits = 27 : tms_count = 5 '11011
                     Case MachineState.Select_IR
-                        tms = 7 : bits = 3 '111
+                        tms_bits = 7 : tms_count = 3 '111
                     Case MachineState.Capture_IR
-                        tms = 7 : bits = 4 '0111
+                        tms_bits = 7 : tms_count = 4 '0111
                     Case MachineState.Shift_IR
-                        tms = 2 : bits = 3 '010
+                        tms_bits = 2 : tms_count = 3 '010
                     Case MachineState.Pause_IR
-                        tms = 0 : bits = 1 '0
+                        tms_bits = 0 : tms_count = 1 '0
                     Case MachineState.Exit2_IR
-                        tms = 2 : bits = 2 '10
+                        tms_bits = 2 : tms_count = 2 '10
                     Case MachineState.Update_IR
-                        tms = 1 : bits = 1 '1
+                        tms_bits = 1 : tms_count = 1 '1
                 End Select
             Case MachineState.Pause_IR
                 Select Case to_state
                     Case MachineState.TestLogicReset
-                        tms = 31 : bits = 5 '11111
+                        tms_bits = 31 : tms_count = 5 '11111
                     Case MachineState.RunTestIdle
-                        tms = 3 : bits = 3 '011
+                        tms_bits = 3 : tms_count = 3 '011
                     Case MachineState.Select_DR
-                        tms = 7 : bits = 3 '111
+                        tms_bits = 7 : tms_count = 3 '111
                     Case MachineState.Capture_DR
-                        tms = 7 : bits = 4 '0111
+                        tms_bits = 7 : tms_count = 4 '0111
                     Case MachineState.Shift_DR
-                        tms = 7 : bits = 5 '00111
+                        tms_bits = 7 : tms_count = 5 '00111
                     Case MachineState.Exit1_DR
-                        tms = 23 : bits = 5 '10111
+                        tms_bits = 23 : tms_count = 5 '10111
                     Case MachineState.Pause_DR
-                        tms = 23 : bits = 6 '010111
+                        tms_bits = 23 : tms_count = 6 '010111
                     Case MachineState.Exit2_DR
-                        tms = 87 : bits = 7 '1010111
+                        tms_bits = 87 : tms_count = 7 '1010111
                     Case MachineState.Update_DR
-                        tms = 55 : bits = 6 '110111
+                        tms_bits = 55 : tms_count = 6 '110111
                     Case MachineState.Select_IR
-                        tms = 15 : bits = 4 '1111
+                        tms_bits = 15 : tms_count = 4 '1111
                     Case MachineState.Capture_IR
-                        tms = 15 : bits = 5 '01111
+                        tms_bits = 15 : tms_count = 5 '01111
                     Case MachineState.Shift_IR
-                        tms = 1 : bits = 2 '01
+                        tms_bits = 1 : tms_count = 2 '01
                     Case MachineState.Exit1_IR
-                        tms = 5 : bits = 3 '101
+                        tms_bits = 5 : tms_count = 3 '101
                     Case MachineState.Exit2_IR
-                        tms = 1 : bits = 1 '1
+                        tms_bits = 1 : tms_count = 1 '1
                     Case MachineState.Update_IR
-                        tms = 3 : bits = 2 '11
+                        tms_bits = 3 : tms_count = 2 '11
                 End Select
             Case MachineState.Exit2_IR
                 Select Case to_state
                     Case MachineState.TestLogicReset
-                        tms = 15 : bits = 4 '1111
+                        tms_bits = 15 : tms_count = 4 '1111
                     Case MachineState.RunTestIdle
-                        tms = 1 : bits = 2 '01
+                        tms_bits = 1 : tms_count = 2 '01
                     Case MachineState.Select_DR
-                        tms = 3 : bits = 2 '11
+                        tms_bits = 3 : tms_count = 2 '11
                     Case MachineState.Capture_DR
-                        tms = 3 : bits = 3 '011
+                        tms_bits = 3 : tms_count = 3 '011
                     Case MachineState.Shift_DR
-                        tms = 3 : bits = 4 '0011
+                        tms_bits = 3 : tms_count = 4 '0011
                     Case MachineState.Exit1_DR
-                        tms = 11 : bits = 4 '1011
+                        tms_bits = 11 : tms_count = 4 '1011
                     Case MachineState.Pause_DR
-                        tms = 11 : bits = 5 '01011
+                        tms_bits = 11 : tms_count = 5 '01011
                     Case MachineState.Exit2_DR
-                        tms = 43 : bits = 6 '101011
+                        tms_bits = 43 : tms_count = 6 '101011
                     Case MachineState.Update_DR
-                        tms = 27 : bits = 5 '11011
+                        tms_bits = 27 : tms_count = 5 '11011
                     Case MachineState.Select_IR
-                        tms = 7 : bits = 3 '111
+                        tms_bits = 7 : tms_count = 3 '111
                     Case MachineState.Capture_IR
-                        tms = 7 : bits = 4 '0111
+                        tms_bits = 7 : tms_count = 4 '0111
                     Case MachineState.Shift_IR
-                        tms = 0 : bits = 1 '0
+                        tms_bits = 0 : tms_count = 1 '0
                     Case MachineState.Exit1_IR
-                        tms = 2 : bits = 2 '10
+                        tms_bits = 2 : tms_count = 2 '10
                     Case MachineState.Pause_IR
-                        tms = 2 : bits = 3 '010
+                        tms_bits = 2 : tms_count = 3 '010
                     Case MachineState.Update_IR
-                        tms = 1 : bits = 1 '1
+                        tms_bits = 1 : tms_count = 1 '1
                 End Select
             Case MachineState.Update_IR
                 Select Case to_state
                     Case MachineState.TestLogicReset
-                        tms = 7 : bits = 3 '111
+                        tms_bits = 7 : tms_count = 3 '111
                     Case MachineState.RunTestIdle
-                        tms = 0 : bits = 1 '0
+                        tms_bits = 0 : tms_count = 1 '0
                     Case MachineState.Select_DR
-                        tms = 1 : bits = 1 '1
+                        tms_bits = 1 : tms_count = 1 '1
                     Case MachineState.Capture_DR
-                        tms = 1 : bits = 2 '01
+                        tms_bits = 1 : tms_count = 2 '01
                     Case MachineState.Shift_DR
-                        tms = 1 : bits = 3 '001
+                        tms_bits = 1 : tms_count = 3 '001
                     Case MachineState.Exit1_DR
-                        tms = 5 : bits = 3 '101
+                        tms_bits = 5 : tms_count = 3 '101
                     Case MachineState.Pause_DR
-                        tms = 5 : bits = 4 '0101
+                        tms_bits = 5 : tms_count = 4 '0101
                     Case MachineState.Exit2_DR
-                        tms = 21 : bits = 5 '10101
+                        tms_bits = 21 : tms_count = 5 '10101
                     Case MachineState.Update_DR
-                        tms = 13 : bits = 4 '1101
+                        tms_bits = 13 : tms_count = 4 '1101
                     Case MachineState.Select_IR
-                        tms = 3 : bits = 2 '11
+                        tms_bits = 3 : tms_count = 2 '11
                     Case MachineState.Capture_IR
-                        tms = 3 : bits = 3 '011
+                        tms_bits = 3 : tms_count = 3 '011
                     Case MachineState.Shift_IR
-                        tms = 3 : bits = 4 '0011
+                        tms_bits = 3 : tms_count = 4 '0011
                     Case MachineState.Exit1_IR
-                        tms = 11 : bits = 4 '1011
+                        tms_bits = 11 : tms_count = 4 '1011
                     Case MachineState.Pause_IR
-                        tms = 11 : bits = 5 '01011
+                        tms_bits = 11 : tms_count = 5 '01011
                     Case MachineState.Exit2_IR
-                        tms = 43 : bits = 6 '101011
+                        tms_bits = 43 : tms_count = 6 '101011
                 End Select
         End Select
-        RaiseEvent ShiftBits(bits, GetBytes_FromUint(0, bits), GetBytes_FromUint(tms, bits), Nothing)
+        RaiseEvent ShiftBits(tms_count, GetBytes_FromUint(0, tms_count), GetBytes_FromUint(tms_bits, tms_count), Nothing)
         Me.STATE = to_state
     End Sub
 
