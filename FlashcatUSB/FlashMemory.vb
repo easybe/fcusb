@@ -554,7 +554,7 @@ Namespace FlashMemory
         Public Property ERASE_REQUIRED As Boolean Implements Device.ERASE_REQUIRED
         Public ReadOnly Property FLASH_SIZE As Long Implements Device.FLASH_SIZE
         Public ReadOnly Property FLASH_TYPE As MemoryType Implements Device.FLASH_TYPE
-        Public ReadOnly Property PAGE_SIZE As UInteger Implements Device.PAGE_SIZE 'The number of bytes in the main area
+        Public ReadOnly Property PAGE_SIZE As UInt32 Implements Device.PAGE_SIZE 'The number of bytes in the main area
         Public ReadOnly Property PLANE_SELECT As Boolean 'Indicates that this device needs to select a plane when accessing pages
         Public Property STACKED_DIES As UInt32 = 1 'If device has more than one die, set this value
         Public ReadOnly Property PAGE_EXT As UInt16 'Extended number of bytes
@@ -1071,6 +1071,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("Winbond W25Q40BW", SPI_1V8, Mb004, &HEF, &H5013) With {.SQI_MODE = SPI_QUAD})
             FlashDB.Add(New SPI_NOR("Winbond W25Q20BW", SPI_1V8, Mb002, &HEF, &H5012) With {.SQI_MODE = SPI_QUAD})
             'MXIC
+            FlashDB.Add(New SPI_NOR("MXIC MX66L1G45G", SPI_3V, Gb001, &HC2, &H201B) With {.SEND_EN4B = True})
             FlashDB.Add(New SPI_NOR("MXIC MX25L51245G", SPI_3V, Mb512, &HC2, &H201A) With {.SEND_EN4B = True})
             FlashDB.Add(New SPI_NOR("MXIC MX25L25655E", SPI_3V, Mb256, &HC2, &H2619) With {.SEND_EN4B = True})
             FlashDB.Add(New SPI_NOR("MXIC MX25L256", SPI_3V, Mb256, &HC2, &H2019) With {.SEND_EN4B = True})
@@ -1204,8 +1205,11 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("AMIC A25L512", SPI_3V, Kb512, &H37, &H3010)) 'A25L512A A25P512
             FlashDB.Add(New SPI_NOR("AMIC A25LS512A", SPI_3V, Kb512, &HC2, &H2010))
             'Fidelix
-            FlashDB.Add(New SPI_NOR("Fidelix FM25Q16A", SPI_3V, Mb016, &HF8, &H3215) With {.SQI_MODE = SPI_QUAD}) 'FM25Q16B
             FlashDB.Add(New SPI_NOR("Fidelix FM25Q32A", SPI_3V, Mb032, &HF8, &H3216) With {.SQI_MODE = SPI_QUAD})
+            FlashDB.Add(New SPI_NOR("Fidelix FM25Q16A", SPI_3V, Mb016, &HF8, &H3215) With {.SQI_MODE = SPI_QUAD}) 'FM25Q16B
+            FlashDB.Add(New SPI_NOR("Fidelix FM25Q08", SPI_3V, Mb008, &HF8, &H3214))
+            FlashDB.Add(New SPI_NOR("Fidelix FM25Q04", SPI_3V, Mb004, &HA1, &H4013))
+            FlashDB.Add(New SPI_NOR("Fidelix FM25Q02", SPI_3V, Mb002, &HA1, &H4012))
             FlashDB.Add(New SPI_NOR("Fidelix FM25M04A", SPI_3V, Mb004, &HF8, &H4213))
             FlashDB.Add(New SPI_NOR("Fidelix FM25M08A", SPI_3V, Mb008, &HF8, &H4214))
             FlashDB.Add(New SPI_NOR("Fidelix FM25M16A", SPI_3V, Mb016, &HF8, &H4215))
@@ -1385,14 +1389,28 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NAND("Kioxia TC58CYG1S3HRAIJ", &H98, &HDB40, 2048, 128, 64, 2048, False, SPI_1V8)) '2Gb
             FlashDB.Add(New SPI_NAND("Kioxia TC58CYG2S0HRAIJ", &H98, &HDD51, 4096, 256, 64, 2048, False, SPI_1V8)) '4Gb
             FlashDB.Add(New SPI_NAND("Kioxia TH58CYG3S0HRAIJ", &H98, &HD451, 4096, 256, 64, 4096, False, SPI_1V8)) '8Gb
+
+
+
+
+
             'XTX
             FlashDB.Add(New SPI_NAND("XTX PN26Q01AWSIUG", &HA1, &HC1, 2048, 128, 64, 1024, False, SPI_1V8)) '1Gb
             FlashDB.Add(New SPI_NAND("XTX PN26Q02AWSIUG", &HA1, &HC2, 2048, 128, 64, 2048, False, SPI_1V8)) '2Gb
             FlashDB.Add(New SPI_NAND("XTX PN26G01AWSIUG", &HA1, &HE1, 2048, 128, 64, 1024, False, SPI_3V)) '1Gb
+
+
+            'Working on this one
             FlashDB.Add(New SPI_NAND("XTX XT26G01AWSEGA", &HB, &HE1, 2048, 128, 64, 1024, False, SPI_3V)) '1Gb
+
             FlashDB.Add(New SPI_NAND("XTX XT26G02AWSEGA", &HB, &HE2, 2048, 128, 64, 2048, False, SPI_3V)) '2Gb
             FlashDB.Add(New SPI_NAND("XTX XT26G01BWSEGA", &HB, &HF1, 2048, 128, 64, 1024, False, SPI_3V)) '1Gb
             FlashDB.Add(New SPI_NAND("XTX XT26G02BWSIGA", &HB, &HF2, 2048, 128, 64, 2048, False, SPI_3V)) '2Gb
+
+
+
+
+
             'Others
             FlashDB.Add(New SPI_NAND("MXIC MX35LF1GE4AB", &HC2, &H12, 2048, 64, 64, 1024, False, SPI_3V)) '1Gb
             FlashDB.Add(New SPI_NAND("MXIC MX35LF2GE4AB", &HC2, &H22, 2048, 64, 64, 2048, True, SPI_3V)) '2Gb
@@ -1521,8 +1539,11 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("MXIC MX29F016", &HC2, &HAD, Mb016, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
             FlashDB.Add(New P_NOR("MXIC MX29F800T", &HC2, &H22D6, Mb008, VCC_IF.X16_5V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS)) 'SO44 CV
             FlashDB.Add(New P_NOR("MXIC MX29F800B", &HC2, &H2258, Mb008, VCC_IF.X16_5V, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("MXIC MX29F1610", &HC2, &HF1, Mb016, VCC_IF.X16_5V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 8}) 'Someone has this version too
-            FlashDB.Add(New P_NOR("MXIC MX29F1610", &HC2, &HF7, Mb016, VCC_IF.X16_5V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 8}) 'SO44 (datasheet says F1, chip reports F7)
+            FlashDB.Add(New P_NOR("MXIC MX29F1610", &HC2, &HF1, Mb016, VCC_IF.X16_5V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 8})
+            FlashDB.Add(New P_NOR("MXIC MX29F1610MC", &HC2, &HF7, Mb016, VCC_IF.X16_5V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 8})
+            FlashDB.Add(New P_NOR("MXIC MX29F1610MC", &HC2, &HF8, Mb016, VCC_IF.X16_5V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 8})
+            FlashDB.Add(New P_NOR("MXIC MX29F1610A", &HC2, &HFA, Mb016, VCC_IF.X16_5V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 8})
+            FlashDB.Add(New P_NOR("MXIC MX29F1610B", &HC2, &HFA, Mb016, VCC_IF.X16_5V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 8})
             FlashDB.Add(New P_NOR("MXIC MX29L3211", &HC2, &HF9, Mb032, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.SR2) With {.PAGE_SIZE = 64}) 'Actualy supports up to 256 bytes (tested build 595)
             FlashDB.Add(New P_NOR("MXIC MX29LV040", &HC2, &H4F, Mb004, VCC_IF.X8_3V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("MXIC MX29LV400T", &HC2, &H22B9, Mb004, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS))
@@ -1709,6 +1730,8 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("Samsung K8P5516UZB", &HEC, &H227E, Mb256, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.BypassMode, MFP_DELAY.uS, &H6460))
             FlashDB.Add(New P_NOR("Samsung K8P5615UQA", &HEC, &H227E, Mb256, VCC_IF.X16_3V, BLKLYT.Mb256_Samsung, MFP_PRG.BypassMode, MFP_DELAY.uS, &H6360))
             'Hynix
+            FlashDB.Add(New P_NOR("Hynix HY29F040", &HAD, &HA4, Mb004, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
+            FlashDB.Add(New P_NOR("Hynix HY29F080", &HAD, &HD5, Mb008, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7)) 'TSOP40-A
             FlashDB.Add(New P_NOR("Hynix HY29F400T", &HAD, &H2223, Mb004, VCC_IF.X16_5V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("Hynix HY29F400B", &HAD, &H22AB, Mb004, VCC_IF.X16_5V, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("Hynix HY29F800T", &HAD, &H22D6, Mb008, VCC_IF.X16_5V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS))
@@ -1905,6 +1928,7 @@ Namespace FlashMemory
             FlashDB.Add(New P_NAND("Samsung K9GAG08U0E", &HEC, &HD5847250UI, 8192, 436, 128, 2076, VCC_IF.X8_3V)) '16Gb
             FlashDB.Add(New P_NAND("Samsung K9GAG08U0M", &HEC, &HD514B674UI, 4096, 128, 128, 4096, VCC_IF.X8_3V)) '16Gb
             FlashDB.Add(New P_NAND("Samsung K9K8G08U0A", &HEC, &HD3519558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Samsung K9KAG08U0M", &HEC, &HD551A668UI, 4096, 128, 64, 8192, VCC_IF.X8_3V)) '8Gb
             FlashDB.Add(New P_NAND("Samsung K9WAG08U1A", &HEC, &HD3519558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '8Gb
             FlashDB.Add(New P_NAND("Samsung K9K8G08U0A", &HEC, &HD3519558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '16Gb Dual die (CE1#/CE2#)
             FlashDB.Add(New P_NAND("Samsung K9NBG08U5A", &HEC, &HD3519558UI, 2048, 64, 64, 8192, VCC_IF.X8_3V)) '32Gb Quad die (CE1#/CE2#/CE3#/CE4#)
@@ -1915,14 +1939,15 @@ Namespace FlashMemory
             FlashDB.Add(New P_NAND("Hynix HY27SS08561A", &HAD, &H35AD35ADUI, 512, 16, 32, 2048, VCC_IF.X8_1V8)) '256Mb
             FlashDB.Add(New P_NAND("Hynix HY27SS16561A", &HAD, &H45AD45ADUI, 512, 16, 32, 2048, VCC_IF.X16_1V8)) '256Mb
             FlashDB.Add(New P_NAND("Hynix HY27US08121B", &HAD, &H76AD76ADUI, 512, 16, 32, 4096, VCC_IF.X8_3V)) '512Mb
-            FlashDB.Add(New P_NAND("Hynix H27U1G8F2B", &HAD, &HF1001D, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Hynix H27U1G8F2CTR", &HAD, &HF1801DADUI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Hynix HY27UF081G2M", &HAD, &HF10015ADUI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Hynix HY27UF081G2A", &HAD, &HF1805DADUI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Hynix HY27UF161G2A", &HAD, &HF1805DADUI, 2048, 64, 64, 1024, VCC_IF.X16_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Hynix H27U1G8F2B", &HAD, &HF1001D, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Hynix H27U1G8F2CTR", &HAD, &HF1801DADUI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
+            FlashDB.Add(New P_NAND("Hynix HY27UF081G2M", &HAD, &HF10015ADUI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
             FlashDB.Add(New P_NAND("Hynix HY27US081G1M", &HAD, &H79A500UI, 512, 16, 32, 8192, VCC_IF.X8_3V))
-            FlashDB.Add(New P_NAND("Hynix HY27SF081G2M", &HAD, &HA10015UI, 2048, 64, 64, 1024, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("Hynix HY27SF081G2M", &HAD, &HA10015UI, 2048, 64, 64, 1024, VCC_IF.X8_3V)) '1Gb
             FlashDB.Add(New P_NAND("Hynix HY27UF082G2B", &HAD, &HDA109544UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
             FlashDB.Add(New P_NAND("Hynix HY27UF082G2A", &HAD, &HDA801D00UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))
-
             FlashDB.Add(New P_NAND("Hynix H27UAG8T2M", &HAD, &HD514B644UI, 4096, 128, 128, 4096, VCC_IF.X8_3V)) '16Gb
             FlashDB.Add(New P_NAND("Hynix H27UAG8T2B", &HAD, &HD5949A74UI, 8192, 448, 256, 512, VCC_IF.X8_3V)) '16Gb
             FlashDB.Add(New P_NAND("Hynix H27U2G8F2C", &HAD, &HDA909546UI, 2048, 64, 64, 2048, VCC_IF.X8_3V))

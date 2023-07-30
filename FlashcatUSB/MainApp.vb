@@ -13,12 +13,13 @@ Imports System.Runtime.InteropServices
 Imports System.Threading
 Imports FlashcatUSB.SPI
 Imports FlashcatUSB.USB
+Imports System.Net
 
 Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 600
+    Public Const Build As Integer = 602
 
     Private Const PRO_PCB4_FW As Single = 1.23F 'This is the embedded firmware version for pro
     Private Const PRO_PCB5_FW As Single = 1.06F 'This is the embedded firmware version for pro
@@ -1992,6 +1993,9 @@ Public Module MainApp
                 GUI.SetStatus(String.Format(RM.GetString("jtag_ready"), "FlashcatUSB Pro"))
             ElseIf (usb_dev.HWBOARD = FCUSB_BOARD.Professional_PCB5) Then
                 GUI.SetStatus(String.Format(RM.GetString("jtag_ready"), "FlashcatUSB Pro"))
+            ElseIf (usb_dev.HWBOARD = FCUSB_BOARD.XPORT_PCB2) Then
+                usb_dev.USB_LEDOn()
+                GUI.SetStatus(String.Format(RM.GetString("jtag_ready"), "FlashcatUSB XPORT"))
             Else
                 GUI.SetStatus(String.Format(RM.GetString("jtag_ready"), "FlashcatUSB Classic"))
             End If

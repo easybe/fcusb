@@ -42,7 +42,7 @@ Public Class NAND_BLOCK_IF
     End Class
 
     'Called once on device init to create a map of all blocks
-    Public Sub CreateMap(mem_size As Long, main_page As UInt32, oob_page As UInt32, page_count As UInt16, block_count As UInt16)
+    Public Sub CreateMap(mem_size As Long, main_page As UInt32, oob_page As UInt32, page_count As UInt16, block_count As UInt32)
         Me.NAND_SIZE = mem_size
         Me.PAGE_MAIN = main_page
         Me.PAGE_OOB = oob_page

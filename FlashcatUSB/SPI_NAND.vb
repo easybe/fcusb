@@ -78,7 +78,7 @@ Public Class SPINAND_Programmer : Implements MemoryDeviceUSB
                 SPIBUS_WriteEnable()
                 SPIBUS_WriteRead({OPCMD_SETFEAT, &HA0, 0}) 'Remove block protection
             End If
-            FCUSB.NAND_IF.CreateMap(MyFlashDevice.FLASH_SIZE, MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT, MyFlashDevice.PAGE_COUNT, MyFlashDevice.Block_Size)
+            FCUSB.NAND_IF.CreateMap(MyFlashDevice.FLASH_SIZE, MyFlashDevice.PAGE_SIZE, MyFlashDevice.PAGE_EXT, MyFlashDevice.PAGE_COUNT, MyFlashDevice.BLOCK_COUNT)
             FCUSB.NAND_IF.EnableBlockManager() 'If enabled
             FCUSB.NAND_IF.ProcessMap()
             Return True
