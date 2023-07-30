@@ -1683,11 +1683,16 @@ Namespace JTAG
                     Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_TOGGLE, Nothing, toggle_cmd)
                     If Not result Then Return False
                     Dim delay_ms As Integer = CInt((CDbl(toggle_count) / CDbl(tck_hz)) * 1000)
-                    Utilities.Sleep(delay_ms + 5)
-                    ticks_left -= toggle_count
-                    If (ticks_left > 0) Then
-                        Threading.Thread.CurrentThread.Join(10) 'Pump a message
+                    'Utilities.Sleep(delay_ms + 5)
+                    If (delay_ms > 5) Then
+                        FCUSB.USB_WaitForComplete()
+                    ElseIf (delay_ms > 0) Then
+                        Utilities.Sleep(delay_ms)
+                    Else
+                        Utilities.Sleep(1)
                     End If
+                    ticks_left -= toggle_count
+                    If (ticks_left > 0) Then Threading.Thread.CurrentThread.Join(10) 'Pump a message
                 End While
                 Return True
             Catch ex As Exception

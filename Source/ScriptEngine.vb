@@ -7,7 +7,7 @@
 Namespace EC_ScriptEngine
 
     Public Class Processor : Implements IDisposable
-        Public Const Build As Integer = 311
+        Public Const Build As Integer = 312
 
         Public CmdFunctions As New ScriptCmd
         Public CurrentVars As New ScriptVariableManager
@@ -1793,6 +1793,8 @@ Namespace EC_ScriptEngine
                 this_exit.ExitMode = ProgramFlow.ExitIf
             ElseIf input.ToUpper.Equals("SCRIPT") Then
                 this_exit.ExitMode = ProgramFlow.ExitScript
+            ElseIf input.ToUpper.Equals("EVENT") Then 'Legacy support
+                Return CreateReturn(Pointer, lines, ind, ErrInd, ErrorMsg)
             Else
                 ErrInd = ind(Pointer)
                 ErrorMsg = "Label statement is missing target label"
