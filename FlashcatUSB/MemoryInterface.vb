@@ -657,7 +657,7 @@ Public Class MemoryInterface
                                         Params.Status.UpdateTask.DynamicInvoke(RM.GetString("mem_verify_failed"))
                                         Utilities.Sleep(1000)
                                     End If
-                                    Return GetMessageBoxForVerifyFailed(Params.Address)
+                                    Return WriteErrorOnVerifyWrite(Params.Address)
                                 End If
                             End If
                             Utilities.Sleep(500)
@@ -697,13 +697,18 @@ Public Class MemoryInterface
             End If
         End Function
 
-        Public Function GetMessageBoxForVerifyFailed(ByVal address As UInt32) As Boolean
-            Dim TitleTxt As String = String.Format(RM.GetString("mem_verify_failed_at"), Hex(address).PadLeft(8, "0"))
-            TitleTxt &= vbCrLf & vbCrLf & RM.GetString("mem_ask_continue")
-            If MsgBox(TitleTxt, MsgBoxStyle.YesNo, RM.GetString("mem_verify_failed_title")) = MsgBoxResult.No Then
-                Return False 'Stop working
+        Public Function WriteErrorOnVerifyWrite(ByVal address As UInt32) As Boolean
+            If (GUI IsNot Nothing) Then
+                Dim TitleTxt As String = String.Format(RM.GetString("mem_verify_failed_at"), Hex(address).PadLeft(8, "0"))
+                TitleTxt &= vbCrLf & vbCrLf & RM.GetString("mem_ask_continue")
+                If MsgBox(TitleTxt, MsgBoxStyle.YesNo, RM.GetString("mem_verify_failed_title")) = MsgBoxResult.No Then
+                    Return False 'Stop operation
+                Else
+                    Return True
+                End If
             Else
-                Return True
+                RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(address).PadLeft(8, "0")))
+                Return False 'Stop console operation
             End If
         End Function
 

@@ -18,7 +18,7 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 538
+    Public Const Build As Integer = 539
     Public PRO3_CURRENT_FW As Single = 1.29F 'This is the embedded firmware version for pro
     Public PRO4_CURRENT_FW As Single = 1.06F 'This is the embedded firmware version for pro
     Public CLASSIC_CURRENT_FW_SPI As Single = 4.39F 'Min revision allowed for classic, xport
@@ -51,7 +51,7 @@ Public Module MainApp
         End Try
 
         'Args = {"-WRITE", "-SPI", "-FILE", "Flash2.bin", "-Offset", "0x00000", "-EXIT"}
-        'Args = {"-READ", "-SPI", "-MHZ", "32", "-FILE", "Flash.bin", "-LENGTH", "5000000", "-LOG", "temp.txt"}
+        'Args = {"-READ", "-SPI", "-MHZ", "24", "-FILE", "Flash.bin", "-LENGTH", "5000000"}
         'Args = {"-READ", "-SPINAND", "-MHZ", "32", "-FILE", "Flash.bin", "-LENGTH", "20000000", "-LOG", "temp.txt"}
         'Args = {"-READ", "-SPIEEPROM", "-EEPROM", "M95M02", "-FILE", "Flash.bin"}
         'Args = {"-WRITE", "-SPI", "-FILE", "Flash.bin"}
@@ -535,7 +535,7 @@ Public Module MainApp
                 End If
                 AddHandler ScriptEngine.WriteConsole, AddressOf ConsoleWriteLine
         End Select
-        Dim usb_dev As FCUSB_DEVICE = USBCLIENT.Connect
+        Dim usb_dev As FCUSB_DEVICE = USBCLIENT.Connect(SEL_USB_PATH)
         If usb_dev Is Nothing Then
             Environment.ExitCode = -1
             ConsoleWriteLine(RM.GetString("err_unable_to_connect"))
@@ -765,11 +765,7 @@ Public Module MainApp
                 Utilities.FileIO.WriteFile(ConsoleLog.ToArray, MyConsoleOperation.LogFilename)
             End If
         End If
-        If MyConsoleOperation.ExitConsole Then
-            FreeConsole() 'Closes the console window/application
-        Else
-            Console_Exit() 'Wait for the user to hit enter
-        End If
+        Console_Exit()
         usb_dev.USB_LEDOff()
         usb_dev.Disconnect()
     End Sub
@@ -920,14 +916,17 @@ Public Module MainApp
     End Sub
 
     Private Sub Console_Exit()
-        ConsoleWriteLine("----------------------------------------------")
-        ConsoleWriteLine("Press any key to close")
-        Console.ReadKey()
-        If MyConsoleOperation.LogOutput Then
-            If MyConsoleOperation.LogAppendFile Then
-                Utilities.FileIO.AppendFile(ConsoleLog.ToArray, MyConsoleOperation.LogFilename)
-            Else
-                Utilities.FileIO.WriteFile(ConsoleLog.ToArray, MyConsoleOperation.LogFilename)
+        If MyConsoleOperation.ExitConsole Then
+        Else
+            ConsoleWriteLine("----------------------------------------------")
+            ConsoleWriteLine("Press any key to close")
+            Console.ReadKey()
+            If MyConsoleOperation.LogOutput Then
+                If MyConsoleOperation.LogAppendFile Then
+                    Utilities.FileIO.AppendFile(ConsoleLog.ToArray, MyConsoleOperation.LogFilename)
+                Else
+                    Utilities.FileIO.WriteFile(ConsoleLog.ToArray, MyConsoleOperation.LogFilename)
+                End If
             End If
         End If
         FreeConsole() 'DLL CALL

@@ -10,7 +10,7 @@ Namespace USB
         Public Event DeviceConnected(ByVal usb_dev As FCUSB_DEVICE)
         Public Event DeviceDisconnected(ByVal usb_dev As FCUSB_DEVICE)
 
-        Private Const DEFAULT_TIMEOUT As Integer = 5000000
+        Private Const DEFAULT_TIMEOUT As Integer = 5000
         Private Const USB_VID_ATMEL As Integer = &H3EB
         Private Const USB_VID_EC As Integer = &H16C0
         Private Const USB_PID_FCUSB_PRO As Integer = &H5E0 'FCUSB 3.x
@@ -712,11 +712,37 @@ Namespace USB
             Loop
             USBCLIENT.Disconnect_All()
         End Sub
-        'Connects to the first FCUSB device
-        Public Function Connect() As FCUSB_DEVICE
+        ''Connects to the first FCUSB device
+        'Public Function Connect() As FCUSB_DEVICE
+        '    Dim fcusb_list() As UsbRegistry = FindUsbDevices()
+        '    If fcusb_list Is Nothing OrElse fcusb_list.Count = 0 Then Return Nothing
+        '    Dim this_dev As UsbDevice = fcusb_list(0).Device
+        '    If this_dev Is Nothing Then Return Nothing
+        '    If this_dev.UsbRegistryInfo.Vid = USB_VID_ATMEL Then Return Nothing
+        '    If OpenUsbDevice(this_dev) Then
+        '        Dim n As New FCUSB_DEVICE
+        '        n.USBHANDLE = this_dev
+        '        If n.USB_Echo Then
+        '            n.UPDATE_IN_PROGRESS = False
+        '            n.IS_CONNECTED = True
+        '            n.LoadFirmwareVersion()
+        '            Return n
+        '        End If
+        '    End If
+        '    Return Nothing
+        'End Function
+
+        Public Function Connect(ByVal usb_device_path As String) As FCUSB_DEVICE
             Dim fcusb_list() As UsbRegistry = FindUsbDevices()
+            Dim devpath As String = ""
+            Dim devcount As Int16 = 0
             If fcusb_list Is Nothing OrElse fcusb_list.Count = 0 Then Return Nothing
-            Dim this_dev As UsbDevice = fcusb_list(0).Device
+            For Each dev As UsbRegistry In fcusb_list
+                devpath = GetDeviceID(dev)
+                If (devpath = usb_device_path) Then Exit For
+                devcount = devcount + 1
+            Next
+            Dim this_dev As UsbDevice = fcusb_list(devcount).Device
             If this_dev Is Nothing Then Return Nothing
             If this_dev.UsbRegistryInfo.Vid = USB_VID_ATMEL Then Return Nothing
             If OpenUsbDevice(this_dev) Then

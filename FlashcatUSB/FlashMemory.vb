@@ -1152,8 +1152,8 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Winbond W29GL032CT", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H1A01)) 'DQ.7 polling now added!
             FlashDB.Add(New MFP_Flash("Winbond W29GL032CB", &H1, &H227E, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.Buffer2, MFP_DELAY.DQ7, &H1A00))
             'SST
-            FlashDB.Add(New MFP_Flash("SST 39VF401C/39LF401C", &HBF, &H2321, Mb004, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb016_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
-            FlashDB.Add(New MFP_Flash("SST 39VF402C/39LF402C", &HBF, &H2322, Mb004, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb016_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
+            FlashDB.Add(New MFP_Flash("SST 39VF401C/39LF401C", &HBF, &H2321, Mb004, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.Standard, MFP_DELAY.uS))
+            FlashDB.Add(New MFP_Flash("SST 39VF402C/39LF402C", &HBF, &H2322, Mb004, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("SST 39SF512", &HBF, &HB4, Kb512, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb032_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("SST 39SF010", &HBF, &HB5, Mb001, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb032_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("SST 39SF020", &HBF, &HB6, Mb002, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb032_Uni, MFP_PROG.Standard, MFP_DELAY.uS))

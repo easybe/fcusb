@@ -147,9 +147,9 @@ Namespace SPI
         Friend ReadOnly Property DeviceName() As String Implements MemoryDeviceUSB.DeviceName
             Get
                 Select Case MyFlashStatus
-                    Case USB.DeviceStatus.Supported
+                    Case DeviceStatus.Supported
                         Return MyFlashDevice.NAME
-                    Case USB.DeviceStatus.NotSupported
+                    Case DeviceStatus.NotSupported
                         Return Hex(MyFlashDevice.MFG_CODE).PadLeft(2, CChar("0")) & " " & Hex(MyFlashDevice.ID1).PadLeft(4, CChar("0"))
                     Case Else
                         Return RM.GetString("no_flash_detected")
@@ -242,7 +242,9 @@ Namespace SPI
                     FCUSB.USB_SETUP_BULKIN(USBREQ.SPI_READFLASH, setup_class.ToBytes, data_to_read, Me.PORT_SELECT)
                 End If
             Else 'Normal SPI READ
-                If MySettings.SPI_FASTREAD Then dummy_clocks = MyFlashDevice.SPI_DUMMY
+                If MySettings.SPI_FASTREAD AndAlso (FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB3 Or FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB4) Then
+                    dummy_clocks = MyFlashDevice.SPI_DUMMY
+                End If
                 If (MyFlashDevice.STACKED_DIES > 1) Then
                     Do Until bytes_left = 0
                         Dim die_address As UInt32 = GetAddressForMultiDie(flash_offset, bytes_left, buffer_size)

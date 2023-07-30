@@ -1169,19 +1169,23 @@ Public Class MemControl_v2
                 Dim percent_success As Integer = Math.Floor(((CompareCount - TotalMismatches) / CompareCount) * 100)
                 RaiseEvent SetStatus(String.Format(RM.GetString("mc_compare_complete_match"), percent_success))
                 RaiseEvent WriteConsole(String.Format(RM.GetString("mc_compare_complete_tot"), TotalMismatches, percent_success))
+                Dim filename As String = param.Local_File.Name
+                Dim string_size As Size = TextRenderer.MeasureText(RM.GetString("mc_compare_filename") & filename, (New Label).Font)
                 Dim CompareResultForm As New Form
                 CompareResultForm.Text = RM.GetString("mc_compare_results") '"Memory Compare Results"
                 CompareResultForm.Width = 260
+                If (string_size.Width + 60) > 260 Then CompareResultForm.Width = string_size.Width + 60
                 CompareResultForm.Height = 170
                 CompareResultForm.FormBorderStyle = FormBorderStyle.FixedSingle
                 CompareResultForm.ShowIcon = False
                 CompareResultForm.ShowInTaskbar = False
                 CompareResultForm.MinimizeBox = False
                 CompareResultForm.MaximizeBox = False
-                CompareResultForm.Controls.Add(New Label With {.Width = 280, .Height = 18, .Text = RM.GetString("mc_compare_filename") & ": " & param.Local_File.Name, .Location = New Point(10, 4)})
-                CompareResultForm.Controls.Add(New Label With {.Width = 280, .Height = 18, .Text = RM.GetString("mc_compare_flash_addr") & ": 0x" & Hex(StartingAddress).PadLeft(8, "0") & " - 0x" & Hex(StartingAddress + CompareCount - 1).PadLeft(8, "0"), .Location = New Point(10, 24)})
-                CompareResultForm.Controls.Add(New Label With {.Width = 280, .Height = 18, .Text = RM.GetString("mc_compare_total_processed") & ": " & Format(CompareCount, "#,###"), .Location = New Point(10, 44)})
-                CompareResultForm.Controls.Add(New Label With {.Width = 280, .Height = 18, .Text = String.Format(RM.GetString("mc_compare_mismatch"), TotalMismatches, percent_success), .Location = New Point(10, 64)})
+                Dim fn_lbl As New Label With {.Width = CompareResultForm.Width + 20, .Height = 18, .Text = RM.GetString("mc_compare_filename") & ": " & filename, .Location = New Point(10, 4)}
+                CompareResultForm.Controls.Add(fn_lbl)
+                CompareResultForm.Controls.Add(New Label With {.Width = CompareResultForm.Width + 20, .Height = 18, .Text = RM.GetString("mc_compare_flash_addr") & ": 0x" & Hex(StartingAddress).PadLeft(8, "0") & " - 0x" & Hex(StartingAddress + CompareCount - 1).PadLeft(8, "0"), .Location = New Point(10, 24)})
+                CompareResultForm.Controls.Add(New Label With {.Width = CompareResultForm.Width + 20, .Height = 18, .Text = RM.GetString("mc_compare_total_processed") & ": " & Format(CompareCount, "#,###"), .Location = New Point(10, 44)})
+                CompareResultForm.Controls.Add(New Label With {.Width = CompareResultForm.Width + 20, .Height = 18, .Text = String.Format(RM.GetString("mc_compare_mismatch"), TotalMismatches, percent_success), .Location = New Point(10, 64)})
                 Dim cmbClose As New Button With {.Text = RM.GetString("mc_button_close"), .Location = New Point(100, 92)}
                 AddHandler cmbClose.Click, Sub()
                                                CompareResultForm.DialogResult = DialogResult.OK
