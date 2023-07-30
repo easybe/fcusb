@@ -78,13 +78,13 @@ Public Module Firmware
         AddHandler DFU_IF.SetProgress, AddressOf MainApp.SetProgress
         Dim emb_fw_hex() As Byte = Nothing
         Dim hw_model As String = ""
-        If usb_dev.USBHANDLE.UsbRegistryInfo.Vid = &H3EB AndAlso usb_dev.USBHANDLE.UsbRegistryInfo.Pid = &H2FF9 Then
+        If usb_dev.USBHANDLE.Info.VendorId = &H3EB AndAlso usb_dev.USBHANDLE.ProductId = &H2FF9 Then
             emb_fw_hex = Utilities.GetResourceAsBytes("XPORT_PCB2.hex")
             hw_model = "XPORT (PCB 2.x)"
-        ElseIf usb_dev.USBHANDLE.UsbRegistryInfo.Vid = &H3EB AndAlso usb_dev.USBHANDLE.UsbRegistryInfo.Pid = &H2FF0 Then
+        ElseIf usb_dev.USBHANDLE.VendorId = &H3EB AndAlso usb_dev.USBHANDLE.ProductId = &H2FF0 Then
             emb_fw_hex = Utilities.GetResourceAsBytes("CLASSIC_U2.hex")
             hw_model = "Classic (U2)"
-        ElseIf usb_dev.USBHANDLE.UsbRegistryInfo.Vid = &H3EB AndAlso usb_dev.USBHANDLE.UsbRegistryInfo.Pid = &H2FF4 Then
+        ElseIf usb_dev.USBHANDLE.VendorId = &H3EB AndAlso usb_dev.USBHANDLE.ProductId = &H2FF4 Then
             emb_fw_hex = Utilities.GetResourceAsBytes("CLASSIC_U4.hex")
             hw_model = "Classic (U4)"
         End If

@@ -28,7 +28,7 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
 
     Public ReadOnly Property DeviceName As String Implements MemoryDeviceUSB.DeviceName
         Get
-            Select Case FCUSB.USBHANDLE.Info.Descriptor.ProductID
+            Select Case FCUSB.USBHANDLE.ProductId
                 Case USB_PID_AT90USB646
                     Return "Atmega AT90USB646"
                 Case USB_PID_ATMEGA32U2
@@ -43,7 +43,7 @@ Public Class DFU_Programmer : Implements MemoryDeviceUSB
 
     Public ReadOnly Property DeviceSize As Long Implements MemoryDeviceUSB.DeviceSize
         Get
-            Select Case FCUSB.USBHANDLE.Info.Descriptor.ProductID
+            Select Case FCUSB.USBHANDLE.ProductId
                 Case USB_PID_AT90USB646 '0x0000 - 0x77FF WORD
                     Return 61440 '(60KB, 4KB bootloader)
                 Case USB_PID_ATMEGA32U2, USB_PID_ATMEGA32U4
