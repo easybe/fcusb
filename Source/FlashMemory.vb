@@ -1556,7 +1556,10 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NAND("Dosilicon DS35M2GX", &HE5, &H22, 2048, 64, 64, 2048, False, SPI_1V8)) '2Gb
             'Others
             FlashDB.Add(New SPI_NAND("MXIC MX35LF1GE4AB", &HC2, &H12, 2048, 64, 64, 1024, False, SPI_3V)) '1Gb
-            FlashDB.Add(New SPI_NAND("MXIC MX35LF2GE4AB", &HC2, &H22, 2048, 64, 64, 2048, True, SPI_3V)) '2Gba
+            FlashDB.Add(New SPI_NAND("MXIC MX35LF2GE4AB", &HC2, &H22, 2048, 64, 64, 2048, True, SPI_3V)) '2Gb
+            FlashDB.Add(New SPI_NAND("MXIC MX35LF1G24AD", &HC2, &H1403, 2048, 128, 64, 1024, False, SPI_3V)) '1Gb
+            FlashDB.Add(New SPI_NAND("MXIC MX35LF2G24AD", &HC2, &H2403, 2048, 128, 64, 2048, False, SPI_3V)) '2Gb
+            FlashDB.Add(New SPI_NAND("MXIC MX35LF4G24AD", &HC2, &H3503, 4096, 256, 64, 2048, False, SPI_3V)) '4Gb
             FlashDB.Add(New SPI_NAND("ISSI IS37/38SML01G1", &HC8, &H21, 2048, 64, 64, 1024, False, SPI_3V)) '1Gb
             FlashDB.Add(New SPI_NAND("ESMT F50L1G41A", &HC8, &H217F, 2048, 64, 64, 1024, False, SPI_3V)) '1Gb
             FlashDB.Add(New SPI_NAND("ESMT F50L1G41LB", &HC8, &H17F, 2048, 64, 64, 1024, False, SPI_3V)) '1Gb

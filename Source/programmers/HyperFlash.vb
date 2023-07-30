@@ -103,7 +103,7 @@ Public Class HF_Programmer : Implements MemoryDeviceUSB
                 Catch ex As Exception
                 End Try
                 If Not Result Then Return False
-                FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT) 'Calls the assigned WAIT function (uS, mS, SR, DQ7)
+                FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT, {0, 0, 0, 0, 0}) 'Calls the assigned WAIT function (uS, mS, SR, DQ7)
                 FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
                 Dim blank_result As Boolean = False
                 Dim timeout As UInt32 = 0
@@ -145,7 +145,7 @@ Public Class HF_Programmer : Implements MemoryDeviceUSB
 
     Public Sub WaitUntilReady() Implements MemoryDeviceUSB.WaitUntilReady
         Try
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT)
+            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT, {0, 0, 0, 0, 0})
             FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
         Catch ex As Exception
         End Try

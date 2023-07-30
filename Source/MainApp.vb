@@ -6,7 +6,6 @@
 
 Option Strict On
 
-Imports System.Security.Cryptography
 Imports System.Threading
 Imports FlashcatUSB.FlashMemory
 Imports FlashcatUSB.MemoryInterface

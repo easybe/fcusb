@@ -357,7 +357,7 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
     End Function
 
     Public Sub WaitUntilReady() Implements MemoryDeviceUSB.WaitUntilReady
-        FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT)
+        FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT, {0, 0, 0, 0, 0})
         FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
     End Sub
 
