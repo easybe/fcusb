@@ -1268,6 +1268,8 @@ Namespace FlashMemory
             FlashDB.Add(New NAND_Flash("MXIC MX60LF8G18AC", &HC2, &HD3D1955AUI, Gb008, 2048, 64, Mb001)) '3v
             FlashDB.Add(New NAND_Flash("MXIC MX60LF8G28AB", &HC2, &HD3D1955BUI, Gb008, 2048, 64, Mb001))
             'Samsung SLC x8 NAND devices
+            FlashDB.Add(New NAND_Flash("Samsung K9GAG08U0E", &HEC, &HD5847250UI, Gb001 * 16, 8192, 436, Mb001 * 8)) 'MLC 2-bit
+
             FlashDB.Add(New NAND_Flash("Samsung K9F1G08U0D", &HEC, &HF1001540UI, Gb001, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Samsung K9F1G08U0B", &HEC, &HF1009540UI, Gb001, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Samsung K9F1G08X0", &HEC, &HF1009540UI, Gb001, 2048, 64, Mb001)) 'K9F1G08U0C K9F1G08B0C K9F1G08U0B
@@ -1391,6 +1393,10 @@ Namespace FlashMemory
                         If flash.ID1 = ID1 Then
                             If ID2 = 0 OrElse ID2 = flash.ID2 Then
                                 devices.Add(flash)
+                            Else
+                                If (flash.ID2 And &HFF) = 0 Then
+                                    If (ID2 >> 8) = (flash.ID2 >> 8) Then devices.Add(flash)
+                                End If
                             End If
                         End If
                     End If
