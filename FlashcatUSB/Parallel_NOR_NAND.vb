@@ -1175,7 +1175,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
 
     Private Function EXPIO_DetectNAND() As FlashDetectResult
         Dim ident_data(7) As Byte
-        FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_RDID, ident_data)
+        Dim result As Boolean = FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_RDID, ident_data)
         Return GetFlashResult(ident_data)
     End Function
     'contains AutoSelect Device ID and some CFI-ID space

@@ -218,7 +218,7 @@ Public Class MemoryInterface
 
         Private Sub OnWriteRequest(addr As Long, data() As Byte, verify_wr As Boolean, memory_area As FlashArea, ByRef Success As Boolean) Handles GuiControl.WriteMemory
             Try
-                Success = WriteBytes(addr, data, verify_wr, memory_area)
+                Success = WriteBytes(addr, data, memory_area, verify_wr)
             Catch ex As Exception
             End Try
         End Sub
@@ -380,7 +380,7 @@ Public Class MemoryInterface
         Private Function WriteStream(data_stream As IO.Stream, params As WriteParameters) As Boolean
             Try : Me.IsTaskRunning = True
                 Me.NoErrors = True
-                If (Threading.Thread.CurrentThread.Name = "") Then
+                If (Threading.Thread.CurrentThread.Name.Equals("")) Then
                     Dim td_int As Integer = Threading.Thread.CurrentThread.ManagedThreadId
                     Threading.Thread.CurrentThread.Name = "MemIf.WriteBytes_" & td_int
                 End If
@@ -900,8 +900,8 @@ Public Class MemoryInterface
 
         Public Function EraseFlash() As Boolean
             If Not WaitForNotBusy() Then Return False
-            Me.IsBulkErasing = True
             Try : Threading.Monitor.Enter(InterfaceLock)
+                Me.IsBulkErasing = True
                 Select Case Me.FlashType
                     Case MemoryType.JTAG_CFI
                         FCUSB.JTAG_IF.CFI_EraseDevice()
@@ -912,12 +912,12 @@ Public Class MemoryInterface
                     Case Else
                         FCUSB.PROGRAMMER.EraseDevice()
                 End Select
-                Return True
             Finally
                 Threading.Monitor.Exit(InterfaceLock)
+                Me.IsBulkErasing = False
             End Try
-            Me.IsBulkErasing = False
             Application.DoEvents()
+            Return True
         End Function
 
         Public Sub EraseSector(sector_index As UInt32, Optional area As FlashArea = FlashArea.NotSpecified)

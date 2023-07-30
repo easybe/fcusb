@@ -18,13 +18,13 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 593
+    Public Const Build As Integer = 595
 
     Private Const PRO_PCB4_FW As Single = 1.22F 'This is the embedded firmware version for pro
     Private Const PRO_PCB5_FW As Single = 1.05F 'This is the embedded firmware version for pro
-    Private Const MACH1_PCB2_FW As Single = 2.15F 'Firmware version for Mach1
-    Private Const XPORT_PCB1_FW As Single = 4.55F 'XPORT PCB 1.x
-    Private Const XPORT_PCB2_FW As Single = 5.14F 'XPORT PCB 2.x
+    Private Const MACH1_PCB2_FW As Single = 2.16F 'Firmware version for Mach1
+    Private Const XPORT_PCB1_FW As Single = 4.56F 'XPORT PCB 1.x
+    Private Const XPORT_PCB2_FW As Single = 5.15F 'XPORT PCB 2.x
     Private Const CLASSIC_FW As Single = 4.5F 'Min revision allowed for classic (PCB 2.x)
 
     Private Const CPLD_SPI_3V3 As UInt32 = &HCD330003UI 'ID CODE FOR SPI (3.3v)
@@ -1242,13 +1242,14 @@ Public Module MainApp
         Public Property LICENSE_EXP As DateTime
 
         Sub New()
+            Thread.CurrentThread.CurrentCulture = Globalization.CultureInfo.CreateSpecificCulture("en-US")
             Dim key As RegistryKey = Registry.CurrentUser.OpenSubKey(REGKEY, RegistryKeyPermissionCheck.ReadWriteSubTree)
             If key Is Nothing Then Registry.CurrentUser.CreateSubKey(REGKEY)
             LoadLanguageSettings()
             Me.LICENSE_KEY = GetRegistryValue("LICENSE_KEY", "")
             Dim date_str As String = GetRegistryValue("LICENSE_DATE", "01/01/0001")
             Me.LICENSED_TO = GetRegistryValue("LICENSE_NAME", "")
-            If date_str.Equals("01/01/0001") Then
+            If date_str.Equals("01/01/0001") OrElse date_str.Equals("1/1/0001") Then
                 Me.LICENSE_EXP = New DateTime
             Else
                 Me.LICENSE_EXP = DateTime.Parse(date_str)

@@ -1078,7 +1078,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("MXIC MX25L128", SPI_3V, Mb128, &HC2, &H2018))
             FlashDB.Add(New SPI_NOR("MXIC MX25L6455E", SPI_3V, Mb064, &HC2, &H2617))
             FlashDB.Add(New SPI_NOR("MXIC MX25L640", SPI_3V, Mb064, &HC2, &H2017))
-            FlashDB.Add(New SPI_NOR("MXIC MX25L320", SPI_3V, Mb032, &HC2, &H2016))
+            FlashDB.Add(New SPI_NOR("MXIC MX25L320", SPI_3V, Mb032, &HC2, &H2016)) '
             FlashDB.Add(New SPI_NOR("MXIC MX25L3205D", SPI_3V, Mb032, &HC2, &H20FF))
             FlashDB.Add(New SPI_NOR("MXIC MX25L323", SPI_3V, Mb032, &HC2, &H5E16))
             FlashDB.Add(New SPI_NOR("MXIC MX25L3255E", SPI_3V, Mb032, &HC2, &H9E16))
@@ -1086,18 +1086,23 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("MXIC MX25L160", SPI_3V, Mb016, &HC2, &H2015))
             FlashDB.Add(New SPI_NOR("MXIC MX25L80", SPI_3V, Mb008, &HC2, &H2014))
             FlashDB.Add(New SPI_NOR("MXIC MX25L40", SPI_3V, Mb004, &HC2, &H2013))
-            FlashDB.Add(New SPI_NOR("MXIC MX25L20", SPI_3V, Mb002, &HC2, &H2012)) 'MX25L2005 MX25L2006E MX25L2026E
+            FlashDB.Add(New SPI_NOR("MXIC MX25L20", SPI_3V, Mb002, &HC2, &H2012))
             FlashDB.Add(New SPI_NOR("MXIC MX25L10", SPI_3V, Mb001, &HC2, &H2011))
             FlashDB.Add(New SPI_NOR("MXIC MX25L512", SPI_3V, Kb512, &HC2, &H2010))
             FlashDB.Add(New SPI_NOR("MXIC MX25L1021E", SPI_3V, Mb001, &HC2, &H2211))
             FlashDB.Add(New SPI_NOR("MXIC MX25L5121E", SPI_3V, Kb512, &HC2, &H2210))
-            FlashDB.Add(New SPI_NOR("MXIC MX66L51235F", SPI_3V, Mb512, &HC2, &H201A) With {.SEND_EN4B = True}) 'Uses MX25L51245G
+            FlashDB.Add(New SPI_NOR("MXIC MX66L51235F", SPI_3V, Mb512, &HC2, &H201A) With {.SEND_EN4B = True})
             FlashDB.Add(New SPI_NOR("MXIC MX25V8035", SPI_2V5, Mb008, &HC2, &H2554))
             FlashDB.Add(New SPI_NOR("MXIC MX25V4035", SPI_2V5, Mb004, &HC2, &H2553))
             FlashDB.Add(New SPI_NOR("MXIC MX25V8035F", SPI_2V5, Mb008, &HC2, &H2314))
             FlashDB.Add(New SPI_NOR("MXIC MX25R6435", SPI_3V, Mb064, &HC2, &H2817)) 'Wide range: 1.65 to 3.5V
             FlashDB.Add(New SPI_NOR("MXIC MX25R3235F", SPI_3V, Mb032, &HC2, &H2816)) 'Wide range: 1.65 to 3.5V
             FlashDB.Add(New SPI_NOR("MXIC MX25R8035F", SPI_3V, Mb008, &HC2, &H2814)) 'Wide range: 1.65 to 3.5V
+            FlashDB.Add(New SPI_NOR("MXIC MX25L3235E", SPI_3V, Mb032, 0, 0)) 'Place holder
+            FlashDB.Add(New SPI_NOR("MXIC MX25L2005", SPI_3V, Mb032, 0, 0)) 'Place holder
+            FlashDB.Add(New SPI_NOR("MXIC MX25L2006E", SPI_3V, Mb032, 0, 0)) 'Place holder
+            FlashDB.Add(New SPI_NOR("MXIC MX25L2026E", SPI_3V, Mb032, 0, 0)) 'Place holder
+            FlashDB.Add(New SPI_NOR("MXIC MX25L51245G", SPI_3V, Mb032, 0, 0)) 'Place holder
             'MXIC (1.8V)
             FlashDB.Add(New SPI_NOR("MXIC MX25UM51345G", SPI_1V8, Mb512, &HC2, &H813A) With {.SEND_EN4B = True})
             FlashDB.Add(New SPI_NOR("MXIC MX25U25645G", SPI_1V8, Mb256, &HC2, &H2539) With {.SEND_EN4B = True})
@@ -1320,6 +1325,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("Microchip 25AA160B", SPI_3V, 2048, 0, 0) With {.PAGE_SIZE = 32})
             FlashDB.Add(New SPI_NOR("Microchip 25LC1024", SPI_3V, 131072, 0, 0) With {.PAGE_SIZE = 256, .ERASE_SIZE = &H8000}) 'ID 0x29
             FlashDB.Add(New SPI_NOR("XICOR X25650", SPI_3V, 8192, 0, 0) With {.PAGE_SIZE = 32})
+
         End Sub
 
         Private Sub SPINAND_Database()
@@ -1494,8 +1500,8 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("MXIC MX29F016", &HC2, &HAD, Mb016, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
             FlashDB.Add(New P_NOR("MXIC MX29F800T", &HC2, &H22D6, Mb008, VCC_IF.X16_5V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS)) 'SO44 CV
             FlashDB.Add(New P_NOR("MXIC MX29F800B", &HC2, &H2258, Mb008, VCC_IF.X16_5V, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("MXIC MX29F1610", &HC2, &HF1, Mb016, VCC_IF.X16_5V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 6}) 'Someone has this version too
-            FlashDB.Add(New P_NOR("MXIC MX29F1610", &HC2, &HF7, Mb016, VCC_IF.X16_5V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 6}) 'SO44 (datasheet says F1, chip reports F7)
+            FlashDB.Add(New P_NOR("MXIC MX29F1610", &HC2, &HF1, Mb016, VCC_IF.X16_5V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 8}) 'Someone has this version too
+            FlashDB.Add(New P_NOR("MXIC MX29F1610", &HC2, &HF7, Mb016, VCC_IF.X16_5V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 8}) 'SO44 (datasheet says F1, chip reports F7)
             FlashDB.Add(New P_NOR("MXIC MX29L3211", &HC2, &HF9, Mb032, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.SR2) With {.PAGE_SIZE = 64}) 'Actualy supports up to 256 bytes
             FlashDB.Add(New P_NOR("MXIC MX29LV040", &HC2, &H4F, Mb004, VCC_IF.X8_3V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("MXIC MX29LV400T", &HC2, &H22B9, Mb004, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS))
@@ -1730,7 +1736,9 @@ Namespace FlashMemory
             'Micron SLC 8x NAND devices
             FlashDB.Add(New P_NAND("ST NAND128W3A", &H20, &H732073, 512, 16, 32, 1024, VCC_IF.X8_3V)) '128Mb
             FlashDB.Add(New P_NAND("ST NAND256R3A", &H20, &H352035, 512, 16, 32, 2048, VCC_IF.X8_1V8)) '256Mb
+
             FlashDB.Add(New P_NAND("ST NAND256W3A", &H20, &H752075, 512, 16, 32, 2048, VCC_IF.X8_3V)) '256Mb
+
             FlashDB.Add(New P_NAND("ST NAND256R4A", &H20, &H452045, 512, 16, 32, 2048, VCC_IF.X16_1V8)) '256Mb
             FlashDB.Add(New P_NAND("ST NAND256W4A", &H20, &H552055, 512, 16, 32, 2048, VCC_IF.X16_3V)) '256Mb
             FlashDB.Add(New P_NAND("ST NAND512R3A", &H20, &H362036, 512, 16, 32, 4096, VCC_IF.X8_1V8)) '512Mb
@@ -2353,11 +2361,13 @@ Namespace FlashMemory
                         current_value.Layout_Spare = nand_ext_size
                 End Select
             ElseIf MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then
+                current_value.Layout_Main = nand_page_size + nand_ext_size
+                current_value.Layout_Spare = 0
             End If
             Return current_value
         End Function
 
-        Public Sub NANDLAYOUT_FILL_MAIN(nand_dev As Device, ByRef cache_data() As Byte, main_data() As Byte, ByRef data_ptr As UInt32, ByRef bytes_left As UInt32)
+        Private Sub NANDLAYOUT_FILL_MAIN(nand_dev As Device, ByRef cache_data() As Byte, main_data() As Byte, ByRef data_ptr As UInt32, ByRef bytes_left As UInt32)
             Dim ext_page_size As UInt32
             If nand_dev.GetType Is GetType(SPI_NAND) Then
                 ext_page_size = DirectCast(nand_dev, SPI_NAND).PAGE_EXT
@@ -2381,7 +2391,7 @@ Namespace FlashMemory
             Loop
         End Sub
 
-        Public Sub NANDLAYOUT_FILL_SPARE(nand_dev As Device, ByRef cache_data() As Byte, oob_data() As Byte, ByRef oob_ptr As UInt32, ByRef bytes_left As UInt32)
+        Private Sub NANDLAYOUT_FILL_SPARE(nand_dev As Device, ByRef cache_data() As Byte, oob_data() As Byte, ByRef oob_ptr As UInt32, ByRef bytes_left As UInt32)
             Dim page_size_ext As UInt32
             If nand_dev.GetType Is GetType(SPI_NAND) Then
                 page_size_ext = DirectCast(nand_dev, SPI_NAND).PAGE_EXT
