@@ -53,7 +53,7 @@ Namespace JTAG
             SDR_LAST_LEN = -1
         End Sub
 
-        Public Function RunFile_XSVF(ByVal user_file() As Byte) As Boolean
+        Public Function RunFile_XSVF(user_file() As Byte) As Boolean
             Setup()
             Dim xsvf_file() As xsvf_param = ConvertDataToProperFormat(user_file)
             Dim TDO_MASK As svf_data = Nothing
@@ -88,7 +88,7 @@ Namespace JTAG
                             RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, True)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
                             If (Not Result) Then
-                                RaiseEvent Writeconsole("Failed sending XSDR command (command number: " & line_counter & ")")
+                                RaiseEvent Writeconsole("Failed sending XSDR command (line number: " & line_counter & ")")
                                 RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
                                 RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line.value_expected.data))
                                 RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
@@ -113,7 +113,7 @@ Namespace JTAG
                             RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, True)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
                             If Not Result Then
-                                RaiseEvent Writeconsole("Failed sending XSDRTDO command (command number: " & line_counter & ")")
+                                RaiseEvent Writeconsole("Failed sending XSDRTDO command (line number: " & line_counter & ")")
                                 RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
                                 RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line.value_expected.data))
                                 RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
@@ -142,7 +142,7 @@ Namespace JTAG
                             RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, False)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
                             If Not Result Then
-                                RaiseEvent Writeconsole("Failed sending XSDRTDOB command (command number: " & line_counter & ")")
+                                RaiseEvent Writeconsole("Failed sending XSDRTDOB command (line number: " & line_counter & ")")
                                 RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
                                 RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line.value_expected.data))
                                 RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
@@ -159,7 +159,7 @@ Namespace JTAG
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data) 'compare TDO with line.value_expected (use TDOMask from last XTDOMASK)
                             If IgnoreErrors Then Exit Do
                             If Not Result Then
-                                RaiseEvent Writeconsole("Failed sending XSDRTDOC command (command number: " & line_counter & ")")
+                                RaiseEvent Writeconsole("Failed sending XSDRTDOC command (line number: " & line_counter & ")")
                                 RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
                                 RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line.value_expected.data))
                                 RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
@@ -175,7 +175,7 @@ Namespace JTAG
                             RaiseEvent ShiftDR(line.value_data.data, TDO, line.value_data.bits, False)
                             Result = CompareResult(TDO, line.value_expected.data, TDO_MASK.data)
                             If Not Result Then
-                                RaiseEvent Writeconsole("Failed sending XSDRTDOE command (command number: " & line_counter & ")")
+                                RaiseEvent Writeconsole("Failed sending XSDRTDOE command (line number: " & line_counter & ")")
                                 RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
                                 RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line.value_expected.data))
                                 RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(TDO_MASK.data))
@@ -218,23 +218,25 @@ Namespace JTAG
             Return True
         End Function
 
-        Public Function RunFile_SVF(ByVal user_file() As String) As Boolean
+        Public Function RunFile_SVF(user_file() As String) As Boolean
             Setup()
-            Dim svf_file() As String = ConvertFileToProperFormat(user_file)
+            Dim svf_file() As String = Nothing
+            Dim svf_index() As Integer = Nothing
+            ConvertFileToProperFormat(user_file, svf_file, svf_index)
             RaiseEvent GotoState(JTAG_MACHINE_STATE.RunTestIdle)
             Dim LOOP_COUNTER As Integer = 0
             Dim LOOP_CACHE As New List(Of String)
             Try
-                For line_counter = 1 To svf_file.Count
-                    Dim line As String = svf_file(line_counter - 1)
-                    RaiseEvent Progress((line_counter / svf_file.Length) * 100)
+                For x = 0 To svf_file.Count - 1
+                    Dim line As String = svf_file(x)
+                    RaiseEvent Progress(((x + 1) / svf_file.Length) * 100)
                     If LOOP_COUNTER = 0 Then
                         If line.ToUpper.StartsWith("LOOP ") Then 'Lattice's Extended SVF command
                             Dim loop_count_str As String = line.Substring(5).Trim
                             LOOP_COUNTER = CInt(loop_count_str)
                             LOOP_CACHE.Clear()
                         Else
-                            If Not RunFile_Execute(line, line_counter, False) Then Return False
+                            If Not RunFile_Execute(line, svf_index(x), False) Then Return False
                         End If
                     ElseIf line.ToUpper.StartsWith("ENDLOOP") Then
                         Dim end_loop_extra As String = line.Substring(7).Trim
@@ -242,7 +244,7 @@ Namespace JTAG
                             Dim Loop_commands() As String = LOOP_CACHE.ToArray
                             Dim result As Boolean = True
                             For sub_i = 0 To Loop_commands.Length - 1
-                                result = result And RunFile_Execute(Loop_commands(sub_i), line_counter - Loop_commands.Length + sub_i, True)
+                                result = result And RunFile_Execute(Loop_commands(sub_i), svf_index(x) - Loop_commands.Length + sub_i, True)
                             Next
                             If result Then Exit For
                         Next
@@ -282,7 +284,7 @@ Namespace JTAG
                 End If
                 Dim Result As Boolean = CompareResult(TDO, line_svf.TDO, MASK_TO_COMPARE)
                 If (Not Result) AndAlso (Not lattice_loop) Then
-                    RaiseEvent Writeconsole("Failed sending SIR command (command number: " & line_index & ")")
+                    RaiseEvent Writeconsole("Failed sending SIR command (line number: " & line_index & ")")
                     RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
                     RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line_svf.TDO))
                     If (line_svf.MASK IsNot Nothing) Then RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(line_svf.MASK))
@@ -312,7 +314,7 @@ Namespace JTAG
                 End If
                 Dim Result As Boolean = CompareResult(TDO, line_svf.TDO, MASK_TO_COMPARE)
                 If (Not Result) AndAlso (Not lattice_loop) Then
-                    RaiseEvent Writeconsole("Failed sending SDR command (command number: " & line_index & ")")
+                    RaiseEvent Writeconsole("Failed sending SDR command (line number: " & line_index & ")")
                     RaiseEvent Writeconsole("TDO: 0x" & Utilities.Bytes.ToHexString(TDO))
                     RaiseEvent Writeconsole("Expected: 0x" & Utilities.Bytes.ToHexString(line_svf.TDO))
                     If (line_svf.MASK IsNot Nothing) Then RaiseEvent Writeconsole("Mask: 0x" & Utilities.Bytes.ToHexString(line_svf.MASK))
@@ -357,7 +359,7 @@ Namespace JTAG
             Return True
         End Function
 
-        Private Function CompareResult(ByVal TDO() As Byte, ByVal Expected() As Byte, ByVal MASK() As Byte) As Boolean
+        Private Function CompareResult(TDO() As Byte, Expected() As Byte, MASK() As Byte) As Boolean
             Try
                 If TDO Is Nothing Then Return False
                 If MASK IsNot Nothing AndAlso Expected IsNot Nothing Then
@@ -377,13 +379,13 @@ Namespace JTAG
             End Try
         End Function
 
-        Private Sub DoXRunTest(ByVal wait_amount As UInt32)
+        Private Sub DoXRunTest(wait_amount As UInt32)
             Dim s As Integer = wait_amount / 1000
             If s < 30 Then s = 30
             Threading.Thread.Sleep(s)
         End Sub
 
-        Private Function IsValidRunState(ByVal input As String) As Boolean
+        Private Function IsValidRunState(input As String) As Boolean
             Select Case input.Trim.ToUpper
                 Case "IRPAUSE"
                 Case "DRPAUSE"
@@ -395,7 +397,7 @@ Namespace JTAG
             Return True
         End Function
 
-        Private Sub DoRuntest(ByVal line As String)
+        Private Sub DoRuntest(line As String)
             Try
                 Dim start_state As JTAG_MACHINE_STATE = JTAG_MACHINE_STATE.RunTestIdle 'Default
                 Dim Params() As String = line.Split(" ")
@@ -427,7 +429,7 @@ Namespace JTAG
                 Counter += 2
                 If (Counter = Params.Length) Then Exit Sub 'The rest are optional
                 If (Params(Counter + 1).Trim.ToUpper = "SEC") Then
-                    Dim min_time As Decimal = Decimal.Parse(Params(Counter), Globalization.NumberStyles.Float) 'GetDoubleFromExpString(Params(Counter))
+                    Dim min_time As Decimal = Decimal.Parse(Params(Counter), Globalization.NumberStyles.Float)
                     Dim sleep_int As Integer = (min_time * 1000)
                     If sleep_int < 1 Then sleep_int = 20
                     Threading.Thread.Sleep(sleep_int)
@@ -435,7 +437,7 @@ Namespace JTAG
                 End If
                 If (Counter = Params.Length) Then Exit Sub 'The rest are optional
                 If (Params(Counter).Trim.ToUpper = "MAXIMUM") Then
-                    Dim max_time As Decimal = Decimal.Parse(Params(Counter + 1), Globalization.NumberStyles.Float) ' GetDoubleFromExpString(Params(Counter + 1))
+                    Dim max_time As Decimal = Decimal.Parse(Params(Counter + 1), Globalization.NumberStyles.Float)
                     Counter += 3 'THIRD ARG MUST BE SEC
                 End If
                 If (Counter = Params.Length) Then Exit Sub 'The rest are optional
@@ -448,7 +450,7 @@ Namespace JTAG
             End Try
         End Sub
 
-        Private Function GetStateFromInput(ByVal input As String) As JTAG_MACHINE_STATE
+        Private Function GetStateFromInput(input As String) As JTAG_MACHINE_STATE
             input = RemoveComment(input)
             If input.EndsWith(";") Then input = Mid(input, 1, input.Length - 1).Trim
             Select Case input.ToUpper
@@ -465,28 +467,42 @@ Namespace JTAG
             End Select
         End Function
 
-        Private Function ConvertFileToProperFormat(ByVal input() As String) As String()
-            Dim FormatedFileOne As New List(Of String)
+        Private Sub ConvertFileToProperFormat(input() As String, ByRef output() As String, ByRef line_numbers() As Integer)
+            Dim FormatedListOut As New List(Of String)
+            Dim LineNumberList As New List(Of Integer)
+            Dim line_counter As Integer = 1
             For Each line In input
                 line = RemoveComment(line).Replace(vbTab, " ").Trim
-                If Not line = "" Then FormatedFileOne.Add(line)
+                If Not line = "" Then
+                    FormatedListOut.Add(line)
+                    LineNumberList.Add(line_counter)
+                End If
+                line_counter += 1
             Next
             Dim FormatedFileTwo As New List(Of String)
+            Dim LineNumberListTwo As New List(Of Integer)
             Dim WorkInProgress As String = ""
-            For Each line In FormatedFileOne
+            line_counter = -1
+            Dim index As Integer = 0
+            For Each line In FormatedListOut
                 WorkInProgress &= line.ToString.TrimStart
+                If line_counter = -1 Then line_counter = LineNumberList(index)
                 If WorkInProgress.EndsWith(";") Then
                     WorkInProgress = Mid(WorkInProgress, 1, WorkInProgress.Length - 1).TrimEnd
                     FormatedFileTwo.Add(WorkInProgress)
+                    LineNumberListTwo.Add(line_counter)
                     WorkInProgress = ""
+                    line_counter = -1
                 Else
                     WorkInProgress &= " "
                 End If
+                index += 1
             Next
-            Return FormatedFileTwo.ToArray
-        End Function
+            output = FormatedFileTwo.ToArray
+            line_numbers = LineNumberListTwo.ToArray
+        End Sub
 
-        Private Function ConvertDataToProperFormat(ByVal data() As Byte) As xsvf_param()
+        Private Function ConvertDataToProperFormat(data() As Byte) As xsvf_param()
             Dim pointer As Integer = 0
             Dim x As New List(Of xsvf_param)
             Dim XSDRSIZE As UInt32 = 8 'number of bits
@@ -584,7 +600,7 @@ Namespace JTAG
             Return x.ToArray
         End Function
 
-        Private Sub Load_TDI(ByRef data() As Byte, ByRef pointer As Integer, ByRef line As xsvf_param, ByVal XSDRSIZE As Integer)
+        Private Sub Load_TDI(ByRef data() As Byte, ByRef pointer As Integer, ByRef line As xsvf_param, XSDRSIZE As Integer)
             Dim num_bytes As Integer = Math.Ceiling(XSDRSIZE / 8)
             Dim new_Data(num_bytes - 1) As Byte
             Array.Copy(data, pointer + 1, new_Data, 0, num_bytes)
@@ -592,7 +608,7 @@ Namespace JTAG
             pointer += num_bytes + 1
         End Sub
 
-        Private Sub Load_TDI_Expected(ByRef data() As Byte, ByRef pointer As Integer, ByRef line As xsvf_param, ByVal XSDRSIZE As Integer)
+        Private Sub Load_TDI_Expected(ByRef data() As Byte, ByRef pointer As Integer, ByRef line As xsvf_param, XSDRSIZE As Integer)
             Dim num_bytes As Integer = XSDRSIZE / 8 'Possible problem
             Dim data1(num_bytes - 1) As Byte
             Dim data2(num_bytes - 1) As Byte
@@ -613,7 +629,7 @@ Namespace JTAG
             Return ret
         End Function
 
-        Private Function GetBytes_FromUint(ByVal input As UInt32, ByVal MinBits As Integer) As Byte()
+        Private Function GetBytes_FromUint(input As UInt32, MinBits As Integer) As Byte()
             Dim current(3) As Byte
             current(0) = (input And &HFF000000) >> 24
             current(1) = (input And &HFF0000) >> 16

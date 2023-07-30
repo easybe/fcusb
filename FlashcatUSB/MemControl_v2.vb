@@ -24,9 +24,9 @@ Public Class MemControl_v2
     Public Event WriteConsole(msg As String) 'Writes the console/windows console
     Public Event SetStatus(msg As String) 'Sets the text on the status bar
     Public Event ReadMemory(base_addr As Long, ByRef data() As Byte, ByVal area As FlashMemory.FlashArea) 'We want to get data from the normal memory area
-    Public Event ReadStream(data_stream As IO.Stream, ByRef f_params As ReadParameters)
+    Public Event ReadStream(data_stream As IO.Stream, f_params As ReadParameters)
     Public Event WriteMemory(base_addr As Long, data() As Byte, verify_wr As Boolean, area As FlashMemory.FlashArea, ByRef Successful As Boolean) 'Write data to the normal area
-    Public Event WriteStream(data_stream As IO.Stream, ByRef f_params As WriteParameters, ByRef Successful As Boolean)
+    Public Event WriteStream(data_stream As IO.Stream, f_params As WriteParameters, ByRef Successful As Boolean)
     Public Event GetSectorCount(ByRef count As UInt32)
     Public Event GetSectorIndex(addr As Long, area As FlashMemory.FlashArea, ByRef sector_int As UInt32)
     Public Event GetSectorBaseAddress(sector_int As UInt32, area As FlashMemory.FlashArea, ByRef addr As Long)
@@ -1494,7 +1494,7 @@ Public Class MemControl_v2
         Return new_item
     End Function
 
-    Private Sub editmode_addchange(ByVal addr As Long, ByVal dt As Byte)
+    Private Sub editmode_addchange(addr As Long, dt As Byte)
         Dim sector_index As UInt32 = 0
         Dim base_addr As Long = 0 'base of the sector address
         RaiseEvent GetSectorIndex(addr, Me.AreaSelected, sector_index)

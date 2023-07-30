@@ -17,7 +17,7 @@ Namespace SPI
         Public Property MyFlashDevice As SPI_NOR 'Contains the definition of the Flash device that is connected
         Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
         Public Property DIE_SELECTED As Integer = 0
-        Private Property SQI_IO_MODE As MULTI_IO_MODE 'IO=1/2/4 bits per clock cycle
+        Public Property SQI_IO_MODE As MULTI_IO_MODE 'IO=1/2/4 bits per clock cycle
         Private Property SQI_DEVICE_MODE As SQI_IO_MODE '0=SPI_ONLY,1=QUAD_ONLY,2=DUAL_ONLY,3=SPI_QUAD,4=SPI_DUAL
 
         Sub New(ByVal parent_if As FCUSB_DEVICE)
@@ -27,8 +27,6 @@ Namespace SPI
         Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
             MyFlashStatus = DeviceStatus.NotDetected
             Dim FLASH_IDENT As SPI_IDENT = Nothing
-            FCUSB.USB_VCC_OFF()
-            SQIBUS_Setup() 'Puts device into SPI mode first
             If (FCUSB.IsProfessional() OrElse FCUSB.HWBOARD = FCUSB_BOARD.Mach1) Then
                 If MySettings.VOLT_SELECT = Voltage.V1_8 Then
                     FCUSB.USB_VCC_1V8()
@@ -45,8 +43,8 @@ Namespace SPI
                 RaiseEvent PrintConsole(RM.GetString("spi_successfully_opened_sqi"))
                 Dim RDID_Str As String = "0x" & Hex(FLASH_IDENT.MANU).PadLeft(2, "0") & Hex(FLASH_IDENT.RDID).PadLeft(4, "0")
                 RaiseEvent PrintConsole(String.Format(RM.GetString("spi_connected_to_flash_sqi"), RDID_Str))
-                Dim ID1 As UInt16 = (FLASH_IDENT.RDID And &HFFFF)
-                Dim ID2 As UInt16 = (FLASH_IDENT.RDID >> 16)
+                Dim ID1 As UInt16 = (FLASH_IDENT.RDID >> 16)
+                Dim ID2 As UInt16 = (FLASH_IDENT.RDID And &HFFFF)
                 MyFlashDevice = FlashDatabase.FindDevice(FLASH_IDENT.MANU, ID1, ID2, MemoryType.SERIAL_NOR)
                 If MyFlashDevice IsNot Nothing Then
                     MyFlashStatus = DeviceStatus.Supported
@@ -68,20 +66,7 @@ Namespace SPI
                         SQIBUS_WriteRead({&HF0}) 'SPI RESET COMMAND
                         Utilities.Sleep(20)
                         If (FLASH_IDENT.MANU = &HEF) Then 'Winbond
-                            RaiseEvent PrintConsole("Entering QPI mode for Winbond device")
-                            SQIBUS_WriteRead({&H50}) 'WREN VOLATILE
-                            SQIBUS_WriteRead({&H1, 0, 2}) 'WRSR(0,2) - Sets QE bit
-                            Dim sr(0) As Byte
-                            SQIBUS_WriteRead({&H35}, sr) 'Read SR-2
-                            If ((sr(0) And 2) >> 1) Then
-                                RaiseEvent PrintConsole("QE bit set in Status Register-2")
-                                SQIBUS_WriteRead({&H38})
-                                Utilities.Sleep(20)
-                                Me.SQI_DEVICE_MODE = SPI.SQI_IO_MODE.SPI_QUAD
-                                RaiseEvent PrintConsole("IO mode switched to SPI/QUAD (1-bit/4-bit)")
-                            Else
-                                RaiseEvent PrintConsole("Error: failed to set the QE bit")
-                            End If
+                            ' Winbond_EnableQUAD()
                         ElseIf FLASH_IDENT.MANU = 1 Then 'Cypress/Spansion
                             Dim sr2(0) As Byte
                             SQIBUS_WriteRead({&H35}, sr2)
@@ -97,6 +82,10 @@ Namespace SPI
                         RaiseEvent PrintConsole("Detected Flash in SPI mode (1-bit)")
                     End If
                     SQIBUS_SendCommand(&HF0) 'SPI RESET COMMAND
+                    If MyFlashDevice.VENDOR_SPECIFIC = VENDOR_FEATURE.NotSupported Then 'We don't want to do this for vendor enabled devices
+                        WriteStatusRegister({0})
+                        Utilities.Sleep(100) 'Needed, some devices will lock up if else.
+                    End If
                     If MyFlashDevice.SEND_EN4B Then SQIBUS_SendCommand(MyFlashDevice.OP_COMMANDS.EN4B) '0xB7
                     SQIBUS_SendCommand(MyFlashDevice.OP_COMMANDS.ULBPR) '0x98 (global block unprotect)
                     LoadVendorSpecificConfigurations() 'Some devices may need additional configurations
@@ -118,7 +107,7 @@ Namespace SPI
             Dim id As New SPI_IDENT
             id.MANU = 0
             id.RDID = 0
-            Dim out_buffer(3) As Byte
+            Dim out_buffer(4) As Byte
             Dim id_code As Byte = 0
             If mode = MULTI_IO_MODE.Single Then
                 id_code = &H9F
@@ -128,9 +117,10 @@ Namespace SPI
                 id_code = &HAF
             End If
             Me.SQI_IO_MODE = mode
-            If SQIBUS_WriteRead({id_code}, out_buffer) = 5 Then 'MULTIPLE I/O READ ID
+            If SQIBUS_WriteRead({id_code}, out_buffer) = 6 Then 'MULTIPLE I/O READ ID
                 id.MANU = out_buffer(0)
-                id.RDID = Utilities.Bytes.ToUInt32({0, 0, out_buffer(1), out_buffer(2)})
+                'id.RDID = Utilities.Bytes.ToUInt32({0, 0, out_buffer(1), out_buffer(2)})
+                id.RDID = (CUInt(out_buffer(1)) << 24) Or (CUInt(out_buffer(2)) << 16) Or (CUInt(out_buffer(3)) << 8) Or CUInt(out_buffer(4))
             End If
             Return id
         End Function
@@ -151,6 +141,52 @@ Namespace SPI
             End If
             If (MyFlashDevice.MFG_CODE = &HEF) AndAlso (MyFlashDevice.ID1 = &H4018) Then
                 SQIBUS_WriteRead({&HC2, 1}) : WaitUntilReady() 'Check to see if this device has two dies
+            End If
+            If (MyFlashDevice.MFG_CODE = &H34) Then 'Cypress MFG ID
+                Dim SEMPER_SPI As Boolean = False
+                If MyFlashDevice.ID1 = &H2A19 Then SEMPER_SPI = True
+                If MyFlashDevice.ID1 = &H2A1A Then SEMPER_SPI = True
+                If MyFlashDevice.ID1 = &H2A1B Then SEMPER_SPI = True
+                If MyFlashDevice.ID1 = &H2B19 Then SEMPER_SPI = True
+                If MyFlashDevice.ID1 = &H2B1A Then SEMPER_SPI = True
+                If MyFlashDevice.ID1 = &H2B1B Then SEMPER_SPI = True
+                If SEMPER_SPI Then
+                    SQIBUS_WriteEnable()
+                    SQIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.EWSR})
+                    SQIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.WRSR, 0, 0, &H88, &H18}) 'Set sector to uniform 256KB / 512B Page size
+                End If
+                Dim SEMPER_SPI_HF As Boolean = False 'Semper HF/SPI version
+                If (MyFlashDevice.MFG_CODE = &H34) Then
+                    If MyFlashDevice.ID1 = &H6B AndAlso MyFlashDevice.ID2 = &H19 Then SEMPER_SPI_HF = True
+                    If MyFlashDevice.ID1 = &H6B AndAlso MyFlashDevice.ID2 = &H1A Then SEMPER_SPI_HF = True
+                    If MyFlashDevice.ID1 = &H6B AndAlso MyFlashDevice.ID2 = &H1B Then SEMPER_SPI_HF = True
+                    If MyFlashDevice.ID1 = &H6A AndAlso MyFlashDevice.ID2 = &H19 Then SEMPER_SPI_HF = True
+                    If MyFlashDevice.ID1 = &H6A AndAlso MyFlashDevice.ID2 = &H1A Then SEMPER_SPI_HF = True
+                    If MyFlashDevice.ID1 = &H6A AndAlso MyFlashDevice.ID2 = &H1B Then SEMPER_SPI_HF = True
+                End If
+                If SEMPER_SPI_HF Then
+                    SQIBUS_WriteEnable()
+                    SQIBUS_WriteRead({&H71, &H80, 0, 4, &H18}) 'Enables 512-byte buffer
+                    SQIBUS_WriteEnable()
+                    SQIBUS_WriteRead({&H71, &H80, 0, 3, &H80}) 'Enables 4-byte mode
+                End If
+            End If
+        End Sub
+
+        Private Sub Winbond_EnableQUAD()
+            RaiseEvent PrintConsole("Entering QPI mode for Winbond device")
+            SQIBUS_WriteRead({&H50}) 'WREN VOLATILE
+            SQIBUS_WriteRead({&H1, 0, 2}) 'WRSR(0,2) - Sets QE bit
+            Dim sr(0) As Byte
+            SQIBUS_WriteRead({&H35}, sr) 'Read SR-2
+            If ((sr(0) And 2) >> 1) Then
+                RaiseEvent PrintConsole("QE bit set in Status Register-2")
+                SQIBUS_WriteRead({&H38})
+                Utilities.Sleep(20)
+                Me.SQI_DEVICE_MODE = SPI.SQI_IO_MODE.SPI_QUAD
+                RaiseEvent PrintConsole("IO mode switched to SPI/QUAD (1-bit/4-bit)")
+            Else
+                RaiseEvent PrintConsole("Error: failed to set the QE bit")
             End If
         End Sub
 
@@ -304,7 +340,7 @@ Namespace SPI
             Return payload
         End Function
 
-        Friend Function SectorErase(ByVal sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.SectorErase
+        Friend Function SectorErase(sector_index As UInt32, Optional memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.SectorErase
             If (Not MyFlashDevice.ERASE_REQUIRED) Then Return True 'Erase not needed
             Dim flash_offset As UInt32 = Me.SectorFind(sector_index, memory_area)
             SQIBUS_WriteEnable()
@@ -396,50 +432,47 @@ Namespace SPI
 
 #Region "SPIBUS"
 
-        Public Sub SQIBUS_Setup()
+        Public Sub SQIBUS_Setup(bus_speed As SQI_SPEED)
+            FCUSB.USB_VCC_OFF()
+            Dim clock_div As Integer = 0 'Divides the clock speed
             If FCUSB.IsProfessional() Then
-                If MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_20 Then
+                If bus_speed = SQI_SPEED.MHZ_20 Then
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "20 MHz"))
-                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 0)
                 Else
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
-                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 1)
+                    clock_div = 1
                 End If
             ElseIf FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
-                If MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_80 Then
+                If bus_speed = SQI_SPEED.MHZ_40 Then
+                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "40 MHz"))
+                ElseIf bus_speed = SQI_SPEED.MHZ_20 Then
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "20 MHz"))
-                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 0)
-                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_40 Then
+                    clock_div = 1
+                ElseIf bus_speed = SQI_SPEED.MHZ_10 Then
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
-                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 1)
-                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_20 Then
-                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
-                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 1)
-                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_10 Then
-                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
-                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 1)
-                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_5 Then
-                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
-                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 1)
-                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_1 Then
-                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
-                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 1)
+                    clock_div = 2
+                ElseIf bus_speed = SQI_SPEED.MHZ_5 Then
+                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "5 MHz"))
+                    clock_div = 3
+                ElseIf bus_speed = SQI_SPEED.MHZ_1 Then
+                    GUI.PrintConsole(String.Format("SQI clock set to: {0}", "1 MHz"))
+                    clock_div = 4
                 End If
             ElseIf FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
-                FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, MySettings.SPI_QUAD_SPEED)
-                If MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_20 Then
+                If bus_speed = SQI_SPEED.MHZ_20 Then
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "20 MHz"))
-                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_10 Then
+                ElseIf bus_speed = SQI_SPEED.MHZ_10 Then
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "10 MHz"))
-                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_5 Then
+                    clock_div = 1
+                ElseIf bus_speed = SQI_SPEED.MHZ_5 Then
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "5 MHz"))
-                ElseIf MySettings.SPI_QUAD_SPEED = SQI_SPEED.MHZ_2 Then
+                    clock_div = 2
+                ElseIf bus_speed = SQI_SPEED.MHZ_2 Then
                     GUI.PrintConsole(String.Format("SQI clock set to: {0}", "2 MHz"))
+                    clock_div = 3
                 End If
-            Else
-                FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, 0)
-                GUI.PrintConsole(String.Format("SQI clock set to: {0}", "1 MHz"))
             End If
+            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.SQI_SETUP, Nothing, clock_div)
             Utilities.Sleep(50) 'Allow time for device to change IO
         End Sub
 
@@ -519,7 +552,7 @@ Namespace SPI
             Return data_out
         End Function
         'This writes to the SR (multi-bytes can be input to write as well)
-        Public Function WriteStatusRegister(ByVal NewValues() As Byte) As Boolean
+        Public Function WriteStatusRegister(NewValues() As Byte) As Boolean
             Try
                 If NewValues Is Nothing Then Return False
                 SQIBUS_WriteEnable() 'Some devices such as AT25DF641 require the WREN and the status reg cleared before we can write data
@@ -577,7 +610,7 @@ Namespace SPI
 
     End Class
 
-    Friend Enum MULTI_IO_MODE As Byte
+    Public Enum MULTI_IO_MODE As Byte
         [Single] = 1
         Dual = 2
         Quad = 4

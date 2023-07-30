@@ -149,7 +149,7 @@ Namespace USB
                 End Try
             End Sub
 
-            Public Sub USB_SPI_SETSPEED(ByVal MHZ As UInt32)
+            Private Sub USB_SPI_SETSPEED(ByVal MHZ As UInt32)
                 If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
                     USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, MHZ)
                 Else

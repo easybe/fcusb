@@ -13,6 +13,85 @@ Public Class FrmSettings
         ' Add any initialization after the InitializeComponent() call.
     End Sub
 
+
+    Private Sub SPI_SetMaximumClockSettings()
+        Select Case MySettings.SPI_CLOCK_MAX
+            Case SPI.SPI_SPEED.MHZ_32
+                cb_spi_clock.SelectedIndex = 0
+            Case SPI.SPI_SPEED.MHZ_24
+                cb_spi_clock.SelectedIndex = 1
+            Case SPI.SPI_SPEED.MHZ_16
+                cb_spi_clock.SelectedIndex = 2
+            Case SPI.SPI_SPEED.MHZ_12
+                cb_spi_clock.SelectedIndex = 3
+            Case SPI.SPI_SPEED.MHZ_8
+                cb_spi_clock.SelectedIndex = 4
+            Case SPI.SPI_SPEED.MHZ_4
+                cb_spi_clock.SelectedIndex = 5
+            Case SPI.SPI_SPEED.MHZ_2
+                cb_spi_clock.SelectedIndex = 6
+            Case SPI.SPI_SPEED.MHZ_1
+                cb_spi_clock.SelectedIndex = 7
+            Case Else
+                cb_spi_clock.SelectedIndex = 0
+        End Select
+        Select Case MySettings.SQI_CLOCK_MAX
+            Case SPI.SQI_SPEED.MHZ_40
+                cb_sqi_clock.SelectedIndex = 0
+            Case SPI.SQI_SPEED.MHZ_20
+                cb_sqi_clock.SelectedIndex = 1
+            Case SPI.SQI_SPEED.MHZ_10
+                cb_sqi_clock.SelectedIndex = 2
+            Case SPI.SQI_SPEED.MHZ_5
+                cb_sqi_clock.SelectedIndex = 3
+            Case SPI.SQI_SPEED.MHZ_2
+                cb_sqi_clock.SelectedIndex = 4
+            Case SPI.SQI_SPEED.MHZ_1
+                cb_sqi_clock.SelectedIndex = 5
+            Case Else
+                cb_sqi_clock.SelectedIndex = 0
+        End Select
+    End Sub
+
+    Private Sub SPI_SaveMaximumClockSettings()
+        Select Case cb_spi_clock.SelectedIndex
+            Case 0
+                MySettings.SPI_CLOCK_MAX = SPI.SPI_SPEED.MHZ_32
+            Case 1
+                MySettings.SPI_CLOCK_MAX = SPI.SPI_SPEED.MHZ_24
+            Case 2
+                MySettings.SPI_CLOCK_MAX = SPI.SPI_SPEED.MHZ_16
+            Case 3
+                MySettings.SPI_CLOCK_MAX = SPI.SPI_SPEED.MHZ_12
+            Case 4
+                MySettings.SPI_CLOCK_MAX = SPI.SPI_SPEED.MHZ_8
+            Case 5
+                MySettings.SPI_CLOCK_MAX = SPI.SPI_SPEED.MHZ_4
+            Case 6
+                MySettings.SPI_CLOCK_MAX = SPI.SPI_SPEED.MHZ_2
+            Case 7
+                MySettings.SPI_CLOCK_MAX = SPI.SPI_SPEED.MHZ_1
+            Case Else
+                MySettings.SPI_CLOCK_MAX = SPI.SPI_SPEED.MHZ_32
+        End Select
+        Select Case cb_sqi_clock.SelectedIndex
+            Case 0
+                MySettings.SQI_CLOCK_MAX = SPI.SQI_SPEED.MHZ_40
+            Case 1
+                MySettings.SQI_CLOCK_MAX = SPI.SQI_SPEED.MHZ_20
+            Case 2
+                MySettings.SQI_CLOCK_MAX = SPI.SQI_SPEED.MHZ_10
+            Case 3
+                MySettings.SQI_CLOCK_MAX = SPI.SQI_SPEED.MHZ_5
+            Case 4
+                MySettings.SQI_CLOCK_MAX = SPI.SQI_SPEED.MHZ_2
+            Case 5
+                MySettings.SQI_CLOCK_MAX = SPI.SQI_SPEED.MHZ_1
+            Case Else
+                MySettings.SQI_CLOCK_MAX = SPI.SQI_SPEED.MHZ_40
+        End Select
+    End Sub
+
     Private Sub FrmSettings_Load(sender As Object, e As EventArgs) Handles Me.Load
         Language_setup()
         Microwire_Init()
@@ -24,32 +103,7 @@ Public Class FrmSettings
         End If
         cb_ce_select.SelectedIndex = (MySettings.MULTI_CE)
         cb_sym_width.Enabled = False
-        If (Not IS_DEBUG_VER) Then
-            cb_spi_clock.Items.RemoveAt(8)
-            If MySettings.SPI_CLOCK_MAX = (one_mhz * 48) Then MySettings.SPI_CLOCK_MAX = (one_mhz * 32)
-        End If
-        Select Case MySettings.SPI_CLOCK_MAX
-            Case (one_mhz)
-                cb_spi_clock.SelectedIndex = 0
-            Case (one_mhz * 2)
-                cb_spi_clock.SelectedIndex = 1
-            Case (one_mhz * 4)
-                cb_spi_clock.SelectedIndex = 2
-            Case (one_mhz * 8)
-                cb_spi_clock.SelectedIndex = 3
-            Case (one_mhz * 12)
-                cb_spi_clock.SelectedIndex = 4
-            Case (one_mhz * 16)
-                cb_spi_clock.SelectedIndex = 5
-            Case (one_mhz * 24)
-                cb_spi_clock.SelectedIndex = 6
-            Case (one_mhz * 32)
-                cb_spi_clock.SelectedIndex = 7
-            Case (one_mhz * 48)
-                cb_spi_clock.SelectedIndex = 8
-            Case Else
-                cb_spi_clock.SelectedIndex = 4
-        End Select
+        SPI_SetMaximumClockSettings()
         If MySettings.SPI_FASTREAD Then
             rb_fastread_op.Checked = True
         Else
@@ -145,18 +199,6 @@ Public Class FrmSettings
             Case FlashcatSettings.JTAG_TCK_FREQ._20MHz
                 cb_jtag_tck_speed.SelectedIndex = 1
         End Select
-        Select Case MySettings.SPI_QUAD_SPEED
-            Case SPI.SQI_SPEED.MHZ_20
-                cb_sqi_speed.SelectedIndex = 0
-            Case SPI.SQI_SPEED.MHZ_10
-                cb_sqi_speed.SelectedIndex = 1
-            Case SPI.SQI_SPEED.MHZ_5
-                cb_sqi_speed.SelectedIndex = 2
-            Case SPI.SQI_SPEED.MHZ_2
-                cb_sqi_speed.SelectedIndex = 3
-            Case Else
-                cb_sqi_speed.SelectedIndex = 1
-        End Select
     End Sub
 
     Private Sub Language_setup()
@@ -206,26 +248,7 @@ Public Class FrmSettings
             MySettings.MUTLI_NOR = True
         End If
         MySettings.MULTI_CE = (cb_ce_select.SelectedIndex)
-        Select Case cb_spi_clock.SelectedIndex
-            Case 0
-                MySettings.SPI_CLOCK_MAX = (one_mhz)
-            Case 1
-                MySettings.SPI_CLOCK_MAX = (one_mhz * 2)
-            Case 2
-                MySettings.SPI_CLOCK_MAX = (one_mhz * 4)
-            Case 3
-                MySettings.SPI_CLOCK_MAX = (one_mhz * 8)
-            Case 4
-                MySettings.SPI_CLOCK_MAX = (one_mhz * 12)
-            Case 5
-                MySettings.SPI_CLOCK_MAX = (one_mhz * 16)
-            Case 6
-                MySettings.SPI_CLOCK_MAX = (one_mhz * 24)
-            Case 7
-                MySettings.SPI_CLOCK_MAX = (one_mhz * 32)
-            Case 8
-                MySettings.SPI_CLOCK_MAX = (one_mhz * 48)
-        End Select
+        SPI_SaveMaximumClockSettings()
         MySettings.SPI_FASTREAD = rb_fastread_op.Checked
         CustomDevice_SaveSettings()
         MySettings.NAND_Preserve = cb_preserve.Checked
@@ -310,16 +333,6 @@ Public Class FrmSettings
                 MySettings.JTAG_SPEED = FlashcatSettings.JTAG_TCK_FREQ._10MHZ
             Case 1
                 MySettings.JTAG_SPEED = FlashcatSettings.JTAG_TCK_FREQ._20MHz
-        End Select
-        Select Case cb_sqi_speed.SelectedIndex
-            Case 0
-                MySettings.SPI_QUAD_SPEED = SPI.SQI_SPEED.MHZ_20
-            Case 1
-                MySettings.SPI_QUAD_SPEED = SPI.SQI_SPEED.MHZ_10
-            Case 2
-                MySettings.SPI_QUAD_SPEED = SPI.SQI_SPEED.MHZ_5
-            Case 3
-                MySettings.SPI_QUAD_SPEED = SPI.SQI_SPEED.MHZ_2
         End Select
     End Sub
 

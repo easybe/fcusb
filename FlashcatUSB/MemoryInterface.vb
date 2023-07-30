@@ -203,7 +203,7 @@ Public Class MemoryInterface
             End Try
         End Sub
 
-        Private Sub OnReadStreamRequest(ByVal data_stream As IO.Stream, ByRef f_params As ReadParameters) Handles GuiControl.ReadStream
+        Private Sub OnReadStreamRequest(data_stream As IO.Stream, f_params As ReadParameters) Handles GuiControl.ReadStream
             Try
                 If Me.IsBulkErasing Then
                     For i = 0 To f_params.Count - 1
@@ -216,14 +216,14 @@ Public Class MemoryInterface
             End Try
         End Sub
 
-        Private Sub OnWriteRequest(ByVal addr As Long, ByVal data() As Byte, ByVal verify_wr As Boolean, ByVal memory_area As FlashArea, ByRef Success As Boolean) Handles GuiControl.WriteMemory
+        Private Sub OnWriteRequest(addr As Long, data() As Byte, verify_wr As Boolean, memory_area As FlashArea, ByRef Success As Boolean) Handles GuiControl.WriteMemory
             Try
                 Success = WriteBytes(addr, data, verify_wr, memory_area)
             Catch ex As Exception
             End Try
         End Sub
 
-        Private Sub OnWriteStreamRequest(ByVal data_stream As IO.Stream, ByRef f_params As WriteParameters, ByRef Success As Boolean) Handles GuiControl.WriteStream
+        Private Sub OnWriteStreamRequest(data_stream As IO.Stream, f_params As WriteParameters, ByRef Success As Boolean) Handles GuiControl.WriteStream
             Try
                 Success = WriteStream(data_stream, f_params)
                 Me.WaitUntilReady()
@@ -231,7 +231,7 @@ Public Class MemoryInterface
             End Try
         End Sub
 
-        Private Sub OnGetSectorSize(ByVal sector_int As UInt32, ByVal area As FlashArea, ByRef sector_size As UInt32) Handles GuiControl.GetSectorSize
+        Private Sub OnGetSectorSize(sector_int As UInt32, area As FlashArea, ByRef sector_size As UInt32) Handles GuiControl.GetSectorSize
             sector_size = Me.GetSectorSize(sector_int, area)
             If sector_size = 0 Then sector_size = Me.Size
         End Sub
@@ -372,7 +372,7 @@ Public Class MemoryInterface
             Catch ex As Exception
                 RaiseEvent PrintConsole("Error in ReadStream")
             Finally
-                Params.Timer.Stop()
+                If Params.Timer IsNot Nothing Then Params.Timer.Stop()
             End Try
             Return False
         End Function

@@ -59,7 +59,7 @@ Partial Class FrmSettings
         Me.op_prog = New System.Windows.Forms.ComboBox()
         Me.RadioUseSpiAuto = New System.Windows.Forms.RadioButton()
         Me.GroupBox1 = New System.Windows.Forms.GroupBox()
-        Me.cb_sqi_speed = New System.Windows.Forms.ComboBox()
+        Me.cb_sqi_clock = New System.Windows.Forms.ComboBox()
         Me.Label21 = New System.Windows.Forms.Label()
         Me.cb_spi_eeprom = New System.Windows.Forms.ComboBox()
         Me.Label3 = New System.Windows.Forms.Label()
@@ -100,6 +100,8 @@ Partial Class FrmSettings
         Me.lbl_1st_byte = New System.Windows.Forms.Label()
         Me.cb_badblock_disabled = New System.Windows.Forms.RadioButton()
         Me.gb_nand_general = New System.Windows.Forms.GroupBox()
+        Me.cbNAND_Speed = New System.Windows.Forms.ComboBox()
+        Me.Label2 = New System.Windows.Forms.Label()
         Me.cb_nand_image_readverify = New System.Windows.Forms.CheckBox()
         Me.cb_spinand_disable_ecc = New System.Windows.Forms.CheckBox()
         Me.cb_mismatch = New System.Windows.Forms.CheckBox()
@@ -141,8 +143,6 @@ Partial Class FrmSettings
         Me.Label17 = New System.Windows.Forms.Label()
         Me.Label20 = New System.Windows.Forms.Label()
         Me.cb_multi_ce = New System.Windows.Forms.ComboBox()
-        Me.cbNAND_Speed = New System.Windows.Forms.ComboBox()
-        Me.Label2 = New System.Windows.Forms.Label()
         Me.MyTabs.SuspendLayout()
         Me.TP_SPI.SuspendLayout()
         Me.group_custom.SuspendLayout()
@@ -546,7 +546,7 @@ Partial Class FrmSettings
         '
         'GroupBox1
         '
-        Me.GroupBox1.Controls.Add(Me.cb_sqi_speed)
+        Me.GroupBox1.Controls.Add(Me.cb_sqi_clock)
         Me.GroupBox1.Controls.Add(Me.Label21)
         Me.GroupBox1.Controls.Add(Me.cb_spi_eeprom)
         Me.GroupBox1.Controls.Add(Me.Label3)
@@ -562,24 +562,24 @@ Partial Class FrmSettings
         Me.GroupBox1.TabStop = False
         Me.GroupBox1.Text = "General"
         '
-        'cb_sqi_speed
+        'cb_sqi_clock
         '
-        Me.cb_sqi_speed.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cb_sqi_speed.FormattingEnabled = True
-        Me.cb_sqi_speed.Items.AddRange(New Object() {"20MHz", "10MHz", "5MHz", "2MHz"})
-        Me.cb_sqi_speed.Location = New System.Drawing.Point(154, 34)
-        Me.cb_sqi_speed.Name = "cb_sqi_speed"
-        Me.cb_sqi_speed.Size = New System.Drawing.Size(90, 21)
-        Me.cb_sqi_speed.TabIndex = 6
+        Me.cb_sqi_clock.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cb_sqi_clock.FormattingEnabled = True
+        Me.cb_sqi_clock.Items.AddRange(New Object() {"40MHz", "20MHz", "10MHz", "5MHz", "2MHz", "1MHz"})
+        Me.cb_sqi_clock.Location = New System.Drawing.Point(154, 34)
+        Me.cb_sqi_clock.Name = "cb_sqi_clock"
+        Me.cb_sqi_clock.Size = New System.Drawing.Size(90, 21)
+        Me.cb_sqi_clock.TabIndex = 6
         '
         'Label21
         '
         Me.Label21.AutoSize = True
-        Me.Label21.Location = New System.Drawing.Point(154, 18)
+        Me.Label21.Location = New System.Drawing.Point(153, 18)
         Me.Label21.Name = "Label21"
-        Me.Label21.Size = New System.Drawing.Size(90, 13)
+        Me.Label21.Size = New System.Drawing.Size(103, 13)
         Me.Label21.TabIndex = 7
-        Me.Label21.Text = "SPI-QUAD speed"
+        Me.Label21.Text = "SQI maximum speed"
         '
         'cb_spi_eeprom
         '
@@ -612,7 +612,7 @@ Partial Class FrmSettings
         '
         Me.cb_spi_clock.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_spi_clock.FormattingEnabled = True
-        Me.cb_spi_clock.Items.AddRange(New Object() {"1Mhz", "2Mhz", "4Mhz", "8Mhz", "12Mhz", "16Mhz", "24Mhz", "32MHz", "48MHz"})
+        Me.cb_spi_clock.Items.AddRange(New Object() {"32MHz", "24Mhz", "16Mhz", "12Mhz", "8Mhz", "4Mhz", "2Mhz", "1Mhz", "", ""})
         Me.cb_spi_clock.Location = New System.Drawing.Point(15, 34)
         Me.cb_spi_clock.Name = "cb_spi_clock"
         Me.cb_spi_clock.Size = New System.Drawing.Size(90, 21)
@@ -643,11 +643,11 @@ Partial Class FrmSettings
         'Label1
         '
         Me.Label1.AutoSize = True
-        Me.Label1.Location = New System.Drawing.Point(15, 18)
+        Me.Label1.Location = New System.Drawing.Point(13, 18)
         Me.Label1.Name = "Label1"
-        Me.Label1.Size = New System.Drawing.Size(112, 13)
+        Me.Label1.Size = New System.Drawing.Size(102, 13)
         Me.Label1.TabIndex = 1
-        Me.Label1.Text = "Maximum clock speed"
+        Me.Label1.Text = "SPI maximum speed"
         '
         'TP_I2C
         '
@@ -1003,6 +1003,25 @@ Partial Class FrmSettings
         Me.gb_nand_general.TabIndex = 1
         Me.gb_nand_general.TabStop = False
         Me.gb_nand_general.Text = "General"
+        '
+        'cbNAND_Speed
+        '
+        Me.cbNAND_Speed.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cbNAND_Speed.FormattingEnabled = True
+        Me.cbNAND_Speed.Items.AddRange(New Object() {"20 MHz", "10 MHz", "5 MHz", "1 MHz"})
+        Me.cbNAND_Speed.Location = New System.Drawing.Point(385, 43)
+        Me.cbNAND_Speed.Name = "cbNAND_Speed"
+        Me.cbNAND_Speed.Size = New System.Drawing.Size(103, 21)
+        Me.cbNAND_Speed.TabIndex = 4
+        '
+        'Label2
+        '
+        Me.Label2.AutoSize = True
+        Me.Label2.Location = New System.Drawing.Point(385, 24)
+        Me.Label2.Name = "Label2"
+        Me.Label2.Size = New System.Drawing.Size(103, 13)
+        Me.Label2.TabIndex = 5
+        Me.Label2.Text = "Mach¹ NAND speed"
         '
         'cb_nand_image_readverify
         '
@@ -1436,25 +1455,6 @@ Partial Class FrmSettings
         Me.cb_multi_ce.Size = New System.Drawing.Size(83, 21)
         Me.cb_multi_ce.TabIndex = 45
         '
-        'cbNAND_Speed
-        '
-        Me.cbNAND_Speed.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cbNAND_Speed.FormattingEnabled = True
-        Me.cbNAND_Speed.Items.AddRange(New Object() {"20 MHz", "10 MHz", "5 MHz", "1 MHz"})
-        Me.cbNAND_Speed.Location = New System.Drawing.Point(385, 43)
-        Me.cbNAND_Speed.Name = "cbNAND_Speed"
-        Me.cbNAND_Speed.Size = New System.Drawing.Size(103, 21)
-        Me.cbNAND_Speed.TabIndex = 4
-        '
-        'Label2
-        '
-        Me.Label2.AutoSize = True
-        Me.Label2.Location = New System.Drawing.Point(385, 24)
-        Me.Label2.Name = "Label2"
-        Me.Label2.Size = New System.Drawing.Size(103, 13)
-        Me.Label2.TabIndex = 5
-        Me.Label2.Text = "Mach¹ NAND speed"
-        '
         'FrmSettings
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -1618,7 +1618,7 @@ Partial Class FrmSettings
     Friend WithEvents GroupBox2 As GroupBox
     Friend WithEvents cb_jtag_tck_speed As ComboBox
     Friend WithEvents Label22 As Label
-    Friend WithEvents cb_sqi_speed As ComboBox
+    Friend WithEvents cb_sqi_clock As ComboBox
     Friend WithEvents Label21 As Label
     Friend WithEvents GroupBox8 As GroupBox
     Friend WithEvents cb_swi_a0 As CheckBox

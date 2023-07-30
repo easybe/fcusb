@@ -1154,16 +1154,7 @@ Public Class MainForm
         Dim f As New FrmSettings()
         f.ShowDialog()
         MySettings.Save() 'Saves all settings to registry
-        If MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI Then
-            For Each dev In USBCLIENT.FCUSB
-                If dev.IS_CONNECTED Then
-                    Dim clock_mhz As UInt32 = GetSpiClock(dev.HWBOARD, MySettings.SPI_CLOCK_MAX)
-                    Dim clock_str As String = (clock_mhz / 1000000).ToString & " MHz"
-                    GUI.PrintConsole(String.Format(RM.GetString("spi_set_clock"), clock_str)) 'Now set clock to user selected value
-                    dev.USB_SPI_SETSPEED(clock_mhz)
-                End If
-            Next
-        ElseIf MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_NAND Then
+        If MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI_NAND Then
             For i = 0 To MEM_IF.DeviceCount - 1
                 Dim dv As MemoryDeviceInstance = MEM_IF.GetDevice(i)
                 If dv IsNot Nothing Then

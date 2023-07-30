@@ -445,14 +445,14 @@ Namespace FlashMemory
             Me.PAGE_SIZE_EXTENDED = info.GetUInt32("m_page_ext")
             Me.ERASE_REQUIRED = info.GetBoolean("m_erase_req")
             Me.ADDRESSBITS = info.GetUInt32("m_addr_size")
-            OP_COMMANDS.READ = info.GetByte("m_op_rd")
-            OP_COMMANDS.PROG = info.GetByte("m_op_wr")
-            OP_COMMANDS.SE = info.GetByte("m_op_se")
-            OP_COMMANDS.WREN = info.GetByte("m_op_we")
-            OP_COMMANDS.BE = info.GetByte("m_op_be")
-            OP_COMMANDS.RDSR = info.GetByte("m_op_rdsr")
-            OP_COMMANDS.WRSR = info.GetByte("m_op_wrsr")
-            OP_COMMANDS.EWSR = info.GetByte("m_op_ewsr")
+            Me.OP_COMMANDS.READ = info.GetByte("m_op_rd")
+            Me.OP_COMMANDS.PROG = info.GetByte("m_op_wr")
+            Me.OP_COMMANDS.SE = info.GetByte("m_op_se")
+            Me.OP_COMMANDS.WREN = info.GetByte("m_op_we")
+            Me.OP_COMMANDS.BE = info.GetByte("m_op_be")
+            Me.OP_COMMANDS.RDSR = info.GetByte("m_op_rdsr")
+            Me.OP_COMMANDS.WRSR = info.GetByte("m_op_wrsr")
+            Me.OP_COMMANDS.EWSR = info.GetByte("m_op_ewsr")
         End Sub
 
         Public Sub GetObjectData(info As SerializationInfo, context As StreamingContext) Implements ISerializable.GetObjectData
@@ -517,10 +517,10 @@ Namespace FlashMemory
             End If
             Me.MFG_CODE = MFG
             Me.ID1 = ID1
-            OP_COMMANDS.SE = ERASECMD 'Sometimes 0xD8 or 0x20
-            OP_COMMANDS.READ = READCMD
-            OP_COMMANDS.FAST_READ = FASTCMD
-            OP_COMMANDS.PROG = WRITECMD
+            Me.OP_COMMANDS.SE = ERASECMD 'Sometimes 0xD8 or 0x20
+            Me.OP_COMMANDS.READ = READCMD
+            Me.OP_COMMANDS.FAST_READ = FASTCMD
+            Me.OP_COMMANDS.PROG = WRITECMD
             Me.ERASE_SIZE = ERASESIZE
             If (f_size > Mb128) Then Me.ADDRESSBITS = 32
             Me.ERASE_REQUIRED = True
@@ -942,9 +942,8 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("Cypress S25FS128S", SPI_1V8, Mb128, &H1, &H2018) With {.ID2 = &H4D01, .FAMILY = &H81})
             FlashDB.Add(New SPI_NOR("Cypress S25FS064S", SPI_1V8, Mb064, &H1, &H217) With {.ID2 = &H4D01, .FAMILY = &H81})
             FlashDB.Add(New SPI_NOR("Cypress S25FL256L", SPI_3V, Mb256, &H1, &H6019, &HDC, &H10000, &H13, &HC, &H12))
-            FlashDB.Add(New SPI_NOR("Cypress S25FL128L", SPI_3V, Mb128, &H1, &H6018, &HDC, &H10000, &H13, &HC, &H12))
-            FlashDB.Add(New SPI_NOR("Cypress S25FL128L", SPI_3V, Mb128, &H1, &H6018))
-            FlashDB.Add(New SPI_NOR("Cypress S25FL064L", SPI_3V, Mb064, &H1, &H6017))
+            FlashDB.Add(New SPI_NOR("Cypress S25FL128L", SPI_3V, Mb128, &H1, &H6018, &HDC, &H10000, &H13, &HC, &H12) With {.ADDRESSBITS = 32})
+            FlashDB.Add(New SPI_NOR("Cypress S25FL064L", SPI_3V, Mb064, &H1, &H6017, &HDC, &H10000, &H13, &HC, &H12) With {.ADDRESSBITS = 32})
             FlashDB.Add(New SPI_NOR("Cypress S70FL256P", SPI_3V, Mb256, 0, 0)) 'Placeholder (uses two S25FL128S, PIN6 is CS2)
             FlashDB.Add(New SPI_NOR("Cypress S25FL128P", SPI_3V, Mb128, &H1, &H2018) With {.ERASE_SIZE = Kb512, .ID2 = &H301}) '0301h X
             FlashDB.Add(New SPI_NOR("Cypress S25FL128P", SPI_3V, Mb128, &H1, &H2018) With {.ERASE_SIZE = Mb002, .ID2 = &H300}) '0300h X
@@ -962,13 +961,20 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("Cypress S25FL116K", SPI_3V, Mb016, &H1, &H4015))
             FlashDB.Add(New SPI_NOR("Cypress S25FL208K", SPI_3V, Mb008, &H1, &H4014))
             FlashDB.Add(New SPI_NOR("Cypress S25FL204K", SPI_3V, Mb004, &H1, &H4013))
-            'Semper Fi Flash
+            'Semper Flash (SPI compatible)
             FlashDB.Add(New SPI_NOR("Cypress S25HS256T", SPI_1V8, Mb256, &H34, &H2B19) With {.SEND_EN4B = True, .PAGE_SIZE = 512, .SEND_EWSR = True, .ERASE_SIZE = Mb002})
             FlashDB.Add(New SPI_NOR("Cypress S25HS512T", SPI_1V8, Mb512, &H34, &H2B1A) With {.SEND_EN4B = True, .PAGE_SIZE = 512, .SEND_EWSR = True, .ERASE_SIZE = Mb002})
             FlashDB.Add(New SPI_NOR("Cypress S25HS01GT", SPI_1V8, Gb001, &H34, &H2B1B) With {.SEND_EN4B = True, .PAGE_SIZE = 512, .SEND_EWSR = True, .ERASE_SIZE = Mb002})
             FlashDB.Add(New SPI_NOR("Cypress S25HL256T", SPI_3V, Mb256, &H34, &H2A19) With {.SEND_EN4B = True, .PAGE_SIZE = 512, .SEND_EWSR = True, .ERASE_SIZE = Mb002})
             FlashDB.Add(New SPI_NOR("Cypress S25HL512T", SPI_3V, Mb512, &H34, &H2A1A) With {.SEND_EN4B = True, .PAGE_SIZE = 512, .SEND_EWSR = True, .ERASE_SIZE = Mb002})
             FlashDB.Add(New SPI_NOR("Cypress S25HL01GT", SPI_3V, Gb001, &H34, &H2A1B) With {.SEND_EN4B = True, .PAGE_SIZE = 512, .SEND_EWSR = True, .ERASE_SIZE = Mb002})
+            'Semper Flash (SPI/HF compatible)
+            FlashDB.Add(New SPI_NOR("Cypress S26HS256T", SPI_1V8, Mb256, &H34, &H6B, &HDC, Mb002, &H3, &H13, &H12) With {.ID2 = &H19, .PAGE_SIZE = 512})
+            FlashDB.Add(New SPI_NOR("Cypress S26HS512T", SPI_1V8, Mb512, &H34, &H6B, &HDC, Mb002, &H3, &H13, &H12) With {.ID2 = &H1A, .PAGE_SIZE = 512})
+            FlashDB.Add(New SPI_NOR("Cypress S26HS01GT", SPI_1V8, Gb001, &H34, &H6B, &HDC, Mb002, &H3, &H13, &H12) With {.ID2 = &H1B, .PAGE_SIZE = 512})
+            FlashDB.Add(New SPI_NOR("Cypress S26HL256T", SPI_3V, Mb256, &H34, &H6A, &HDC, Mb002, &H3, &H13, &H12) With {.ID2 = &H19, .PAGE_SIZE = 512})
+            FlashDB.Add(New SPI_NOR("Cypress S26HL512T", SPI_3V, Mb512, &H34, &H6A, &HDC, Mb002, &H3, &H13, &H12) With {.ID2 = &H1A, .PAGE_SIZE = 512})
+            FlashDB.Add(New SPI_NOR("Cypress S26HL01GT", SPI_3V, Gb001, &H34, &H6A, &HDC, Mb002, &H3, &H13, &H12) With {.ID2 = &H1B, .PAGE_SIZE = 512})
             'Micron (ST)
             FlashDB.Add(New SPI_NOR("Micron MT25QL02GC", SPI_3V, Gb002, &H20, &HBA22) With {.SEND_EN4B = True, .SQI_MODE = QUAD})
             FlashDB.Add(New SPI_NOR("Micron N25Q00AA", SPI_3V, Gb001, &H20, &HBA21) With {.SEND_EN4B = True, .SQI_MODE = QUAD})
@@ -1451,6 +1457,9 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("Atmel AT49BV/LV16X", &H1F, &HC0, Mb016, VCC_IF.X16_3V, BLKLYT.Two_Top, MFP_PRG.Standard, MFP_DELAY.uS)) 'Supports Single Pulse Byte/ Word Program
             FlashDB.Add(New P_NOR("Atmel AT49BV/LV16XT", &H1F, &HC2, Mb016, VCC_IF.X16_3V, BLKLYT.Two_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
             'MXIC
+            FlashDB.Add(New P_NOR("MXIC MX29F040", &HC2, &HA4, Mb004, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
+            FlashDB.Add(New P_NOR("MXIC MX29F080", &HC2, &HD5, Mb008, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
+            FlashDB.Add(New P_NOR("MXIC MX29F016", &HC2, &HAD, Mb016, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
             FlashDB.Add(New P_NOR("MXIC MX29F800T", &HC2, &H22D6, Mb008, VCC_IF.X16_5V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS)) 'SO44 CV
             FlashDB.Add(New P_NOR("MXIC MX29F800B", &HC2, &H2258, Mb008, VCC_IF.X16_5V, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("MXIC MX29F1610", &HC2, &HF1, Mb016, VCC_IF.X16_5V, BLKLYT.Mb001_Uni, MFP_PRG.PageMode, MFP_DELAY.mS) With {.PAGE_SIZE = 64, .HARDWARE_DELAY = 6}) 'Someone has this version too
@@ -2285,14 +2294,6 @@ Namespace FlashMemory
                     part_numbers(i) = part_name & " (" & GetDataSizeString(input.Parts(i).FLASH_SIZE) & ")"
                 End If
             Next
-        End Sub
-
-        Public Sub WriteDatabaseToFile()
-            Dim f As New List(Of String)
-            For Each s As SPI_NOR In FlashDB
-                f.Add(s.NAME & " (" & (s.FLASH_SIZE / Mb001) & "Mbit)")
-            Next
-            Utilities.FileIO.WriteFile(f.ToArray, "d:\spi_flash_list.txt")
         End Sub
 
 #End Region

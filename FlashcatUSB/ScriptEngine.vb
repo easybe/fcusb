@@ -7,8 +7,7 @@
 Imports FlashcatUSB.JTAG
 Imports FlashcatUSB.MemoryInterface
 
-Public Class FcScriptEngine
-    Implements IDisposable
+Public Class FcScriptEngine : Implements IDisposable
 
     Private Const Build As Integer = 306
     Private script_is_running As Boolean = False
@@ -18,8 +17,8 @@ Public Class FcScriptEngine
     Private Delegate Function ScriptFunction(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
     Public Property CURRENT_DEVICE_MODE As FlashcatSettings.DeviceMode
 
-    Public Event WriteConsole(ByVal msg As String)
-    Public Event SetStatus(ByVal msg As String)
+    Public Event WriteConsole(msg As String)
+    Public Event SetStatus(msg As String)
 
     Private ABORT_SCRIPT As Boolean = False
 
@@ -161,7 +160,7 @@ Public Class FcScriptEngine
         'CmdFunctions.Add("debug", Nothing, New ScriptFunction(AddressOf c_debug))
     End Sub
 
-    Private Function c_debug(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_debug(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         'Dim J As JTAG_IF = USBCLIENT.FCUSB(Index).EJ_IF
         'Dim id_code As UInt32 = J.TargetDevice.IDCODE
         'Dim addr_data(0) As Byte
@@ -837,12 +836,12 @@ Public Class FcScriptEngine
         Private VALUE_BOOL As Boolean
         Private VALUE_VAR As String 'Name of the variable
 
-        Sub New(oParent As FcScriptEngine, ByVal entry_t As ScriptElementDataType)
+        Sub New(oParent As FcScriptEngine, entry_t As ScriptElementDataType)
             Me.EntryType = entry_t
             Me.MyParent = oParent
         End Sub
 
-        Sub New(oParent As FcScriptEngine, ByVal dt As OperandType)
+        Sub New(oParent As FcScriptEngine, dt As OperandType)
             Me.EntryType = ScriptElementDataType.Data
             Me.DataType = dt
             Me.MyParent = oParent
@@ -1037,7 +1036,7 @@ Public Class FcScriptEngine
             Return Nothing
         End Function
 
-        Private Function CheckFunctionArguments(ByVal fnc_params() As CmdParam, ByRef my_vars() As ScriptVariable) As Boolean
+        Private Function CheckFunctionArguments(fnc_params() As CmdParam, ByRef my_vars() As ScriptVariable) As Boolean
             Dim var_count As UInt32 = 0
             If my_vars Is Nothing OrElse my_vars.Count = 0 Then
                 var_count = 0
@@ -1193,7 +1192,7 @@ Public Class FcScriptEngine
             Next
         End Sub
 
-        Private Function ProcessText(ByVal lines() As String, ByVal line_index() As UInt32, ByRef ErrInd As UInt32, ByRef ErrorMsg As String) As ScriptLineElement()
+        Private Function ProcessText(lines() As String, line_index() As UInt32, ByRef ErrInd As UInt32, ByRef ErrorMsg As String) As ScriptLineElement()
             If lines Is Nothing Then Return Nothing
             If Not lines.Length = line_index.Length Then Return Nothing
             For i = 0 To lines.Count - 1
@@ -1258,7 +1257,7 @@ Public Class FcScriptEngine
             End Try
         End Function
 
-        Private Function CreateIfCondition(ByRef Pointer As Integer, ByVal lines() As String, ByVal ind() As UInt32, ByRef ErrInd As UInt32, ByRef ErrorMsg As String) As ScriptLineElement
+        Private Function CreateIfCondition(ByRef Pointer As Integer, lines() As String, ind() As UInt32, ByRef ErrInd As UInt32, ByRef ErrorMsg As String) As ScriptLineElement
             Dim this_if As New ScriptCondition(Me.MyParent) 'Also loads NOT modifier
             this_if.INDEX = ind(Pointer)
             If Not this_if.Parse(lines(Pointer)) Then
@@ -1318,7 +1317,7 @@ Public Class FcScriptEngine
             Return this_if
         End Function
 
-        Private Function CreateForLoop(ByRef Pointer As Integer, ByVal lines() As String, ByVal ind() As UInt32, ByRef ErrInd As UInt32, ByRef ErrorMsg As String) As ScriptLineElement
+        Private Function CreateForLoop(ByRef Pointer As Integer, lines() As String, ind() As UInt32, ByRef ErrInd As UInt32, ByRef ErrorMsg As String) As ScriptLineElement
             Dim this_for As New ScriptLoop(Me.MyParent) 'Also loads NOT modifier
             this_for.INDEX = ind(Pointer)
             Dim success As Boolean = this_for.Parse(lines(Pointer))
@@ -1538,7 +1537,7 @@ Public Class FcScriptEngine
             MyVariables.Clear()
         End Sub
 
-        Friend Function IsVariable(ByVal input As String) As Boolean
+        Friend Function IsVariable(input As String) As Boolean
             Dim var_name As String = ""
             ParseToFunctionAndSub(input, var_name, Nothing, Nothing, Nothing)
             For Each item In MyVariables
@@ -1549,7 +1548,7 @@ Public Class FcScriptEngine
             Return False
         End Function
 
-        Friend Function GetVariable(ByVal var_name As String) As ScriptVariable
+        Friend Function GetVariable(var_name As String) As ScriptVariable
             For Each item In MyVariables
                 If item.Name IsNot Nothing AndAlso Not item.Name = "" Then
                     If item.Name.ToUpper = var_name.ToUpper Then Return item
@@ -1558,7 +1557,7 @@ Public Class FcScriptEngine
             Return Nothing
         End Function
 
-        Friend Function SetVariable(ByVal input_var As ScriptVariable) As Boolean
+        Friend Function SetVariable(input_var As ScriptVariable) As Boolean
             For i = 0 To MyVariables.Count - 1
                 If MyVariables(i).Name IsNot Nothing AndAlso Not MyVariables(i).Name = "" Then
                     If MyVariables(i).Name.ToUpper = input_var.Name.ToUpper Then
@@ -1571,7 +1570,7 @@ Public Class FcScriptEngine
             Return True
         End Function
 
-        Friend Function ClearVariable(ByVal name As String) As Boolean
+        Friend Function ClearVariable(name As String) As Boolean
             For i = 0 To MyVariables.Count - 1
                 If MyVariables(i).Name IsNot Nothing AndAlso Not MyVariables(i).Name = "" Then
                     If MyVariables(i).Name.ToUpper = name.ToUpper Then
@@ -1583,7 +1582,7 @@ Public Class FcScriptEngine
             Return False
         End Function
 
-        Friend Function GetValue(ByVal var_name As String) As Object
+        Friend Function GetValue(var_name As String) As Object
             Dim sv As ScriptVariable = GetVariable(var_name)
             Return sv.Value
         End Function
@@ -1601,7 +1600,7 @@ Public Class FcScriptEngine
             Return new_name
         End Function
         'This tells our pre-processor that a value is an expected variable
-        Friend Sub AddExpected(ByVal name As String)
+        Friend Sub AddExpected(name As String)
             Me.ClearVariable(name)
             Me.MyVariables.Add(New ScriptVariable(name, OperandType.NotDefined))
         End Sub
@@ -1614,7 +1613,7 @@ Public Class FcScriptEngine
 
         Private InternalData() As Byte 'This holds the data for this variable
 
-        Sub New(ByVal new_name As String, ByVal defined_type As OperandType)
+        Sub New(new_name As String, defined_type As OperandType)
             Me.Name = new_name
             Me.VarType = defined_type
         End Sub
@@ -1683,7 +1682,7 @@ Public Class FcScriptEngine
 
 #Region "Shared functions"
 
-    Friend Shared Function IsDataArrayType(ByVal input As String) As Boolean
+    Friend Shared Function IsDataArrayType(input As String) As Boolean
         Try
             If input.IndexOf(";") = -1 Then Return False
             If input.EndsWith(";") Then input = input.Substring(0, input.Length - 1)
@@ -1699,7 +1698,7 @@ Public Class FcScriptEngine
         Return False
     End Function
 
-    Friend Shared Function DataArrayTypeToBytes(ByVal input As String) As Byte()
+    Friend Shared Function DataArrayTypeToBytes(input As String) As Byte()
         If Not IsDataArrayType(input) Then Return Nothing
         Try
             If input.EndsWith(";") Then input = input.Substring(0, input.Length - 1)
@@ -1739,7 +1738,7 @@ Public Class FcScriptEngine
         Return Mid(strout, 2, strout.Length - 2).Trim
     End Function
     'This feeds the input string up to a char specified in the stop_char array
-    Friend Shared Function FeedWord(ByRef input As String, ByVal stop_chars() As String) As String
+    Friend Shared Function FeedWord(ByRef input As String, stop_chars() As String) As String
         Dim first_index As Integer = input.Length
         For Each c As String In stop_chars
             Dim i As Integer = input.IndexOf(c)
@@ -1839,7 +1838,7 @@ Public Class FcScriptEngine
         Return True
     End Function
     'Compiles two variables, returns a string if there is an error
-    Friend Shared Function CompileSVars(ByVal var1 As ScriptVariable, ByVal var2 As ScriptVariable, ByVal oper As OperandOper, ByRef error_reason As String) As ScriptVariable
+    Friend Shared Function CompileSVars(var1 As ScriptVariable, var2 As ScriptVariable, oper As OperandOper, ByRef error_reason As String) As ScriptVariable
         Try
             If oper = OperandOper.AND Or oper = OperandOper.OR Then
                 If Not var1.VarType = OperandType.Bool Then
@@ -1996,7 +1995,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Friend Shared Function OperandTypeToString(ByVal input As OperandType) As String
+    Friend Shared Function OperandTypeToString(input As OperandType) As String
         Select Case input
             Case OperandType.NotDefined
                 Return "NotDefined"
@@ -2386,12 +2385,12 @@ Public Class FcScriptEngine
 
 #Region "Progress Callbacks"
     Public ScriptBar As ProgressBar 'Our one and only progress bar
-    Private Delegate Sub UpdateFunction_Progress(ByVal percent As Integer)
-    Private Delegate Sub UpdateFunction_Status(ByVal txt As String)
-    Private Delegate Sub UpdateFunction_Base(ByVal addr As Long)
+    Private Delegate Sub UpdateFunction_Progress(percent As Integer)
+    Private Delegate Sub UpdateFunction_Status(txt As String)
+    Private Delegate Sub UpdateFunction_Base(addr As Long)
     Private Property PROGRESS_BASE As UInt32 = 0 'Address we have a operation at
 
-    Private Sub ProgressUpdateBase(ByVal addr As UInt32)
+    Private Sub ProgressUpdateBase(addr As UInt32)
         Try
             Me.PROGRESS_BASE = addr
         Catch ex As Exception
@@ -2399,7 +2398,7 @@ Public Class FcScriptEngine
     End Sub
 
     'Sets the status bar on the GUI (if one exists)
-    Private Sub ProgressUpdate_Percent(ByVal percent As Integer)
+    Private Sub ProgressUpdate_Percent(percent As Integer)
         Try
             If GUI IsNot Nothing Then
                 If ScriptBar IsNot Nothing Then
@@ -2416,7 +2415,7 @@ Public Class FcScriptEngine
         End Try
     End Sub
 
-    Private Sub ProgressUpdate_Status(ByVal msg As String)
+    Private Sub ProgressUpdate_Status(msg As String)
         RaiseEvent SetStatus(msg)
     End Sub
 
@@ -2424,7 +2423,7 @@ Public Class FcScriptEngine
 
 #Region "Misc commands"
 
-    Private Function c_msgbox(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_msgbox(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim message_text As String = ""
             If arguments(0).VarType = OperandType.Data Then
@@ -2440,7 +2439,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_writeline(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_writeline(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             If arguments(0).VarType = OperandType.Data Then
                 Dim d() As Byte = arguments(0).Value
@@ -2473,7 +2472,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_setstatus(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_setstatus(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim message_text As String = arguments(0).Value
             RaiseEvent SetStatus(message_text)
@@ -2484,7 +2483,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_refresh(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_refresh(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim count As Integer = MEM_IF.DeviceCount
             For i = 0 To count - 1
@@ -2498,7 +2497,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_sleep(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_sleep(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim wait_ms As Integer = arguments(0).Value
             Utilities.Sleep(wait_ms)
@@ -2514,7 +2513,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_verify(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_verify(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim verify_bool As Boolean = arguments(0).Value
             MySettings.VERIFY_WRITE = verify_bool
@@ -2524,7 +2523,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_mode(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_mode(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim rv As New ScriptVariable(CurrentVars.GetNewName, OperandType.String)
             Select Case Me.CURRENT_DEVICE_MODE
@@ -2550,7 +2549,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_ask(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_ask(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim the_question As String = arguments(0).Value
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Bool)
@@ -2566,7 +2565,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_endian(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_endian(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim endian_mode As String = arguments(0).Value.ToString.ToUpper
             Select Case endian_mode
@@ -2587,7 +2586,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_abort(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_abort(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Me.ABORT_SCRIPT = True
             RaiseEvent WriteConsole("Aborting any running script")
@@ -2597,7 +2596,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_cpen(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_cpen(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim cp_en As Boolean = arguments(0).Value
             If Not USBCLIENT.FCUSB(Index).IS_CONNECTED Then
@@ -2617,7 +2616,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_crc16(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_crc16(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim DataBytes() As Byte = arguments(0).Value
             Dim crc16_value As UInt32 = Utilities.CRC16.ComputeChecksum(DataBytes)
@@ -2630,7 +2629,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_crc32(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_crc32(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim DataBytes() As Byte = arguments(0).Value
             Dim crc32_value As UInt32 = Utilities.CRC32.ComputeChecksum(DataBytes)
@@ -2643,7 +2642,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_parallel(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_parallel(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim td As New Threading.Thread(AddressOf USBCLIENT.FCUSB(Index).EXT_IF.PARALLEL_PORT_TEST)
             td.Start()
@@ -2653,7 +2652,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_catalog(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_catalog(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim Gb004 As UInt32 = 536870912
             RaiseEvent WriteConsole("Creating HTML catalogs for all supported parts")
@@ -2675,7 +2674,7 @@ Public Class FcScriptEngine
 
 #Region "String commands"
 
-    Private Function c_str_upper(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_str_upper(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim input As String = arguments(0).Value
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.String)
@@ -2687,7 +2686,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_str_lower(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_str_lower(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim input As String = arguments(0).Value
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.String)
@@ -2699,7 +2698,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_str_hex(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_str_hex(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim input As Integer = arguments(0).Value
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.String)
@@ -2711,7 +2710,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_str_length(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_str_length(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim input As String = arguments(0).Value
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
@@ -2723,7 +2722,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_str_toint(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_str_toint(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim input As String = arguments(0).Value
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
@@ -2739,7 +2738,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_str_fromint(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_str_fromint(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim input As UInt32 = arguments(0).Value
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.String)
@@ -2755,7 +2754,7 @@ Public Class FcScriptEngine
 
 #Region "Data commands"
 
-    Private Function c_data_new(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_data_new(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim size As UInt32 = arguments(0).Value
             Dim data(size - 1) As Byte
@@ -2787,7 +2786,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_data_compare(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_data_compare(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim data1() As Byte = arguments(0).Value
             Dim data2() As Byte = arguments(1).Value
@@ -2813,7 +2812,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_data_length(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_data_length(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim data1() As Byte = arguments(0).Value
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
@@ -2825,7 +2824,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_data_resize(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_data_resize(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim data1() As Byte = arguments(0).Value
             Dim start As UInt32 = arguments(1).Value
@@ -2841,7 +2840,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_data_hword(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_data_hword(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim data1() As Byte = arguments(0).Value
             Dim offset As UInt32 = arguments(1).Value
@@ -2857,7 +2856,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_data_word(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_data_word(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim data1() As Byte = arguments(0).Value
             Dim offset As UInt32 = arguments(1).Value
@@ -2875,7 +2874,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_data_tostr(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_data_tostr(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim data1() As Byte = arguments(0).Value
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.String)
@@ -2887,7 +2886,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_data_copy(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_data_copy(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim data1() As Byte = arguments(0).Value
             Dim src_ind As UInt32 = arguments(1).Value
@@ -2906,7 +2905,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_data_combine(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_data_combine(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim data1() As Byte = arguments(0).Value
             Dim data2() As Byte = arguments(1).Value
@@ -2932,7 +2931,7 @@ Public Class FcScriptEngine
 
 #Region "IO commands"
 
-    Private Function c_io_open(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_io_open(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim opt_path As String = "\"
             Dim title As String = "Choose file"
@@ -2966,7 +2965,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_io_save(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_io_save(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim data1() As Byte = arguments(0).Value
             Dim prompt_text As String = ""
@@ -2994,7 +2993,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_io_read(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_io_read(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim input As String = arguments(0).Value
             Dim local_file As New IO.FileInfo(input)
@@ -3011,7 +3010,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_io_write(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_io_write(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim data1() As Byte = arguments(0).Value
             Dim destination As String = arguments(1).Value
@@ -3028,7 +3027,7 @@ Public Class FcScriptEngine
 
 #Region "Memory commands"
 
-    Private Function c_mem_name(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_mem_name(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim name_out As String = MEM_IF.GetDevice(Index).Name
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.String)
@@ -3040,7 +3039,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_mem_size(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_mem_size(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim size_value As UInt32 = MEM_IF.GetDevice(Index).Size
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
@@ -3052,7 +3051,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_mem_write(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_mem_write(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim data_to_write() As Byte = arguments(0).Value
             Dim offset As UInt32 = arguments(1).Value
@@ -3091,7 +3090,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_mem_read(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_mem_read(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
             If mem_device Is Nothing Then
@@ -3127,7 +3126,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_mem_readstring(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_mem_readstring(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
             If mem_device Is Nothing Then
@@ -3159,7 +3158,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_mem_readverify(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_mem_readverify(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
             If mem_device Is Nothing Then
@@ -3191,7 +3190,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_mem_sectorcount(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_mem_sectorcount(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
             If mem_device Is Nothing Then
@@ -3208,7 +3207,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_mem_sectorsize(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_mem_sectorsize(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
             If mem_device Is Nothing Then
@@ -3226,7 +3225,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_mem_erasesector(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_mem_erasesector(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
             If mem_device Is Nothing Then
@@ -3250,7 +3249,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_mem_erasebulk(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_mem_erasebulk(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
             If mem_device Is Nothing Then
@@ -3270,7 +3269,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_mem_exist(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_mem_exist(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(Index)
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Bool)
@@ -3291,7 +3290,7 @@ Public Class FcScriptEngine
 
 #Region "SPI commands"
 
-    Private Function c_spi_clock(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_spi_clock(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim clock_int As UInt32 = arguments(0).Value
             MySettings.SPI_CLOCK_MAX = clock_int
@@ -3302,7 +3301,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_spi_order(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_spi_order(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim order_str As String = arguments(0).Value
             Select Case order_str.ToUpper
@@ -3317,7 +3316,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_spi_mode(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_spi_mode(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim mode_int As UInt32 = arguments(0).Value
             Select Case mode_int
@@ -3336,7 +3335,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_spi_database(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_spi_database(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim DisplayJedecID As Boolean = False
             If arguments IsNot Nothing Then
@@ -3398,7 +3397,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_spi_setsr(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_spi_setsr(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             If Me.CURRENT_DEVICE_MODE = FlashcatSettings.DeviceMode.SPI Then
             ElseIf Me.CURRENT_DEVICE_MODE = FlashcatSettings.DeviceMode.SQI Then
@@ -3420,7 +3419,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_spi_writeread(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_spi_writeread(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             If Not Me.CURRENT_DEVICE_MODE = FlashcatSettings.DeviceMode.SPI Then
                 Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Device is not in SPI operation mode"}
@@ -3447,7 +3446,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_spi_prog(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_spi_prog(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim spi_port As SPI.SPI_Programmer = USBCLIENT.FCUSB(Index).SPI_NOR_IF
             Dim state As Integer = arguments(0).Value
@@ -3466,7 +3465,7 @@ Public Class FcScriptEngine
 
 #Region "JTAG"
 
-    Private Function c_jtag_idcode(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_idcode(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
             Dim current_index As Integer = USBCLIENT.FCUSB(Index).JTAG_IF.SELECTED_INDEX
@@ -3478,7 +3477,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_config(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_config(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             If arguments IsNot Nothing AndAlso arguments.Length = 1 Then
                 Select Case arguments(0).Value.ToUpper
@@ -3499,7 +3498,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_select(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_select(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim jtag_device_index As UInt32 = arguments(0).Value
             USBCLIENT.FCUSB(Index).JTAG_IF.Select_Device(jtag_device_index)
@@ -3509,7 +3508,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_control(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_control(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim control_value As UInt32 = arguments(0).Value
             Dim j As JTAG_DEVICE = USBCLIENT.FCUSB(Index).JTAG_IF.GetSelectedDevice()
@@ -3524,7 +3523,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_memoryinit(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_memoryinit(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim memory_size As UInt32 = 0
             Dim mem_base_or_index As UInt32 = 0
@@ -3555,7 +3554,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_debug(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_debug(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim enable As Boolean = arguments(0).Value
             If enable Then
@@ -3569,7 +3568,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_cpureset(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_cpureset(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             USBCLIENT.FCUSB(Index).JTAG_IF.EJTAG_Reset()
         Catch ex As Exception
@@ -3578,7 +3577,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_runsvf(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_runsvf(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             ProgressUpdate_Percent(0)
             RemoveHandler USBCLIENT.FCUSB(Index).JTAG_IF.JSP.Progress, AddressOf ProgressUpdate_Percent
@@ -3603,7 +3602,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_runxsvf(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_runxsvf(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             ProgressUpdate_Percent(0)
             RemoveHandler USBCLIENT.FCUSB(Index).JTAG_IF.JSP.Progress, AddressOf ProgressUpdate_Percent
@@ -3627,7 +3626,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_shiftdr(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_shiftdr(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim data_in() As Byte = arguments(0).Value
             Dim data_back() As Byte = Nothing
@@ -3646,7 +3645,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_shiftir(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_shiftir(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim data_in() As Byte = arguments(0).Value
             Dim data_back() As Byte = Nothing
@@ -3666,7 +3665,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_shiftout(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_shiftout(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim tdi_data() As Byte = arguments(0).Value
             Dim bit_count As Integer = arguments(1).Value
@@ -3683,7 +3682,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_tapreset(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_tapreset(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             USBCLIENT.FCUSB(Index).JTAG_IF.Reset_StateMachine()
         Catch ex As Exception
@@ -3692,7 +3691,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_write32(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_write32(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim addr32 As UInt32 = arguments(0).Value
             Dim data As UInt32 = arguments(1).Value
@@ -3703,7 +3702,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_read32(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_read32(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim addr32 As UInt32 = arguments(0).Value
             Dim sv As New ScriptVariable(CurrentVars.GetNewName, OperandType.Integer)
@@ -3715,7 +3714,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_state(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_state(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim state_str As String = arguments(0).Value
             Select Case state_str.ToUpper
@@ -3758,7 +3757,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_graycode(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_graycode(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim use_reserve As Boolean = False
             Dim table_ind As Integer = arguments(0).Value
@@ -3776,7 +3775,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
     'Undocumented. This is for setting delays on FCUSB Classic EJTAG firmware
-    Private Function c_jtag_setdelay(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_setdelay(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim dev_ind As UInt32 = arguments(0).Value
             Dim delay_val As UInt32 = arguments(1).Value
@@ -3794,7 +3793,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_jtag_exitstate(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_jtag_exitstate(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim exit_state As Boolean = arguments(0).Value
             USBCLIENT.FCUSB(Index).JTAG_IF.JSP.ExitStateMachine = exit_state
@@ -3814,7 +3813,7 @@ Public Class FcScriptEngine
 #Region "BCM / Legacy"
     Dim bcm_util As BcmNonVol
 
-    Private Function c_bcm_init(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_bcm_init(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim flash_ind As Integer = arguments(0).Value
             Dim flash_if As MemoryDeviceInstance = MEM_IF.GetDevice(flash_ind)
@@ -3828,7 +3827,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_bcm_getfwlocation(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_bcm_getfwlocation(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             If bcm_util Is Nothing Then
                 Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Error in BCM.GetFwLocation: BCM.Init must be used first"}
@@ -3842,7 +3841,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_bcm_getfwname(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_bcm_getfwname(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             If bcm_util Is Nothing Then
                 Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Error in BCM.GetFwName: BCM.Init must be used first"}
@@ -3856,7 +3855,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_bcm_getfwlen(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_bcm_getfwlen(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             If bcm_util Is Nothing Then
                 Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Error in BCM.GetFwLen: BCM.Init must be used first"}
@@ -3870,7 +3869,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_bcm_readhfcmac(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_bcm_readhfcmac(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             If bcm_util Is Nothing Then
                 Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Error in BCM.ReadHFCMAC: BCM.Init must be used first"}
@@ -3884,7 +3883,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_bcm_sethfcmac(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_bcm_sethfcmac(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             If bcm_util Is Nothing Then
                 Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Error in BCM.SetHFCMAC: BCM.Init must be used first"}
@@ -3901,7 +3900,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_bcm_readserial(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_bcm_readserial(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             If bcm_util Is Nothing Then
                 Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Error in BCM.ReadSerial: BCM.Init must be used first"}
@@ -3915,7 +3914,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_bcm_readconfig(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_bcm_readconfig(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             If bcm_util Is Nothing Then
                 Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Error in BCM.ReadConfig: BCM.Init must be used first"}
@@ -3929,7 +3928,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_bcm_writeconfig(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_bcm_writeconfig(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             If bcm_util Is Nothing Then
                 Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Error in BCM.WriteConfig: BCM.Init must be used first"}
@@ -3941,7 +3940,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_bcm_setserial(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_bcm_setserial(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             If bcm_util Is Nothing Then
                 Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Error in BCM.SetSerial: BCM.Init must be used first"}
@@ -4032,7 +4031,7 @@ Public Class FcScriptEngine
 #End Region
 
 #Region "LOAD"
-    Private Function c_load_firmware(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_load_firmware(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Select Case USBCLIENT.FCUSB(Index).HWBOARD
                 Case USB.FCUSB_BOARD.Professional_PCB4
@@ -4048,7 +4047,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_load_logic(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_load_logic(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Select Case USBCLIENT.FCUSB(Index).HWBOARD
                 Case USB.FCUSB_BOARD.Professional_PCB4
@@ -4069,7 +4068,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
     'Performs an erase of the logic
-    Private Function c_load_erase(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_load_erase(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Select Case USBCLIENT.FCUSB(Index).HWBOARD
                 Case USB.FCUSB_BOARD.Mach1
@@ -4108,7 +4107,7 @@ Public Class FcScriptEngine
 
 #Region "TAB commands"
 
-    Private Function c_tab_create(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_tab_create(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim tab_name As String = arguments(0).Value
             GUI.CreateFormTab(UserTabCount, " " & tab_name & " ") 'Thread-Safe
@@ -4122,7 +4121,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_tab_addgroup(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_tab_addgroup(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim NewGroup As New GroupBox
             NewGroup.Name = arguments(0).Value
@@ -4138,7 +4137,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_tab_addbox(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_tab_addbox(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim NewTextBox As New TextBox
             NewTextBox.Name = arguments(0).Value
@@ -4154,7 +4153,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_tab_addtext(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_tab_addtext(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim NewTextLabel As New Label
             NewTextLabel.Name = arguments(0).Value
@@ -4171,7 +4170,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_tab_addimage(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_tab_addimage(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim filen As String = arguments(1).Value
             Dim finfo As New IO.FileInfo(ScriptPath & filen)
@@ -4192,7 +4191,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_tab_addbutton(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_tab_addbutton(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim NewButton As New Button
             NewButton.AutoSize = True
@@ -4209,7 +4208,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_tab_addprogress(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_tab_addprogress(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             If GUI.Controls.Contains(ScriptBar) Then GUI.Controls.Remove(ScriptBar)
             ScriptBar = New ProgressBar
@@ -4225,7 +4224,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_tab_remove(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_tab_remove(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim item_name As String = arguments(0).Value
             RemoveUserControl(item_name)
@@ -4235,7 +4234,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_tab_settext(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_tab_settext(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim tab_name As String = arguments(0).Value
             Dim new_text As String = arguments(1).Value
@@ -4246,7 +4245,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_tab_buttondisable(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_tab_buttondisable(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim specific_button As String = ""
             If arguments IsNot Nothing AndAlso specific_button.Length = 1 Then
@@ -4259,7 +4258,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_tab_buttonenable(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_tab_buttonenable(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             Dim specific_button As String = ""
             If arguments IsNot Nothing AndAlso specific_button.Length = 1 Then
@@ -4279,7 +4278,7 @@ Public Class FcScriptEngine
     Private OurFlashDevices As New List(Of MemoryDeviceInstance)
 
     'Reads the data from flash and verifies it (returns nothing on error)
-    Private Function ReadMemoryVerify(ByVal address As UInt32, ByVal data_len As UInt32, ByVal index As FlashMemory.FlashArea) As Byte()
+    Private Function ReadMemoryVerify(address As UInt32, data_len As UInt32, index As FlashMemory.FlashArea) As Byte()
         Dim cb As New MemoryDeviceInstance.StatusCallback
         cb.UpdatePercent = New UpdateFunction_Progress(AddressOf ProgressUpdate_Percent)
         cb.UpdateTask = New UpdateFunction_Status(AddressOf ProgressUpdate_Status)
@@ -4319,7 +4318,7 @@ Public Class FcScriptEngine
         Return DataOut 'Checked ok!
     End Function
     'Removes a user control from NAME
-    Private Sub RemoveUserControl(ByVal Name As String)
+    Private Sub RemoveUserControl(Name As String)
         If GUI Is Nothing Then Exit Sub
         If UserTabCount = 0 Then Exit Sub
         Dim i As Integer
@@ -4334,7 +4333,7 @@ Public Class FcScriptEngine
         Next
     End Sub
     'Handles when the user clicks a button
-    Private Sub ButtonHandler(ByVal sender As Object, ByVal e As EventArgs)
+    Private Sub ButtonHandler(sender As Object, e As EventArgs)
         Dim MyButton As Button = CType(sender, Button)
         Dim EventToCall As String = MyButton.Name
         Dim EventThread As New Threading.Thread(AddressOf CallEvent)
@@ -4344,7 +4343,7 @@ Public Class FcScriptEngine
         MyButton.Select()
     End Sub
     'Calls a event (wrapper for runscript)
-    Private Sub CallEvent(ByVal EventName As Object)
+    Private Sub CallEvent(EventName As Object)
         RaiseEvent WriteConsole("Button Hander::Calling Event: " & EventName)
         Dim se As ScriptEvent = GetScriptEvent(EventName)
         If se IsNot Nothing Then

@@ -1118,7 +1118,7 @@ Namespace JTAG
             End If
         End Sub
 
-        Public Sub JSP_ShiftDR(ByVal tdi_bits() As Byte, ByRef tdo_bits() As Byte, ByVal bit_count As UInt16, exit_mode As Boolean) Handles JSP.ShiftDR
+        Public Sub JSP_ShiftDR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As UInt16, exit_mode As Boolean) Handles JSP.ShiftDR
             If SW_TAP IsNot Nothing Then
                 SW_TAP.ShiftDR(tdi_bits, tdo_bits, bit_count, exit_mode)
                 Utilities.Sleep(2)
@@ -1906,9 +1906,9 @@ Namespace JTAG
             End If
         End Sub
 
-        Public Sub Tap_Toggle(ByVal count As UInt32)
+        Public Sub Tap_Toggle(count As UInt32)
             Try
-                FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_TOGGLE, Nothing, count)
+                Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_TOGGLE, Nothing, count)
                 FCUSB.USB_WaitForComplete()
             Catch ex As Exception
             End Try
@@ -1985,9 +1985,7 @@ Namespace JTAG
                 BytesLeft -= packet_size
                 Dim bits_size As UInt32 = Math.Min(512, BitsLeft)
                 BitsLeft -= bits_size
-                If BytesLeft = 0 AndAlso exit_tms Then
-                    bits_size = bits_size Or (1 << 16)
-                End If
+                If BytesLeft = 0 AndAlso exit_tms Then bits_size = bits_size Or (1 << 16)
                 Dim tdo_data(packet_size - 1) As Byte
                 If Not FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.LOAD_PAYLOAD, packet_data, packet_data.Length) Then Exit Sub 'Preloads the TDI/TMS data
                 If Not FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.JTAG_SHIFT_DATA, tdo_data, bits_size) Then Exit Sub  'Shifts data
@@ -2009,6 +2007,7 @@ Namespace JTAG
             Xilinx_XC9572XL()
             Altera_5M160ZE64()
             Altera_5M570ZT144()
+            Altera_EPM7032ST44()
             LCMXO2_4000HC_XFTG256()
             LCMXO2_7000HC_XXTG144()
             LC4032V_TQFP44()
@@ -2154,6 +2153,19 @@ Namespace JTAG
             J_DEVICE.HIGHZ = &HB
             J_DEVICE.USERCODE = 7
             J_DEVICE.CONTROL_DISABLE = True
+            BSDL_DATABASE.Add(J_DEVICE)
+        End Sub
+        '44-pin TQFP
+        Private Sub Altera_EPM7032ST44()
+            Dim J_DEVICE As New BSDL_DEF
+            J_DEVICE.PART_NAME = "EPM7032"
+            J_DEVICE.JEDEC_ID = &H70320DDUI
+            J_DEVICE.IR_LEN = 10
+            J_DEVICE.BS_LEN = 1
+            J_DEVICE.IDCODE = &H59
+            J_DEVICE.EXTEST = &H3
+            J_DEVICE.SAMPLE = &H57
+            J_DEVICE.BYPASS = &H3FF
             BSDL_DATABASE.Add(J_DEVICE)
         End Sub
 

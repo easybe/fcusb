@@ -26,7 +26,6 @@ Namespace SPI
         Friend Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
             Me.W25M121AV_Mode = False
             MyFlashStatus = DeviceStatus.NotDetected
-            SPIBUS_Setup()
             SPIBUS_WriteRead({&HC2, 0}) 'always select die 0
             Dim ReadSuccess As Boolean = False
             Dim MFG As Byte
@@ -389,7 +388,7 @@ Namespace SPI
             Return DEVICEID
         End Function
         'This writes to the SR (multi-bytes can be input to write as well)
-        Public Function WriteStatusRegister(ByVal NewValues() As Byte) As Boolean
+        Public Function WriteStatusRegister(NewValues() As Byte) As Boolean
             Try
                 If NewValues Is Nothing Then Return False
                 SPIBUS_WriteEnable() 'Some devices such as AT25DF641 require the WREN and the status reg cleared before we can write data
@@ -485,18 +484,32 @@ Namespace SPI
                 If (id.RDID = &HEFAB2100UI) Then Me.W25M121AV_Mode = True
             End If
             If (MyFlashDevice.MFG_CODE = &H34) Then 'Cypress MFG ID
-                Dim IsCypressSemper As Boolean = False
-                If MyFlashDevice.ID1 = &H2A19 Then IsCypressSemper = True
-                If MyFlashDevice.ID1 = &H2A1A Then IsCypressSemper = True
-                If MyFlashDevice.ID1 = &H2A1B Then IsCypressSemper = True
-                If MyFlashDevice.ID1 = &H2B19 Then IsCypressSemper = True
-                If MyFlashDevice.ID1 = &H2B1A Then IsCypressSemper = True
-                If MyFlashDevice.ID1 = &H2B1B Then IsCypressSemper = True
-                If IsCypressSemper Then
-                    RaiseEvent PrintConsole("Configuring Cypress Semper Flash via SPI")
+                Dim SEMPER_SPI As Boolean = False
+                If MyFlashDevice.ID1 = &H2A19 Then SEMPER_SPI = True
+                If MyFlashDevice.ID1 = &H2A1A Then SEMPER_SPI = True
+                If MyFlashDevice.ID1 = &H2A1B Then SEMPER_SPI = True
+                If MyFlashDevice.ID1 = &H2B19 Then SEMPER_SPI = True
+                If MyFlashDevice.ID1 = &H2B1A Then SEMPER_SPI = True
+                If MyFlashDevice.ID1 = &H2B1B Then SEMPER_SPI = True
+                If SEMPER_SPI Then
                     SPIBUS_WriteEnable()
                     SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.EWSR})
                     SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.WRSR, 0, 0, &H88, &H18}) 'Set sector to uniform 256KB / 512B Page size
+                End If
+                Dim SEMPER_SPI_HF As Boolean = False 'Semper HF/SPI version
+                If (MyFlashDevice.MFG_CODE = &H34) Then
+                    If MyFlashDevice.ID1 = &H6B AndAlso MyFlashDevice.ID2 = &H19 Then SEMPER_SPI_HF = True
+                    If MyFlashDevice.ID1 = &H6B AndAlso MyFlashDevice.ID2 = &H1A Then SEMPER_SPI_HF = True
+                    If MyFlashDevice.ID1 = &H6B AndAlso MyFlashDevice.ID2 = &H1B Then SEMPER_SPI_HF = True
+                    If MyFlashDevice.ID1 = &H6A AndAlso MyFlashDevice.ID2 = &H19 Then SEMPER_SPI_HF = True
+                    If MyFlashDevice.ID1 = &H6A AndAlso MyFlashDevice.ID2 = &H1A Then SEMPER_SPI_HF = True
+                    If MyFlashDevice.ID1 = &H6A AndAlso MyFlashDevice.ID2 = &H1B Then SEMPER_SPI_HF = True
+                End If
+                If SEMPER_SPI_HF Then
+                    SPIBUS_WriteEnable()
+                    SPIBUS_WriteRead({&H71, &H80, 0, 4, &H18}) 'Enables 512-byte buffer
+                    SPIBUS_WriteEnable()
+                    SPIBUS_WriteRead({&H71, &H80, 0, 3, &H80}) 'Enables 4-byte mode
                 End If
             End If
         End Sub
@@ -672,7 +685,7 @@ Namespace SPI
 
 #Region "SPIBUS"
 
-        Public Sub SPIBUS_Setup()
+        Public Sub SPIBUS_Setup(bus_speed As SPI_SPEED)
             Me.FCUSB.USB_SPI_SETUP(MySettings.SPI_MODE, MySettings.SPI_BIT_ORDER)
             Utilities.Sleep(50) 'Allow time for device to change IO
         End Sub
@@ -781,14 +794,24 @@ Namespace SPI
         SPI_MODE_3 = 3 'CPOL(1),CPHA(1),CKE(0)
     End Enum
 
+    Public Enum SPI_SPEED As Integer
+        MHZ_32 = 32000000
+        MHZ_24 = 24000000
+        MHZ_16 = 16000000
+        MHZ_12 = 12000000
+        MHZ_8 = 8000000
+        MHZ_4 = 4000000
+        MHZ_2 = 2000000
+        MHZ_1 = 1000000
+    End Enum
+
     Public Enum SQI_SPEED As Integer
-        MHZ_80
-        MHZ_40
-        MHZ_20
-        MHZ_10
-        MHZ_5
-        MHZ_2
-        MHZ_1
+        MHZ_40 = 40000000
+        MHZ_20 = 20000000
+        MHZ_10 = 10000000
+        MHZ_5 = 5000000
+        MHZ_2 = 2000000
+        MHZ_1 = 1000000
     End Enum
 
     Friend Class ReadSetupPacket

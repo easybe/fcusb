@@ -18,13 +18,13 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 585
+    Public Const Build As Integer = 587
 
     Private Const PRO_PCB4_FW As Single = 1.18F 'This is the embedded firmware version for pro
     Private Const PRO_PCB5_FW As Single = 1.02F 'This is the embedded firmware version for pro
-    Private Const MACH1_PCB2_FW As Single = 2.12F 'Firmware version for Mach1
-    Private Const XPORT_PCB1_FW As Single = 4.54F 'XPORT PCB 1.x
-    Private Const XPORT_PCB2_FW As Single = 5.09F 'XPORT PCB 2.x
+    Private Const MACH1_PCB2_FW As Single = 2.13F 'Firmware version for Mach1
+    Private Const XPORT_PCB1_FW As Single = 4.55F 'XPORT PCB 1.x
+    Private Const XPORT_PCB2_FW As Single = 5.12F 'XPORT PCB 2.x
     Private Const CLASSIC_FW As Single = 4.49F 'Min revision allowed for classic (PCB 2.x)
 
     Private Const CPLD_SPI_3V3 As UInt32 = &HCD330003UI 'ID CODE FOR SPI (3.3v)
@@ -400,8 +400,7 @@ Public Module MainApp
 
     Public Sub SPIEEPROM_Configure(ByVal usb_dev As FCUSB_DEVICE, ByVal eeprom As SPI_EEPROM)
         Dim nRF24_mode As Boolean = False
-        usb_dev.SPI_NOR_IF.SPIBUS_Setup()
-        usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, 1000000))
+        usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, 1000000))
         Select Case eeprom
             Case SPI_EEPROM.nRF24LE1  '16384 bytes
                 usb_dev.USB_VCC_3V() 'Ignored by PCB 2.x
@@ -420,15 +419,15 @@ Public Module MainApp
             usb_dev.SPI_NOR_IF.SetProgPin(True) 'Sets PROG.PIN to HIGH
             Utilities.Sleep(10)
             If (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB4) Then
-                usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, 12000000))
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, 12000000))
             ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB5) Then
-                usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, 1000000))
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, 1000000))
             ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.XPORT_PCB1) Then
-                usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, 2000000))
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, 2000000))
             ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.XPORT_PCB2) Then
-                usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, 2000000))
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, 2000000))
             Else
-                usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, 8000000))
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, 8000000))
             End If
         End If
         usb_dev.SPI_NOR_IF.MyFlashDevice = Get_SPI_EEPROM(MySettings.SPI_EEPROM)
@@ -594,11 +593,11 @@ Public Module MainApp
         Select Case MyConsoleOperation.Mode
             Case DeviceMode.SPI
                 ConsoleWriteLine(RM.GetString("device_mode") & ": Serial Programmable Interface (SPI-NOR)")
+                Dim desired_speed As UInt32 = (MyConsoleOperation.SPI_SPEED * 1000000)
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, desired_speed))
                 If usb_dev.SPI_NOR_IF.DeviceInit() Then
                     MyConsoleOperation.FLASH_SIZE = usb_dev.SPI_NOR_IF.MyFlashDevice.FLASH_SIZE
                     mem_dev = MEM_IF.Add(usb_dev, usb_dev.SPI_NOR_IF.MyFlashDevice)
-                    Dim desired_speed As UInt32 = (MyConsoleOperation.SPI_SPEED * 1000000)
-                    usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, desired_speed))
                     ConsoleWriteLine(String.Format(RM.GetString("spi_set_clock"), MyConsoleOperation.SPI_SPEED) & " MHz")
                 Else
                     Select Case usb_dev.SPI_NOR_IF.MyFlashStatus
@@ -612,11 +611,11 @@ Public Module MainApp
                 End If 'Console mode
             Case DeviceMode.SPI_NAND
                 ConsoleWriteLine(RM.GetString("device_mode") & ": Serial Programmable Interface (SPI-NAND)")
+                Dim desired_speed As UInt32 = (MyConsoleOperation.SPI_SPEED * 1000000)
+                usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, desired_speed))
                 If usb_dev.SPI_NAND_IF.DeviceInit() Then
                     MyConsoleOperation.FLASH_SIZE = usb_dev.SPI_NAND_IF.MyFlashDevice.FLASH_SIZE
                     mem_dev = MEM_IF.Add(usb_dev, usb_dev.SPI_NAND_IF.MyFlashDevice)
-                    Dim desired_speed As UInt32 = (MyConsoleOperation.SPI_SPEED * 1000000)
-                    usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, desired_speed))
                     ConsoleWriteLine(String.Format(RM.GetString("spi_set_clock"), MyConsoleOperation.SPI_SPEED) & " MHz")
                 Else
                     Select Case usb_dev.SPI_NOR_IF.MyFlashStatus
@@ -630,7 +629,6 @@ Public Module MainApp
                 End If
             Case DeviceMode.SPI_EEPROM
                 ConsoleWriteLine(RM.GetString("device_mode") & ": Serial Programmable Interface (SPI-EEPROM)")
-                usb_dev.SPI_NOR_IF.SPIBUS_Setup()
                 SPIEEPROM_Configure(usb_dev, MyConsoleOperation.SPI_EEPROM.EEPROM)
                 MyConsoleOperation.FLASH_SIZE = MyConsoleOperation.SPI_EEPROM.FLASH_SIZE
                 mem_dev = MEM_IF.Add(usb_dev, MyConsoleOperation.SPI_EEPROM)
@@ -1097,27 +1095,41 @@ Public Module MainApp
         Return (current_speed / 1000000).ToString & " Mhz"
     End Function
 
-    Public Function GetSpiClock(ByVal brd As FCUSB_BOARD, ByVal desired_speed As UInt32) As UInt32
+    Public Function GetSpiClock(brd As FCUSB_BOARD, desired_speed As UInt32) As SPI_SPEED
         Dim MCK As UInt32 = 0
         Select Case brd
             Case FCUSB_BOARD.Classic '16MHz MCK
-                If (desired_speed > 8000000) Then Return 8000000 'Fastest possible
-                MCK = 16000000
+                If (desired_speed > SPI_SPEED.MHZ_8) Then Return SPI_SPEED.MHZ_8  'Fastest possible
+                MCK = SPI_SPEED.MHZ_16
             Case FCUSB_BOARD.XPORT_PCB1  '16MHz MCK
-                If (desired_speed > 8000000) Then Return 8000000 'Fastest possible
-                MCK = 16000000
+                If (desired_speed > SPI_SPEED.MHZ_8) Then Return SPI_SPEED.MHZ_8  'Fastest possible
+                MCK = SPI_SPEED.MHZ_16
             Case FCUSB_BOARD.XPORT_PCB2  '16MHz MCK
-                If (desired_speed > 8000000) Then Return 8000000 'Fastest possible
-                MCK = 16000000
+                If (desired_speed > SPI_SPEED.MHZ_8) Then Return SPI_SPEED.MHZ_8  'Fastest possible
+                MCK = SPI_SPEED.MHZ_16
             Case FCUSB_BOARD.Professional_PCB4
-                If (desired_speed > 48000000) Then Return 48000000 'Fastest possible
-                MCK = 96000000
-            Case FCUSB_BOARD.Professional_PCB5
-                If (desired_speed > 80000000) Then Return 80000000 'Fastest possible
-                MCK = 96000000
+                If (desired_speed > SPI_SPEED.MHZ_32) Then Return SPI_SPEED.MHZ_32 'Fastest possible
+                MCK = 64000000
+            Case Else
+                Return 0
+        End Select
+        Dim spi_baud_div As UInt32 = Math.Ceiling(CSng(MCK) / CSng(desired_speed))
+        Dim max_speed As UInt32 = (MCK / spi_baud_div)
+        Return max_speed
+    End Function
+
+    Public Function GetSqiClock(brd As FCUSB_BOARD, desired_speed As UInt32) As SQI_SPEED
+        Dim MCK As UInt32 = 0
+        Select Case brd
             Case FCUSB_BOARD.Mach1
-                If (desired_speed > 20000000) Then Return 20000000 'Fastest possible
-                MCK = 96000000
+                If (desired_speed > SQI_SPEED.MHZ_20) Then Return SQI_SPEED.MHZ_20  'Fastest possible
+                MCK = SQI_SPEED.MHZ_40
+            Case FCUSB_BOARD.Professional_PCB4
+                If (desired_speed > SQI_SPEED.MHZ_20) Then Return SQI_SPEED.MHZ_20  'Fastest possible
+                MCK = SQI_SPEED.MHZ_40
+            Case FCUSB_BOARD.Professional_PCB5
+                If (desired_speed > SQI_SPEED.MHZ_40) Then Return SQI_SPEED.MHZ_40  'Fastest possible
+                MCK = 80000000
             Case Else
                 Return 0
         End Select
@@ -1152,14 +1164,14 @@ Public Module MainApp
         Public Property MUTLI_NOR As Boolean  'Multiple NOR devices connected in parallel
         Public Property MULTI_CE As Integer 'A18+this value
         'SPI Settings
-        Public Property SPI_CLOCK_MAX As UInt32
+        Public Property SPI_CLOCK_MAX As SPI_SPEED
+        Public Property SQI_CLOCK_MAX As SQI_SPEED
         Public Property SPI_BIT_ORDER As SPI_ORDER 'MSB/LSB
         Public Property SPI_MODE As SPI_CLOCK_POLARITY 'MODE=0 
         Public Property SPI_EEPROM As SPI_EEPROM
         Public Property SPI_FASTREAD As Boolean
         Public Property SPI_AUTO As Boolean 'Indicates if the software will use common op commands
         Public Property SPI_NAND_DISABLE_ECC As Boolean
-        Public Property SPI_QUAD_SPEED As SQI_SPEED
         'I2C Settings
         Public Property I2C_ADDRESS As Byte
         Public Property I2C_SPEED As I2C_SPEED_MODE
@@ -1214,6 +1226,7 @@ Public Module MainApp
             Me.BIT_ENDIAN = BitEndianMode.BigEndian32
             Me.BIT_SWAP = BitSwapMode.None
             Me.SPI_CLOCK_MAX = GetRegistryValue("SPI_CLOCK_MAX", 10000000)
+            Me.SQI_CLOCK_MAX = GetRegistryValue("SPI_QUAD_SPEED", SQI_SPEED.MHZ_10)
             Me.SPI_BIT_ORDER = GetRegistryValue("SPI_ORDER", SPI_ORDER.SPI_ORDER_MSB_FIRST)
             Me.SPI_FASTREAD = GetRegistryValue("SPI_FASTREAD", False)
             Me.SPI_BIT_ORDER = GetRegistryValue("SPI_ORDER", SPI_ORDER.SPI_ORDER_MSB_FIRST)
@@ -1221,7 +1234,6 @@ Public Module MainApp
             Me.SPI_EEPROM = GetRegistryValue("SPI_EEPROM", SPI_EEPROM.None)
             Me.SPI_AUTO = GetRegistryValue("SPI_AUTO", True)
             Me.SPI_NAND_DISABLE_ECC = GetRegistryValue("SPI_NAND_ECC", False)
-            Me.SPI_QUAD_SPEED = GetRegistryValue("SPI_QUAD_SPEED", SQI_SPEED.MHZ_10)
             Me.I2C_ADDRESS = CByte(GetRegistryValue("I2C_ADDR", CInt(&HA0)))
             Me.I2C_SPEED = GetRegistryValue("I2C_SPEED", I2C_SPEED_MODE._400kHz)
             Me.I2C_INDEX = GetRegistryValue("I2C_INDEX", 0)
@@ -1254,31 +1266,31 @@ Public Module MainApp
             SetRegistryValue("LICENSE_DATE", Me.LICENSE_EXP.ToShortDateString)
             SetRegistryValue("MULTI_NOR", Me.MUTLI_NOR)
             SetRegistryValue("MULTI_CE", Me.MULTI_CE)
-            SetRegistryValue("VOLTAGE", VOLT_SELECT)
-            SetRegistryValue("OPERATION", OPERATION_MODE)
-            SetRegistryValue("VERIFY", VERIFY_WRITE)
-            SetRegistryValue("VERIFY_COUNT", VERIFY_COUNT)
-            SetRegistryValue("ENDIAN", BIT_ENDIAN)
-            SetRegistryValue("BITSWAP", BIT_SWAP)
+            SetRegistryValue("VOLTAGE", Me.VOLT_SELECT)
+            SetRegistryValue("OPERATION", Me.OPERATION_MODE)
+            SetRegistryValue("VERIFY", Me.VERIFY_WRITE)
+            SetRegistryValue("VERIFY_COUNT", Me.VERIFY_COUNT)
+            SetRegistryValue("ENDIAN", Me.BIT_ENDIAN)
+            SetRegistryValue("BITSWAP", Me.BIT_SWAP)
             SetRegistryValue("SPI_CLOCK_MAX", CInt(Me.SPI_CLOCK_MAX))
-            SetRegistryValue("SPI_ORDER", SPI_BIT_ORDER)
-            SetRegistryValue("SPI_MODE", SPI_MODE)
-            SetRegistryValue("SPI_EEPROM", SPI_EEPROM)
-            SetRegistryValue("SPI_FASTREAD", SPI_FASTREAD)
-            SetRegistryValue("SPI_AUTO", SPI_AUTO)
-            SetRegistryValue("SPI_NAND_ECC", SPI_NAND_DISABLE_ECC)
-            SetRegistryValue("SPI_QUAD_SPEED", SPI_QUAD_SPEED)
+            SetRegistryValue("SPI_ORDER", Me.SPI_BIT_ORDER)
+            SetRegistryValue("SPI_MODE", Me.SPI_MODE)
+            SetRegistryValue("SPI_EEPROM", Me.SPI_EEPROM)
+            SetRegistryValue("SPI_FASTREAD", Me.SPI_FASTREAD)
+            SetRegistryValue("SPI_AUTO", Me.SPI_AUTO)
+            SetRegistryValue("SPI_NAND_ECC", Me.SPI_NAND_DISABLE_ECC)
+            SetRegistryValue("SPI_QUAD_SPEED", Me.SQI_CLOCK_MAX)
             SetRegistryValue("I2C_ADDR", CInt(I2C_ADDRESS))
             SetRegistryValue("I2C_SPEED", CInt(I2C_SPEED))
             SetRegistryValue("I2C_INDEX", CInt(I2C_INDEX))
             SetRegistryValue("SWI_ADDR", CInt(SWI_ADDRESS))
-            SetRegistryValue("NAND_Preserve", NAND_Preserve)
-            SetRegistryValue("NAND_Verify", NAND_Verify)
-            SetRegistryValue("NAND_BadBlockMode", NAND_BadBlockManager)
-            SetRegistryValue("NAND_BadBlockMarker", NAND_BadBlockMarkers)
-            SetRegistryValue("NAND_Mismatch", NAND_MismatchSkip)
-            SetRegistryValue("NAND_Layout", NAND_Layout)
-            SetRegistryValue("NAND_Speed", NAND_Speed)
+            SetRegistryValue("NAND_Preserve", Me.NAND_Preserve)
+            SetRegistryValue("NAND_Verify", Me.NAND_Verify)
+            SetRegistryValue("NAND_BadBlockMode", Me.NAND_BadBlockManager)
+            SetRegistryValue("NAND_BadBlockMarker", Me.NAND_BadBlockMarkers)
+            SetRegistryValue("NAND_Mismatch", Me.NAND_MismatchSkip)
+            SetRegistryValue("NAND_Layout", Me.NAND_Layout)
+            SetRegistryValue("NAND_Speed", Me.NAND_Speed)
             SetRegistryValue("Language", LanguageName)
             SetRegistryValue("ECC_READ", Me.ECC_READ_ENABLED)
             SetRegistryValue("ECC_WRITE", Me.ECC_WRITE_ENABLED)
@@ -1730,22 +1742,22 @@ Public Module MainApp
                 modes.Add(DeviceMode.SPI_EEPROM)
                 modes.Add(DeviceMode.SPI_NAND)
                 modes.Add(DeviceMode.EPROM)
+                modes.Add(DeviceMode.JTAG)
             Case FCUSB_BOARD.Professional_PCB4
                 modes.Add(DeviceMode.SPI)
-                modes.Add(DeviceMode.JTAG)
                 modes.Add(DeviceMode.I2C_EEPROM)
                 modes.Add(DeviceMode.SPI_EEPROM)
                 modes.Add(DeviceMode.Microwire)
                 modes.Add(DeviceMode.SPI_NAND)
                 modes.Add(DeviceMode.SQI)
+                modes.Add(DeviceMode.JTAG)
             Case FCUSB_BOARD.Professional_PCB5
-                modes.Add(DeviceMode.SPI)
                 modes.Add(DeviceMode.SQI)
                 modes.Add(DeviceMode.SPI_NAND)
             Case FCUSB_BOARD.Mach1
+                modes.Add(DeviceMode.SQI)
                 modes.Add(DeviceMode.NOR_NAND)
                 modes.Add(DeviceMode.HyperFlash)
-                modes.Add(DeviceMode.SQI)
         End Select
         Return modes.ToArray()
     End Function
@@ -1945,20 +1957,20 @@ Public Module MainApp
         End If
     End Sub
 
-    Private Sub DetectDevice(ByVal usb_dev As FCUSB_DEVICE)
+    Private Sub DetectDevice(usb_dev As FCUSB_DEVICE)
         ScriptEngine.CURRENT_DEVICE_MODE = MySettings.OPERATION_MODE
         GUI.SetStatus(RM.GetString("detecting_device"))
         Utilities.Sleep(100) 'Allow time for USB to power up devices
         If MySettings.OPERATION_MODE = DeviceMode.SPI Then
+            usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
             If MySettings.SPI_AUTO Then
                 GUI.PrintConsole(RM.GetString("spi_attempting_detect"))
-                If usb_dev.SPI_NOR_IF.DeviceInit Then
+                If usb_dev.SPI_NOR_IF.DeviceInit() Then
                     Dim block_size As UInt32 = 65536
                     If usb_dev.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then block_size = 262144
                     Connected_Event(usb_dev, MemoryType.SERIAL_NOR, "SPI NOR Flash", block_size)
                     GUI.PrintConsole(RM.GetString("spi_detected_spi")) '"Detected SPI Flash on high-speed SPI port"
                     GUI.PrintConsole(String.Format(RM.GetString("spi_set_clock"), GetSpiClockString(usb_dev)))
-                    usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
                     If (usb_dev.SPI_NOR_IF.W25M121AV_Mode) Then
                         GUI.PrintConsole("Winbond W25M121AV Flash device detected")
                         usb_dev.SPI_NAND_IF.DeviceInit()
@@ -1975,20 +1987,26 @@ Public Module MainApp
                     Exit Sub
                 End If
             Else 'We are using a specified device
-                usb_dev.SPI_NOR_IF.SPIBUS_Setup()
                 usb_dev.SPI_NOR_IF.MyFlashStatus = DeviceStatus.Supported
                 usb_dev.SPI_NOR_IF.MyFlashDevice = CUSTOM_SPI_DEV
                 Connected_Event(usb_dev, MemoryType.SERIAL_NOR, "SPI NOR Flash", 65536)
                 GUI.PrintConsole(String.Format(RM.GetString("spi_set_clock"), GetSpiClockString(usb_dev)))
-                usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
             End If
         ElseIf MySettings.OPERATION_MODE = DeviceMode.SQI Then
             GUI.PrintConsole("Attempting to detect SPI device in SPI extended mode")
+            usb_dev.SQI_NOR_IF.SQIBUS_Setup(GetSqiClock(usb_dev.HWBOARD, MySettings.SQI_CLOCK_MAX))
             If usb_dev.SQI_NOR_IF.DeviceInit() Then
+                Dim mem_name As String = "SPI Flash"
+                Select Case usb_dev.SQI_NOR_IF.SQI_IO_MODE
+                    Case MULTI_IO_MODE.Dual
+                        mem_name &= " (Dual)"
+                    Case MULTI_IO_MODE.Quad
+                        mem_name &= " (Quad)"
+                End Select
                 If usb_dev.HWBOARD = FCUSB_BOARD.Professional_PCB4 OrElse usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
-                    Connected_Event(usb_dev, MemoryType.SERIAL_QUAD, "SQI Flash", 131072)
+                    Connected_Event(usb_dev, MemoryType.SERIAL_QUAD, mem_name, 131072)
                 Else
-                    Connected_Event(usb_dev, MemoryType.SERIAL_QUAD, "SQI Flash", 16384)
+                    Connected_Event(usb_dev, MemoryType.SERIAL_QUAD, mem_name, 16384)
                 End If
                 GUI.PrintConsole(RM.GetString("spi_detected_sqi"))
             Else
@@ -2003,11 +2021,11 @@ Public Module MainApp
             End If
         ElseIf MySettings.OPERATION_MODE = DeviceMode.SPI_NAND Then
             GUI.PrintConsole(RM.GetString("spi_nand_attempt_detect"))
-            If usb_dev.SPI_NAND_IF.DeviceInit Then
+            usb_dev.SPI_NOR_IF.SPIBUS_Setup(GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
+            If usb_dev.SPI_NAND_IF.DeviceInit() Then
                 Connected_Event(usb_dev, MemoryType.SERIAL_NAND, "SPI NAND Flash", 65536)
                 GUI.PrintConsole(RM.GetString("spi_nand_detected"))
                 GUI.PrintConsole(String.Format(RM.GetString("spi_set_clock"), GetSpiClockString(usb_dev)))
-                usb_dev.USB_SPI_SETSPEED(GetSpiClock(usb_dev.HWBOARD, MySettings.SPI_CLOCK_MAX))
             Else
                 Select Case usb_dev.SPI_NOR_IF.MyFlashStatus
                     Case DeviceStatus.NotDetected
