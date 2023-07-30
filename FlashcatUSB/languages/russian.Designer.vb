@@ -2981,7 +2981,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Невозможно обнаружить совместимое SPI устройство (Порт {0}).
+        '''  Looks up a localized string similar to Невозможно обнаружить совместимое SPI устройство.
         '''</summary>
         Friend Shared ReadOnly Property spi_flash_not_detected() As String
             Get

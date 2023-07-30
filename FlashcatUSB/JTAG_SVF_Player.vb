@@ -276,10 +276,14 @@ Namespace JTAG
                     If s = "ON" OrElse s = "YES" OrElse s = "TRUE" Then EnableTrst = True
                     RaiseEvent SetTRST(EnableTrst)
                 ElseIf line.ToUpper.StartsWith("FREQUENCY ") Then 'Sets the max freq of the device
-                    Dim s As String = Mid(line, 11).Trim
-                    If s.ToUpper.EndsWith("HZ") Then s = Mid(s, 1, s.Length - 2).Trim
-                    Current_Hertz = Decimal.Parse(s, Globalization.NumberStyles.Float)
-                    RaiseEvent SetFrequency(Current_Hertz)
+                    Try
+                        Dim s As String = Mid(line, 11).Trim
+                        If s.ToUpper.EndsWith("HZ") Then s = Mid(s, 1, s.Length - 2).Trim
+                        Current_Hertz = Decimal.Parse(s, Globalization.NumberStyles.Float)
+                        RaiseEvent SetFrequency(Current_Hertz)
+                    Catch ex As Exception
+                        RaiseEvent SetFrequency(1000000) 'Default 1MHz
+                    End Try
                 ElseIf line.ToUpper.StartsWith("RUNTEST ") Then
                     DoRuntest(Mid(line, 9).Trim)
                 ElseIf line.ToUpper.StartsWith("STATE ") Then

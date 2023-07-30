@@ -525,7 +525,7 @@
     <value>SPI：写入数据到USB端口出错</value>
   </data>
   <data name="spi_flash_not_detected" xml:space="preserve">
-    <value>无法检测可兼容的SPI设备（端口{0}）</value>
+    <value>无法检测可兼容的SPI设备</value>
   </data>
   <data name="spi_flash_page_size" xml:space="preserve">
     <value>页面擦除大小：{0}字节 </value>

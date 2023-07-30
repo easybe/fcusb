@@ -157,11 +157,6 @@ Public Class NAND_BLOCK_IF
             Dim result As Boolean
             RaiseEvent EraseSector(page_address, result)
             If Not result Then Return False
-            If PAGE_MAIN = 512 Then 'LEGACY NAND DEVICE
-                Utilities.Sleep(250) 'Micron NAND legacy delay (was 200)
-            Else
-                Utilities.Sleep(50) 'Normal delay
-            End If
             RaiseEvent Ready()
         Catch ex As Exception
         End Try  'BLOCK ERASE COMPLETE

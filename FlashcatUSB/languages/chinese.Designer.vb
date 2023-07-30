@@ -2981,7 +2981,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to 无法检测可兼容的SPI设备（端口{0}）.
+        '''  Looks up a localized string similar to 无法检测可兼容的SPI设备.
         '''</summary>
         Friend Shared ReadOnly Property spi_flash_not_detected() As String
             Get

@@ -768,6 +768,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL128L", Mb128, &H1, &H6018))
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL064L", Mb064, &H1, &H6017))
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL064", Mb064, &H1, &H216))
+            FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FS064S", Mb064, &H1, &H217)) '1.8v version
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL032", Mb032, &H1, &H215))
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL016A", Mb016, &H1, &H214))
             FlashDB.Add(New SPI_NOR_FLASH("Cypress S25FL008A", Mb008, &H1, &H213))
@@ -823,10 +824,12 @@ Namespace FlashMemory
             'Windbond
             'http://www.nexflash.com/hq/enu/ProductAndSales/ProductLines/FlashMemory/SerialFlash/
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25M512JV", Mb512, &HEF, &H7119) With {.SEND_EN4B = True, .STACKED_DIES = 2}) 'Confirmed working (7/13/17)
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q512", Mb512, &HEF, &H4020) With {.SEND_EN4B = True})
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q256JV", Mb256, &HEF, &H7019) With {.SEND_EN4B = True})
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q256", Mb256, &HEF, &H4019) With {.SEND_EN4B = True})
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q128JV", Mb128, &HEF, &H7018))
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q64JV", Mb064, &HEF, &H7017))
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q32JV", Mb032, &HEF, &H7016))
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q512", Mb512, &HEF, &H4020) With {.SEND_EN4B = True})
+            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q256", Mb256, &HEF, &H4019) With {.SEND_EN4B = True})
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q128", Mb128, &HEF, &H4018)) 'CV
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q64", Mb064, &HEF, &H4017))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q32", Mb032, &HEF, &H4016))
@@ -836,7 +839,6 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q40", Mb004, &HEF, &H4013))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q128FW", Mb128, &HEF, &H6018))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q64FW", Mb064, &HEF, &H6017))
-            FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q64JV", Mb064, &HEF, &H7017))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q32FW", Mb032, &HEF, &H6016))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q16FW", Mb016, &HEF, &H6015))
             FlashDB.Add(New SPI_NOR_FLASH("Winbond W25Q08EW", Mb008, &HEF, &H6014))
@@ -1042,10 +1044,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("ESMT F25L32QA", Mb032, &H8C, &H4116))
             FlashDB.Add(New SPI_NOR_FLASH("Sanyo LE25FU406B", Mb004, &H62, &H1E62))
             FlashDB.Add(New SPI_NOR_FLASH("Berg_Micro BG25Q32A", Mb032, &HE0, &H4016))
-
-            'ST 25PX16 VZM6P
-
-
+            FlashDB.Add(New SPI_NOR_FLASH("XMC XM25QH64A", Mb064, &H20, &H7017)) 'Rebranded-micron
             'SUPPORTED EEPROM SPI DEVICES:
             FlashDB.Add(New SPI_NOR_FLASH("Atmel AT25128B", 16384, 64))
             FlashDB.Add(New SPI_NOR_FLASH("Atmel AT25256B", 32768, 64))
@@ -1438,7 +1437,7 @@ Namespace FlashMemory
             FlashDB.Add(New SLC_NAND_Flash("Toshiba TC58NVG3S0FTA00", &H98, &HD3902676UI, Gb008, 4096, 232, Mb002, ND_IF.X8_3V))
             'Winbond SLC 8x NAND devices
             FlashDB.Add(New SLC_NAND_Flash("Winbond W29N01GV", &HEF, &HF1809500UI, Gb001, 2048, 64, Mb001, ND_IF.X8_3V))
-            FlashDB.Add(New SLC_NAND_Flash("Winbond W29N02GV", &HEF, &HDA909504UI, Gb002, 2048, 64, Mb001, ND_IF.X8_3V))
+            FlashDB.Add(New SLC_NAND_Flash("Winbond W29N02GV", &HEF, &HDA909504UI, Gb002, 2048, 64, Mb001, ND_IF.X8_3V)) 'Testing here
             'Macronix SLC 8x NAND devices
             FlashDB.Add(New SLC_NAND_Flash("MXIC MX30LF1208AA", &HC2, &HF0801D, Mb512, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("MXIC MX30LF1GE8AB", &HC2, &HF1809582UI, Gb001, 2048, 64, Mb001, ND_IF.X8_3V))
@@ -1495,6 +1494,7 @@ Namespace FlashMemory
             FlashDB.Add(New SLC_NAND_Flash("Hynix H27U2G6F2C", &HAD, &HCA90D544UI, Gb002, 2048, 64, Mb001, ND_IF.X16_3V))
             FlashDB.Add(New SLC_NAND_Flash("Hynix H27S2G8F2C", &HAD, &HAA901544UI, Gb002, 2048, 64, Mb001, ND_IF.X8_1V8))
             FlashDB.Add(New SLC_NAND_Flash("Hynix H27S2G6F2C", &HAD, &HBA905544UI, Gb002, 2048, 64, Mb001, ND_IF.X16_1V8))
+            FlashDB.Add(New SLC_NAND_Flash("Hynix HY27UBG8T2BTR", &HAD, &HD794DA74UI, Gb032, 8192, 640, Mb016, ND_IF.X8_3V))
             'Spansion SLC 34 series
             FlashDB.Add(New SLC_NAND_Flash("Cypress S34ML01G1", &H1, &HF1001DUI, Gb001, 2048, 64, Mb001, ND_IF.X8_3V))
             FlashDB.Add(New SLC_NAND_Flash("Cypress S34ML02G1", &H1, &HDA9095UI, Gb002, 2048, 64, Mb001, ND_IF.X8_3V))
@@ -1506,9 +1506,8 @@ Namespace FlashMemory
             FlashDB.Add(New SLC_NAND_Flash("Cypress S34MS02G200", &H1, &HAA901546UI, Gb004, 2048, 64, Mb001, ND_IF.X8_1V8))
             FlashDB.Add(New SLC_NAND_Flash("Cypress S34MS04G200", &H1, &HAC901556UI, Gb004, 2048, 64, Mb001, ND_IF.X8_1V8))
             FlashDB.Add(New SLC_NAND_Flash("Cypress S34MS01G204", &H1, &HB18055UI, Gb004, 2048, 64, Mb001, ND_IF.X16_1V8))
-            FlashDB.Add(New SLC_NAND_Flash("Cypress S34MS02G204", &H1, &HBA905546UI, Gb004, 2048, 64, Mb001, ND_IF.X16_1V8))
+            FlashDB.Add(New SLC_NAND_Flash("Cypress S34MS02G204", &H1, &HBA905546UI, Gb004, 2048, 64, Mb001, ND_IF.X16_1V8)) '<---CV
             FlashDB.Add(New SLC_NAND_Flash("Cypress S34MS04G204", &H1, &HBC905556UI, Gb004, 2048, 64, Mb001, ND_IF.X16_1V8))
-
             'Others
             FlashDB.Add(New SLC_NAND_Flash("Zentel A5U1GA31ATS", &H92, &HF1809540UI, Gb001, 2048, 64, Mb001, ND_IF.X8_3V))
 

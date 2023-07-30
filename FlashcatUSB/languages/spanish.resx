@@ -524,7 +524,7 @@
     <value>SPI: error al escribir datos en el puerto USB</value>
   </data>
   <data name="spi_flash_not_detected" xml:space="preserve">
-    <value>No se pudo detectar un dispositivo SPI compatible (Puerto {0})</value>
+    <value>No se pudo detectar un dispositivo SPI compatible</value>
   </data>
   <data name="spi_flash_page_size" xml:space="preserve">
     <value>Tamaño de borrado de página: {0} bytes</value>

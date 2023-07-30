@@ -18,15 +18,16 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 540
+    Public Const Build As Integer = 545
     Public PRO3_CURRENT_FW As Single = 1.29F 'This is the embedded firmware version for pro
-    Public PRO4_CURRENT_FW As Single = 1.06F 'This is the embedded firmware version for pro
-    Public MACH1_CURRENT_FW As Single = 1.01F 'Firmware version for Mach1
-    Public CLASSIC_CURRENT_FW_SPI As Single = 4.4F 'Min revision allowed for classic, xport
+    Public PRO4_CURRENT_FW As Single = 1.07F 'This is the embedded firmware version for pro
+    Public MACH1_CURRENT_FW As Single = 1.02F 'Firmware version for Mach1
+    Public CLASSIC_CURRENT_FW_SPI As Single = 4.41F 'Min revision allowed for classic, xport
     Public CLASSIC_CURRENT_FW_JTAG As Single = 7.12F 'Min version for JTAG support
     Public PRO4_CPLD_3V3 As UInt32 = &HCD330001UI 'The CPLD version code for 3.3v
     Public PRO4_CPLD_1V8 As UInt32 = &HCD180001UI 'The CPLD version code for 1.8v
     Public PRO4_CPLD_I2C As UInt32 = &HCD330002UI 'The CPLD version for I2C (3.3v)
+    Public MACH_CPLD_NAND_3V3 As UInt32 = &HAD330001UI 'CPLD logic: NAND 3.3v (version 1)
     Public VCC_OPTION As Voltage = Voltage.OFF  'Only Pro supports software VCC changing
     Public AppIsClosing As Boolean = False
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
@@ -39,6 +40,9 @@ Public Module MainApp
     Private FcMutex As Mutex
     Public NAND_ECC_ENG As ECC_LIB.Engine
     Public IS_DEBUG_VER As Boolean = False
+
+    '1.00E+06
+    'ElseIf line.ToUpper.StartsWith("FREQUENCY ") Then
 
     Sub Main(ByVal Args() As String)
         Try 'This makes it only allow one instance
@@ -1658,10 +1662,10 @@ Public Module MainApp
     End Sub
     'Called whent the device is closing
     Public Sub AppClosing()
-        AppIsClosing = True
         MEM_IF.AbortOperations()
         USBCLIENT.USB_VCC_OFF()
         Application.DoEvents()
+        AppIsClosing = True 'Do this last
     End Sub
     'Called when the device connects to USB
     Public Sub OnConnectedEvent(ByVal usb_dev As FCUSB_DEVICE)
@@ -1866,7 +1870,12 @@ Public Module MainApp
             ElseIf MySettings.OPERATION_MODE = DeviceMode.NOR_NAND Then
             ElseIf MySettings.OPERATION_MODE = DeviceMode.SPI_NAND Then
             Else
-                MySettings.OPERATION_MODE = DeviceMode.SPI 'We currently only support this mode
+                MySettings.OPERATION_MODE = DeviceMode.SPI 'We currently only supports this mode
+            End If
+        ElseIf usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
+            If MySettings.OPERATION_MODE = DeviceMode.NOR_NAND Then
+            Else
+                MySettings.OPERATION_MODE = DeviceMode.NOR_NAND 'Mach1 currently only supports this mode
             End If
         End If
         GUI.SetStatus(RM.GetString("detecting_device"))
@@ -1941,7 +1950,11 @@ Public Module MainApp
                 Case DeviceStatus.Supported
                     GUI.SetStatus(RM.GetString("mem_flash_supported")) '"Flash device successfully detected and ready for operation"
                     If (usb_dev.EXT_IF.MyAdapter = ExtPort.AdatperType.NAND) Then
-                        Connected_Event(usb_dev, MemoryType.SLC_NAND, "NAND Flash", 65536)
+                        If usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
+                            Connected_Event(usb_dev, MemoryType.SLC_NAND, "NAND Flash", 131072)
+                        Else
+                            Connected_Event(usb_dev, MemoryType.SLC_NAND, "NAND Flash", 65536)
+                        End If
                     ElseIf (usb_dev.EXT_IF.MyAdapter = ExtPort.AdatperType.FWH) Then
                         Connected_Event(usb_dev, MemoryType.FWH_NOR, "FWH Flash", 4096)
                     Else
@@ -2252,8 +2265,9 @@ Public Module MainApp
             usb_dev.USB_StartFirmwareUpdate()
         ElseIf usb_dev.HWBOARD = FCUSB_BOARD.Pro_PCB4 Then
             usb_dev.USB_CONTROL_MSG_OUT(USBREQ.FW_REBOOT, Nothing, &HFFFFFFFFUI) 'Removes firmware version
+        ElseIf usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
+            usb_dev.USB_CONTROL_MSG_OUT(USBREQ.FW_REBOOT, Nothing, &HFFFFFFFFUI) 'Removes firmware version
         End If
-        'Utilities.Sleep(200)
         usb_dev.Disconnect()
         Application.DoEvents()
         Utilities.Sleep(300)
@@ -2268,6 +2282,11 @@ Public Module MainApp
                         FCUSBPRO_PCB4_Init(device)
                         SetStatus("CPLD logic successfully updated")
                         Application.DoEvents()
+                    ElseIf device.HWBOARD = FCUSB_BOARD.Mach1 Then
+                        WriteConsole("Updating all CPLD logic")
+                        FCUSBPRO_Mach1_Init(device)
+                        SetStatus("CPLD logic successfully updated")
+                        Application.DoEvents()
                     End If
                 End If
             Next
@@ -2276,15 +2295,12 @@ Public Module MainApp
     End Sub
     'PCB 4.x only
     Public Function FCUSBPRO_PCB4_Init(ByVal usb_dev As FCUSB_DEVICE) As Boolean
-        If Not usb_dev.HWBOARD = FCUSB_BOARD.Pro_PCB4 Then Return True
+        If (Not usb_dev.HWBOARD = FCUSB_BOARD.Pro_PCB4) Then Return False
         Dim cpld32 As UInt32 = usb_dev.CPLD_GetVersion()
         FCUSBPRO_SetDeviceVoltage(usb_dev) 'Power on CPLD
-
-        'DEBUG!
-        'cpld32 = PRO4_CPLD_3V3
-        'cpld32 = PRO4_CPLD_I2C
-
-
+        If IS_DEBUG_VER Then 'We dont want to update the CPLD
+            cpld32 = PRO4_CPLD_3V3
+        End If
         Dim mode_needed As CPLD_MODE = CPLD_MODE.NotSelected
         If MySettings.OPERATION_MODE = DeviceMode.I2C_EEPROM Then
             mode_needed = CPLD_MODE.I2C
@@ -2314,6 +2330,55 @@ Public Module MainApp
             svf_code = PRO4_CPLD_3V3
         End If
         If svf_data IsNot Nothing Then
+            ProgramOnboardCPLD(usb_dev, svf_data, svf_code)
+            Return False 'Stop
+        End If
+        Return True 'Continue
+    End Function
+
+    Private Sub onCpldUpdateProgress(ByVal percent As Integer)
+        Static LastPercent As Integer = -1
+        If LastPercent = percent Then Exit Sub
+        If GUI IsNot Nothing Then
+            GUI.SetStatusPageProgress(percent)
+        Else
+            Console_UpdateProgress(percent)
+        End If
+    End Sub
+
+    Private Enum CPLD_MODE
+        NotSelected 'Default
+        IO_3V 'Standard GPIO/SPI @ 3.3V
+        IO_1V8 'Standard GPIO/SPI @ 1.8V
+        I2C 'I2C only mode @ 3.3V
+        NAND_3V 'NAND mode @ 3.3V (Mach1 only)
+    End Enum
+
+    Public Function FCUSBPRO_Mach1_Init(ByVal usb_dev As FCUSB_DEVICE) As Boolean
+        If Not usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then Return False
+        Dim cpld32 As UInt32 = usb_dev.CPLD_GetVersion()
+        If IS_DEBUG_VER Then
+            cpld32 = MACH_CPLD_NAND_3V3
+        End If
+        MySettings.VOLT_SELECT = Voltage.V3_3 'Mach1 Only supports 3.3v (for now)
+        FCUSBPRO_SetDeviceVoltage(usb_dev) 'Power on CPLD
+        Dim mode_needed As CPLD_MODE = CPLD_MODE.NotSelected
+        mode_needed = CPLD_MODE.NAND_3V 'Only supported at the moment
+        Dim svf_data() As Byte = Nothing
+        Dim svf_code As UInt32 = 0
+        If mode_needed = CPLD_MODE.NAND_3V And (Not cpld32 = MACH_CPLD_NAND_3V3) Then
+            svf_data = Utilities.GetResourceAsBytes("MACH1_NAND_3V.svf")
+            svf_code = MACH_CPLD_NAND_3V3
+        End If
+        If svf_data IsNot Nothing Then
+            ProgramOnboardCPLD(usb_dev, svf_data, svf_code)
+            Return False 'Stop
+        End If
+        Return True
+    End Function
+
+    Private Sub ProgramOnboardCPLD(ByVal usb_dev As FCUSB_DEVICE, ByVal svf_data() As Byte, ByVal svf_code As UInt32)
+        Try
             USBCLIENT.HW_BUSY = True
             SetStatus("Programming on board CPLD with new logic")
             onCpldUpdateProgress(100)
@@ -2338,36 +2403,9 @@ Public Module MainApp
             FCUSBPRO_SetDeviceVoltage(usb_dev)
             USBCLIENT.HW_BUSY = False
             usb_dev.USB_CONTROL_MSG_OUT(USBREQ.FW_REBOOT, Nothing, 0) 'We need to reboot to clean up USB memory
-            Return False 'Stop
-        End If
-        Return True
-    End Function
-
-    Private Sub onCpldUpdateProgress(ByVal percent As Integer)
-        Static LastPercent As Integer = -1
-        If LastPercent = percent Then Exit Sub
-        If GUI IsNot Nothing Then
-            GUI.SetStatusPageProgress(percent)
-        Else
-            Console_UpdateProgress(percent)
-        End If
+        Catch ex As Exception
+        End Try
     End Sub
-
-    Private Enum CPLD_MODE
-        NotSelected 'Default
-        IO_3V 'Standard GPIO/SPI @ 3.3V
-        IO_1V8 'Standard GPIO/SPI @ 1.8V
-        I2C 'I2C only mode @ 3.3V
-    End Enum
-
-    Public Function FCUSBPRO_Mach1_Init(ByVal usb_dev As FCUSB_DEVICE) As Boolean
-        If Not usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then Return True
-        Dim cpld32 As UInt32 = usb_dev.CPLD_GetVersion()
-        FCUSBPRO_SetDeviceVoltage(usb_dev) 'Power on CPLD
-        usb_dev.EJ_IF.VIA_CPLD = True
-        usb_dev.EJ_IF.Init()
-        Return False
-    End Function
 
 #End Region
 

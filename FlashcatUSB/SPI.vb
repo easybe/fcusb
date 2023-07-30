@@ -38,6 +38,9 @@ Namespace SPI
                 Me.PORT_SELECT = SPIBUS_PORT.Port_B
                 spi_connected = SPI_InitDevice()
             End If
+            If MyFlashStatus = DeviceStatus.NotDetected Then
+                RaiseEvent PrintConsole(RM.GetString("spi_flash_not_detected"))
+            End If
             If (Not spi_connected) AndAlso MySettings.SPI_QUAD Then
                 If FCUSB.HWBOARD = FCUSB_BOARD.Pro_PCB4 Then
                     WriteConsole("QSPI mode is currently not available")
@@ -92,11 +95,6 @@ Namespace SPI
                     Return False
                 End If
             Else
-                If Me.PORT_SELECT = SPIBUS_PORT.Port_A Then
-                    RaiseEvent PrintConsole(String.Format(RM.GetString("spi_flash_not_detected"), "A"))
-                ElseIf Me.PORT_SELECT = SPIBUS_PORT.Port_B Then
-                    RaiseEvent PrintConsole(String.Format(RM.GetString("spi_flash_not_detected"), "B"))
-                End If
                 MyFlashStatus = DeviceStatus.NotDetected
                 Return False
             End If
@@ -807,7 +805,7 @@ Namespace SPI
                 setup_packet.CMD_PROG = MyFlashDevice.OP_COMMANDS.AAI_BYTE
             End If
             Dim ctrl As UInt32 = CUInt(Me.PORT_SELECT) << 16 Or (Utilities.BoolToInt(word_mode) + 1) 'value(port)/index(bytes)
-            Dim Result As Boolean = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.SPI_WRITEDATA_AAI, setup_packet.ToBytes, data, ctrl)
+            Dim Result As Boolean = FCUSB.USB_SETUP_BULKOUT(USBREQ.SPI_WRITEDATA_AAI, setup_packet.ToBytes, data, ctrl)
             If Not Result Then Return False
             Utilities.Sleep(6) 'Needed for some reason
             FCUSB.USB_WaitForComplete()

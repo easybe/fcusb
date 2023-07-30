@@ -727,7 +727,14 @@ Public Class ExtPort : Implements MemoryDeviceUSB
 
     Private Sub NAND_EraseSector(ByVal page_addr As UInt32, ByRef erase_result As Boolean)
         Dim setup_data() As Byte = GetSetupPacket_NAND(page_addr, 0, 0, FlashArea.All)
-        erase_result = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.EXPIO_SECTORERASE, setup_data, Nothing, 1)
+        erase_result = FCUSB.USB_SETUP_BULKOUT(USBREQ.EXPIO_SECTORERASE, setup_data, Nothing, 1)
+        If (MyFlashDevice.PAGE_SIZE = 512) Then 'LEGACY NAND DEVICE
+            Utilities.Sleep(250) 'Micron NAND legacy delay (was 200), always wait! Just to be sure.
+        Else
+            If (Not FCUSB.HWBOARD = FCUSB_BOARD.Mach1) Then 'Mach1 uses HW to get correct wait
+                Utilities.Sleep(50) 'Normal delay
+            End If
+        End If
     End Sub
 
     Private Function NAND_GetSR() As Byte
@@ -992,6 +999,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                 LAST_DETECT = Me.CHIPID_DETECT
             End If
         End If
+        If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then Return False 'Mach1 can only detect NAND devices
         Dim NORX16T2 As FlashDetectResult = DetectFlashByMode(AdatperType.X16_Type2) 'TSOP-48/56 devices
         Me.CHIPID_DETECT = NORX16T2
         If Me.CHIPID_DETECT.Successful Then
@@ -1231,7 +1239,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
     Private Function GetSetupPacket_NAND(ByVal page_addr As UInt32, ByVal page_offset As UInt16, ByVal Count As UInt32, ByVal area As FlashArea) As Byte()
         Dim TX_NAND_ADDRSIZE As Byte 'Number of bytes the address command table uses
         Dim NAND_DEV As SLC_NAND_Flash = DirectCast(MyFlashDevice, SLC_NAND_Flash)
-        If NAND_DEV.PAGE_SIZE = 512 Then 'Small page
+        If (NAND_DEV.PAGE_SIZE = 512) Then 'Small page
             If (MyFlashDevice.FLASH_SIZE > Mb256) Then
                 TX_NAND_ADDRSIZE = 4
             Else
@@ -1348,11 +1356,11 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                 Dim total_oob_bytes As UInt32 = (page_count * NAND_DEV.EXT_PAGE_SIZE)
                 Dim main_area_data(total_main_bytes - 1) As Byte 'Data from the main page
                 Dim setup_data() As Byte = GetSetupPacket_NAND(page_addr, 0, main_area_data.Length, FlashArea.Main)
-                result = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.EXPIO_READDATA, setup_data, main_area_data, 1)
+                result = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, main_area_data, 1)
                 If Not result Then Return Nothing
                 Dim oob_area_data(total_oob_bytes - 1) As Byte 'Data from the spare page, containing flags, metadata and ecc data
                 setup_data = GetSetupPacket_NAND(page_addr, 0, oob_area_data.Length, FlashArea.OOB)
-                result = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.EXPIO_READDATA, setup_data, oob_area_data, 1)
+                result = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, oob_area_data, 1)
                 If Not result Then Return Nothing
                 Dim ecc_data() As Byte = NAND_ECC_ENG.GetEccFromSpare(oob_area_data, NAND_DEV.PAGE_SIZE, NAND_DEV.EXT_PAGE_SIZE) 'This strips out the ecc data from the spare area
                 ECC_LAST_RESULT = NAND_ECC_ENG.ReadData(main_area_data, ecc_data) 'This processes the flash data (512 bytes at a time) and corrects for any errors using the ECC
@@ -1362,7 +1370,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
             Else 'Normal read from device
                 Dim data_out(count - 1) As Byte 'Bytes we want to read
                 Dim setup_data() As Byte = GetSetupPacket_NAND(page_addr, page_offset, count, memory_area)
-                result = FCUSB.USB_SETUP_BULKIN(USB.USBREQ.EXPIO_READDATA, setup_data, data_out, 1)
+                result = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, data_out, 1)
                 If Not result Then Return Nothing
                 Return data_out
             End If
@@ -1415,7 +1423,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                 Array.Copy(page_aligned, array_ptr, packet, 0, packet.Length)
                 array_ptr += packet.Length
                 Dim setup() As Byte = GetSetupPacket_NAND(page_addr, 0, packet.Length, FlashArea.All) 'We will write the entire page
-                Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.EXPIO_WRITEDATA, setup, packet, 1)
+                Dim result As Boolean = FCUSB.USB_SETUP_BULKOUT(USBREQ.EXPIO_WRITEDATA, setup, packet, 1)
                 If Not result Then Return Nothing
                 FCUSB.USB_WaitForComplete()
                 page_addr += count
