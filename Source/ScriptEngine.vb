@@ -15,19 +15,13 @@ Namespace EC_ScriptEngine
 
         Delegate Function ScriptFunction(arguments() As ScriptVariable, Index As Integer) As ScriptVariable
 
-        Private script_is_running As Boolean = False
-
         Public Event PrintConsole(msg As String)
         Public Event SetStatus(msg As String)
         Public Event DoEvents()
 
-        Private ABORT_SCRIPT As Boolean = False
+        Public Property IsRunning As Boolean = False
 
-        Public ReadOnly Property IsRunning As Boolean
-            Get
-                Return script_is_running
-            End Get
-        End Property
+        Private ABORT_SCRIPT As Boolean = False
 
         Sub New()
             Dim STR_CMD As New ScriptCmd("STRING")
@@ -124,64 +118,56 @@ Namespace EC_ScriptEngine
             Me.CurrentScript.Reset()
             Return True
         End Function
-        'This loads the script file
-        Public Function LoadFile(file_name As IO.FileInfo) As Boolean
-            Me.Unload()
-            RaiseEvent PrintConsole("Loading FlashcatUSB script: " & file_name.Name)
-            Dim f() As String = Utilities.FileIO.ReadFile(file_name.FullName)
-            Dim err_str As String = ""
-            Dim line_err As Integer = 0 'The line within the file that has the error
-            If CurrentScript.LoadFile(Me, f, line_err, err_str) Then
-                Dim td As New Threading.Thread(AddressOf RunScript)
-#If Not NET5_0 Then
-                td.SetApartmentState(Threading.ApartmentState.STA)
-#End If
-                td.IsBackground = True
-                td.Start()
-                Return True
-            Else
-                If Not err_str.Equals("") Then
-                    RaiseEvent PrintConsole("Error loading script: " & err_str & " (line " & (line_err + 1) & ")")
+
+        Public Function RunScript(script_text() As String) As Boolean
+            Try
+                Dim line_err As Integer
+                Dim line_reason As String = ""
+                If CurrentScript.LoadFile(Me, script_text, line_err, line_reason) Then
+                    Return CurrentScript_Execute()
+                ElseIf Not String.IsNullOrEmpty(line_reason) Then
+                    RaiseEvent PrintConsole("Error loading script: " & line_reason & " (line " & (line_err + 1) & ")")
                 End If
-                Return False
-            End If
+            Catch ex As Exception
+            Finally
+                Me.IsRunning = False
+            End Try
+            Return False
         End Function
 
-        Public Function RunScriptFile(script_text() As String) As Boolean
+        Public Function RunScriptAsync(script_text() As String) As Boolean
             Dim line_err As Integer
             Dim line_reason As String = ""
             If CurrentScript.LoadFile(Me, script_text, line_err, line_reason) Then
-                RaiseEvent PrintConsole("Script successfully loaded")
-                Dim td As New Threading.Thread(AddressOf RunScript)
+                Dim td As New Threading.Thread(AddressOf CurrentScript_Execute)
+                td.Name = "fcScript"
 #If Not NET5_0 Then
                 td.SetApartmentState(Threading.ApartmentState.STA)
 #End If
-                td.IsBackground = True
                 td.Start()
                 Return True
-            Else
-                If Not line_reason = "" Then
-                    RaiseEvent PrintConsole("Error loading script: " & line_reason & " (line " & (line_err + 1) & ")")
-                End If
-                Return False
+            ElseIf Not String.IsNullOrEmpty(line_reason) Then
+                RaiseEvent PrintConsole("Error loading script: " & line_reason & " (line " & (line_err + 1) & ")")
             End If
+            Return False
         End Function
 
-        Public Function RunScript() As Boolean
+        Private Function CurrentScript_Execute() As Boolean
             Try
+                Dim script_file = CurrentScript.TheScript.ToArray()
                 Me.ABORT_SCRIPT = False
-                Me.script_is_running = True
+                Me.IsRunning = True
                 Dim result As ExecuteResult = Execute(CurrentScript.TheScript.ToArray())
                 If result IsNot Nothing AndAlso result.IsError Then
                     RaiseEvent PrintConsole(String.Format("Error in script: {0} (line {1})", result.ErrorMsg, result.ErrorLine + 1))
                     Return False
                 End If
+                Return True 'No Errors
             Catch ex As Exception
-            Finally
-                Me.script_is_running = False
             End Try
-            Return True
+            Return False
         End Function
+
         'Calls a event (wrapper for runscript)
         Public Sub CallEvent(o As Object)
             Dim EventName As String = CStr(o)
@@ -252,7 +238,7 @@ Namespace EC_ScriptEngine
             Try
                 Dim sv As ScriptVariable = e.Compile()
                 If sv Is Nothing Then Return Nothing
-                If sv.Data.VarType = DataType.FncError Then Return New ExecuteResult(CStr(sv.Data.Value))
+                If sv.Data.VarType = DataType.Error Then Return New ExecuteResult(CStr(sv.Data.Value))
                 If sv Is Nothing Then Return New ExecuteResult 'Compiled successfully but no value to save
                 If (Not e.TARGET_NAME = "") AndAlso Not e.TARGET_OPERATION = TargetOper.NONE Then
                     If (Not e.TARGET_VAR = "") Then
@@ -294,7 +280,7 @@ Namespace EC_ScriptEngine
                             CurrentVars.SetVariable(new_var)
                         Else
                             Dim result_var As ScriptVariable = CompileSVars(existing_var, new_var, var_op)
-                            If result_var.Data.VarType = DataType.FncError Then Return New ExecuteResult(CStr(result_var.Data.Value))
+                            If result_var.Data.VarType = DataType.Error Then Return New ExecuteResult(CStr(result_var.Data.Value))
                             Dim compiled_var As New ScriptVariable(e.TARGET_NAME, result_var.Data.VarType)
                             compiled_var.Value = result_var.Value
                             CurrentVars.SetVariable(compiled_var)
@@ -343,7 +329,7 @@ Namespace EC_ScriptEngine
 
         Public Function Execute_Condition(se As ScriptCondition) As ExecuteResult
             Dim test_condition As ScriptVariable = se.CONDITION.Compile()
-            If test_condition Is Nothing OrElse test_condition.Data.VarType = DataType.FncError Then
+            If test_condition Is Nothing OrElse test_condition.Data.VarType = DataType.Error Then
                 Return New ExecuteResult(CStr(test_condition.Value), se.INDEX)
             End If
             Dim result As ExecuteResult
@@ -867,7 +853,7 @@ Namespace EC_ScriptEngine
         Friend Function c_cpen(arguments() As ScriptVariable, Index As Integer) As ScriptVariable
             Dim cp_en As Boolean = CBool(arguments(0).Value)
             If Not MAIN_FCUSB.IS_CONNECTED Then
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "FlashcatUSB device is not connected"}
+                Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "FlashcatUSB device is not connected"}
             End If
             Dim w_index As UInt32 = 0UL
             If cp_en Then w_index = 1UL
@@ -1195,7 +1181,7 @@ Namespace EC_ScriptEngine
                     Return CreateError("Expected value to compute")
                 End If
                 Dim new_var As ScriptVariable = OPERANDS(x).Compile()
-                If new_var IsNot Nothing AndAlso new_var.Data.VarType = DataType.FncError Then Return new_var
+                If new_var IsNot Nothing AndAlso new_var.Data.VarType = DataType.Error Then Return new_var
                 If (Not current_oper = OperandOper.NOTSPECIFIED) Then
                     current_var = CompileSVars(current_var, new_var, current_oper)
                 Else
@@ -1268,7 +1254,7 @@ Namespace EC_ScriptEngine
                                 Case False
                                     Return "False"
                             End Select
-                        Case DataType.FncError
+                        Case DataType.Error
                             Return "Error: " & CStr(Me.FUNC_DATA.Value)
                     End Select
                 Case ScriptElementDataType.Event
@@ -1328,7 +1314,7 @@ Namespace EC_ScriptEngine
                         If Me.FUNC_ARGS IsNot Nothing Then
                             For i = 0 To Me.FUNC_ARGS.Length - 1
                                 Dim ret As ScriptVariable = Me.FUNC_ARGS(i).CompileToVariable()
-                                If ret.Data.VarType = DataType.FncError Then Return ret
+                                If ret.Data.VarType = DataType.Error Then Return ret
                                 If ret IsNot Nothing Then input_vars.Add(ret)
                             Next
                         End If
@@ -1371,7 +1357,7 @@ Namespace EC_ScriptEngine
                     If Me.FUNC_ARGS IsNot Nothing Then
                         For i = 0 To Me.FUNC_ARGS.Length - 1
                             Dim ret As ScriptVariable = Me.FUNC_ARGS(i).CompileToVariable()
-                            If ret.Data.VarType = DataType.FncError Then Return ret
+                            If ret.Data.VarType = DataType.Error Then Return ret
                             If ret IsNot Nothing Then input_vars.Add(ret)
                         Next
                     End If
@@ -1956,7 +1942,7 @@ Namespace EC_ScriptEngine
         [String]
         [Data]
         [Bool]
-        [FncError]
+        [Error]
     End Enum
 
     Public Enum ScriptFileElementType
@@ -2038,7 +2024,7 @@ Namespace EC_ScriptEngine
                         Return False
                     Case DataType.Data
                         Return InternalData
-                    Case DataType.FncError
+                    Case DataType.Error
                         Return Utilities.Bytes.ToChrString(Me.InternalData)
                     Case Else
                         Return Nothing
@@ -2061,7 +2047,7 @@ Namespace EC_ScriptEngine
                         End If
                     Case DataType.Data
                         Me.InternalData = CType(new_value, Byte())
-                    Case DataType.FncError
+                    Case DataType.Error
                         Me.InternalData = Utilities.Bytes.FromChrString(CStr(new_value))
                 End Select
             End Set
@@ -2129,6 +2115,7 @@ Namespace EC_ScriptEngine
 
         Friend Function GetValue(var_name As String) As Object
             Dim sv As ScriptVariable = GetVariable(var_name)
+            If sv Is Nothing Then Return Nothing
             Return sv.Value
         End Function
 
@@ -2414,7 +2401,7 @@ Namespace EC_ScriptEngine
         'Returns true if the condition statement is true 
         Public Function IsTrue() As Boolean
             Dim test_condition As ScriptVariable = Me.CONDITION.Compile()
-            If test_condition Is Nothing OrElse test_condition.Data.VarType = DataType.FncError Then
+            If test_condition Is Nothing OrElse test_condition.Data.VarType = DataType.Error Then
                 Return False
             End If
             If Me.NOT_MODIFIER Then
@@ -2537,7 +2524,7 @@ Namespace EC_ScriptEngine
     Public Module Tools
 
         Friend Function CreateError(error_msg As String) As ScriptVariable
-            Return New ScriptVariable("ERROR", DataType.FncError, error_msg)
+            Return New ScriptVariable("ERROR", DataType.Error, error_msg)
         End Function
 
         Friend Function GetDataTypeString(input As DataType) As String

@@ -6,6 +6,12 @@ Public Class ConsoleMode
     Private Delegate Sub UpdateFunction_Progress(ByVal percent As Integer)
     Private Delegate Sub UpdateFunction_SpeedLabel(ByVal speed_str As String)
     Public Property device_connected As Boolean
+    Public Property console_result As ExitValue = ExitValue.NoError
+
+    Public Enum ExitValue As Integer
+        [Error] = -1
+        NoError = 0
+    End Enum
 
     Partial Public Class ConsoleOperation
         Public Property CurrentTask As ConsoleTask = ConsoleTask.NoTask
@@ -345,32 +351,27 @@ Public Class ConsoleMode
                 PrintConsole("Performing memory Auto-Detect")
             Case ConsoleTask.ReadMemory
                 If String.IsNullOrEmpty(MyOperation.FILENAME) Then
-                    Environment.ExitCode = -1
                     PrintConsole("Operation ReadMemory requires option -FILE to specify where to save to")
                     Return False
                 End If
                 MyOperation.FILE_IO = New FileInfo(MyOperation.FILENAME)
             Case ConsoleTask.WriteMemory
                 If String.IsNullOrEmpty(MyOperation.FILENAME) Then
-                    Environment.ExitCode = -1
                     PrintConsole("Operation WriteMemory requires option -FILE to specify where to save to")
                     Return False
                 End If
                 MyOperation.FILE_IO = New FileInfo(MyOperation.FILENAME)
                 If Not MyOperation.FILE_IO.Exists Then
-                    Environment.ExitCode = -1
                     PrintConsole("Error: file not found" & ": " & MyOperation.FILENAME)
                     Return False
                 End If
             Case ConsoleTask.Compare
                 If String.IsNullOrEmpty(MyOperation.FILENAME) Then
-                    Environment.ExitCode = -1
                     PrintConsole("Operation Compare requires option -FILE to specify which file to compare to")
                     Return False
                 End If
                 MyOperation.FILE_IO = New FileInfo(MyOperation.FILENAME)
                 If Not MyOperation.FILE_IO.Exists Then
-                    Environment.ExitCode = -1
                     PrintConsole("Error: file not found" & ": " & MyOperation.FILENAME)
                     Return False
                 End If
@@ -383,7 +384,6 @@ Public Class ConsoleMode
                 If Not MyOperation.FILE_IO.Exists Then
                     MyOperation.FILE_IO = New FileInfo(MyOperation.FILENAME)
                     If Not MyOperation.FILE_IO.Exists Then
-                        Environment.ExitCode = -1
                         PrintConsole("Error: file not found" & ": " & MyOperation.FILE_IO.FullName)
                         Return False
                     End If
@@ -395,18 +395,18 @@ Public Class ConsoleMode
     Private Sub ConsoleMode_RunTask()
         Dim operation_success = False
         If MainApp.MAIN_FCUSB Is Nothing Then
-            Environment.ExitCode = -1
+            console_result = ExitValue.Error
             PrintConsole("Error: Unable to connect to FlashcatUSB")
             Return
         End If
         Dim supported_modes = MainApp.GetSupportedModes(MainApp.MAIN_FCUSB)
         If Array.IndexOf(supported_modes, MyOperation.Mode) = -1 Then
-            Environment.ExitCode = -1
+            console_result = ExitValue.Error
             PrintConsole("Hardware does not support the selected MODE")
             Return
         End If
         If Not DetectDevice.Device(MainApp.MAIN_FCUSB, GetDeviceParams()) Then
-            Environment.ExitCode = -1
+            console_result = ExitValue.Error
             Return
         End If
         Dim mem_dev As MemoryInterface.MemoryDeviceInstance = MainApp.MEM_IF.GetDevice(0)
@@ -445,8 +445,10 @@ Public Class ConsoleMode
                 Utilities.FileIO.WriteFile(ConsoleLog.ToArray(), MyOperation.LogFilename)
             End If
         End If
-        If (Not operation_success) Then
-            MyOperation.ExitConsole = False
+        If operation_success Then
+            console_result = ExitValue.NoError
+        Else
+            console_result = ExitValue.Error
         End If
     End Sub
 
@@ -490,7 +492,6 @@ Public Class ConsoleMode
             End If
             Dim data_out() As Byte = Utilities.FileIO.ReadBytes(MyOperation.FILE_IO.FullName, MyOperation.DATA_LENGTH)
             If data_out Is Nothing OrElse data_out.Length = 0 Then
-                Environment.ExitCode = -1
                 PrintConsole("Error: Write was not successful because there is no data to write")
                 Return False
             End If
@@ -507,8 +508,8 @@ Public Class ConsoleMode
                 Return True
             Else
                 PrintConsole("Error, write operation was not successful")
+                Return False
             End If
-            Return False
         Catch
             Return False
         Finally
@@ -575,16 +576,18 @@ Public Class ConsoleMode
 
     Private Function ConsoleMode_RunTask_ExecuteScript(mem_dev As MemoryInterface.MemoryDeviceInstance) As Boolean
         MainApp.CURRENT_DEVICE_MODE = MyOperation.Mode
-        If Not MainApp.ScriptProcessor.LoadFile(MyOperation.FILE_IO) Then
-            Environment.ExitCode = -1
-            Return False
+        Dim script_text() As String = Utilities.FileIO.ReadFile(MyOperation.FILE_IO.FullName)
+        If MainApp.ScriptProcessor.RunScript(script_text) Then
+            Dim o As Object = MainApp.ScriptProcessor.CurrentVars.GetValue("ERROR")
+            If o IsNot Nothing Then
+                If o.GetType Is GetType(Boolean) Then
+                    Return (Not DirectCast(o, Boolean))
+                End If
+            End If
+            Return True
         Else
-            Utilities.Sleep(100)
-            While MainApp.ScriptProcessor.IsRunning
-                Utilities.Sleep(20)
-            End While
+            Return False
         End If
-        Return True
     End Function
     ' Frees up memory and exits the application and console io calls
     Private Sub Console_Exit()
@@ -606,7 +609,7 @@ Public Class ConsoleMode
             MainApp.MAIN_FCUSB.USB_LEDOff()
             MainApp.MAIN_FCUSB.Disconnect()
         End If
-        Environment.Exit(-1)
+        Environment.Exit(Me.console_result)
     End Sub
 
     Private Sub ConsoleMode_Check()
@@ -704,6 +707,7 @@ Public Class ConsoleMode
     Private ProgressBarLastSpeed As String = ""
 
     Public Sub Progress_Create()
+        PrintConsole("")
         ProgressBarEnabled = True
         Progress_Set(0)
     End Sub

@@ -695,19 +695,21 @@ Namespace SPI
             Return False
         End Function
 
-        Public Function SPIBUS_WriteRead(WriteBuffer() As Byte, Optional ByRef ReadBuffer() As Byte = Nothing) As UInt32
+        Public Function SPIBUS_WriteRead(WriteBuffer() As Byte, Optional ByRef ReadBuffer() As Byte = Nothing) As Integer
+            Dim Result As Boolean = True
             If WriteBuffer Is Nothing And ReadBuffer Is Nothing Then Return 0
-            Dim TotalBytesTransfered As UInt32 = 0
+            Dim TotalBytesTransfered As Integer = 0
             SPIBUS_SlaveSelect_Enable()
             If (WriteBuffer IsNot Nothing) Then
-                Dim Result As Boolean = SPIBUS_WriteData(WriteBuffer)
+                Result = SPIBUS_WriteData(WriteBuffer)
                 If Result Then TotalBytesTransfered += CUInt(WriteBuffer.Length)
             End If
-            If (ReadBuffer IsNot Nothing) Then
-                Dim Result As Boolean = SPIBUS_ReadData(ReadBuffer)
+            If (ReadBuffer IsNot Nothing) AndAlso Result Then
+                Result = SPIBUS_ReadData(ReadBuffer)
                 If Result Then TotalBytesTransfered += CUInt(ReadBuffer.Length)
             End If
             SPIBUS_SlaveSelect_Disable()
+            If Not Result Then Return -1
             Return TotalBytesTransfered
         End Function
         'Makes the CS/SS pin go low
@@ -733,7 +735,7 @@ Namespace SPI
                 Return False
             End Try
             If Not Success Then RaiseEvent PrintConsole(RM.GetString("spi_error_writing"))
-            Return True
+            Return Success
         End Function
 
         Private Function SPIBUS_ReadData(ByRef Data_In() As Byte) As Boolean

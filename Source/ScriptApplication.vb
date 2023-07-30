@@ -123,7 +123,7 @@ Public Module ScriptApplication
 
     Private Function c_mem_size(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If (MEM_IF.GetDevice(CInt(Index)).Size > CLng(Int32.MaxValue)) Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device is larger than 2GB"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Memory device is larger than 2GB"}
         End If
         Dim size_value As Int32 = CInt(MEM_IF.GetDevice(CInt(Index)).Size)
         Dim sv As New ScriptVariable(CreateVarName(), DataType.Integer)
@@ -132,6 +132,7 @@ Public Module ScriptApplication
     End Function
 
     Private Function c_mem_write(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
+        Dim write_result As Boolean
         Dim data_to_write() As Byte = CType(arguments(0).Value, Byte())
         Dim offset As UInt32 = CUInt(arguments(1).Value)
         Dim data_len As Int32 = data_to_write.Length
@@ -139,7 +140,7 @@ Public Module ScriptApplication
         ReDim Preserve data_to_write(data_len - 1)
         Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(CInt(Index))
         If mem_device Is Nothing Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Memory device not connected"}
         End If
         Dim cb As New MemoryDeviceInstance.StatusCallback
         cb.UpdatePercent = New UpdateFunction_Progress(AddressOf MainApp.ProgressBar_Percent)
@@ -149,25 +150,25 @@ Public Module ScriptApplication
         ProgressBar_SetDevice(mem_device)
         ProgressBar_Percent(0)
         Try
-            Dim write_result As Boolean = mem_device.WriteBytes(offset, data_to_write, MySettings.VERIFY_WRITE, cb)
+            write_result = mem_device.WriteBytes(offset, data_to_write, MySettings.VERIFY_WRITE, cb)
             If write_result Then
                 PrintConsole("Sucessfully programmed " & data_len.ToString("N0") & " bytes")
             Else
-                PrintConsole("Canceled memory write operation")
+                PrintConsole("Memory write operation did not complete")
             End If
         Catch ex As Exception
         Finally
-            MEM_IF.GetDevice(CInt(Index)).EnableGuiControls()
-            MEM_IF.GetDevice(CInt(Index)).FCUSB.USB_LEDOn()
+            mem_device.EnableGuiControls()
+            mem_device.FCUSB.USB_LEDOn()
             ProgressBar_Dispose()
         End Try
-        Return Nothing
+        Return New ScriptVariable(CreateVarName(), DataType.Bool, write_result)
     End Function
 
     Private Function c_mem_read(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(CInt(Index))
         If mem_device Is Nothing Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Memory device not connected"}
         End If
         Dim offset As UInt32 = CUInt(arguments(0).Value)
         Dim count As Int32 = CInt(arguments(1).Value)
@@ -185,6 +186,7 @@ Public Module ScriptApplication
         Try
             Dim data_read() As Byte = Nothing
             data_read = mem_device.ReadBytes(offset, count, cb)
+            If data_read Is Nothing Then Return New ScriptVariable(CreateVarName(), DataType.Error, "Error reading from memory device")
             sv.Value = data_read
         Catch ex As Exception
         Finally
@@ -197,7 +199,7 @@ Public Module ScriptApplication
     Private Function c_mem_wait(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(CInt(Index))
         If mem_device Is Nothing Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Memory device not connected"}
         End If
         mem_device.WaitUntilReady()
         Return Nothing
@@ -206,13 +208,13 @@ Public Module ScriptApplication
     Private Function c_mem_readstring(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(CInt(Index))
         If mem_device Is Nothing Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Memory device not connected"}
         End If
         Dim offset As UInt32 = CUInt(arguments(0).Value)
         Dim sv As New ScriptVariable(CreateVarName(), DataType.String)
         Dim FlashSize As UInt32 = CUInt(mem_device.Size)
         If offset + 1 > FlashSize Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Offset is greater than flash size"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Offset is greater than flash size"}
         End If
         Dim strBuilder As String = ""
         For i = offset To FlashSize - 1
@@ -233,7 +235,7 @@ Public Module ScriptApplication
     Private Function c_mem_readverify(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(CInt(Index))
         If mem_device Is Nothing Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Memory device not connected"}
         End If
         Dim FlashAddress As UInt32 = CUInt(arguments(0).Value)
         Dim FlashLen As Int32 = CInt(arguments(1).Value)
@@ -259,7 +261,7 @@ Public Module ScriptApplication
     Private Function c_mem_sectorcount(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(CInt(Index))
         If mem_device Is Nothing Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Memory device not connected"}
         End If
         Dim sector_count As Int32 = CInt(mem_device.GetSectorCount)
         Dim sv As New ScriptVariable(CreateVarName(), DataType.Integer)
@@ -270,7 +272,7 @@ Public Module ScriptApplication
     Private Function c_mem_sectorsize(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(CInt(Index))
         If mem_device Is Nothing Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Memory device not connected"}
         End If
         Dim sector_int As Int32 = CInt(arguments(0).Value)
         Dim sector_size As Integer = mem_device.GetSectorSize(sector_int)
@@ -282,7 +284,7 @@ Public Module ScriptApplication
     Private Function c_mem_erasesector(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(CInt(Index))
         If mem_device Is Nothing Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Memory device not connected"}
         End If
         Dim mem_sector As Int32 = CInt(arguments(0).Value)
         mem_device.EraseSector(mem_sector)
@@ -301,7 +303,7 @@ Public Module ScriptApplication
     Private Function c_mem_erasebulk(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim mem_device As MemoryDeviceInstance = MEM_IF.GetDevice(CInt(Index))
         If mem_device Is Nothing Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Memory device not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Memory device not connected"}
         End If
         Try
             MEM_IF.GetDevice(CInt(Index)).DisableGuiControls()
@@ -332,7 +334,7 @@ Public Module ScriptApplication
     Private Function c_spi_writeenable(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         Dim current_if() As MemoryDeviceInstance = MEM_IF.GetDevices()
         If current_if Is Nothing Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "A SPI/QSPI memory device must be connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "A SPI/QSPI memory device must be connected"}
         End If
         If CURRENT_DEVICE_MODE = DeviceMode.SPI Then
             Dim SPI_IF As SPI.SPI_Programmer = CType(current_if(0).MEM_IF, SPI.SPI_Programmer)
@@ -403,16 +405,16 @@ Public Module ScriptApplication
         If CURRENT_DEVICE_MODE = DeviceMode.SPI Then
         ElseIf CURRENT_DEVICE_MODE = DeviceMode.SQI Then
         Else
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Device is not in SPI/QUAD operation mode"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Device is not in SPI/QUAD operation mode"}
         End If
         If Not MAIN_FCUSB.IS_CONNECTED Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "FlashcatUSB device is not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "FlashcatUSB device is not connected"}
         End If
         Dim bytes_to_read As Int32 = 1
         If arguments.Length > 0 Then bytes_to_read = CInt(arguments(0).Value)
         Dim current_if() As MemoryDeviceInstance = MEM_IF.GetDevices()
         If current_if Is Nothing Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "A SPI/QSPI memory device must be connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "A SPI/QSPI memory device must be connected"}
         End If
         Dim sv As New ScriptVariable(CreateVarName(), DataType.Data)
         If CURRENT_DEVICE_MODE = DeviceMode.SPI Then
@@ -429,14 +431,14 @@ Public Module ScriptApplication
         If CURRENT_DEVICE_MODE = DeviceMode.SPI Then
         ElseIf CURRENT_DEVICE_MODE = DeviceMode.SQI Then
         Else
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Device is not in SPI/QUAD operation mode"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Device is not in SPI/QUAD operation mode"}
         End If
         If Not MAIN_FCUSB.IS_CONNECTED Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "FlashcatUSB device is not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "FlashcatUSB device is not connected"}
         End If
         Dim current_if() As MemoryDeviceInstance = MEM_IF.GetDevices()
         If current_if Is Nothing Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "A SPI/QSPI memory device must be connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "A SPI/QSPI memory device must be connected"}
         End If
         Dim data_out() As Byte = CType(arguments(0).Value, Byte())
         If CURRENT_DEVICE_MODE = DeviceMode.SPI Then
@@ -453,14 +455,14 @@ Public Module ScriptApplication
         If CURRENT_DEVICE_MODE = DeviceMode.SPI Then
         ElseIf CURRENT_DEVICE_MODE = DeviceMode.SQI Then
         Else
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Device is not in SPI/QUAD operation mode"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Device is not in SPI/QUAD operation mode"}
         End If
         If Not MAIN_FCUSB.IS_CONNECTED Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "FlashcatUSB device is not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "FlashcatUSB device is not connected"}
         End If
         Dim current_if() As MemoryDeviceInstance = MEM_IF.GetDevices()
         If current_if Is Nothing Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "A SPI/QSPI memory device must be connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "A SPI/QSPI memory device must be connected"}
         End If
         Dim DataToWrite() As Byte = CType(arguments(0).Value, Byte())
         Dim ReadBack As Int32 = 0
@@ -468,10 +470,12 @@ Public Module ScriptApplication
         If CURRENT_DEVICE_MODE = DeviceMode.SPI Then
             Dim SPI_IF As SPI.SPI_Programmer = CType(current_if(0).MEM_IF, SPI.SPI_Programmer)
             If ReadBack = 0 Then
-                SPI_IF.SPIBUS_WriteRead(DataToWrite)
+                Dim bytes_count As Integer = SPI_IF.SPIBUS_WriteRead(DataToWrite)
+                If (bytes_count = -1) Then Return New ScriptVariable(CreateVarName(), DataType.Error, "SPI Communication Error")
             Else
                 Dim return_data(ReadBack - 1) As Byte
-                SPI_IF.SPIBUS_WriteRead(DataToWrite, return_data)
+                Dim bytes_count As Integer = SPI_IF.SPIBUS_WriteRead(DataToWrite, return_data)
+                If (bytes_count = -1) Then Return New ScriptVariable(CreateVarName(), DataType.Error, "SPI Communication Error")
                 Dim sv As New ScriptVariable(CreateVarName(), DataType.Data)
                 sv.Value = return_data
                 Return sv
@@ -493,9 +497,9 @@ Public Module ScriptApplication
 
     Private Function c_spi_prog(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If Not CURRENT_DEVICE_MODE = DeviceMode.SPI Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Device is not in SPI operation mode"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Device is not in SPI operation mode"}
         ElseIf Not MAIN_FCUSB.IS_CONNECTED Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "FlashcatUSB device is not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "FlashcatUSB device is not connected"}
         End If
         Dim SPI_IF As New SPI.SPI_Programmer(MAIN_FCUSB)
         Dim state As Integer = CInt(arguments(0).Value)
@@ -532,7 +536,7 @@ Public Module ScriptApplication
                 Case "ARM"
                     MAIN_FCUSB.JTAG_IF.Configure(JTAG.PROCESSOR.ARM)
                 Case Else
-                    Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Unknown mode: " & CStr(arguments(0).Value)}
+                    Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Unknown mode: " & CStr(arguments(0).Value)}
             End Select
         Else
             MAIN_FCUSB.JTAG_IF.Configure(JTAG.PROCESSOR.NONE)
@@ -542,7 +546,7 @@ Public Module ScriptApplication
 
     Private Function c_jtag_select(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "JTAG operations are not currently valid"}
         End If
         Dim select_index As Integer = CInt(arguments(0).Value)
         If MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
@@ -627,7 +631,7 @@ Public Module ScriptApplication
                     PrintConsole(RM.GetString("jtag_spi_no_detect")) '"Error: unable to detect SPI flash device over JTAG"
                 End If
             Case Else
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Error in JTAG.MemoryInit: device type not specified"}
+                Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Error in JTAG.MemoryInit: device type not specified"}
         End Select
         If new_dev IsNot Nothing Then
             Return New ScriptVariable(CreateVarName(), DataType.UInteger) With {.Value = (MEM_IF.DeviceCount - 1)}
@@ -654,7 +658,7 @@ Public Module ScriptApplication
 
     Private Function c_jtag_runsvf(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "JTAG operations are not currently valid"}
         End If
         ProgressBar_Percent(0)
         RemoveHandler MAIN_FCUSB.JTAG_IF.JSP.Progress, AddressOf ProgressBar_Percent
@@ -677,7 +681,7 @@ Public Module ScriptApplication
 
     Private Function c_jtag_runxsvf(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "JTAG operations are not currently valid"}
         End If
         ProgressBar_Percent(0)
         RemoveHandler MAIN_FCUSB.JTAG_IF.JSP.Progress, AddressOf ProgressBar_Percent
@@ -699,7 +703,7 @@ Public Module ScriptApplication
 
     Private Function c_jtag_shiftdr(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "JTAG operations are not currently valid"}
         End If
         Dim exit_mode As Boolean = True
         Dim data_in() As Byte = CType(arguments(0).Value, Byte())
@@ -714,7 +718,7 @@ Public Module ScriptApplication
 
     Private Function c_jtag_shiftir(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "JTAG operations are not currently valid"}
         End If
         Dim exit_mode As Boolean = True
         Dim data_in() As Byte = CType(arguments(0).Value, Byte())
@@ -726,7 +730,7 @@ Public Module ScriptApplication
 
     Private Function c_jtag_shiftout(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "JTAG operations are not currently valid"}
         End If
         Dim tdi_data() As Byte = CType(arguments(0).Value, Byte())
         Dim bit_count As Integer = CInt(arguments(1).Value)
@@ -741,7 +745,7 @@ Public Module ScriptApplication
 
     Private Function c_jtag_tapreset(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "JTAG operations are not currently valid"}
         End If
         MAIN_FCUSB.JTAG_IF.Reset_StateMachine()
         Return Nothing
@@ -749,7 +753,7 @@ Public Module ScriptApplication
 
     Private Function c_jtag_write32(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "JTAG operations are not currently valid"}
         End If
         Dim addr32 As UInt32 = CUInt(arguments(0).Value)
         Dim data As UInt32 = CUInt(arguments(1).Value)
@@ -759,7 +763,7 @@ Public Module ScriptApplication
 
     Private Function c_jtag_read32(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "JTAG operations are not currently valid"}
         End If
         Dim addr32 As UInt32 = CUInt(arguments(0).Value)
         Dim sv As New ScriptVariable(CreateVarName(), DataType.UInteger)
@@ -769,7 +773,7 @@ Public Module ScriptApplication
 
     Private Function c_jtag_state(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If MAIN_FCUSB Is Nothing OrElse Not MAIN_FCUSB.JTAG_IF.Chain_IsValid Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG operations are not currently valid"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "JTAG operations are not currently valid"}
         End If
         Dim state_str As String = CStr(arguments(0).Value)
         Select Case state_str.ToUpper
@@ -804,7 +808,7 @@ Public Module ScriptApplication
             Case "Update_IR".ToUpper
                 MAIN_FCUSB.JTAG_IF.TAP_GotoState(JTAG_MACHINE_STATE.Update_IR)
             Case Else
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "JTAG.State: unknown state: " & state_str}
+                Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "JTAG.State: unknown state: " & state_str}
         End Select
         Return Nothing
     End Function
@@ -909,13 +913,13 @@ Public Module ScriptApplication
 
     Private Function c_bsp_setup(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If MAIN_FCUSB Is Nothing Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "FlashcatUSB Professional must be connected via USB"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "FlashcatUSB Professional must be connected via USB"}
         End If
         If Not MAIN_FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional_PCB5 Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "This command is only supported for FlashcatUSB Professional"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "This command is only supported for FlashcatUSB Professional"}
         End If
         If Not MySettings.OPERATION_MODE = DeviceMode.JTAG Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "This command is only supported when in JTAG mode"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "This command is only supported when in JTAG mode"}
         End If
         MAIN_FCUSB.JTAG_IF.BoundaryScan_Setup()
         Return Nothing
@@ -969,7 +973,7 @@ Public Module ScriptApplication
             Case USB.FCUSB_BOARD.Professional_PCB5
             Case USB.FCUSB_BOARD.Mach1
             Case Else
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Only available for PRO or MACH1"}
+                Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Only available for PRO or MACH1"}
         End Select
         MAIN_FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.FW_REBOOT, Nothing, &HFFFFFFFFUI)
         Return Nothing
@@ -984,7 +988,7 @@ Public Module ScriptApplication
                 MAIN_FCUSB.LOGIC_SetVersion(&HFFFFFFFFUI)
                 FCUSBMACH1_Init(MAIN_FCUSB, MySettings.OPERATION_MODE)
             Case Else
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Only available for PRO or MACH1"}
+                Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Only available for PRO or MACH1"}
         End Select
         Return Nothing
     End Function
@@ -1002,7 +1006,7 @@ Public Module ScriptApplication
             Case USB.FCUSB_BOARD.Professional_PCB5
             Case USB.FCUSB_BOARD.Mach1
             Case Else
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Only available for PRO or MACH1"}
+                Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Only available for PRO or MACH1"}
         End Select
         Dim bl_data() As Byte = CType(arguments(0).Value, Byte())
         If bl_data IsNot Nothing AndAlso bl_data.Length > 0 Then
@@ -1023,7 +1027,7 @@ Public Module ScriptApplication
         Select Case MAIN_FCUSB.HWBOARD
             Case USB.FCUSB_BOARD.Classic
             Case Else
-                Return New ScriptVariable("ERROR", DataType.FncError, "Only available for Classic")
+                Return New ScriptVariable("ERROR", DataType.Error, "Only available for Classic")
         End Select
         Dim bl_data() As Byte = CType(arguments(0).Value, Byte())
         Dim eeprom_addr As UInt32 = 0
@@ -1044,14 +1048,14 @@ Public Module ScriptApplication
         Select Case MAIN_FCUSB.HWBOARD
             Case USB.FCUSB_BOARD.Classic
             Case Else
-                Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Only available for Classic"}
+                Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Only available for Classic"}
         End Select
         Dim size As Integer = 64
         Dim eeprom_addr As UInt32 = 0
         If arguments.Length > 0 Then size = CType(arguments(0).Value, Integer)
         Dim eeprom(size - 1) As Byte
         Dim result As Boolean = MAIN_FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.EEPROM_RD, eeprom, (CUInt(size) << 16) Or eeprom_addr)
-        If Not result Then Return New ScriptVariable("ERROR", DataType.FncError, "Unable to read EEPROM")
+        If Not result Then Return New ScriptVariable("ERROR", DataType.Error, "Unable to read EEPROM")
         Return New ScriptVariable(CreateVarName(), DataType.Data, eeprom)
     End Function
 
@@ -1100,9 +1104,9 @@ Public Module ScriptApplication
 
     Friend Function c_parallel_test(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If Not CURRENT_DEVICE_MODE = DeviceMode.PNOR Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Device is not in parallel operation mode"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Device is not in parallel operation mode"}
         ElseIf Not MAIN_FCUSB.IS_CONNECTED Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "FlashcatUSB device is not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "FlashcatUSB device is not connected"}
         End If
         Dim PNOR_IF As New PARALLEL_NOR(MAIN_FCUSB)
         Dim td As New Thread(AddressOf PNOR_IF.PARALLEL_PORT_TEST)
@@ -1112,9 +1116,9 @@ Public Module ScriptApplication
 
     Friend Function c_parallel_command(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If Not CURRENT_DEVICE_MODE = DeviceMode.PNOR Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Device is not in parallel operation mode"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Device is not in parallel operation mode"}
         ElseIf Not MAIN_FCUSB.IS_CONNECTED Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "FlashcatUSB device is not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "FlashcatUSB device is not connected"}
         End If
         Dim PNOR_IF As New PARALLEL_NOR(MAIN_FCUSB)
         Dim cmd_addr As UInt32 = CUInt(arguments(0).Value)
@@ -1125,9 +1129,9 @@ Public Module ScriptApplication
 
     Friend Function c_parallel_write(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If Not CURRENT_DEVICE_MODE = DeviceMode.PNOR Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Device is not in parallel operation mode"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Device is not in parallel operation mode"}
         ElseIf Not MAIN_FCUSB.IS_CONNECTED Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "FlashcatUSB device is not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "FlashcatUSB device is not connected"}
         End If
         Dim PNOR_IF As New PARALLEL_NOR(MAIN_FCUSB)
         Dim cmd_addr As UInt32 = CUInt(arguments(0).Value)
@@ -1138,9 +1142,9 @@ Public Module ScriptApplication
 
     Friend Function c_parallel_read(arguments() As ScriptVariable, Index As Int32) As ScriptVariable
         If Not CURRENT_DEVICE_MODE = DeviceMode.PNOR Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "Device is not in parallel operation mode"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "Device is not in parallel operation mode"}
         ElseIf Not MAIN_FCUSB.IS_CONNECTED Then
-            Return New ScriptVariable("ERROR", DataType.FncError) With {.Value = "FlashcatUSB device is not connected"}
+            Return New ScriptVariable("ERROR", DataType.Error) With {.Value = "FlashcatUSB device is not connected"}
         End If
         Dim PNOR_IF As New PARALLEL_NOR(MAIN_FCUSB)
         Dim cmd_addr As UInt32 = CUInt(arguments(0).Value)

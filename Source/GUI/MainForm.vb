@@ -2024,91 +2024,73 @@ Public Class MainForm
         Else
             mi_script_selected.DropDownItems.Clear()
             MainApp.PrintConsole(RM.GetString("gui_script_checking"))
-            Dim MyScripts(,) As String = GetCompatibleScripts(JEDEC_ID)
+            Dim MyScripts() As AutoRunScript = GetCompatibleScripts(JEDEC_ID)
             Dim SelectScript As Integer = 0
+            Dim ScriptToLoad As String = ""
             If MyScripts Is Nothing Then
                 MainApp.PrintConsole(RM.GetString("gui_script_non_available"))
-            ElseIf (MyScripts.Length / 2) = 1 Then
-                MainApp.PrintConsole(String.Format(RM.GetString("gui_script_loading"), MyScripts(0, 0)))
-                If ScriptProcessor.LoadFile(New IO.FileInfo(ScriptPath & MyScripts(0, 0))) Then
-                    UpdateStatusMessage(RM.GetString("gui_active_script"), MyScripts(0, 1))
-                    mi_script_selected.Enabled = True
-                    mi_script_load.Enabled = True
-                    mi_script_unload.Enabled = True
-                    Dim tsi As ToolStripMenuItem = CType(mi_script_selected.DropDownItems.Add(MyScripts(0, 0)), ToolStripMenuItem)
-                    tsi.Tag = New script_option With {.file_name = MyScripts(0, 0), .jedec_id = JEDEC_ID}
-                    AddHandler tsi.Click, AddressOf LoadSelectedScript
-                    tsi.Checked = True
-                End If
+            ElseIf MyScripts.Length = 1 Then
+                mi_script_selected.Enabled = True
+                mi_script_load.Enabled = True
+                mi_script_unload.Enabled = True
+                Dim tsi As ToolStripMenuItem = CType(mi_script_selected.DropDownItems.Add(MyScripts(0).DeviceName), ToolStripMenuItem)
+                tsi.Tag = New script_option With {.file_name = MyScripts(0).FileName, .jedec_id = JEDEC_ID}
+                AddHandler tsi.Click, AddressOf LoadSelectedScript
+                tsi.Checked = True
+                ScriptToLoad = MyScripts(0).FileName
             Else 'Multiple scripts (choose preferrence)
                 Dim pre_script_name As String = MySettings.GetPrefferedScript(JEDEC_ID)
                 mi_script_selected.Enabled = True
                 mi_script_load.Enabled = True
                 mi_script_unload.Enabled = True
-                For i = 0 To CInt((MyScripts.Length / 2) - 1)
-                    Dim tsi As ToolStripMenuItem = CType(mi_script_selected.DropDownItems.Add(MyScripts(i, 1)), ToolStripMenuItem)
-                    tsi.Tag = New script_option With {.file_name = MyScripts(i, 0), .jedec_id = JEDEC_ID}
+                For i = 0 To MyScripts.Length - 1
+                    Dim tsi As ToolStripMenuItem = CType(mi_script_selected.DropDownItems.Add(MyScripts(i).DeviceName), ToolStripMenuItem)
+                    tsi.Tag = New script_option With {.file_name = MyScripts(i).FileName, .jedec_id = JEDEC_ID}
                     AddHandler tsi.Click, AddressOf LoadSelectedScript
-                    If pre_script_name = "" AndAlso i = 0 Then
-                        tsi.Checked = True
-                    ElseIf pre_script_name.ToUpper = MyScripts(i, 0).ToUpper Then
+                    If i = 0 OrElse pre_script_name.ToUpper.Equals(MyScripts(i).FileName) Then
                         tsi.Checked = True
                         SelectScript = i
                     End If
                 Next
-                UpdateStatusMessage(RM.GetString("gui_active_script"), MyScripts(SelectScript, 0))
-                Dim df As New IO.FileInfo(ScriptPath & MyScripts(SelectScript, 0))
-                ScriptProcessor.LoadFile(df)
+                ScriptToLoad = MyScripts(SelectScript).FileName
+            End If
+            If Not ScriptToLoad.Equals("") Then
+                Dim df As New IO.FileInfo(ScriptPath & ScriptToLoad)
+                Dim script_text() As String = Utilities.FileIO.ReadFile(df.FullName)
+                If script_text IsNot Nothing Then ScriptProcessor.RunScriptAsync(script_text)
             End If
         End If
     End Sub
 
-    Private Function GetCompatibleScripts(CPUID As UInteger) As String(,)
-        Dim Autorun As New IO.FileInfo(ScriptPath & "autorun.ini")
-        If Autorun.Exists Then
-            Dim autoscripts(,) As String = Nothing
-            If ProcessAutorun(Autorun, CPUID, autoscripts) Then
-                Return autoscripts
-            End If
-        End If
-        Return Nothing
-    End Function
-
-    Private Function ProcessAutorun(Autorun As IO.FileInfo, ID As UInteger, ByRef scripts(,) As String) As Boolean
+    Private Function GetCompatibleScripts(CPUID As UInteger) As AutoRunScript()
         Try
-            Dim f() As String = Utilities.FileIO.ReadFile(Autorun.FullName)
-            Dim autoline() As String
-            Dim sline As String
-            Dim MyCode As UInteger
-            Dim out As New ArrayList 'Holds str()
-            For Each sline In f
-                sline = Trim(Utilities.RemoveComment(sline))
-                If Not sline = "" Then
-                    autoline = sline.Split(CChar(":"))
-                    If autoline.Length = 3 Then
-                        MyCode = Utilities.HexToUInt(autoline(0))
-                        If MyCode = ID Then
-                            out.Add(New String() {autoline(1), autoline(2)})
-                        End If
+            Dim ScriptList As New List(Of AutoRunScript)
+            Dim Autorun As New IO.FileInfo(ScriptPath & "autorun.ini")
+            If Autorun.Exists Then
+                Dim f() As String = Utilities.FileIO.ReadFile(Autorun.FullName)
+                For Each line In f
+                    line = Utilities.RemoveComment(line).Trim
+                    If Not line.Equals("") Then
+                        Dim autoline() As String = line.Split(CChar(":"))
+                        Dim n As AutoRunScript
+                        n.JEDECID = Utilities.HexToUInt(autoline(0))
+                        n.FileName = autoline(1)
+                        n.DeviceName = autoline(2)
+                        ScriptList.Add(n)
                     End If
-                End If
-            Next
-            If out.Count > 0 Then
-                Dim ret(out.Count - 1, 1) As String
-                Dim i As Integer
-                Dim s() As String
-                For i = 0 To out.Count - 1
-                    s = CType(out(i), String())
-                    ret(i, 0) = s(0)
-                    ret(i, 1) = s(1)
                 Next
-                scripts = ret
-                Return True 'Scripts are available
+                If ScriptList.Count > 0 Then Return ScriptList.ToArray()
             End If
         Catch ex As Exception
         End Try
-        Return False
+        Return Nothing
     End Function
+
+    Private Structure AutoRunScript
+        Public JEDECID As UInt32 'the JEDEC ID this script is for
+        Public DeviceName As String
+        Public FileName As String
+    End Structure
 
     Private Sub mi_script_unload_Click(sender As Object, e As EventArgs) Handles mi_script_unload.Click
         Try
@@ -2128,7 +2110,23 @@ Public Class MainForm
         End If
     End Sub
 
-    Public Sub UnloadActiveScript()
+    Private Sub RunActiveScript(scriptName As String)
+        PrintConsole(String.Format(RM.GetString("gui_script_loading"), scriptName))
+        Dim f As New IO.FileInfo(scriptName)
+        If Not f.Exists Then
+            SetStatus(RM.GetString("gui_script_can_not_load"))
+            Exit Sub
+        End If
+        UnloadActiveScript()
+        Dim script_text() As String = Utilities.FileIO.ReadFile(f.FullName)
+        If script_text IsNot Nothing AndAlso ScriptProcessor.RunScriptAsync(script_text) Then
+            UpdateStatusMessage(RM.GetString("gui_active_script"), f.Name)
+            SetStatus(String.Format(RM.GetString("gui_script_loaded"), f.Name)) 'RM.GetString("fcusb_script_loaded")
+            mi_script_unload.Enabled = True
+        End If
+    End Sub
+
+    Private Sub UnloadActiveScript()
         ScriptProcessor.Unload()
         RemoveUserTabs()
         Application.DoEvents()
@@ -2146,30 +2144,16 @@ Public Class MainForm
             Dim FcFname As String = "FlachcatUSB Scripts (*.fcs)|*.fcs"
             Dim AllF As String = "All files (*.*)|*.*"
             OpenMe.Filter = FcFname & "|" & AllF
-            If OpenMe.ShowDialog = DialogResult.OK Then LoadScriptFile(OpenMe.FileName)
+            If OpenMe.ShowDialog = DialogResult.OK Then RunActiveScript(OpenMe.FileName)
         Catch ex As Exception
         End Try
-    End Sub
-
-    Private Sub LoadScriptFile(scriptName As String)
-        Dim f As New IO.FileInfo(scriptName)
-        If Not f.Exists Then
-            SetStatus(RM.GetString("gui_script_can_not_load"))
-            Exit Sub
-        End If
-        UnloadActiveScript()
-        If ScriptProcessor.LoadFile(f) Then
-            UpdateStatusMessage(RM.GetString("gui_active_script"), f.Name)
-            SetStatus(String.Format(RM.GetString("gui_script_loaded"), f.Name)) 'RM.GetString("fcusb_script_loaded")
-            mi_script_unload.Enabled = True
-        End If
     End Sub
 
     Private Sub LoadSelectedScript(sender As Object, e As EventArgs)
         Dim tsi As ToolStripMenuItem = CType(sender, ToolStripMenuItem)
         If (Not tsi.Checked) Then
             Dim scr_obj As script_option = DirectCast(tsi.Tag, script_option)
-            LoadScriptFile(Application.StartupPath & "\Scripts\" & scr_obj.file_name)
+            RunActiveScript(Application.StartupPath & "\Scripts\" & scr_obj.file_name)
             RemoveScriptChecks()
             tsi.Checked = True
             MySettings.SetPrefferedScript(scr_obj.file_name, scr_obj.jedec_id)

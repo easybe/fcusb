@@ -83,9 +83,6 @@ Namespace Utilities
                     Return byteArray
                 End If
             End Function
-
-
-
             'Converts a string into a byte array (does not add string terminator)
             Public Function FromChrString(str_in As String) As Byte()
                 If str_in Is Nothing OrElse str_in = "" Then Return Nothing

@@ -1,6 +1,6 @@
 
 Public Module Configuration
-    Public Const FC_BUILD As Integer = 635
+    Public Const FC_BUILD As Integer = 636
     Public Const PRO_PCB5_FW As Single = 1.15F 'This is the embedded firmware version for pro
     Public Const MACH1_PCB2_FW As Single = 2.27F 'Firmware version for Mach1
     Public Const XPORT_PCB2_FW As Single = 5.27F 'XPORT PCB 2.x

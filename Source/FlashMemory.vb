@@ -1162,8 +1162,13 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("Winbond W25Q01JV", SPI_3V, Gb001, &HEF, &H7021) With {.SEND_EN4B = True, .SQI_MODE = SPI_QUAD})
             FlashDB.Add(New SPI_NOR("Winbond W25Q512JV", SPI_3V, Mb512, &HEF, &H7020) With {.SEND_EN4B = True, .SQI_MODE = SPI_QUAD})
             FlashDB.Add(New SPI_NOR("Winbond W25Q256JV", SPI_3V, Mb256, &HEF, &H7019) With {.SEND_EN4B = True, .SQI_MODE = SPI_QUAD})
+
+
             FlashDB.Add(New SPI_NOR("Winbond W25Q128JV", SPI_3V, Mb128, &HEF, &H7018) With {.SQI_MODE = SPI_QUAD})
             FlashDB.Add(New SPI_NOR("Winbond W25Q64JV", SPI_3V, Mb064, &HEF, &H7017) With {.SQI_MODE = SPI_QUAD})
+
+
+
             FlashDB.Add(New SPI_NOR("Winbond W25Q32JV", SPI_3V, Mb032, &HEF, &H7016) With {.SQI_MODE = SPI_QUAD})
             FlashDB.Add(New SPI_NOR("Winbond W25Q01", SPI_3V, Mb256, &HEF, &H4021) With {.SEND_EN4B = True, .SQI_MODE = SPI_QUAD})
             FlashDB.Add(New SPI_NOR("Winbond W25Q512", SPI_3V, Mb256, &HEF, &H4020) With {.SEND_EN4B = True, .SQI_MODE = SPI_QUAD})
