@@ -231,9 +231,22 @@ Namespace USB
         Public Property USBFLAG_OUT As UsbCtrlFlags
         Public Property USBFLAG_IN As UsbCtrlFlags
 
+        Public SPI_NOR_IF As New SPI_Programmer(Me)
+        Public SQI_NOR_IF As New SQI_Programmer(Me)
+        Public SPI_NAND_IF As New SPINAND_Programmer(Me)
+        Public PARALLEL_NOR_IF As New PARALLEL_NOR(Me)
+        Public PARALLEL_NAND_IF As New PARALLEL_NAND(Me)
+        Public FWH_IF As New FWH_Programmer(Me)
+        Public EPROM_IF As New EPROM_Programmer(Me)
+        Public HF_IF As New HF_Programmer(Me)
+        Public I2C_IF As New I2C_Programmer(Me)
+        Public MW_IF As New Microwire_Programmer(Me)
+        Public SWI_IF As New SWI_Programmer(Me)
+        Public DFU_IF As New DFU_Programmer(Me)
+
         Public JTAG_IF As New JTAG.JTAG_IF(Me)
 
-        Private ReadOnly Property USB_TIMEOUT_VALUE As Integer = DEFAULT_TIMEOUT
+        Private USB_TIMEOUT_VALUE As Integer = DEFAULT_TIMEOUT
 
         Public Event OnDisconnected(this_dev As FCUSB_DEVICE)
         Public Event OnUpdateProgress(device As FCUSB_DEVICE, percent As Integer)
@@ -254,6 +267,17 @@ Namespace USB
         Sub New(my_handle As UsbDevice)
             Me.USBHANDLE = my_handle
             Me.USB_PATH = GetDevicePath(my_handle.UsbRegistryInfo)
+            AddHandler SPI_NOR_IF.PrintConsole, AddressOf PrintConsole 'Lets set text output to the console
+            AddHandler SQI_NOR_IF.PrintConsole, AddressOf PrintConsole
+            AddHandler SPI_NAND_IF.PrintConsole, AddressOf PrintConsole
+            AddHandler I2C_IF.PrintConsole, AddressOf PrintConsole
+            AddHandler PARALLEL_NOR_IF.PrintConsole, AddressOf PrintConsole
+            AddHandler PARALLEL_NAND_IF.PrintConsole, AddressOf PrintConsole
+            AddHandler MW_IF.PrintConsole, AddressOf PrintConsole
+            AddHandler HF_IF.PrintConsole, AddressOf PrintConsole
+            AddHandler FWH_IF.PrintConsole, AddressOf PrintConsole
+            AddHandler EPROM_IF.PrintConsole, AddressOf PrintConsole
+            AddHandler DFU_IF.PrintConsole, AddressOf PrintConsole
             If (Me.HasLogic) Then
                 Me.USBFLAG_OUT = (UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Interface Or UsbCtrlFlags.Direction_Out)
                 Me.USBFLAG_IN = (UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Interface Or UsbCtrlFlags.Direction_In)
@@ -288,38 +312,35 @@ Namespace USB
             RaiseEvent OnDisconnected(Me)
         End Sub
 
-        Public Sub CreateProgrammer(dev As DeviceMode)
+        Public Sub SelectProgrammer(dev As DeviceMode)
             Select Case dev
                 Case DeviceMode.SPI
-                    Me.PROGRAMMER = New SPI_Programmer(Me)
+                    Me.PROGRAMMER = SPI_NOR_IF
                 Case DeviceMode.SQI
-                    Me.PROGRAMMER = New SQI_Programmer(Me)
+                    Me.PROGRAMMER = SQI_NOR_IF
                 Case DeviceMode.SPI_NAND
-                    Me.PROGRAMMER = New SPINAND_Programmer(Me)
+                    Me.PROGRAMMER = SPI_NAND_IF
                 Case DeviceMode.PNOR
-                    Me.PROGRAMMER = New PARALLEL_NOR(Me)
+                    Me.PROGRAMMER = PARALLEL_NOR_IF
                 Case DeviceMode.PNAND
-                    Me.PROGRAMMER = New PARALLEL_NAND(Me)
+                    Me.PROGRAMMER = PARALLEL_NAND_IF
                 Case DeviceMode.FWH
-                    Me.PROGRAMMER = New FWH_Programmer(Me)
+                    Me.PROGRAMMER = FWH_IF
                 Case DeviceMode.EPROM
-                    Me.PROGRAMMER = New EPROM_Programmer(Me)
+                    Me.PROGRAMMER = EPROM_IF
                 Case DeviceMode.HyperFlash
-                    Me.PROGRAMMER = New HF_Programmer(Me)
+                    Me.PROGRAMMER = HF_IF
                 Case DeviceMode.I2C_EEPROM
-                    Me.PROGRAMMER = New I2C_Programmer(Me)
+                    Me.PROGRAMMER = I2C_IF
                 Case DeviceMode.Microwire
-                    Me.PROGRAMMER = New Microwire_Programmer(Me)
+                    Me.PROGRAMMER = MW_IF
                 Case DeviceMode.ONE_WIRE
-                    Me.PROGRAMMER = New SWI_Programmer(Me)
+                    Me.PROGRAMMER = SWI_IF
                 Case DeviceMode.SPI_EEPROM
-                    Me.PROGRAMMER = New SPI_Programmer(Me)
+                    Me.PROGRAMMER = SPI_NOR_IF
                 Case DeviceMode.DFU
-                    Me.PROGRAMMER = New DFU_Programmer(Me)
-                Case Else
-                    Exit Sub
+                    Me.PROGRAMMER = DFU_IF
             End Select
-            AddHandler Me.PROGRAMMER.PrintConsole, AddressOf PrintConsole
         End Sub
 
         Private Sub PrintConsole(msg As String)

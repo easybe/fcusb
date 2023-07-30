@@ -16,6 +16,7 @@ Namespace SPI
         Public Property MyFlashDevice As SPI_NOR 'Contains the definition of the Flash device that is connected
         Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
         Public Property DIE_SELECTED As Integer = 0
+        Public Property W25M121AV_Mode As Boolean = False
         Public Property ExtendedPage As Boolean = False 'Indicates we should use extended pages
 
         Sub New(parent_if As FCUSB_DEVICE)
@@ -23,6 +24,7 @@ Namespace SPI
         End Sub
 
         Friend Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
+            Me.W25M121AV_Mode = False
             Me.ExtendedPage = False
             MyFlashStatus = DeviceStatus.NotDetected
             SPIBUS_WriteRead({&HC2, 0}) 'always select die 0
@@ -136,7 +138,7 @@ Namespace SPI
 
         Friend Function ReadData(flash_offset As Long, data_count As Integer) As Byte() Implements MemoryDeviceUSB.ReadData
             Dim flash_offset32 As UInt32 = CUInt(flash_offset)
-            'If W25M121AV_DETECTED Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
+            If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             Dim data_to_read(data_count - 1) As Byte
             Dim bytes_left As Integer = data_count
             Dim buffer_size As Integer = 0
@@ -177,7 +179,7 @@ Namespace SPI
 
         Friend Function WriteData(flash_offset As Long, data_to_write() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
             Dim flash_offset32 As UInt32 = CUInt(flash_offset)
-            'If W25M121AV_DETECTED Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
+            If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             Dim bytes_left As Integer = data_to_write.Length
             Dim buffer_size As Integer = 0
             Dim array_ptr As Integer = 0
@@ -226,7 +228,7 @@ Namespace SPI
         End Function
 
         Friend Function SectorErase(sector_index As Integer) As Boolean Implements MemoryDeviceUSB.SectorErase
-            'If W25M121AV_DETECTED Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
+            If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             If (Not MyFlashDevice.ERASE_REQUIRED) Then Return True 'Erase not needed
             Dim flash_offset As UInt32 = CUInt(Me.SectorFind(sector_index))
             If MyFlashDevice.ProgramMode = SPI_ProgramMode.Atmel45Series Then
@@ -253,7 +255,7 @@ Namespace SPI
         End Function
 
         Friend Function SectorWrite(sector_index As Integer, data() As Byte, Optional Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.SectorWrite
-            'If W25M121AV_DETECTED Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
+            If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             Dim Addr32 As Long = Me.SectorFind(sector_index)
             Return WriteData(Addr32, data, Params)
         End Function
@@ -261,7 +263,7 @@ Namespace SPI
         Friend Function EraseDevice() As Boolean Implements MemoryDeviceUSB.EraseDevice
             RaiseEvent PrintConsole(String.Format(RM.GetString("spi_erasing_flash_device"), Format(Me.DeviceSize, "#,###")))
             Dim erase_timer As New Stopwatch : erase_timer.Start()
-            'If W25M121AV_DETECTED Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
+            If Me.W25M121AV_Mode Then SPIBUS_WriteRead({&HC2, 0}) : WaitUntilReady()
             If MyFlashDevice.ProgramMode = FlashMemory.SPI_ProgramMode.Atmel45Series Then
                 SPIBUS_WriteRead({&HC7, &H94, &H80, &H9A}, Nothing) 'Chip erase command
                 Utilities.Sleep(100)
@@ -369,54 +371,6 @@ Namespace SPI
             End If
         End Sub
 
-        Private Sub LoadVendorSpecificConfigurations()
-            If (MyFlashDevice.ProgramMode = SPI_ProgramMode.Atmel45Series) Then 'May need to load the current page mode
-                Dim sr() As Byte = ReadStatusRegister() 'Some devices have 2 SR
-                Me.ExtendedPage = ((sr(0) And 1) = 0)
-                Dim page_size As UInt16 = CUShort(IIf(Me.ExtendedPage, MyFlashDevice.PAGE_SIZE_EXTENDED, MyFlashDevice.PAGE_SIZE))
-                RaiseEvent PrintConsole("Device configured to page size: " & page_size & " bytes")
-            End If
-            If (MyFlashDevice.MFG_CODE = &HBF) Then 'SST26VF016/SST26VF032 requires block protection to be removed in SQI only
-                If MyFlashDevice.ID1 = &H2601 Or MyFlashDevice.ID1 = &H2602 Then
-                    RaiseEvent PrintConsole("SQI mode must be used to remove block protection")
-                End If
-            ElseIf (MyFlashDevice.MFG_CODE = &H9D) Then 'ISSI
-                WriteStatusRegister({0}) 'Erase protection bits
-            End If
-            'If (MyFlashDevice.MFG_CODE = &HEF) AndAlso (MyFlashDevice.ID1 = &H4018) Then
-            '    SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady() 'Check to see if this device has two dies
-            '    Dim id As SPI_IDENT = ReadDeviceID()
-            '    If (id.RDID = &HEFAB2100UI) Then W25M121AV_DETECTED = True
-            'End If
-            If (MyFlashDevice.MFG_CODE = &H34) Then 'Cypress MFG ID
-                Dim SEMPER_SPI As Boolean = False
-                If MyFlashDevice.ID1 = &H2A19 Then SEMPER_SPI = True
-                If MyFlashDevice.ID1 = &H2A1A Then SEMPER_SPI = True
-                If MyFlashDevice.ID1 = &H2A1B Then SEMPER_SPI = True
-                If MyFlashDevice.ID1 = &H2B19 Then SEMPER_SPI = True
-                If MyFlashDevice.ID1 = &H2B1A Then SEMPER_SPI = True
-                If MyFlashDevice.ID1 = &H2B1B Then SEMPER_SPI = True
-                If SEMPER_SPI Then
-                    SPIBUS_WriteEnable() 'WRENB_0_0
-                    SPIBUS_WriteRead({&H71, 0, 0, 0, &H4, &H18}) 'Enables 512-byte buffer / 256KB sectors
-                End If
-                Dim SEMPER_SPI_HF As Boolean = False 'Semper HF/SPI version
-                If (MyFlashDevice.MFG_CODE = &H34) Then
-                    If MyFlashDevice.ID1 = &H6B AndAlso MyFlashDevice.ID2 = &H19 Then SEMPER_SPI_HF = True
-                    If MyFlashDevice.ID1 = &H6B AndAlso MyFlashDevice.ID2 = &H1A Then SEMPER_SPI_HF = True
-                    If MyFlashDevice.ID1 = &H6B AndAlso MyFlashDevice.ID2 = &H1B Then SEMPER_SPI_HF = True
-                    If MyFlashDevice.ID1 = &H6A AndAlso MyFlashDevice.ID2 = &H19 Then SEMPER_SPI_HF = True
-                    If MyFlashDevice.ID1 = &H6A AndAlso MyFlashDevice.ID2 = &H1A Then SEMPER_SPI_HF = True
-                    If MyFlashDevice.ID1 = &H6A AndAlso MyFlashDevice.ID2 = &H1B Then SEMPER_SPI_HF = True
-                End If
-                If SEMPER_SPI_HF Then
-                    SPIBUS_WriteEnable()
-                    SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.EWSR}) 'WRENV
-                    SPIBUS_WriteRead({&H71, 0, &H80, 0, 4, &H18}) 'Enables 512-byte buffer
-                End If
-            End If
-        End Sub
-
         Private Function ReadDeviceID() As SPI_IDENT
             Dim DEVICEID As New SPI_IDENT
             Dim rdid(5) As Byte
@@ -499,6 +453,56 @@ Namespace SPI
             SPIBUS_WriteRead({&HF0}) 'SPI RESET COMMAND
             'Other commands: 0x66 and 0x99
             Utilities.Sleep(10)
+        End Sub
+
+        Private Sub LoadVendorSpecificConfigurations()
+            If (MyFlashDevice.ProgramMode = SPI_ProgramMode.Atmel45Series) Then 'May need to load the current page mode
+                Dim sr() As Byte = ReadStatusRegister() 'Some devices have 2 SR
+                Me.ExtendedPage = ((sr(0) And 1) = 0)
+                Dim page_size As UInt16 = CUShort(IIf(Me.ExtendedPage, MyFlashDevice.PAGE_SIZE_EXTENDED, MyFlashDevice.PAGE_SIZE))
+                RaiseEvent PrintConsole("Device configured to page size: " & page_size & " bytes")
+            End If
+            If (MyFlashDevice.MFG_CODE = &HBF) Then 'SST26VF016/SST26VF032 requires block protection to be removed in SQI only
+                If MyFlashDevice.ID1 = &H2601 Or MyFlashDevice.ID1 = &H2602 Then
+                    RaiseEvent PrintConsole("SQI mode must be used to remove block protection")
+                End If
+            ElseIf (MyFlashDevice.MFG_CODE = &H9D) Then 'ISSI
+                WriteStatusRegister({0}) 'Erase protection bits
+            End If
+            If (MyFlashDevice.MFG_CODE = &HEF) AndAlso (MyFlashDevice.ID1 = &H4018) Then
+                SPIBUS_WriteRead({&HC2, 1}) : WaitUntilReady() 'Check to see if this device has two dies
+                Dim id As SPI_IDENT = ReadDeviceID()
+                If (id.RDID = &HEFAB2100UI) Then Me.W25M121AV_Mode = True
+            End If
+            If (MyFlashDevice.MFG_CODE = &H34) Then 'Cypress MFG ID
+                Dim SEMPER_SPI As Boolean = False
+                If MyFlashDevice.ID1 = &H2A19 Then SEMPER_SPI = True
+                If MyFlashDevice.ID1 = &H2A1A Then SEMPER_SPI = True
+                If MyFlashDevice.ID1 = &H2A1B Then SEMPER_SPI = True
+                If MyFlashDevice.ID1 = &H2B19 Then SEMPER_SPI = True
+                If MyFlashDevice.ID1 = &H2B1A Then SEMPER_SPI = True
+                If MyFlashDevice.ID1 = &H2B1B Then SEMPER_SPI = True
+                If SEMPER_SPI Then
+                    SPIBUS_WriteEnable()
+                    SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.EWSR})
+                    SPIBUS_WriteRead({MyFlashDevice.OP_COMMANDS.WRSR, 0, 0, &H88, &H18}) 'Set sector to uniform 256KB / 512B Page size
+                End If
+                Dim SEMPER_SPI_HF As Boolean = False 'Semper HF/SPI version
+                If (MyFlashDevice.MFG_CODE = &H34) Then
+                    If MyFlashDevice.ID1 = &H6B AndAlso MyFlashDevice.ID2 = &H19 Then SEMPER_SPI_HF = True
+                    If MyFlashDevice.ID1 = &H6B AndAlso MyFlashDevice.ID2 = &H1A Then SEMPER_SPI_HF = True
+                    If MyFlashDevice.ID1 = &H6B AndAlso MyFlashDevice.ID2 = &H1B Then SEMPER_SPI_HF = True
+                    If MyFlashDevice.ID1 = &H6A AndAlso MyFlashDevice.ID2 = &H19 Then SEMPER_SPI_HF = True
+                    If MyFlashDevice.ID1 = &H6A AndAlso MyFlashDevice.ID2 = &H1A Then SEMPER_SPI_HF = True
+                    If MyFlashDevice.ID1 = &H6A AndAlso MyFlashDevice.ID2 = &H1B Then SEMPER_SPI_HF = True
+                End If
+                If SEMPER_SPI_HF Then
+                    SPIBUS_WriteEnable()
+                    SPIBUS_WriteRead({&H71, &H80, 0, 4, &H18}) 'Enables 512-byte buffer
+                    SPIBUS_WriteEnable()
+                    SPIBUS_WriteRead({&H71, &H80, 0, 3, &H80}) 'Enables 4-byte mode
+                End If
+            End If
         End Sub
 
 #Region "AT45 DataFlash"

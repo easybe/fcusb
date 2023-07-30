@@ -419,7 +419,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
 
     Private Function EXPIO_SETUP_DELAY(delay_mode As MFP_DELAY) As Boolean
         Try
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_DELAY, Nothing, CUInt(delay_mode))
+            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_DELAY, Nothing, delay_mode)
             Threading.Thread.Sleep(25)
             Return result
         Catch ex As Exception
@@ -590,7 +590,7 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
     End Sub
 
     Private Sub EXPIO_EraseSector(sector_addr As UInt32)
-        Select Case Me.CURRENT_SECTOR_ERASE
+        Select Case CURRENT_SECTOR_ERASE
             Case E_EXPIO_SECTOR.Standard
                 EXPIO_EraseSector_Standard(sector_addr)
             Case E_EXPIO_SECTOR.Intel
@@ -675,6 +675,16 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
         Dim LAST_DETECT As FlashDetectResult = Nothing
         LAST_DETECT.MFG = 0
         Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NOR_X16)
+
+
+        'Me.MyAdapter = MEM_PROTOCOL.NOR_X16
+        'Me.FLASH_IDENT.Successful = True
+        'Me.FLASH_IDENT.MFG = 1
+        'Me.FLASH_IDENT.ID1 = &H225B
+        'Me.FLASH_IDENT.ID2 = 0
+        'Return True
+
+
         If Me.FLASH_IDENT.Successful Then
             Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, Me.FLASH_IDENT.ID2, MemoryType.PARALLEL_NOR)
             If (d.Length > 0) AndAlso IsIFACE16X(DirectCast(d(0), P_NOR).IFACE) Then
@@ -716,20 +726,18 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
 
     Private Function DetectFlash(mode As MEM_PROTOCOL) As FlashDetectResult
         Dim mode_name As String = ""
+        Dim ident_data(7) As Byte '8 bytes total
         Dim result As FlashDetectResult
         Select Case mode
             Case MEM_PROTOCOL.NOR_X16
                 mode_name = "NOR X16 (Word addressing)"
-                EXPIO_SETUP_USB(MEM_PROTOCOL.NOR_X16)
-                result = GetFlashResult(EXPIO_ReadIdent(True))
+                result = EXPIO_DetectX16()
             Case MEM_PROTOCOL.NOR_X16_X8
                 mode_name = "NOR X16 (Byte addressing)"
-                EXPIO_SETUP_USB(MEM_PROTOCOL.NOR_X16_X8)
-                result = GetFlashResult(EXPIO_ReadIdent(True))
+                result = EXPIO_DetectX16_X8()
             Case MEM_PROTOCOL.NOR_X8
                 mode_name = "NOR X8"
-                EXPIO_SETUP_USB(MEM_PROTOCOL.NOR_X8)
-                result = GetFlashResult(EXPIO_ReadIdent(False))
+                result = EXPIO_DetectX8()
         End Select
         If result.Successful Then
             Dim part As UInt32 = (CUInt(result.ID1) << 16) Or (result.ID2)
@@ -737,6 +745,27 @@ Public Class PARALLEL_NOR : Implements MemoryDeviceUSB
             RaiseEvent PrintConsole("Mode " & mode_name & " returned ident code: 0x" & chip_id_str)
         End If
         Return result
+    End Function
+
+    Private Function EXPIO_DetectX16() As FlashDetectResult
+        Dim ident_data() As Byte = Nothing
+        EXPIO_SETUP_USB(MEM_PROTOCOL.NOR_X16)
+        ident_data = EXPIO_ReadIdent(True)
+        Return GetFlashResult(ident_data)
+    End Function
+
+    Private Function EXPIO_DetectX16_X8() As FlashDetectResult
+        Dim ident_data() As Byte = Nothing
+        EXPIO_SETUP_USB(MEM_PROTOCOL.NOR_X16_X8)
+        ident_data = EXPIO_ReadIdent(True)
+        Return GetFlashResult(ident_data)
+    End Function
+
+    Private Function EXPIO_DetectX8() As FlashDetectResult
+        Dim ident_data() As Byte = Nothing
+        EXPIO_SETUP_USB(MEM_PROTOCOL.NOR_X8)
+        ident_data = EXPIO_ReadIdent(False)
+        Return GetFlashResult(ident_data)
     End Function
 
 #End Region

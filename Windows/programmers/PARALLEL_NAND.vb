@@ -555,7 +555,7 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
                 TX_NAND_ADDRSIZE = 5 '2Gbit+
             End If
         End If
-        Dim setup_data(19) As Byte '22 bytes total
+        Dim setup_data(21) As Byte '22 bytes total
         setup_data(0) = CByte(page_addr And 255)
         setup_data(1) = CByte((page_addr >> 8) And 255)
         setup_data(2) = CByte((page_addr >> 16) And 255)
@@ -574,8 +574,10 @@ Public Class PARALLEL_NAND : Implements MemoryDeviceUSB
         setup_data(15) = CByte((nand_layout.Layout_Main >> 8) And 255)
         setup_data(16) = CByte(nand_layout.Layout_Spare And 255)
         setup_data(17) = CByte((nand_layout.Layout_Spare >> 8) And 255)
-        setup_data(18) = TX_NAND_ADDRSIZE
-        setup_data(19) = memory_area 'Area (0=main,1=spare,2=all), note: all ignores layout settings
+        setup_data(18) = CByte(MyFlashDevice.PAGE_COUNT And 255)
+        setup_data(19) = CByte((MyFlashDevice.PAGE_COUNT >> 8) And 255)
+        setup_data(20) = TX_NAND_ADDRSIZE
+        setup_data(21) = memory_area 'Area (0=main,1=spare,2=all), note: all ignores layout settings
         Return setup_data
     End Function
 

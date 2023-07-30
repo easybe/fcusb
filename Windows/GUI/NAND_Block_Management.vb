@@ -48,11 +48,9 @@ Public Class NAND_Block_Management
         Me.MinimumSize = Me.Size
         Me.MaximumSize = New Size(Me.Size.Width, 5000)
         If Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(PARALLEL_NAND)) Then
-            Dim PNAND_IF As PARALLEL_NAND = CType(Me.FCUSB.PROGRAMMER, PARALLEL_NAND)
-            MyMap = PNAND_IF.BlockManager.MAP
+            MyMap = Me.FCUSB.PARALLEL_NAND_IF.BlockManager.MAP
         ElseIf Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(SPINAND_Programmer)) Then
-            Dim SNAND_IF As SPINAND_Programmer = CType(Me.FCUSB.PROGRAMMER, SPINAND_Programmer)
-            MyMap = SNAND_IF.BlockManager.MAP
+            MyMap = Me.FCUSB.SPI_NAND_IF.BlockManager.MAP
         End If
         Dim TotalRowsNeeded As Integer = (Me.BLOCK_COUNT \ 32)
         BlockMap.Width = 600
@@ -290,17 +288,15 @@ Public Class NAND_Block_Management
                     ValidBlock = True
                     Dim verify_data() As Byte = Nothing
                     If Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(PARALLEL_NAND)) Then
-                        Dim PNAND_IF As PARALLEL_NAND = CType(Me.FCUSB.PROGRAMMER, PARALLEL_NAND)
-                        PNAND_IF.SectorErase_Physical(block_info.PagePhysical)
-                        PNAND_IF.WritePage_Physical(block_info.PagePhysical, test_data, FlashMemory.FlashArea.All)
+                        FCUSB.PARALLEL_NAND_IF.SectorErase_Physical(block_info.PagePhysical)
+                        FCUSB.PARALLEL_NAND_IF.WritePage_Physical(block_info.PagePhysical, test_data, FlashMemory.FlashArea.All)
                         Utilities.Sleep(20)
-                        verify_data = PNAND_IF.PageRead_Physical(block_info.PagePhysical, 0, test_data.Length, FlashMemory.FlashArea.All)
+                        verify_data = FCUSB.PARALLEL_NAND_IF.PageRead_Physical(block_info.PagePhysical, 0, test_data.Length, FlashMemory.FlashArea.All)
                     ElseIf Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(SPINAND_Programmer)) Then
-                        Dim SNAND_IF As SPINAND_Programmer = CType(Me.FCUSB.PROGRAMMER, SPINAND_Programmer)
-                        SNAND_IF.SectorErase_Physical(block_info.PagePhysical)
-                        SNAND_IF.WritePage_Physical(block_info.PagePhysical, test_data, FlashMemory.FlashArea.All)
+                        FCUSB.SPI_NAND_IF.SectorErase_Physical(block_info.PagePhysical)
+                        FCUSB.SPI_NAND_IF.WritePage_Physical(block_info.PagePhysical, test_data, FlashMemory.FlashArea.All)
                         Utilities.Sleep(20)
-                        verify_data = SNAND_IF.PageRead_Physical(block_info.PagePhysical, 0, test_data.Length, FlashMemory.FlashArea.All)
+                        verify_data = FCUSB.SPI_NAND_IF.PageRead_Physical(block_info.PagePhysical, 0, test_data.Length, FlashMemory.FlashArea.All)
                     End If
                     If Not Utilities.ArraysMatch(verify_data, test_data) Then
                         ErrorCount += 1
@@ -309,11 +305,9 @@ Public Class NAND_Block_Management
                     If ValidBlock Then Exit Do
                 Loop While (ErrorCount < 3)
                 If Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(PARALLEL_NAND)) Then
-                    Dim PNAND_IF As PARALLEL_NAND = CType(Me.FCUSB.PROGRAMMER, PARALLEL_NAND)
-                    PNAND_IF.SectorErase_Physical(block_info.PagePhysical)
+                    FCUSB.PARALLEL_NAND_IF.SectorErase_Physical(block_info.PagePhysical)
                 ElseIf Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(SPINAND_Programmer)) Then
-                    Dim SNAND_IF As SPINAND_Programmer = CType(Me.FCUSB.PROGRAMMER, SPINAND_Programmer)
-                    SNAND_IF.SectorErase_Physical(block_info.PagePhysical)
+                    FCUSB.SPI_NAND_IF.SectorErase_Physical(block_info.PagePhysical)
                 End If
                 If ValidBlock Then
                     MyMap(i).Status = NAND_BLOCK_IF.BLOCK_STATUS.Valid
@@ -345,27 +339,26 @@ Public Class NAND_Block_Management
                             If second_page Is Nothing Then ReDim second_page(PAGE_SIZE_TOTAL - 1) : Utilities.FillByteArray(second_page, 255)
                             second_page(oob_area + 5) = 0
                         End If
+
                         If Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(PARALLEL_NAND)) Then
-                            Dim PNAND_IF As PARALLEL_NAND = CType(Me.FCUSB.PROGRAMMER, PARALLEL_NAND)
                             If first_page IsNot Nothing Then
-                                PNAND_IF.SectorWrite(block_info.PagePhysical, first_page)
+                                FCUSB.PARALLEL_NAND_IF.SectorWrite(block_info.PagePhysical, first_page)
                             End If
                             If second_page IsNot Nothing Then
-                                PNAND_IF.SectorWrite(block_info.PagePhysical + 1, second_page)
+                                FCUSB.PARALLEL_NAND_IF.SectorWrite(block_info.PagePhysical + 1, second_page)
                             End If
                             If last_page IsNot Nothing Then
-                                PNAND_IF.SectorWrite(LastPageAddr, last_page)
+                                FCUSB.PARALLEL_NAND_IF.SectorWrite(LastPageAddr, last_page)
                             End If
                         ElseIf Me.FCUSB.PROGRAMMER.GetType().Equals(GetType(SPINAND_Programmer)) Then
-                            Dim SNAND_IF As SPINAND_Programmer = CType(Me.FCUSB.PROGRAMMER, SPINAND_Programmer)
                             If first_page IsNot Nothing Then
-                                SNAND_IF.SectorWrite(block_info.PagePhysical, first_page)
+                                FCUSB.SPI_NAND_IF.SectorWrite(block_info.PagePhysical, first_page)
                             End If
                             If second_page IsNot Nothing Then
-                                SNAND_IF.SectorWrite(block_info.PagePhysical + 1, second_page)
+                                FCUSB.SPI_NAND_IF.SectorWrite(block_info.PagePhysical + 1, second_page)
                             End If
                             If last_page IsNot Nothing Then
-                                SNAND_IF.SectorWrite(LastPageAddr, last_page)
+                                FCUSB.SPI_NAND_IF.SectorWrite(LastPageAddr, last_page)
                             End If
                         End If
                     End If
