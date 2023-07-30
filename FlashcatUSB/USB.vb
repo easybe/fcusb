@@ -76,20 +76,20 @@ Namespace USB
             Private SPI_MODE_BYTE As Byte
             Private SPI_ORDER_BYTE As Byte
 
-            Public Sub USB_SPI_SETUP(PORT As SPI_Programmer.SPIBUS_PORT, ByVal mode As SPI_Programmer.SPIBUS_MODE, ByVal bit_order As FlashcatSettings.SPI_ORDER)
+            Public Sub USB_SPI_SETUP(PORT As SPI_Programmer.SPIBUS_PORT, ByVal mode As SPI_Programmer.SPIBUS_MODE, ByVal bit_order As SPI_ORDER)
                 Try
                     If Me.HWBOARD = FCUSB_BOARD.Professional Then
                         Select Case PORT
                             Case SPI_Programmer.SPIBUS_PORT.Port_A
-                                USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, GetSpiClock(FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_10))
+                                USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, GetSpiClock(SPI_CLOCK_SPEED.MHZ_10))
                             Case SPI_Programmer.SPIBUS_PORT.Port_B
-                                USB_CONTROL_MSG_OUT(USBREQ.SPI2_INIT, Nothing, GetSpiClock(FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_10))
+                                USB_CONTROL_MSG_OUT(USBREQ.SPI2_INIT, Nothing, GetSpiClock(SPI_CLOCK_SPEED.MHZ_10))
                         End Select
                     Else
                         SPI_ORDER_BYTE = 0
-                        If bit_order = FlashcatSettings.SPI_ORDER.SPI_ORDER_MSB_FIRST Then
+                        If bit_order = SPI_ORDER.SPI_ORDER_MSB_FIRST Then
                             SPI_ORDER_BYTE = 0
-                        ElseIf bit_order = FlashcatSettings.SPI_ORDER.SPI_ORDER_LSB_FIRST Then
+                        ElseIf bit_order = SPI_ORDER.SPI_ORDER_LSB_FIRST Then
                             SPI_ORDER_BYTE = &H20
                         End If
                         SPI_MODE_BYTE = 0
@@ -105,13 +105,13 @@ Namespace USB
                         End Select
                         Dim clock_byte As Byte = 0
                         Select Case MySettings.SPI_CLOCK_CLASSIC
-                            Case FlashcatSettings.SPI_CLOCK_SPEED_CLASSIC.MHZ_8
+                            Case SPI_CLOCK_SPEED.MHZ_8
                                 clock_byte = &H80 'SPI_CLOCK_FOSC_2
-                            Case FlashcatSettings.SPI_CLOCK_SPEED_CLASSIC.MHZ_4
+                            Case SPI_CLOCK_SPEED.MHZ_4
                                 clock_byte = &H0 'SPI_CLOCK_FOSC_4
-                            Case FlashcatSettings.SPI_CLOCK_SPEED_CLASSIC.MHZ_2
+                            Case SPI_CLOCK_SPEED.MHZ_2
                                 clock_byte = &H81 'SPI_CLOCK_FOSC_8
-                            Case FlashcatSettings.SPI_CLOCK_SPEED_CLASSIC.MHZ_1
+                            Case SPI_CLOCK_SPEED.MHZ_1
                                 clock_byte = &H1 'SPI_CLOCK_FOSC_16
                         End Select
                         Dim spiConf As UInt16 = CUShort(clock_byte Or SPI_MODE_BYTE Or SPI_ORDER_BYTE)
@@ -400,18 +400,21 @@ Namespace USB
             Public Sub USB_VCC_1V8()
                 If Me.HWBOARD = FCUSB_BOARD.Professional Then
                     USB_CONTROL_MSG_OUT(USBREQ.VCC_1V8)
+                    VCC_OPTION = Voltage.V1_8
                 End If
             End Sub
 
             Public Sub USB_VCC_3V()
                 If Me.HWBOARD = FCUSB_BOARD.Professional Then
                     USB_CONTROL_MSG_OUT(USBREQ.VCC_3V)
+                    VCC_OPTION = Voltage.V3_3
                 End If
             End Sub
 
             Public Sub USB_VCC_5V()
                 If Me.HWBOARD = FCUSB_BOARD.Professional Then
                     USB_CONTROL_MSG_OUT(USBREQ.VCC_5V)
+                    VCC_OPTION = Voltage.V5_0
                 End If
             End Sub
 
@@ -759,6 +762,13 @@ Namespace USB
         End Sub
 
     End Class
+
+    Public Enum Voltage As Integer
+        V1_8 = 1 'Low (300ma max)
+        V3_3 = 2 'Default
+        V5_0 = 3 'High (500ma max)
+    End Enum
+
     'USB commands when using SPI firmware
     Public Enum USBREQ As Byte
         VERSION = &H80

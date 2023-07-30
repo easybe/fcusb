@@ -630,7 +630,7 @@ Public Class MemoryInterface
                                     RaiseEvent PrintConsole(String.Format(RM.GetString("mem_bad_nand_block"), Hex(page_addr).PadLeft(6, "0"), block_addr))
                                     Return False
                                 Else
-                                    RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), "0x" & Hex(Params.Address)))
+                                    RaiseEvent PrintConsole(String.Format(RM.GetString("mem_verify_failed_at"), Hex(Params.Address)))
                                     If Params.Status.UpdateOperation IsNot Nothing Then
                                         Params.Status.UpdateOperation.DynamicInvoke(5) 'ERROR IMG
                                     End If

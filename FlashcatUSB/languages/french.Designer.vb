@@ -2486,6 +2486,24 @@ Namespace My.Resources
         End Property
         
         '''<summary>
+        '''  Looks up a localized string similar to Inverser l&apos;ordre des octets.
+        '''</summary>
+        Friend Shared ReadOnly Property nandecc_revbyteorder() As String
+            Get
+                Return ResourceManager.GetString("nandecc_revbyteorder", resourceCulture)
+            End Get
+        End Property
+        
+        '''<summary>
+        '''  Looks up a localized string similar to Largeur du symbole.
+        '''</summary>
+        Friend Shared ReadOnly Property nandecc_symwidth() As String
+            Get
+                Return ResourceManager.GetString("nandecc_symwidth", resourceCulture)
+            End Get
+        End Property
+        
+        '''<summary>
         '''  Looks up a localized string similar to Opération d&apos;écriture (Ecriture ECC).
         '''</summary>
         Friend Shared ReadOnly Property nandecc_write_operation() As String

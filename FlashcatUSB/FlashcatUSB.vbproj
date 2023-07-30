@@ -255,9 +255,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="My Project\Resources.resx">
       <Generator>PublicVbMyResourcesResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.vb</LastGenOutput>
       <CustomToolNamespace>My.Resources</CustomToolNamespace>
       <SubType>Designer</SubType>
+      <LastGenOutput>Resources.Designer.vb</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="NAND_Block_Management.resx">
       <DependentUpon>NAND_Block_Management.vb</DependentUpon>
@@ -375,13 +375,13 @@
     <None Include="images\nand_page_seperate.png" />
     <None Include="images\ecc_blue.png" />
     <None Include="images\ecc_valid.png" />
-    <None Include="languages\china.png" />
-    <None Include="languages\English.png" />
-    <None Include="languages\france.png" />
-    <None Include="languages\german.png" />
-    <None Include="languages\portugal.png" />
-    <None Include="languages\spain.png" />
-    <None Include="languages\russia.png" />
+    <None Include="images\china.png" />
+    <None Include="images\English.png" />
+    <None Include="images\france.png" />
+    <None Include="images\german.png" />
+    <None Include="images\portugal.png" />
+    <None Include="images\spain.png" />
+    <None Include="images\russia.png" />
     <Content Include="Main.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />

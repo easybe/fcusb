@@ -2486,6 +2486,24 @@ Namespace My.Resources
         End Property
         
         '''<summary>
+        '''  Looks up a localized string similar to Обратный порядок байтов.
+        '''</summary>
+        Friend Shared ReadOnly Property nandecc_revbyteorder() As String
+            Get
+                Return ResourceManager.GetString("nandecc_revbyteorder", resourceCulture)
+            End Get
+        End Property
+        
+        '''<summary>
+        '''  Looks up a localized string similar to Ширина символа.
+        '''</summary>
+        Friend Shared ReadOnly Property nandecc_symwidth() As String
+            Get
+                Return ResourceManager.GetString("nandecc_symwidth", resourceCulture)
+            End Get
+        End Property
+        
+        '''<summary>
         '''  Looks up a localized string similar to Операция записи (запись ECC).
         '''</summary>
         Friend Shared ReadOnly Property nandecc_write_operation() As String

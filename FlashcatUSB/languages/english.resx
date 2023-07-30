@@ -1205,4 +1205,10 @@
   <data name="nandecc_groupbox" xml:space="preserve">
     <value>Software ECC Feature</value>
   </data>
+  <data name="nandecc_revbyteorder" xml:space="preserve">
+    <value>Reverse byte order</value>
+  </data>
+  <data name="nandecc_symwidth" xml:space="preserve">
+    <value>Symbol width</value>
+  </data>
 </root>

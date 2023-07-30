@@ -50,7 +50,7 @@ Namespace FlashMemory
     Public Enum MFP_PROG
         Standard 'Use the standard sequence that chip id detected
         PageMode 'Writes an entire page of data (128 bytes etc.)
-        BypassMode 'Writes 64 bytes using ByPass sequence
+        BypassMode 'Writes 64 bytes using ByPass sequence; 0x555=0xAA;0x2AA=55;0x555=20;(0x00=0xA0;SA=DATA;...)0x00=0x90;0x00=0x00
         IntelSharp 'Writes data (SA=0x40;SA=DATA;SR.7), erases sectors (SA=0x50;SA=0x60;SA=0xD0,SR.7,SA=0x20;SA=0xD0,SR.7)
         Buffer1 'Use Write-To-Buffer mode (x16 only), used by Intel
         Buffer2 'Use Write-To-Buffer mode (x16 only), Used by Spansion/Winbond
@@ -182,6 +182,7 @@ Namespace FlashMemory
         Public Property WriteMode As MFP_PROG = MFP_PROG.Standard 'This indicates the perfered programing method
         Public Property HARDWARE_DELAY As UInt16 = 10 'Number of hardware uS to wait between write operations
         Public Property SOFTWARE_DELAY As UInt16 = 100 'Number of software ms to wait between write operations
+        Public Property ERASE_DELAY As UInt16 = 250 'Number of ms to wait after an erase operation
         Public Property DELAY_MODE As MFP_DELAY = MFP_DELAY.uS
         Public Property IFACE As MFP_IF = MFP_IF.UNKNOWN
 
@@ -1019,8 +1020,7 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("AMD AM29F010B", &H1, &H20, Mb001, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb128_Uni, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("AMD AM29F040B", &H20, &HE2, Mb004, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.uS)) 'Why is this not: 01 A4? (PLCC32 and DIP32 tested)
             FlashDB.Add(New MFP_Flash("AMD AM29F080B", &H1, &HD5, Mb008, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.uS)) 'TSOP40
-            FlashDB.Add(New MFP_Flash("AMD AM29F016D", &H1, &HAD, Mb016, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.Standard, MFP_DELAY.uS)) 'TSOP40 CV
-
+            FlashDB.Add(New MFP_Flash("AMD AM29F016D", &H1, &HAD, Mb016, MFP_IF.X8_5V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.BypassMode, MFP_DELAY.uS)) 'TSOP40 CV
             FlashDB.Add(New MFP_Flash("AMD AM29LV200(T)", &H1, &H223B, Mb002, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("AMD AM29LV200(B)", &H1, &H22BF, Mb002, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("AMD AM29F200(T)", &H1, &H2251, Mb002, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS))
@@ -1139,6 +1139,12 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Cypress S29GL01GT", &H1, &H227E, Gb001, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.SR1, &H2801) With {.PAGE_SIZE = 512}) '(CHIP-VAULT)
             FlashDB.Add(New MFP_Flash("Cypress S70GL02G", &H1, &H227E, Gb002, MFP_IF.X16_3V, MFP_BLKLAYOUT.Mb001_Uni, MFP_PROG.Buffer2, MFP_DELAY.SR1, &H4801) With {.PAGE_SIZE = 512})
             'ST Microelectronics (now numonyx)
+            FlashDB.Add(New MFP_Flash("ST M29F200T", &H20, &HD3, Mb002, MFP_IF.X16_5V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
+            FlashDB.Add(New MFP_Flash("ST M29F200B", &H20, &HD4, Mb002, MFP_IF.X16_5V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
+            FlashDB.Add(New MFP_Flash("ST M29F400T", &H20, &HD5, Mb004, MFP_IF.X16_5V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
+            FlashDB.Add(New MFP_Flash("ST M29F400B", &H20, &HD6, Mb004, MFP_IF.X16_5V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
+            FlashDB.Add(New MFP_Flash("ST M29F800T", &H20, &HEC, Mb008, MFP_IF.X16_5V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
+            FlashDB.Add(New MFP_Flash("ST M29F800B", &H20, &H58, Mb008, MFP_IF.X16_5V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
             FlashDB.Add(New MFP_Flash("ST M29W800AT", &H20, &HD7, Mb008, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("ST M29W800AB", &H20, &H5B, Mb008, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New MFP_Flash("ST M29W800DT", &H20, &H22D7, Mb008, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.BypassMode, MFP_DELAY.uS))
@@ -1233,6 +1239,16 @@ Namespace FlashMemory
             FlashDB.Add(New MFP_Flash("Fujitsu MBM29LV320BE", &H4, &H22F9, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.Standard, MFP_DELAY.uS)) 'Supports FAST programming (ADR=0xA0,PA=PD)
             FlashDB.Add(New MFP_Flash("Fujitsu MBM29DL32XTD", &H4, &H2259, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.Standard, MFP_DELAY.uS)) 'Supports FAST programming (ADR=0xA0,PA=PD)
             FlashDB.Add(New MFP_Flash("Fujitsu MBM29DL32XBD", &H4, &H225A, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.Standard, MFP_DELAY.uS)) 'Supports FAST programming (ADR=0xA0,PA=PD)
+            'EON (MFG is 7F 1C)
+            FlashDB.Add(New MFP_Flash("EON EN29LV400AT", &H7F, &H22B9, Mb004, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.BypassMode, MFP_DELAY.DQ7))
+            FlashDB.Add(New MFP_Flash("EON EN29LV400AB", &H7F, &H22BA, Mb004, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.BypassMode, MFP_DELAY.DQ7))
+            FlashDB.Add(New MFP_Flash("EON EN29LV800AT", &H7F, &H22DA, Mb008, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.BypassMode, MFP_DELAY.DQ7))
+            FlashDB.Add(New MFP_Flash("EON EN29LV800AB", &H7F, &H225B, Mb008, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.BypassMode, MFP_DELAY.DQ7))
+            FlashDB.Add(New MFP_Flash("EON EN29LV160AT", &H7F, &H22C4, Mb016, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Top, MFP_PROG.BypassMode, MFP_DELAY.DQ7))
+            FlashDB.Add(New MFP_Flash("EON EN29LV160AB", &H7F, &H2249, Mb016, MFP_IF.X16_3V, MFP_BLKLAYOUT.Four_Btm, MFP_PROG.BypassMode, MFP_DELAY.DQ7))
+            FlashDB.Add(New MFP_Flash("EON EN29LV320AT", &H7F, &H22F6, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Top, MFP_PROG.BypassMode, MFP_DELAY.DQ7))
+            FlashDB.Add(New MFP_Flash("EON EN29LV320AB", &H7F, &H22F9, Mb032, MFP_IF.X16_3V, MFP_BLKLAYOUT.Two_Btm, MFP_PROG.BypassMode, MFP_DELAY.DQ7))
+            FlashDB.Add(New MFP_Flash("EON EN29LV640", &H7F, &H227E, Mb064, MFP_IF.X16_3V, MFP_BLKLAYOUT.Kb512_Uni, MFP_PROG.BypassMode, MFP_DELAY.DQ7))
         End Sub
 
         Private Sub NAND_Database()
@@ -1293,6 +1309,7 @@ Namespace FlashMemory
             FlashDB.Add(New NAND_Flash("MXIC MX60LF8G18AC", &HC2, &HD3D1955AUI, Gb008, 2048, 64, Mb001)) '3v
             FlashDB.Add(New NAND_Flash("MXIC MX60LF8G28AB", &HC2, &HD3D1955BUI, Gb008, 2048, 64, Mb001))
             'Samsung SLC x8 NAND devices
+            FlashDB.Add(New NAND_Flash("Samsung K9F5608U0D", &HEC, &H75A5BDECUI, Mb256, 512, 16, Kb128))
             FlashDB.Add(New NAND_Flash("Samsung K9GAG08U0E", &HEC, &HD5847250UI, Gb001 * 16, 8192, 436, Mb001 * 8)) 'MLC 2-bit
             FlashDB.Add(New NAND_Flash("Samsung K9F1G08U0D", &HEC, &HF1001540UI, Gb001, 2048, 64, Mb001))
             FlashDB.Add(New NAND_Flash("Samsung K9F1G08U0B", &HEC, &HF1009540UI, Gb001, 2048, 64, Mb001))

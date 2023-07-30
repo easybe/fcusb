@@ -1031,4 +1031,30 @@ Namespace SPI
 
     End Class
 
+    Public Enum SPI_CLOCK_SPEED As Integer
+        MHZ_1
+        MHZ_2
+        MHZ_4
+        MHZ_5
+        MHZ_8
+        MHZ_10
+        MHZ_12
+        MHZ_15
+        MHZ_20
+        MHZ_24
+        MHZ_30
+    End Enum
+
+    Public Enum SPI_ORDER As Integer
+        SPI_ORDER_MSB_FIRST = 0
+        SPI_ORDER_LSB_FIRST = 1
+    End Enum
+
+    Public Enum SPI_CLOCK_POLARITY As Integer
+        SPI_MODE_0 = 0 'CPOL(0),CPHA(0),CKE(1)
+        SPI_MODE_1 = 1 'CPOL(0),CPHA(1),CKE(0)
+        SPI_MODE_2 = 2 'CPOL(1),CPHA(0),CKE(1)
+        SPI_MODE_3 = 3 'CPOL(1),CPHA(1),CKE(0)
+    End Enum
+
 End Namespace

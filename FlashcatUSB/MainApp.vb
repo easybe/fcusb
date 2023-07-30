@@ -11,14 +11,16 @@ Imports FlashcatUSB.USB.HostClient
 Imports Microsoft.Win32
 Imports System.Runtime.InteropServices
 Imports System.Threading
+Imports FlashcatUSB.SPI
 
 Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 514
-    Public PRO_CURRENT_FW As Single = 1.21 'This is the embedded firmware version for pro
+    Public Const Build As Integer = 515
+    Public PRO_CURRENT_FW As Single = 1.22 'This is the embedded firmware version for pro
     Public CLASSIC_CURRENT_FW As Single = 4.33 'Min revision allowed for classic, xport
+    Public VCC_OPTION As USB.Voltage = USB.Voltage.V3_3 'Only Pro supports software VCC changing
     Public AppIsClosing As Boolean = False
     Public FlashDatabase As New FlashDatabase 'This contains definitions of all of the supported Flash devices
     Public WithEvents ScriptEngine As New FcScriptEngine
@@ -933,73 +935,64 @@ Public Module MainApp
         Dim ClkStr As String = ""
         If usb_dev.HWBOARD = FCUSB_BOARD.Professional Then
             Select Case MySettings.SPI_CLOCK_PRO
-                Case SPI_CLOCK_SPEED_PRO.MHZ_5
+                Case SPI_CLOCK_SPEED.MHZ_5
                     ClkStr = "5 MHz"
-                Case SPI_CLOCK_SPEED_PRO.MHZ_8
+                Case SPI_CLOCK_SPEED.MHZ_8
                     ClkStr = "8 MHz"
-                Case SPI_CLOCK_SPEED_PRO.MHZ_10
+                Case SPI_CLOCK_SPEED.MHZ_10
                     ClkStr = "10 MHz"
-                Case SPI_CLOCK_SPEED_PRO.MHZ_12
+                Case SPI_CLOCK_SPEED.MHZ_12
                     ClkStr = "12 MHz"
-                Case SPI_CLOCK_SPEED_PRO.MHZ_15
+                Case SPI_CLOCK_SPEED.MHZ_15
                     ClkStr = "15 MHz"
-                Case SPI_CLOCK_SPEED_PRO.MHZ_20
+                Case SPI_CLOCK_SPEED.MHZ_20
                     ClkStr = "20 MHz"
-                Case SPI_CLOCK_SPEED_PRO.MHZ_24
+                Case SPI_CLOCK_SPEED.MHZ_24
                     ClkStr = "24 MHz"
-                Case SPI_CLOCK_SPEED_PRO.MHZ_30
+                Case SPI_CLOCK_SPEED.MHZ_30
                     ClkStr = "30 MHz"
                 Case Else
                     ClkStr = "10 MHz"
             End Select
         Else
             Select Case MySettings.SPI_CLOCK_CLASSIC
-                Case SPI_CLOCK_SPEED_CLASSIC.MHZ_1
+                Case SPI_CLOCK_SPEED.MHZ_1
                     ClkStr = "1 MHz"
-                Case SPI_CLOCK_SPEED_CLASSIC.MHZ_2
+                Case SPI_CLOCK_SPEED.MHZ_2
                     ClkStr = "2 MHz"
-                Case SPI_CLOCK_SPEED_CLASSIC.MHZ_4
+                Case SPI_CLOCK_SPEED.MHZ_4
                     ClkStr = "4 MHz"
-                Case SPI_CLOCK_SPEED_CLASSIC.MHZ_8
+                Case SPI_CLOCK_SPEED.MHZ_8
                     ClkStr = "8 MHz"
             End Select
         End If
         Return ClkStr
     End Function
 
-    Public Function GetSpiClock(ByVal SpeedIndex As SPI_CLOCK_SPEED_CLASSIC) As UInt32
+    Public Function GetSpiClock(ByVal SpeedIndex As SPI_CLOCK_SPEED) As UInt32
         Dim ClkValue As UInt32 = 0
         Select Case SpeedIndex
-            Case SPI_CLOCK_SPEED_CLASSIC.MHZ_1
+            Case SPI_CLOCK_SPEED.MHZ_1
                 ClkValue = 1000000
-            Case SPI_CLOCK_SPEED_CLASSIC.MHZ_2
+            Case SPI_CLOCK_SPEED.MHZ_2
                 ClkValue = 2000000
-            Case SPI_CLOCK_SPEED_CLASSIC.MHZ_4
+            Case SPI_CLOCK_SPEED.MHZ_4
                 ClkValue = 4000000
-            Case SPI_CLOCK_SPEED_CLASSIC.MHZ_8
-                ClkValue = 8000000
-        End Select
-        Return ClkValue
-    End Function
-
-    Public Function GetSpiClock(ByVal SpeedIndex As SPI_CLOCK_SPEED_PRO) As UInt32
-        Dim ClkValue As UInt32 = 0
-        Select Case SpeedIndex
-            Case SPI_CLOCK_SPEED_PRO.MHZ_5
+            Case SPI_CLOCK_SPEED.MHZ_5
                 ClkValue = 5000000
-            Case SPI_CLOCK_SPEED_PRO.MHZ_8
+            Case SPI_CLOCK_SPEED.MHZ_8
                 ClkValue = 8000000
-            Case SPI_CLOCK_SPEED_PRO.MHZ_10
+            Case SPI_CLOCK_SPEED.MHZ_10
                 ClkValue = 10000000
-            Case SPI_CLOCK_SPEED_PRO.MHZ_12
+            Case SPI_CLOCK_SPEED.MHZ_12
                 ClkValue = 12000000
-            Case SPI_CLOCK_SPEED_PRO.MHZ_15
+            Case SPI_CLOCK_SPEED.MHZ_15
                 ClkValue = 15000000
-            Case SPI_CLOCK_SPEED_PRO.MHZ_20
+            Case SPI_CLOCK_SPEED.MHZ_20
                 ClkValue = 20000000
-            Case SPI_CLOCK_SPEED_PRO.MHZ_24
+            Case SPI_CLOCK_SPEED.MHZ_24
                 ClkValue = 24000000
-            Case SPI_CLOCK_SPEED_PRO.MHZ_30
+            Case SPI_CLOCK_SPEED.MHZ_30
                 ClkValue = 30000000
             Case Else
                 ClkValue = 10000000
@@ -1011,55 +1004,57 @@ Public Module MainApp
         If usb_dev.HWBOARD = FCUSB_BOARD.Professional Then
             Select Case MhzValue
                 Case 5
-                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED_PRO.MHZ_5
+                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED.MHZ_5
                 Case 8
-                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED_PRO.MHZ_8
+                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED.MHZ_8
                 Case 10
-                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED_PRO.MHZ_10
+                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED.MHZ_10
                 Case 12
-                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED_PRO.MHZ_12
+                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED.MHZ_12
                 Case 15
-                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED_PRO.MHZ_15
+                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED.MHZ_15
                 Case 20
-                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED_PRO.MHZ_20
+                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED.MHZ_20
                 Case 24
-                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED_PRO.MHZ_24
+                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED.MHZ_24
                 Case 30
-                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED_PRO.MHZ_30
+                    MySettings.SPI_CLOCK_PRO = SPI_CLOCK_SPEED.MHZ_30
             End Select
         Else
             Select Case MhzValue
                 Case 1
-                    MySettings.SPI_CLOCK_CLASSIC = SPI_CLOCK_SPEED_CLASSIC.MHZ_1
+                    MySettings.SPI_CLOCK_CLASSIC = SPI_CLOCK_SPEED.MHZ_1
                 Case 2
-                    MySettings.SPI_CLOCK_CLASSIC = SPI_CLOCK_SPEED_CLASSIC.MHZ_2
+                    MySettings.SPI_CLOCK_CLASSIC = SPI_CLOCK_SPEED.MHZ_2
                 Case 4
-                    MySettings.SPI_CLOCK_CLASSIC = SPI_CLOCK_SPEED_CLASSIC.MHZ_4
+                    MySettings.SPI_CLOCK_CLASSIC = SPI_CLOCK_SPEED.MHZ_4
                 Case 8 'Fastest Classic can go
-                    MySettings.SPI_CLOCK_CLASSIC = SPI_CLOCK_SPEED_CLASSIC.MHZ_8
+                    MySettings.SPI_CLOCK_CLASSIC = SPI_CLOCK_SPEED.MHZ_8
             End Select
         End If
     End Sub
 
     Public Function GetCurrentSpiClock(usb_dev As FCUSB_DEVICE) As UInt32
+        Dim clock_speed As SPI_CLOCK_SPEED
         If usb_dev.HWBOARD = FCUSB_BOARD.Professional Then
-            Return GetSpiClock(MySettings.SPI_CLOCK_PRO)
+            clock_speed = MySettings.SPI_CLOCK_PRO
         Else
-            Return GetSpiClock(MySettings.SPI_CLOCK_CLASSIC)
+            clock_speed = MySettings.SPI_CLOCK_CLASSIC
         End If
+        Return GetSpiClock(clock_speed)
     End Function
 
 #End Region
 
     Public Class FlashcatSettings
         Public Property LanguageName As String
-        Public Property VOLT_SELECT As Voltage 'Selects which voltage the SPI port is at (Pro only)
+        Public Property VOLT_SELECT As USB.Voltage 'Selects which voltage the SPI port is at (Pro only)
         Public Property OPERATION_MODE As DeviceMode = DeviceMode.SPI
         Public Property VERIFY_WRITE As Boolean = False 'Holds the verify data flag
         Public Property BIT_ENDIAN As BitEndianMode = BitEndianMode.BigEndian32 'Mirrors bits
         Public Property BIT_SWAP As BitSwapMode = BitSwapMode.None 'Swaps nibbles/bytes/words
-        Public Property SPI_CLOCK_PRO As SPI_CLOCK_SPEED_PRO
-        Public Property SPI_CLOCK_CLASSIC As SPI_CLOCK_SPEED_CLASSIC 'The speed the SPI hardware runs at
+        Public Property SPI_CLOCK_PRO As SPI_CLOCK_SPEED
+        Public Property SPI_CLOCK_CLASSIC As SPI_CLOCK_SPEED 'The speed the SPI hardware runs at
         Public Property SPI_BIT_ORDER As SPI_ORDER 'MSB/LSB
         Public Property SPI_MODE As SPI_CLOCK_POLARITY 'MODe=0 
         Public Property SPI_EEPROM As SPI_EEPROM
@@ -1090,13 +1085,13 @@ Public Module MainApp
 
         Sub New()
             LoadLanguageSettings()
-            VOLT_SELECT = GetRegistryValue("VOLTAGE", Voltage.V3_3)
+            VOLT_SELECT = GetRegistryValue("VOLTAGE", USB.Voltage.V3_3)
             OPERATION_MODE = CInt(GetRegistryValue("OPERATION", "1")) 'Default is normal
             VERIFY_WRITE = GetRegistryValue("VERIFY", True)
             BIT_ENDIAN = GetRegistryValue("ENDIAN", BitEndianMode.BigEndian32)
             BIT_SWAP = GetRegistryValue("BITSWAP", BitSwapMode.None)
-            SPI_CLOCK_PRO = GetRegistryValue("SPI_CLOCK_PRO", SPI_CLOCK_SPEED_PRO.MHZ_10)
-            SPI_CLOCK_CLASSIC = GetRegistryValue("SPI_CLOCK_CLASSIC", SPI_CLOCK_SPEED_CLASSIC.MHZ_8)
+            SPI_CLOCK_PRO = GetRegistryValue("SPI_CLOCK_PRO", SPI_CLOCK_SPEED.MHZ_10)
+            SPI_CLOCK_CLASSIC = GetRegistryValue("SPI_CLOCK_CLASSIC", SPI_CLOCK_SPEED.MHZ_8)
             SPI_BIT_ORDER = GetRegistryValue("SPI_ORDER", SPI_ORDER.SPI_ORDER_MSB_FIRST)
             SPI_FASTREAD = GetRegistryValue("SPI_FASTREAD", False)
             SPI_BIT_ORDER = GetRegistryValue("SPI_ORDER", SPI_ORDER.SPI_ORDER_MSB_FIRST)
@@ -1248,46 +1243,10 @@ Public Module MainApp
             End Select
         End Sub
 
-        Public Enum SPI_CLOCK_SPEED_CLASSIC As Integer
-            MHZ_1
-            MHZ_2
-            MHZ_4
-            MHZ_8
-        End Enum
-
-        Public Enum SPI_CLOCK_SPEED_PRO As Integer
-            MHZ_5
-            MHZ_8
-            MHZ_10
-            MHZ_12
-            MHZ_15
-            MHZ_20
-            MHZ_24
-            MHZ_30
-        End Enum
-
-        Public Enum SPI_ORDER As Integer
-            SPI_ORDER_MSB_FIRST = 0
-            SPI_ORDER_LSB_FIRST = 1
-        End Enum
-
-        Public Enum SPI_CLOCK_POLARITY As Integer
-            SPI_MODE_0 = 0 'CPOL(0),CPHA(0),CKE(1)
-            SPI_MODE_1 = 1 'CPOL(0),CPHA(1),CKE(0)
-            SPI_MODE_2 = 2 'CPOL(1),CPHA(0),CKE(1)
-            SPI_MODE_3 = 3 'CPOL(1),CPHA(1),CKE(0)
-        End Enum
-
         Public Enum I2C_SPEED_MODE As Integer
             _100kHz = 1
             _400kHz = 2
             _1MHz = 3
-        End Enum
-
-        Public Enum Voltage As Integer
-            V1_8 = 1 'Low (300ma max)
-            V3_3 = 2 'Default
-            V5_0 = 3 'High (500ma max)
         End Enum
 
 #Region "Registry"
@@ -1703,15 +1662,15 @@ Public Module MainApp
                     Exit Sub
                 End If
                 Select Case MySettings.VOLT_SELECT 'Need to reset target voltage levels
-                    Case FlashcatSettings.Voltage.V1_8
+                    Case USB.Voltage.V1_8
                         GUI.PrintConsole(String.Format(RM.GetString("voltage_set_to"), "1.8V"))
                         usb_dev.USB_VCC_1V8()
                         Utilities.Sleep(250)
-                    Case FlashcatSettings.Voltage.V3_3
+                    Case USB.Voltage.V3_3
                         GUI.PrintConsole(String.Format(RM.GetString("voltage_set_to"), "3.3V"))
                         usb_dev.USB_VCC_3V() 'Turn on IO Port with 3.3v
                         Utilities.Sleep(250)
-                    Case FlashcatSettings.Voltage.V5_0
+                    Case USB.Voltage.V5_0
                         GUI.PrintConsole(String.Format(RM.GetString("voltage_set_to"), "5.0V"))
                         usb_dev.USB_VCC_5V()
                         Utilities.Sleep(100)
@@ -1824,7 +1783,7 @@ Public Module MainApp
             Else
                 usb_dev.SPI_NOR_IF.PORT_SELECT = SPI.SPI_Programmer.SPIBUS_PORT.Port_A
                 usb_dev.SPI_NOR_IF.SPIBUS_Setup()
-                usb_dev.USB_SPI_SETSPEED(SPI.SPI_Programmer.SPIBUS_PORT.Port_A, GetSpiClock(SPI_CLOCK_SPEED_CLASSIC.MHZ_1))
+                usb_dev.USB_SPI_SETSPEED(SPI.SPI_Programmer.SPIBUS_PORT.Port_A, GetSpiClock(SPI_CLOCK_SPEED.MHZ_1))
             End If
             SPIEEPROM_Configure(usb_dev, MySettings.SPI_EEPROM)
             Dim md As MemoryDeviceInstance = Connected_Event(usb_dev, MemoryType.SERIAL_NOR, "SPI EEPROM", 1024)

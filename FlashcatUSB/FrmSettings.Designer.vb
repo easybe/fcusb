@@ -111,7 +111,7 @@ Partial Class FrmSettings
         Me.lbl_nandecc_changes = New System.Windows.Forms.Label()
         Me.cb_rs_reverse_data = New System.Windows.Forms.CheckBox()
         Me.cb_sym_width = New System.Windows.Forms.ComboBox()
-        Me.Label2 = New System.Windows.Forms.Label()
+        Me.lbl_sym_width = New System.Windows.Forms.Label()
         Me.cb_ecc_loc = New System.Windows.Forms.ComboBox()
         Me.lbl_nandecc_location = New System.Windows.Forms.Label()
         Me.cb_ECC_WriteEnable = New System.Windows.Forms.CheckBox()
@@ -1009,7 +1009,7 @@ Partial Class FrmSettings
         Me.gb_nandecc_title.Controls.Add(Me.lbl_nandecc_changes)
         Me.gb_nandecc_title.Controls.Add(Me.cb_rs_reverse_data)
         Me.gb_nandecc_title.Controls.Add(Me.cb_sym_width)
-        Me.gb_nandecc_title.Controls.Add(Me.Label2)
+        Me.gb_nandecc_title.Controls.Add(Me.lbl_sym_width)
         Me.gb_nandecc_title.Controls.Add(Me.cb_ecc_loc)
         Me.gb_nandecc_title.Controls.Add(Me.lbl_nandecc_location)
         Me.gb_nandecc_title.Controls.Add(Me.cb_ECC_WriteEnable)
@@ -1096,15 +1096,15 @@ Partial Class FrmSettings
         Me.cb_sym_width.Size = New System.Drawing.Size(80, 21)
         Me.cb_sym_width.TabIndex = 28
         '
-        'Label2
+        'lbl_sym_width
         '
-        Me.Label2.AutoSize = True
-        Me.Label2.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.Label2.Location = New System.Drawing.Point(363, 68)
-        Me.Label2.Name = "Label2"
-        Me.Label2.Size = New System.Drawing.Size(81, 13)
-        Me.Label2.TabIndex = 29
-        Me.Label2.Text = "Symbol width"
+        Me.lbl_sym_width.AutoSize = True
+        Me.lbl_sym_width.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lbl_sym_width.Location = New System.Drawing.Point(363, 68)
+        Me.lbl_sym_width.Name = "lbl_sym_width"
+        Me.lbl_sym_width.Size = New System.Drawing.Size(81, 13)
+        Me.lbl_sym_width.TabIndex = 29
+        Me.lbl_sym_width.Text = "Symbol width"
         '
         'cb_ecc_loc
         '
@@ -1314,5 +1314,5 @@ Partial Class FrmSettings
     Friend WithEvents lbl_nandecc_changes As Label
     Friend WithEvents cb_rs_reverse_data As CheckBox
     Friend WithEvents cb_sym_width As ComboBox
-    Friend WithEvents Label2 As Label
+    Friend WithEvents lbl_sym_width As Label
 End Class

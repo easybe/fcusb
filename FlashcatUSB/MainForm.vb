@@ -662,12 +662,12 @@ Public Class MainForm
         mi_1V8.Checked = False
         mi_3V3.Checked = False
         mi_5V0.Checked = False
-        Select Case MySettings.VOLT_SELECT
-            Case FlashcatSettings.Voltage.V1_8
+        Select Case VCC_OPTION
+            Case USB.Voltage.V1_8
                 mi_1V8.Checked = True
-            Case FlashcatSettings.Voltage.V3_3
+            Case USB.Voltage.V3_3
                 mi_3V3.Checked = True
-            Case FlashcatSettings.Voltage.V5_0
+            Case USB.Voltage.V5_0
                 mi_5V0.Checked = True
         End Select
         If IsAnyDeviceBusy() Then
@@ -964,12 +964,12 @@ Public Class MainForm
             Case BitEndianMode.LittleEndian32_8bit
                 mi_bitendian_little_8.Checked = True
         End Select
-        Select Case MySettings.VOLT_SELECT
-            Case FlashcatSettings.Voltage.V1_8
+        Select Case VCC_OPTION
+            Case USB.Voltage.V1_8
                 mi_1V8.Checked = True
-            Case FlashcatSettings.Voltage.V3_3
+            Case USB.Voltage.V3_3
                 mi_3V3.Checked = True
-            Case FlashcatSettings.Voltage.V5_0
+            Case USB.Voltage.V5_0
                 mi_5V0.Checked = True
         End Select
         Select Case MySettings.OPERATION_MODE
@@ -1155,7 +1155,7 @@ Public Class MainForm
         mi_1V8.Checked = True
         mi_3V3.Checked = False
         mi_5V0.Checked = False
-        MySettings.VOLT_SELECT = FlashcatSettings.Voltage.V1_8
+        MySettings.VOLT_SELECT = USB.Voltage.V1_8
         USBCLIENT.USB_VCC_1V8()
         MySettings.Save()
         PrintConsole(String.Format(RM.GetString("voltage_set_to"), "1.8v"))
@@ -1165,7 +1165,7 @@ Public Class MainForm
         mi_1V8.Checked = False
         mi_3V3.Checked = True
         mi_5V0.Checked = False
-        MySettings.VOLT_SELECT = FlashcatSettings.Voltage.V3_3
+        MySettings.VOLT_SELECT = USB.Voltage.V3_3
         USBCLIENT.USB_VCC_3V()
         MySettings.Save()
         PrintConsole(String.Format(RM.GetString("voltage_set_to"), "3.3v"))
@@ -1175,7 +1175,7 @@ Public Class MainForm
         mi_1V8.Checked = False
         mi_3V3.Checked = False
         mi_5V0.Checked = True
-        MySettings.VOLT_SELECT = FlashcatSettings.Voltage.V5_0
+        MySettings.VOLT_SELECT = USB.Voltage.V5_0
         USBCLIENT.USB_VCC_5V()
         MySettings.Save()
         PrintConsole(String.Format(RM.GetString("voltage_set_to"), "5.0v"))

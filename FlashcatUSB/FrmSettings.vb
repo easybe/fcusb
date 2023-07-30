@@ -24,21 +24,21 @@ Public Class FrmSettings
         cb_spi_pro_clock.Items.Add("24MHz")
         cb_spi_pro_clock.Items.Add("30MHz")
         Select Case MySettings.SPI_CLOCK_PRO
-            Case FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_5
+            Case SPI.SPI_CLOCK_SPEED.MHZ_5
                 cb_spi_pro_clock.SelectedIndex = 0
-            Case FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_8
+            Case SPI.SPI_CLOCK_SPEED.MHZ_8
                 cb_spi_pro_clock.SelectedIndex = 1
-            Case FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_10
+            Case SPI.SPI_CLOCK_SPEED.MHZ_10
                 cb_spi_pro_clock.SelectedIndex = 2
-            Case FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_12
+            Case SPI.SPI_CLOCK_SPEED.MHZ_12
                 cb_spi_pro_clock.SelectedIndex = 3
-            Case FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_15
+            Case SPI.SPI_CLOCK_SPEED.MHZ_15
                 cb_spi_pro_clock.SelectedIndex = 4
-            Case FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_20
+            Case SPI.SPI_CLOCK_SPEED.MHZ_20
                 cb_spi_pro_clock.SelectedIndex = 5
-            Case FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_24
+            Case SPI.SPI_CLOCK_SPEED.MHZ_24
                 cb_spi_pro_clock.SelectedIndex = 6
-            Case FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_30
+            Case SPI.SPI_CLOCK_SPEED.MHZ_30
                 cb_spi_pro_clock.SelectedIndex = 7
             Case Else
                 cb_spi_pro_clock.SelectedIndex = 2
@@ -49,13 +49,13 @@ Public Class FrmSettings
         cb_spi_clock.Items.Add("4MHz")
         cb_spi_clock.Items.Add("8MHz")
         Select Case MySettings.SPI_CLOCK_CLASSIC
-            Case FlashcatSettings.SPI_CLOCK_SPEED_CLASSIC.MHZ_1
+            Case SPI.SPI_CLOCK_SPEED.MHZ_1
                 cb_spi_clock.SelectedIndex = 0
-            Case FlashcatSettings.SPI_CLOCK_SPEED_CLASSIC.MHZ_2
+            Case SPI.SPI_CLOCK_SPEED.MHZ_2
                 cb_spi_clock.SelectedIndex = 1
-            Case FlashcatSettings.SPI_CLOCK_SPEED_CLASSIC.MHZ_4
+            Case SPI.SPI_CLOCK_SPEED.MHZ_4
                 cb_spi_clock.SelectedIndex = 2
-            Case FlashcatSettings.SPI_CLOCK_SPEED_CLASSIC.MHZ_8
+            Case SPI.SPI_CLOCK_SPEED.MHZ_8
                 cb_spi_clock.SelectedIndex = 3
             Case Else
                 cb_spi_clock.SelectedIndex = 3
@@ -204,36 +204,38 @@ Public Class FrmSettings
         cb_ECC_WriteEnable.Text = RM.GetString("nandecc_write_operation") '"Write operation (write ECC)"
         lbl_nandecc_changes.Text = RM.GetString("nandecc_changes") '"* Changes take effect on device detect event"
         gb_nandecc_title.Text = RM.GetString("nandecc_groupbox") '"Software ECC Feature"
+        cb_rs_reverse_data.Text = RM.GetString("nandecc_revbyteorder") '"Reverse byte order"
+        lbl_sym_width.Text = RM.GetString("nandecc_symwidth") '"Symbol width"
     End Sub
 
     Private Sub FrmSettings_Closing(sender As Object, e As CancelEventArgs) Handles Me.Closing
         Select Case cb_spi_pro_clock.SelectedIndex
             Case 0
-                MySettings.SPI_CLOCK_PRO = FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_5
+                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_5
             Case 1
-                MySettings.SPI_CLOCK_PRO = FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_8
+                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_8
             Case 2
-                MySettings.SPI_CLOCK_PRO = FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_10
+                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_10
             Case 3
-                MySettings.SPI_CLOCK_PRO = FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_12
+                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_12
             Case 4
-                MySettings.SPI_CLOCK_PRO = FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_15
+                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_15
             Case 5
-                MySettings.SPI_CLOCK_PRO = FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_20
+                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_20
             Case 6
-                MySettings.SPI_CLOCK_PRO = FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_24
+                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_24
             Case 7
-                MySettings.SPI_CLOCK_PRO = FlashcatSettings.SPI_CLOCK_SPEED_PRO.MHZ_30
+                MySettings.SPI_CLOCK_PRO = SPI.SPI_CLOCK_SPEED.MHZ_30
         End Select
         Select Case cb_spi_clock.SelectedIndex
             Case 0
-                MySettings.SPI_CLOCK_CLASSIC = FlashcatSettings.SPI_CLOCK_SPEED_CLASSIC.MHZ_1
+                MySettings.SPI_CLOCK_CLASSIC = SPI.SPI_CLOCK_SPEED.MHZ_1
             Case 1
-                MySettings.SPI_CLOCK_CLASSIC = FlashcatSettings.SPI_CLOCK_SPEED_CLASSIC.MHZ_2
+                MySettings.SPI_CLOCK_CLASSIC = SPI.SPI_CLOCK_SPEED.MHZ_2
             Case 2
-                MySettings.SPI_CLOCK_CLASSIC = FlashcatSettings.SPI_CLOCK_SPEED_CLASSIC.MHZ_4
+                MySettings.SPI_CLOCK_CLASSIC = SPI.SPI_CLOCK_SPEED.MHZ_4
             Case 3
-                MySettings.SPI_CLOCK_CLASSIC = FlashcatSettings.SPI_CLOCK_SPEED_CLASSIC.MHZ_8
+                MySettings.SPI_CLOCK_CLASSIC = SPI.SPI_CLOCK_SPEED.MHZ_8
         End Select
         MySettings.SPI_FASTREAD = rb_fastread_op.Checked
         CustomDevice_SaveSettings()

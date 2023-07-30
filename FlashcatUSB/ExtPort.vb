@@ -8,6 +8,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
     Public Property MyFlashStatus As USB.DeviceStatus = USB.DeviceStatus.NotDetected
     Public MyAdapter As AdatperType 'This is the kind of socket adapter connected and the mode it is in
     Private CURRENT_WRITE_MODE As E_EXPIO_WRITEDATA
+    Private Const PRO_EXT_SPEED As SPI.SPI_CLOCK_SPEED = SPI.SPI_CLOCK_SPEED.MHZ_10
     Public CHIPID_MFG As Byte = 0
     Public CHIPID_PART As UInt32 = 0
     Public CHIPID_DETECT As FlashDetectResult
@@ -247,7 +248,7 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                         FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_WAIT) 'Calls the assigned WAIT function (uS, mS, SR, DQ7)
                         FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
                     Else
-                        Utilities.Sleep(250) 'Some flashes (like MX29LV040C) need more than 100ms delay
+                        Utilities.Sleep(nor_device.ERASE_DELAY) 'Some flashes (like MX29LV040C) need more than 100ms delay
                     End If
                     Dim blank_result As Boolean = False
                     Dim timeout As UInt32 = 0
@@ -499,9 +500,11 @@ Public Class ExtPort : Implements MemoryDeviceUSB
     Private Function EXPIO_SETUP_USB(ByVal mode As EXPIO_Mode) As Boolean
         Try
             Dim result_data(0) As Byte
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.EXPIO_INIT, result_data, mode)
+            Dim setup_data As UInt32 = mode
+            setup_data = setup_data Or ((GetSpiClock(PRO_EXT_SPEED) / 1000000) << 16) 'Ignored by classic/xport
+            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_IN(USB.USBREQ.EXPIO_INIT, result_data, setup_data)
             If Not result Then Return False
-            If (result_data(0) = &H17) Then
+            If (result_data(0) = &H17) Then 'Extension port returns 0x17 if it can communicate with the MCP23S17
                 Threading.Thread.Sleep(100) 'Give the USB time to change modes
                 Return True 'Communication successful
             Else
@@ -760,6 +763,11 @@ Public Class ExtPort : Implements MemoryDeviceUSB
                 Case MFP_IF.X16_5V
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X16 (5V)")
             End Select
+            If (FCUSB.HWBOARD = FCUSB_BOARD.Professional) Then 'Lets lower VCC if needed
+                If DirectCast(MyFlashDevice, MFP_Flash).IFACE = MFP_IF.X16_3V OrElse DirectCast(MyFlashDevice, MFP_Flash).IFACE = MFP_IF.X16_3V Then
+                    If VCC_OPTION = USB.Voltage.V5_0 Then FCUSB.USB_VCC_3V() 'Changes hardware VCC from 5v to 3V
+                End If
+            End If
         End If
     End Sub
 

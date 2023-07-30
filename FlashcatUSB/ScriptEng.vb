@@ -3118,9 +3118,9 @@ Public Class FcScriptEngine
             Dim order_str As String = arguments(0).Value
             Select Case order_str.ToUpper
                 Case "MSB"
-                    MySettings.SPI_BIT_ORDER = FlashcatSettings.SPI_ORDER.SPI_ORDER_MSB_FIRST
+                    MySettings.SPI_BIT_ORDER = SPI.SPI_ORDER.SPI_ORDER_MSB_FIRST
                 Case "LSB"
-                    MySettings.SPI_BIT_ORDER = FlashcatSettings.SPI_ORDER.SPI_ORDER_LSB_FIRST
+                    MySettings.SPI_BIT_ORDER = SPI.SPI_ORDER.SPI_ORDER_LSB_FIRST
             End Select
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "SPI.Order function exception"}
@@ -3133,13 +3133,13 @@ Public Class FcScriptEngine
             Dim mode_int As UInt32 = arguments(0).Value
             Select Case mode_int
                 Case 0
-                    MySettings.SPI_MODE = FlashcatSettings.SPI_CLOCK_POLARITY.SPI_MODE_0
+                    MySettings.SPI_MODE = SPI.SPI_CLOCK_POLARITY.SPI_MODE_0
                 Case 1
-                    MySettings.SPI_MODE = FlashcatSettings.SPI_CLOCK_POLARITY.SPI_MODE_1
+                    MySettings.SPI_MODE = SPI.SPI_CLOCK_POLARITY.SPI_MODE_1
                 Case 2
-                    MySettings.SPI_MODE = FlashcatSettings.SPI_CLOCK_POLARITY.SPI_MODE_2
+                    MySettings.SPI_MODE = SPI.SPI_CLOCK_POLARITY.SPI_MODE_2
                 Case 3
-                    MySettings.SPI_MODE = FlashcatSettings.SPI_CLOCK_POLARITY.SPI_MODE_3
+                    MySettings.SPI_MODE = SPI.SPI_CLOCK_POLARITY.SPI_MODE_3
             End Select
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "SPI.Mode function exception"}
