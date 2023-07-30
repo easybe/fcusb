@@ -190,10 +190,10 @@
                 DirectCast(FCUSB_PROG, SPI.SQI_Programmer).WriteStatusRegister(sr)
                 Utilities.Sleep(200)
                 DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteEnable()
-                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteRead({&HB1, cr(0), cr(1)})
+                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteRead({&HB1, cr(0), cr(1)}) 'F4 AF
                 Utilities.Sleep(200)
-                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteRead({&HB5}, verify_cr)
-                verify_sr = DirectCast(FCUSB_PROG, SPI.SQI_Programmer).ReadStatusRegister(1)
+                DirectCast(FCUSB_PROG, SPI.SQI_Programmer).SQIBUS_WriteRead({&HB5}, verify_cr) 'FC AF (correct F4 AF)
+                verify_sr = DirectCast(FCUSB_PROG, SPI.SQI_Programmer).ReadStatusRegister(1) '02
             End If
             WriteConsole("Verifing the nonvolatile registers have been successfully programmed")
             Dim Failed As Boolean = False

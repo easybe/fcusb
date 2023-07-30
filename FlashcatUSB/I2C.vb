@@ -1,8 +1,7 @@
 ﻿Imports FlashcatUSB.FlashMemory
-Imports FlashcatUSB.USB.HostClient
 
 Public Class I2C_Programmer : Implements MemoryDeviceUSB
-    Private FCUSB As FCUSB_DEVICE
+    Private FCUSB As USB.FCUSB_DEVICE
 
     Public Event PrintConsole(message As String) Implements MemoryDeviceUSB.PrintConsole
     Public Event SetProgress(percent As Integer) Implements MemoryDeviceUSB.SetProgress
@@ -10,7 +9,7 @@ Public Class I2C_Programmer : Implements MemoryDeviceUSB
     Public I2C_EEPROM_LIST As List(Of I2C_DEVICE)
     Private I2C_EEPROM_SELECTED As I2C_DEVICE = Nothing
 
-    Sub New(parent_if As FCUSB_DEVICE)
+    Sub New(parent_if As USB.FCUSB_DEVICE)
         FCUSB = parent_if
         I2C_EEPROM_LIST = New List(Of I2C_DEVICE)
         I2C_EEPROM_LIST.Add(New I2C_DEVICE("24XX01", 128, 1, 8))

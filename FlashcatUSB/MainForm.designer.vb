@@ -62,6 +62,7 @@ Partial Class MainForm
         Me.mi_mode_nornand = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_eprom_otp = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_hyperflash = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_mode_mmc = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_mode_jtag = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_script_menu = New System.Windows.Forms.ToolStripMenuItem()
         Me.mi_script_selected = New System.Windows.Forms.ToolStripMenuItem()
@@ -108,22 +109,7 @@ Partial Class MainForm
         Me.cmdSaveLog = New System.Windows.Forms.Button()
         Me.txtInput = New System.Windows.Forms.TextBox()
         Me.ConsoleBox = New System.Windows.Forms.ListBox()
-        Me.TabMultiDevice = New System.Windows.Forms.TabPage()
-        Me.lbl_gang_info = New System.Windows.Forms.Label()
-        Me.GroupBox1 = New System.Windows.Forms.GroupBox()
-        Me.pb_gang5 = New System.Windows.Forms.ProgressBar()
-        Me.lbl_gang5 = New System.Windows.Forms.Label()
-        Me.pb_gang4 = New System.Windows.Forms.ProgressBar()
-        Me.lbl_gang4 = New System.Windows.Forms.Label()
-        Me.pb_gang3 = New System.Windows.Forms.ProgressBar()
-        Me.lbl_gang3 = New System.Windows.Forms.Label()
-        Me.pb_gang2 = New System.Windows.Forms.ProgressBar()
-        Me.lbl_gang2 = New System.Windows.Forms.Label()
-        Me.pb_gang1 = New System.Windows.Forms.ProgressBar()
-        Me.lbl_gang1 = New System.Windows.Forms.Label()
-        Me.cmd_gang_erase = New System.Windows.Forms.Button()
-        Me.cmd_gang_write = New System.Windows.Forms.Button()
-        Me.mi_mode_mmc = New System.Windows.Forms.ToolStripMenuItem()
+        Me.mi_mode_fwh = New System.Windows.Forms.ToolStripMenuItem()
         Me.MenuStrip1.SuspendLayout()
         Me.FlashStatus.SuspendLayout()
         Me.MyTabs.SuspendLayout()
@@ -131,8 +117,6 @@ Partial Class MainForm
         CType(Me.pb_logo, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.status_panel.SuspendLayout()
         Me.TabConsole.SuspendLayout()
-        Me.TabMultiDevice.SuspendLayout()
-        Me.GroupBox1.SuspendLayout()
         Me.SuspendLayout()
         '
         'MenuStrip1
@@ -213,7 +197,7 @@ Partial Class MainForm
         '
         'mi_mode_menu
         '
-        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.mi_vcc_seperator, Me.mi_1V8, Me.mi_3V3, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_sqi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_3wire, Me.mi_mode_nornand, Me.mi_mode_eprom_otp, Me.mi_mode_hyperflash, Me.mi_mode_mmc, Me.mi_mode_jtag})
+        Me.mi_mode_menu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.mi_mode_settings, Me.ToolStripSeparator3, Me.mi_verify, Me.mi_bit_swapping, Me.mi_endian, Me.mi_vcc_seperator, Me.mi_1V8, Me.mi_3V3, Me.ToolStripSeparator7, Me.mi_mode_spi, Me.mi_mode_sqi, Me.mi_mode_spi_nand, Me.mi_mode_spieeprom, Me.mi_mode_i2c, Me.mi_mode_1wire, Me.mi_mode_3wire, Me.mi_mode_nornand, Me.mi_mode_fwh, Me.mi_mode_eprom_otp, Me.mi_mode_hyperflash, Me.mi_mode_mmc, Me.mi_mode_jtag})
         Me.mi_mode_menu.Name = "mi_mode_menu"
         Me.mi_mode_menu.Size = New System.Drawing.Size(50, 20)
         Me.mi_mode_menu.Text = "Mode"
@@ -374,13 +358,19 @@ Partial Class MainForm
         '
         Me.mi_mode_eprom_otp.Name = "mi_mode_eprom_otp"
         Me.mi_mode_eprom_otp.Size = New System.Drawing.Size(225, 22)
-        Me.mi_mode_eprom_otp.Text = "EPROM"
+        Me.mi_mode_eprom_otp.Text = "EPROM / OTP"
         '
         'mi_mode_hyperflash
         '
         Me.mi_mode_hyperflash.Name = "mi_mode_hyperflash"
         Me.mi_mode_hyperflash.Size = New System.Drawing.Size(225, 22)
         Me.mi_mode_hyperflash.Text = "HyperFlash"
+        '
+        'mi_mode_mmc
+        '
+        Me.mi_mode_mmc.Name = "mi_mode_mmc"
+        Me.mi_mode_mmc.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_mmc.Text = "SD / MMC / eMMC"
         '
         'mi_mode_jtag
         '
@@ -572,7 +562,6 @@ Partial Class MainForm
             Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.MyTabs.Controls.Add(Me.TabStatus)
         Me.MyTabs.Controls.Add(Me.TabConsole)
-        Me.MyTabs.Controls.Add(Me.TabMultiDevice)
         Me.MyTabs.Location = New System.Drawing.Point(2, 24)
         Me.MyTabs.Name = "MyTabs"
         Me.MyTabs.SelectedIndex = 0
@@ -776,151 +765,11 @@ Partial Class MainForm
         Me.ConsoleBox.Size = New System.Drawing.Size(527, 264)
         Me.ConsoleBox.TabIndex = 1
         '
-        'TabMultiDevice
+        'mi_mode_fwh
         '
-        Me.TabMultiDevice.BackColor = System.Drawing.SystemColors.Control
-        Me.TabMultiDevice.Controls.Add(Me.lbl_gang_info)
-        Me.TabMultiDevice.Controls.Add(Me.GroupBox1)
-        Me.TabMultiDevice.Controls.Add(Me.cmd_gang_erase)
-        Me.TabMultiDevice.Controls.Add(Me.cmd_gang_write)
-        Me.TabMultiDevice.Location = New System.Drawing.Point(4, 22)
-        Me.TabMultiDevice.Name = "TabMultiDevice"
-        Me.TabMultiDevice.Padding = New System.Windows.Forms.Padding(3)
-        Me.TabMultiDevice.Size = New System.Drawing.Size(537, 297)
-        Me.TabMultiDevice.TabIndex = 2
-        Me.TabMultiDevice.Text = "  Multi-device  "
-        '
-        'lbl_gang_info
-        '
-        Me.lbl_gang_info.AutoSize = True
-        Me.lbl_gang_info.Location = New System.Drawing.Point(129, 17)
-        Me.lbl_gang_info.Name = "lbl_gang_info"
-        Me.lbl_gang_info.Size = New System.Drawing.Size(239, 13)
-        Me.lbl_gang_info.TabIndex = 5
-        Me.lbl_gang_info.Text = "This is the multi-device programmer interface tool."
-        '
-        'GroupBox1
-        '
-        Me.GroupBox1.Controls.Add(Me.pb_gang5)
-        Me.GroupBox1.Controls.Add(Me.lbl_gang5)
-        Me.GroupBox1.Controls.Add(Me.pb_gang4)
-        Me.GroupBox1.Controls.Add(Me.lbl_gang4)
-        Me.GroupBox1.Controls.Add(Me.pb_gang3)
-        Me.GroupBox1.Controls.Add(Me.lbl_gang3)
-        Me.GroupBox1.Controls.Add(Me.pb_gang2)
-        Me.GroupBox1.Controls.Add(Me.lbl_gang2)
-        Me.GroupBox1.Controls.Add(Me.pb_gang1)
-        Me.GroupBox1.Controls.Add(Me.lbl_gang1)
-        Me.GroupBox1.Location = New System.Drawing.Point(33, 86)
-        Me.GroupBox1.Name = "GroupBox1"
-        Me.GroupBox1.Size = New System.Drawing.Size(445, 134)
-        Me.GroupBox1.TabIndex = 4
-        Me.GroupBox1.TabStop = False
-        Me.GroupBox1.Text = "Status"
-        '
-        'pb_gang5
-        '
-        Me.pb_gang5.Location = New System.Drawing.Point(286, 103)
-        Me.pb_gang5.Name = "pb_gang5"
-        Me.pb_gang5.Size = New System.Drawing.Size(153, 15)
-        Me.pb_gang5.TabIndex = 10
-        '
-        'lbl_gang5
-        '
-        Me.lbl_gang5.AutoSize = True
-        Me.lbl_gang5.Location = New System.Drawing.Point(6, 105)
-        Me.lbl_gang5.Name = "lbl_gang5"
-        Me.lbl_gang5.Size = New System.Drawing.Size(127, 13)
-        Me.lbl_gang5.TabIndex = 11
-        Me.lbl_gang5.Text = "Device 5: Not connected"
-        '
-        'pb_gang4
-        '
-        Me.pb_gang4.Location = New System.Drawing.Point(286, 82)
-        Me.pb_gang4.Name = "pb_gang4"
-        Me.pb_gang4.Size = New System.Drawing.Size(153, 15)
-        Me.pb_gang4.TabIndex = 8
-        '
-        'lbl_gang4
-        '
-        Me.lbl_gang4.AutoSize = True
-        Me.lbl_gang4.Location = New System.Drawing.Point(6, 84)
-        Me.lbl_gang4.Name = "lbl_gang4"
-        Me.lbl_gang4.Size = New System.Drawing.Size(127, 13)
-        Me.lbl_gang4.TabIndex = 9
-        Me.lbl_gang4.Text = "Device 4: Not connected"
-        '
-        'pb_gang3
-        '
-        Me.pb_gang3.Location = New System.Drawing.Point(286, 61)
-        Me.pb_gang3.Name = "pb_gang3"
-        Me.pb_gang3.Size = New System.Drawing.Size(153, 15)
-        Me.pb_gang3.TabIndex = 6
-        '
-        'lbl_gang3
-        '
-        Me.lbl_gang3.AutoSize = True
-        Me.lbl_gang3.Location = New System.Drawing.Point(6, 63)
-        Me.lbl_gang3.Name = "lbl_gang3"
-        Me.lbl_gang3.Size = New System.Drawing.Size(127, 13)
-        Me.lbl_gang3.TabIndex = 7
-        Me.lbl_gang3.Text = "Device 3: Not connected"
-        '
-        'pb_gang2
-        '
-        Me.pb_gang2.Location = New System.Drawing.Point(286, 40)
-        Me.pb_gang2.Name = "pb_gang2"
-        Me.pb_gang2.Size = New System.Drawing.Size(153, 15)
-        Me.pb_gang2.TabIndex = 4
-        '
-        'lbl_gang2
-        '
-        Me.lbl_gang2.AutoSize = True
-        Me.lbl_gang2.Location = New System.Drawing.Point(6, 42)
-        Me.lbl_gang2.Name = "lbl_gang2"
-        Me.lbl_gang2.Size = New System.Drawing.Size(127, 13)
-        Me.lbl_gang2.TabIndex = 5
-        Me.lbl_gang2.Text = "Device 2: Not connected"
-        '
-        'pb_gang1
-        '
-        Me.pb_gang1.Location = New System.Drawing.Point(286, 19)
-        Me.pb_gang1.Name = "pb_gang1"
-        Me.pb_gang1.Size = New System.Drawing.Size(153, 15)
-        Me.pb_gang1.TabIndex = 2
-        '
-        'lbl_gang1
-        '
-        Me.lbl_gang1.AutoSize = True
-        Me.lbl_gang1.Location = New System.Drawing.Point(6, 21)
-        Me.lbl_gang1.Name = "lbl_gang1"
-        Me.lbl_gang1.Size = New System.Drawing.Size(127, 13)
-        Me.lbl_gang1.TabIndex = 3
-        Me.lbl_gang1.Text = "Device 1: Not connected"
-        '
-        'cmd_gang_erase
-        '
-        Me.cmd_gang_erase.Location = New System.Drawing.Point(164, 46)
-        Me.cmd_gang_erase.Name = "cmd_gang_erase"
-        Me.cmd_gang_erase.Size = New System.Drawing.Size(75, 23)
-        Me.cmd_gang_erase.TabIndex = 1
-        Me.cmd_gang_erase.Text = "Erase"
-        Me.cmd_gang_erase.UseVisualStyleBackColor = True
-        '
-        'cmd_gang_write
-        '
-        Me.cmd_gang_write.Location = New System.Drawing.Point(245, 46)
-        Me.cmd_gang_write.Name = "cmd_gang_write"
-        Me.cmd_gang_write.Size = New System.Drawing.Size(75, 23)
-        Me.cmd_gang_write.TabIndex = 0
-        Me.cmd_gang_write.Text = "Write"
-        Me.cmd_gang_write.UseVisualStyleBackColor = True
-        '
-        'mi_mode_mmc
-        '
-        Me.mi_mode_mmc.Name = "mi_mode_mmc"
-        Me.mi_mode_mmc.Size = New System.Drawing.Size(225, 22)
-        Me.mi_mode_mmc.Text = "SD / MMC / eMMC"
+        Me.mi_mode_fwh.Name = "mi_mode_fwh"
+        Me.mi_mode_fwh.Size = New System.Drawing.Size(225, 22)
+        Me.mi_mode_fwh.Text = "FWH Flash"
         '
         'MainForm
         '
@@ -945,10 +794,6 @@ Partial Class MainForm
         Me.status_panel.PerformLayout()
         Me.TabConsole.ResumeLayout(False)
         Me.TabConsole.PerformLayout()
-        Me.TabMultiDevice.ResumeLayout(False)
-        Me.TabMultiDevice.PerformLayout()
-        Me.GroupBox1.ResumeLayout(False)
-        Me.GroupBox1.PerformLayout()
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
@@ -1019,21 +864,6 @@ Partial Class MainForm
     Friend WithEvents ToolStripSeparator4 As ToolStripSeparator
     Friend WithEvents ToolStripSeparator5 As ToolStripSeparator
     Friend WithEvents mi_device_features As ToolStripMenuItem
-    Friend WithEvents TabMultiDevice As TabPage
-    Friend WithEvents lbl_gang_info As Label
-    Friend WithEvents GroupBox1 As GroupBox
-    Friend WithEvents pb_gang5 As ProgressBar
-    Friend WithEvents lbl_gang5 As Label
-    Friend WithEvents pb_gang4 As ProgressBar
-    Friend WithEvents lbl_gang4 As Label
-    Friend WithEvents pb_gang3 As ProgressBar
-    Friend WithEvents lbl_gang3 As Label
-    Friend WithEvents pb_gang2 As ProgressBar
-    Friend WithEvents lbl_gang2 As Label
-    Friend WithEvents pb_gang1 As ProgressBar
-    Friend WithEvents lbl_gang1 As Label
-    Friend WithEvents cmd_gang_erase As Button
-    Friend WithEvents cmd_gang_write As Button
     Friend WithEvents mi_mode_spi_nand As ToolStripMenuItem
     Friend WithEvents mi_bitendian_big_16 As ToolStripMenuItem
     Friend WithEvents mi_language_english As ToolStripMenuItem
@@ -1055,4 +885,5 @@ Partial Class MainForm
     Friend WithEvents mi_license_menu As ToolStripMenuItem
     Friend WithEvents mi_blank_check As ToolStripMenuItem
     Friend WithEvents mi_mode_mmc As ToolStripMenuItem
+    Friend WithEvents mi_mode_fwh As ToolStripMenuItem
 End Class

@@ -31,27 +31,15 @@
         Try
             Dim txt_input As String = InputBox("Please enter your license key").Trim
             If txt_input.Equals("DELETE") Then
+                MySettings.LICENSE_KEY = ""
                 MySettings.LICENSED_TO = ""
                 MySettings.LICENSE_EXP = New DateTime
             ElseIf txt_input.Equals("") Then
             Else
-                Dim w() As Byte = Utilities.DownloadFile("https://www.embeddedcomputers.net/licensing/index.php?key=" & txt_input)
-                If w IsNot Nothing AndAlso w.Length > 0 Then
-                    Dim response As String = Utilities.Bytes.ToChrString(w).Replace(vbLf, "").Replace(vbCr, "")
-                    If (response.Equals("ERROR")) Then
-                        MsgBox("The key you entered is not valid, please check it and try again", vbCritical, "Invalid key")
-                    Else
-                        Dim result() As String = response.Split(vbTab)
-                        MySettings.LICENSED_TO = result(0)
-                        Dim data_str As String = result(1)
-                        If data_str.Equals("01/01/0001") Then
-                            MySettings.LICENSE_EXP = New DateTime
-                        Else
-                            MySettings.LICENSE_EXP = DateTime.Parse(data_str)
-                        End If
-                        MySettings.LICENSE_KEY = txt_input
-                        Me.Close()
-                    End If
+                If License_LoadKey(txt_input) Then
+                    Me.Close()
+                Else
+                    MsgBox("The key you entered is not valid, please check it and try again", vbCritical, "Invalid key")
                 End If
             End If
         Catch ex As Exception

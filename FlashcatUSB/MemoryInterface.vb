@@ -18,26 +18,12 @@ Public Class MemoryInterface
         End Get
     End Property
 
-    Public Sub Clear(Optional usb_dev As USB.HostClient.FCUSB_DEVICE = Nothing)
-        If (usb_dev Is Nothing) Then
-            MyDevices.Clear() 'Remove all devices
-            GUI.RemoveAllTabs()
-        Else
-            Dim ToRemove As New List(Of MemoryDeviceInstance)
-            For Each i In MyDevices
-                If i.FCUSB Is usb_dev Then ToRemove.Add(i)
-            Next
-            If (ToRemove.Count > 0) Then
-                For Each item In ToRemove
-                    GUI.RemoveTab(item)
-                    MyDevices.Remove(item)
-                Next
-            End If
-            ToRemove.Clear()
-        End If
+    Public Sub Clear()
+        MyDevices.Clear() 'Remove all devices
+        If GUI IsNot Nothing Then GUI.RemoveAllTabs()
     End Sub
 
-    Public Function GetDevices(usb_dev As USB.HostClient.FCUSB_DEVICE) As MemoryDeviceInstance()
+    Public Function GetDevices(usb_dev As USB.FCUSB_DEVICE) As MemoryDeviceInstance()
         Try
             Dim devices_on_this_usbport As New List(Of MemoryDeviceInstance)
             For Each i In MyDevices
@@ -50,8 +36,8 @@ Public Class MemoryInterface
         End Try
     End Function
 
-    Public Function Add(usb_if As USB.HostClient.FCUSB_DEVICE, mem_type As MemoryType, mem_name As String, mem_size As Long) As MemoryDeviceInstance
-        Dim memDev As New MemoryDeviceInstance(usb_if)
+    Public Function Add(usb_dev As USB.FCUSB_DEVICE, mem_type As MemoryType, mem_name As String, mem_size As Long) As MemoryDeviceInstance
+        Dim memDev As New MemoryDeviceInstance(usb_dev)
         memDev.Name = mem_name
         memDev.Size = mem_size
         memDev.FlashType = mem_type
@@ -59,8 +45,8 @@ Public Class MemoryInterface
         Return memDev
     End Function
 
-    Public Function Add(usb_if As USB.HostClient.FCUSB_DEVICE, device As Device) As MemoryDeviceInstance
-        Dim memDev As New MemoryDeviceInstance(usb_if)
+    Public Function Add(usb_dev As USB.FCUSB_DEVICE, device As Device) As MemoryDeviceInstance
+        Dim memDev As New MemoryDeviceInstance(usb_dev)
         memDev.Name = device.NAME
         memDev.Size = device.FLASH_SIZE
         memDev.FlashType = device.FLASH_TYPE
@@ -68,7 +54,7 @@ Public Class MemoryInterface
         Return memDev
     End Function
 
-    Public Sub Remove(ByVal device As MemoryDeviceInstance)
+    Public Sub Remove(device As MemoryDeviceInstance)
         MyDevices.Remove(device)
     End Sub
 
@@ -81,14 +67,14 @@ Public Class MemoryInterface
         End Try
     End Sub
 
-    Public Function GetDevice(ByVal index As UInt32) As MemoryDeviceInstance
+    Public Function GetDevice(index As UInt32) As MemoryDeviceInstance
         If index >= MyDevices.Count Then Return Nothing
         Return MyDevices(index)
     End Function
 
     Public Class MemoryDeviceInstance
         Public WithEvents GuiControl As MemControl_v2
-        Public FCUSB As USB.HostClient.FCUSB_DEVICE
+        Public FCUSB As USB.FCUSB_DEVICE
         Public Property Name As String
         Public Property Size As Long 'Number of bytes of the memory device
         Public Property BaseAddress As UInt32 = 0 'Only changes for JTAG devices
@@ -114,7 +100,7 @@ Public Class MemoryInterface
 
         Private InterfaceLock As New Object
 
-        Sub New(ByVal usb_interface As USB.HostClient.FCUSB_DEVICE)
+        Sub New(usb_interface As USB.FCUSB_DEVICE)
             Me.GuiControl = New MemControl_v2(Me)
             Me.FCUSB = usb_interface
         End Sub
@@ -176,9 +162,9 @@ Public Class MemoryInterface
             RaiseEvent SetStatus(status_text)
         End Sub
 
-        Private Sub OnSuccessfulWrite(mydev As USB.HostClient.FCUSB_DEVICE, x As MemControl_v2.XFER_Operation) Handles GuiControl.SuccessfulWrite
+        Private Sub OnSuccessfulWrite(mydev As USB.FCUSB_DEVICE, x As MemControl_v2.XFER_Operation) Handles GuiControl.SuccessfulWrite
             If GUI IsNot Nothing Then
-                GUI.SuccessfulWriteOperation(mydev, x)
+                GUI.SuccessfulWriteOperation(Me, x)
             End If
         End Sub
 

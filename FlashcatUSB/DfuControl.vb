@@ -1,7 +1,5 @@
-﻿Imports FlashcatUSB.USB.HostClient
-
-Public Class DfuControl
-    Public FCUSB As FCUSB_DEVICE
+﻿Public Class DfuControl
+    Public FCUSB As USB.FCUSB_DEVICE
 
     Private FwHexName As String
     Private FwHexFile() As String = Nothing
@@ -18,7 +16,7 @@ Public Class DfuControl
 
     End Sub
 
-    Public Sub LoadWindow(ByVal usb_dev As FCUSB_DEVICE)
+    Public Sub LoadWindow(usb_dev As USB.FCUSB_DEVICE)
         FCUSB = usb_dev
         lblAvrFn.Text = "File: no file currently loaded"
         lblAvrRange.Text = "Range: 0x0000-0x0000"

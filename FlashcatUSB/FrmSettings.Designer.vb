@@ -148,6 +148,7 @@ Partial Class FrmSettings
         Me.Label17 = New System.Windows.Forms.Label()
         Me.Label20 = New System.Windows.Forms.Label()
         Me.cb_multi_ce = New System.Windows.Forms.ComboBox()
+        Me.Label25 = New System.Windows.Forms.Label()
         Me.MyTabs.SuspendLayout()
         Me.TP_SPI.SuspendLayout()
         Me.group_custom.SuspendLayout()
@@ -1072,6 +1073,7 @@ Partial Class FrmSettings
         'TP_NAND2
         '
         Me.TP_NAND2.BackColor = System.Drawing.SystemColors.Control
+        Me.TP_NAND2.Controls.Add(Me.Label25)
         Me.TP_NAND2.Controls.Add(Me.gb_nandecc_title)
         Me.TP_NAND2.Location = New System.Drawing.Point(4, 22)
         Me.TP_NAND2.Name = "TP_NAND2"
@@ -1513,6 +1515,16 @@ Partial Class FrmSettings
         Me.cb_multi_ce.Size = New System.Drawing.Size(83, 21)
         Me.cb_multi_ce.TabIndex = 45
         '
+        'Label25
+        '
+        Me.Label25.AutoSize = True
+        Me.Label25.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Label25.Location = New System.Drawing.Point(95, 246)
+        Me.Label25.Name = "Label25"
+        Me.Label25.Size = New System.Drawing.Size(341, 13)
+        Me.Label25.TabIndex = 12
+        Me.Label25.Text = "This feature is only available to commercial license holders"
+        '
         'FrmSettings
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -1551,6 +1563,7 @@ Partial Class FrmSettings
         Me.gb_nand_general.ResumeLayout(False)
         Me.gb_nand_general.PerformLayout()
         Me.TP_NAND2.ResumeLayout(False)
+        Me.TP_NAND2.PerformLayout()
         Me.gb_nandecc_title.ResumeLayout(False)
         Me.gb_nandecc_title.PerformLayout()
         Me.TP_GEN.ResumeLayout(False)
@@ -1692,4 +1705,5 @@ Partial Class FrmSettings
     Friend WithEvents cb_nor_read_access As ComboBox
     Friend WithEvents Label24 As Label
     Friend WithEvents Label23 As Label
+    Friend WithEvents Label25 As Label
 End Class

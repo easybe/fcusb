@@ -1,9 +1,9 @@
 ﻿Public Class vendor_microchip_at21
-    Private FCUSB As USB.HostClient.FCUSB_DEVICE
+    Private FCUSB As USB.FCUSB_DEVICE
 
     Public Event CloseVendorForm(sender As Object)
 
-    Sub New(ByVal usb_dev As USB.HostClient.FCUSB_DEVICE)
+    Sub New(usb_dev As USB.FCUSB_DEVICE)
 
         ' This call is required by the designer.
         InitializeComponent()

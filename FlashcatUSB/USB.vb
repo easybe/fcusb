@@ -1,39 +1,51 @@
 ﻿Imports System.Threading
-Imports FlashcatUSB.MemoryInterface
 Imports FlashcatUSB.SPI
 Imports LibUsbDotNet
 Imports LibUsbDotNet.Main
 
 Namespace USB
 
+    Public Module SharedCommon
+        Friend Const DEFAULT_TIMEOUT As Integer = 5000
+        Friend Const USB_VID_ATMEL As UInt16 = &H3EB
+        Friend Const USB_VID_EC As UInt16 = &H16C0
+        Friend Const USB_PID_AT90USB162 As UInt16 = &H2FFA 'FCUSB PCB 1.x
+        Friend Const USB_PID_AT90USB1287 As UInt16 = &H2FFB 'FCUSB EX (PROTO)
+        Friend Const USB_PID_AT90USB646 As UInt16 = &H2FF9 'FCUSB EX (PRODUCTION)
+        Friend Const USB_PID_ATMEGA32U2 As UInt16 = &H2FF0 'FCUSB PCB 2.1-2.2
+        Friend Const USB_PID_ATMEGA32U4 As UInt16 = &H2FF4 'FCUSB PCB 3.2
+        Friend Const USB_PID_FCUSB_PRO As UInt16 = &H5E0
+        Friend Const USB_PID_FCUSB_MACH As UInt16 = &H5E1
+        Friend Const USB_PID_FCUSB As Integer = &H5DE 'Classic
+
+        Friend Function GetDevicePath(device As UsbRegistry) As String
+            Try
+                Dim dev_loc As String = "USB\VID_" & Hex(device.Vid).PadLeft(4, "0") & "&PID_" & Hex(device.Pid).PadLeft(4, "0")
+                If device.GetType Is GetType(LibUsb.LibUsbRegistry) Then
+                    dev_loc &= "\" & device.DeviceProperties("LocationInformation")
+                ElseIf device.GetType Is GetType(LegacyUsbRegistry) Then
+                    Dim legacy As LegacyUsbRegistry = DirectCast(device, LegacyUsbRegistry)
+                    Dim DeviceFilename As String = DirectCast(legacy.Device, LibUsb.LibUsbDevice).DeviceFilename
+                    dev_loc &= DeviceFilename
+                End If
+                Return dev_loc
+            Catch ex As Exception
+                Return ""
+            End Try
+        End Function
+
+    End Module
+
     Public Class HostClient
-        Public Event DeviceConnected(ByVal usb_dev As FCUSB_DEVICE)
-        Public Event DeviceDisconnected(ByVal usb_dev As FCUSB_DEVICE)
+        Public Event DeviceConnected(usb_dev As FCUSB_DEVICE)
+        Public Event DeviceDisconnected(usb_dev As FCUSB_DEVICE)
 
-        Private Const DEFAULT_TIMEOUT As Integer = 5000
-        Private Const USB_VID_ATMEL As UInt16 = &H3EB
-        Private Const USB_VID_EC As UInt16 = &H16C0
-        Private Const USB_PID_FCUSB_PRO As UInt16 = &H5E0
-        Private Const USB_PID_FCUSB_MACH As UInt16 = &H5E1
-        Private Const BUFFER_SIZE As UInt16 = 2048
+        Private ConnectedDevices As New List(Of FCUSB_DEVICE) 'Contains all devices that are connected
 
-        Public FCUSB() As FCUSB_DEVICE
-        'The first board to connect sets the hardware for multi-device
-        Public Property HW_MODE As FCUSB_BOARD = FCUSB_BOARD.NotConnected
-        Public Property HW_BUSY As Boolean = False
+        Public Property CloseService As Boolean = False
 
         Sub New()
-            ReDim FCUSB(4)
-            FCUSB(0) = New FCUSB_DEVICE With {.USB_INDEX = 0}
-            FCUSB(1) = New FCUSB_DEVICE With {.USB_INDEX = 1}
-            FCUSB(2) = New FCUSB_DEVICE With {.USB_INDEX = 2}
-            FCUSB(3) = New FCUSB_DEVICE With {.USB_INDEX = 3}
-            FCUSB(4) = New FCUSB_DEVICE With {.USB_INDEX = 4}
-            AddHandler FCUSB(0).UpdateProgress, AddressOf OnDeviceUpdateProgress
-            AddHandler FCUSB(1).UpdateProgress, AddressOf OnDeviceUpdateProgress
-            AddHandler FCUSB(2).UpdateProgress, AddressOf OnDeviceUpdateProgress
-            AddHandler FCUSB(3).UpdateProgress, AddressOf OnDeviceUpdateProgress
-            AddHandler FCUSB(4).UpdateProgress, AddressOf OnDeviceUpdateProgress
+
         End Sub
 
         Public Sub StartService()
@@ -45,670 +57,113 @@ Namespace USB
             End Try
         End Sub
 
-        Public Class FCUSB_DEVICE
-            Public Property USB_PATH As String
-            Public Property IS_CONNECTED As Boolean = False
-            Public Property USB_INDEX As Integer = -1 'Ports 0 - 4
-            Public Property FW_VERSION As String = ""
-            Public Property UPDATE_IN_PROGRESS As Boolean = False
-
-            Public ATTACHED As New List(Of MemoryDeviceInstance)
-
-            Public USBHANDLE As UsbDevice
-
-            Public SPI_NOR_IF As New SPI_Programmer(Me)
-            Public SQI_NOR_IF As New SQI_Programmer(Me)
-            Public SPI_NAND_IF As New SPINAND_Programmer(Me)
-            Public PARALLEL_IF As New PARALLEL_NOR_NAND(Me)
-            Public EPROM_IF As New EPROM_Programmer(Me)
-            Public HF_IF As New HF_Port(Me)
-            Public JTAG_IF As New JTAG.JTAG_IF(Me)
-            Public I2C_IF As New I2C_Programmer(Me)
-            Public MW_IF As New Microwire_Programmer(Me)
-            Public SWI_IF As New SWI_Programmer(Me)
-
-            Public DFU_IF As New DFU_API(Me)
-            Public NAND_IF As New NAND_BLOCK_IF 'BAD block management system
-
-
-            Public Property PROGRAMMER As MemoryDeviceUSB
-
-
-            Private USB_TIMEOUT_VALUE As Integer = DEFAULT_TIMEOUT
-
-            Public Property HWBOARD As FCUSB_BOARD = FCUSB_BOARD.NotConnected
-
-            Public Event UpdateProgress(percent As Integer, device As FCUSB_DEVICE)
-
-            Public ReadOnly Property HasLogic() As Boolean
-                Get
-                    If Me.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
-                        Return True
-                    ElseIf Me.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
-                        Return True
-                    ElseIf Me.HWBOARD = FCUSB_BOARD.Mach1 Then
-                        Return True
-                    Else
-                        Return False
-                    End If
-                End Get
-            End Property
-
-            Sub New()
-                AddHandler SPI_NOR_IF.PrintConsole, AddressOf WriteConsole 'Lets set text output to the console
-                AddHandler SQI_NOR_IF.PrintConsole, AddressOf WriteConsole
-                AddHandler SPI_NAND_IF.PrintConsole, AddressOf WriteConsole
-                AddHandler I2C_IF.PrintConsole, AddressOf WriteConsole
-                AddHandler PARALLEL_IF.PrintConsole, AddressOf WriteConsole
-                AddHandler MW_IF.PrintConsole, AddressOf WriteConsole
-                AddHandler HF_IF.PrintConsole, AddressOf WriteConsole
-                AddHandler EPROM_IF.PrintConsole, AddressOf WriteConsole
-                If IS_DEBUG_VER Then USB_TIMEOUT_VALUE = 5000000
-            End Sub
-
-            Public ReadOnly Property IsAlive() As Boolean
-                Get
-                    If USBHANDLE Is Nothing Then Return False
-                    Return USBHANDLE.UsbRegistryInfo.IsAlive
-                End Get
-            End Property
-
-            Public Sub SelectProgrammer(dev As FlashcatSettings.DeviceMode)
-                Select Case dev
-                    Case FlashcatSettings.DeviceMode.SPI
-                        Me.PROGRAMMER = SPI_NOR_IF
-                    Case FlashcatSettings.DeviceMode.SQI
-                        Me.PROGRAMMER = SQI_NOR_IF
-                    Case FlashcatSettings.DeviceMode.SPI_NAND
-                        Me.PROGRAMMER = SPI_NAND_IF
-                    Case FlashcatSettings.DeviceMode.NOR_NAND
-                        Me.PROGRAMMER = PARALLEL_IF
-                    Case FlashcatSettings.DeviceMode.EPROM
-                        Me.PROGRAMMER = EPROM_IF
-                    Case FlashcatSettings.DeviceMode.HyperFlash
-                        Me.PROGRAMMER = HF_IF
-                    Case FlashcatSettings.DeviceMode.JTAG
-                        Me.PROGRAMMER = JTAG_IF
-                    Case FlashcatSettings.DeviceMode.I2C_EEPROM
-                        Me.PROGRAMMER = I2C_IF
-                    Case FlashcatSettings.DeviceMode.Microwire
-                        Me.PROGRAMMER = MW_IF
-                    Case FlashcatSettings.DeviceMode.SINGLE_WIRE
-                        Me.PROGRAMMER = SWI_IF
-                    Case FlashcatSettings.DeviceMode.SPI_EEPROM
-                        Me.PROGRAMMER = SPI_NOR_IF
-                End Select
-            End Sub
-
-            Private SPI_MODE_BYTE As Byte
-            Private SPI_ORDER_BYTE As Byte
-
-            Public Sub USB_SPI_SETUP(mode As SPIBUS_MODE, bit_order As SPI_ORDER, speed As Integer)
-                Try
-                    Dim clock_speed As UInt32 = GetMaxSpiClock(Me.HWBOARD, speed)
-                    Dim result As Boolean
-                    If (Me.HWBOARD = FCUSB_BOARD.Professional_PCB4) Then
-                        result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, (clock_speed / 1000000))
-                    ElseIf (Me.HWBOARD = FCUSB_BOARD.Professional_PCB5) Then
-                        result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, (clock_speed / 1000000))
-                    ElseIf (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
-                        result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, (clock_speed / 1000000))
-                    Else
-                        SPI_ORDER_BYTE = 0
-                        If bit_order = SPI_ORDER.SPI_ORDER_MSB_FIRST Then
-                            SPI_ORDER_BYTE = 0
-                        ElseIf bit_order = SPI_ORDER.SPI_ORDER_LSB_FIRST Then
-                            SPI_ORDER_BYTE = &H20
-                        End If
-                        SPI_MODE_BYTE = 0
-                        Select Case mode
-                            Case SPIBUS_MODE.SPI_MODE_0
-                                SPI_MODE_BYTE = 0
-                            Case SPIBUS_MODE.SPI_MODE_1
-                                SPI_MODE_BYTE = &H4
-                            Case SPIBUS_MODE.SPI_MODE_2
-                                SPI_MODE_BYTE = &H8
-                            Case SPIBUS_MODE.SPI_MODE_3
-                                SPI_MODE_BYTE = &HC
-                        End Select
-                        Dim clock_byte As Byte = &H80
-                        If clock_speed = 8000000 Then
-                            clock_byte = &H80 'SPI_CLOCK_FOSC_2
-                        ElseIf clock_speed = 4000000 Then
-                            clock_byte = &H0 'SPI_CLOCK_FOSC_4
-                        ElseIf clock_speed = 2000000 Then
-                            clock_byte = &H81 'SPI_CLOCK_FOSC_8
-                        ElseIf clock_speed = 1000000 Then
-                            clock_byte = &H1 'SPI_CLOCK_FOSC_16
-                        End If
-                        Dim spiConf As UInt16 = CUShort(clock_byte Or SPI_MODE_BYTE Or SPI_ORDER_BYTE)
-                        result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, CUInt(spiConf))
-                    End If
-                Catch ex As Exception
-                End Try
-            End Sub
-
-            Private Sub USB_SPI_SETSPEED(ByVal MHZ As UInt32)
-                If (Me.HasLogic()) Then
-                    USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, MHZ)
-                Else
-                    Dim clock_byte As Byte
-                    Select Case MHZ
-                        Case 8000000
-                            clock_byte = &H80 'SPI_CLOCK_FOSC_2
-                        Case 4000000
-                            clock_byte = &H0 'SPI_CLOCK_FOSC_4
-                        Case 2000000
-                            clock_byte = &H81 'SPI_CLOCK_FOSC_8
-                        Case 1000000
-                            clock_byte = &H1 'SPI_CLOCK_FOSC_16
-                    End Select
-                    Dim spiConf As UInt16 = CUShort(clock_byte Or SPI_MODE_BYTE Or SPI_ORDER_BYTE)
-                    USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, CUInt(spiConf))
-                End If
-            End Sub
-
-            Public Function USB_SETUP_BULKOUT(RQ As USBREQ, SETUP() As Byte, BULK_OUT() As Byte, ByVal control_dt As UInt32, Optional timeout As Integer = -1) As Boolean
-                Try
-                    If (Me.HasLogic()) Then
-                        Dim ErrCounter As Integer = 0
-                        Dim result As Boolean = True
-                        Do
-                            result = True
-                            If SETUP IsNot Nothing Then
-                                result = USB_CONTROL_MSG_OUT(USBREQ.LOAD_PAYLOAD, SETUP, SETUP.Length) 'Sends setup data
-                            End If
-                            If result Then
-                                result = USB_CONTROL_MSG_OUT(RQ, Nothing, control_dt) 'Sends setup command
-                            End If
-                            If result Then
-                                If BULK_OUT Is Nothing Then Return True
-                                Utilities.Sleep(2)
-                                result = USB_BULK_OUT(BULK_OUT, timeout)
-                            End If
-                            If result Then Return True
-                            If Not result Then ErrCounter += 1
-                            If ErrCounter = 3 Then
-                                Return False
-                            End If
-                        Loop
-                    Else
-                        Dim result As Boolean = True = USB_CONTROL_MSG_OUT(RQ, SETUP, control_dt) 'Sends setup command and data
-                        If Not result Then Return False
-                        If BULK_OUT Is Nothing Then Return True
-                        result = USB_BULK_OUT(BULK_OUT)
-                        Return result
-                    End If
-                Catch ex As Exception
-                    Return False
-                End Try
-            End Function
-
-            Public Function USB_SETUP_BULKIN(RQ As USBREQ, SETUP() As Byte, ByRef DATA_IN() As Byte, control_dt As UInt32, Optional timeout As Integer = -1) As Boolean
-                Try
-                    Dim result As Boolean
-                    If (Me.HasLogic()) Then
-                        Dim ErrCounter As Integer = 0
-                        Do
-                            result = True
-                            If SETUP IsNot Nothing Then
-                                result = USB_CONTROL_MSG_OUT(USBREQ.LOAD_PAYLOAD, SETUP, SETUP.Length)
-                            End If
-                            If result Then
-                                result = USB_CONTROL_MSG_OUT(RQ, Nothing, control_dt) 'Sends the USB REQ and the CONTROL data
-                            End If
-                            If result Then
-                                Utilities.Sleep(5)
-                                result = USB_BULK_IN(DATA_IN, timeout)
-                            End If
-                            If Not result Then ErrCounter += 1
-                            If ErrCounter = 3 Then Return False
-                        Loop While Not result
-                        Return True
-                    Else
-                        result = USB_CONTROL_MSG_OUT(RQ, SETUP, control_dt) 'Sends setup command and data
-                        If Not result Then Return False
-                        result = USB_BULK_IN(DATA_IN, timeout)
-                        Return result
-                    End If
-                Catch ex As Exception
-                    Return False
-                End Try
-            End Function
-            'Sends a control message with an optional byte buffer to write
-            Public Function USB_CONTROL_MSG_OUT(RQ As USBREQ, Optional buffer_out() As Byte = Nothing, Optional ByVal data As UInt32 = 0) As Boolean
-                Try
-                    If USBHANDLE Is Nothing Then Return False
-                    Dim result As Boolean
-                    Dim usb_flag As Byte
-                    If (Me.HasLogic()) Then
-                        usb_flag = (UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Interface Or UsbCtrlFlags.Direction_Out)
-                    Else
-                        usb_flag = (UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Device Or UsbCtrlFlags.Direction_Out)
-                    End If
-                    Dim wValue As UInt16 = (data And &HFFFF0000UI) >> 16
-                    Dim wIndex As UInt16 = (data And &HFFFF)
-                    Dim bytes_out As Short = 0
-                    If buffer_out IsNot Nothing Then bytes_out = CShort(buffer_out.Length)
-                    Dim usbSetupPacket As New UsbSetupPacket(usb_flag, RQ, wValue, wIndex, bytes_out)
-                    Dim bytes_xfer As Integer = 0
-                    If buffer_out Is Nothing Then
-                        result = USBHANDLE.ControlTransfer(usbSetupPacket, Nothing, 0, bytes_xfer)
-                    Else
-                        result = USBHANDLE.ControlTransfer(usbSetupPacket, buffer_out, buffer_out.Length, bytes_xfer)
-                    End If
-                    Return result
-                Catch ex As Exception
-                    Return False
-                End Try
-            End Function
-            'Sends a control message with a byte buffer to receive data
-            Public Function USB_CONTROL_MSG_IN(RQ As USBREQ, ByRef Buffer_in() As Byte, Optional ByVal data As UInt32 = 0) As Boolean
-                Try
-                    If USBHANDLE Is Nothing Then Return False
-                    Dim usb_flag As Byte
-                    Dim bytes_xfer As Integer = 0
-                    If (Me.HasLogic()) Then
-                        usb_flag = UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Interface Or UsbCtrlFlags.Direction_In
-                    Else
-                        usb_flag = UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Device Or UsbCtrlFlags.Direction_In
-                    End If
-                    Dim wValue As UInt16 = (data And &HFFFF0000UI) >> 16
-                    Dim wIndex As UInt16 = (data And &HFFFF)
-                    Dim usb_setup As New UsbSetupPacket(usb_flag, RQ, wValue, wIndex, CShort(Buffer_in.Length))
-                    Dim result As Boolean = USBHANDLE.ControlTransfer(usb_setup, Buffer_in, Buffer_in.Length, bytes_xfer)
-                    If Not result Then Return False
-                    If Not Buffer_in.Length = bytes_xfer Then Return False
-                    Return True 'No error
-                Catch ex As Exception
-                    Return False
-                End Try
-            End Function
-
-            Public Function USB_BULK_IN(ByRef buffer_in() As Byte, Optional Timeout As Integer = -1) As Boolean
-                Try
-                    If Timeout = -1 Then Timeout = USB_TIMEOUT_VALUE
-                    If (Me.HasLogic()) Then
-                        Dim xfer As Integer = 0
-                        Using ep_reader As UsbEndpointReader = USBHANDLE.OpenEndpointReader(ReadEndpointID.Ep01, buffer_in.Length, EndpointType.Bulk)
-                            Dim ec2 As ErrorCode = ep_reader.Read(buffer_in, 0, CInt(buffer_in.Length), Timeout, xfer) '5 second timeout
-                            If ec2 = ErrorCode.IoCancelled Then Return False
-                            If (Not ec2 = ErrorCode.None) Then
-                                Dim result As Boolean = USB_CONTROL_MSG_OUT(USBREQ.ABORT)
-                                ep_reader.Reset()
-                                Return False
-                            End If
-                            Return True
-                        End Using
-                    Else
-                        Dim BytesRead As Integer = 0
-                        Dim reader As UsbEndpointReader = USBHANDLE.OpenEndpointReader(ReadEndpointID.Ep01, buffer_in.Length, EndpointType.Bulk)
-                        Dim ec As ErrorCode = reader.Read(buffer_in, 0, buffer_in.Length, Timeout, BytesRead)
-                        If ec = ErrorCode.None Then Return True
-                    End If
-                Catch ex As Exception
-                End Try
-                Return False
-            End Function
-
-            Public Function USB_BULK_OUT(ByVal buffer_out() As Byte, Optional Timeout As Integer = -1) As Boolean
-                Try
-                    If Timeout = -1 Then Timeout = USB_TIMEOUT_VALUE
-                    If (Me.HasLogic()) Then
-                        Dim xfer As Integer = 0
-                        Using ep_writer As UsbEndpointWriter = USBHANDLE.OpenEndpointWriter(WriteEndpointID.Ep02, EndpointType.Bulk)
-                            Dim ec2 As ErrorCode = ep_writer.Write(buffer_out, 0, CInt(buffer_out.Length), Timeout, xfer) '5 second timeout
-                            If (Not ec2 = ErrorCode.None) Then
-                                Dim result As Boolean = USB_CONTROL_MSG_OUT(USBREQ.ABORT)
-                                ep_writer.Reset()
-                                Return False 'LibUsbDotNet.Main.ErrorCode Win32Error {&HFFFFC011}
-                            End If
-                            Return True
-                        End Using
-                    Else
-                        Dim BytesWritten As Integer = 0
-                        Dim writer As UsbEndpointWriter = USBHANDLE.OpenEndpointWriter(WriteEndpointID.Ep02, EndpointType.Bulk)
-                        Dim ec As ErrorCode = writer.Write(buffer_out, 0, buffer_out.Length, Timeout, BytesWritten)
-                        If Not ec = ErrorCode.None Or Not BytesWritten = buffer_out.Length Then Return False
-                        Return True
-                    End If
-                Catch ex As Exception
-                    Return False
-                End Try
-            End Function
-
-            Public Sub Disconnect()
-                Try
-                    ATTACHED.Clear()
-                    Me.IS_CONNECTED = False
-                    Me.FW_VERSION = ""
-                    Me.USB_PATH = ""
-                    If Me.USBHANDLE IsNot Nothing Then
-                        Try
-                            Me.USB_LEDOff()
-                        Catch ex As Exception
-                        End Try
-                        Dim wholeUsbDevice As IUsbDevice = TryCast(Me.USBHANDLE, IUsbDevice)
-                        If wholeUsbDevice IsNot Nothing Then 'Libusb only
-                            wholeUsbDevice.ReleaseInterface(0)
-                        End If
-                        Me.USBHANDLE.Close()
-                    End If
-                    Me.USBHANDLE = Nothing
-                Catch ex As Exception
-                End Try
-            End Sub
-
-            Public Sub USB_LEDOn()
-                Try
-                    If HWBOARD = FCUSB_BOARD.DFU_BL Then Exit Sub 'Bootloader does not have LED
-                    USB_CONTROL_MSG_OUT(USBREQ.LEDON) 'SPIREQ.LEDON
-                Catch ex As Exception
-                End Try
-            End Sub
-
-            Public Sub USB_LEDOff()
-                Try
-                    If HWBOARD = FCUSB_BOARD.DFU_BL Then Exit Sub 'Bootloader does not have LED
-                    USB_CONTROL_MSG_OUT(USBREQ.LEDOFF) 'SPIREQ.LEDOFF
-                Catch ex As Exception
-                End Try
-            End Sub
-
-            Public Sub USB_LEDBlink()
-                Try
-                    If HWBOARD = FCUSB_BOARD.DFU_BL Then Exit Sub 'Bootloader does not have LED
-                    USB_CONTROL_MSG_OUT(USBREQ.LEDBLINK)
-                Catch ex As Exception
-                End Try
-            End Sub
-
-            Public Function USB_Echo() As Boolean
-                Try
-                    If (USBHANDLE.UsbRegistryInfo.Pid = USB_PID_FCUSB_PRO) OrElse (USBHANDLE.UsbRegistryInfo.Pid = USB_PID_FCUSB_MACH) Then
-                        Dim packet_out(3) As Byte
-                        If Not USB_CONTROL_MSG_IN(USBREQ.ECHO, packet_out, &H45434643UI) Then Return False
-                        If Not packet_out(0) = &H45 Then Return False
-                        If Not packet_out(1) = &H43 Then Return False
-                        If Not packet_out(2) = &H46 Then Return False
-                        If Not packet_out(3) = &H43 Then Return False
-                    Else
-                        Dim packet_out(7) As Byte
-                        Dim data_in As UInt32 = &H12345678UI
-                        If Not USB_CONTROL_MSG_IN(USBREQ.ECHO, packet_out, data_in) Then Return False 'SPIREQ.ECHO
-                        If packet_out(1) <> CByte(USBREQ.ECHO) Then Return False
-                        If packet_out(2) <> &H34 Then Return False
-                        If packet_out(3) <> &H12 Then Return False
-                        If packet_out(4) <> &H78 Then Return False
-                        If packet_out(5) <> &H56 Then Return False
-                        If packet_out(6) <> &H8 Then Return False
-                        If packet_out(7) <> &H0 Then Return False
-                    End If
-                    Return True 'Echo successful
-                Catch ex As Exception
-                    Return False
-                End Try
-            End Function
-
-            Public Sub USB_VCC_OFF()
-                If (Me.HasLogic()) Then
-                    USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
-                    Utilities.Sleep(100)
-                End If
-            End Sub
-
-            Public Sub USB_VCC_ON()
-                If (Me.HasLogic()) Then
-                    If (MySettings.VOLT_SELECT = Voltage.V1_8) Then
-                        USB_VCC_1V8()
-                    Else
-                        USB_VCC_3V()
-                    End If
-                End If
-            End Sub
-
-            Public Sub USB_VCC_1V8()
-                If (Me.HasLogic()) Then
-                    USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
-                    Utilities.Sleep(250)
-                    USB_CONTROL_MSG_OUT(USBREQ.LOGIC_1V8)
-                    Utilities.Sleep(100)
-                    MySettings.VOLT_SELECT = Voltage.V1_8
-                End If
-            End Sub
-
-            Public Sub USB_VCC_3V()
-                If (Me.HasLogic()) Then
-                    USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
-                    Utilities.Sleep(250)
-                    USB_CONTROL_MSG_OUT(USBREQ.LOGIC_3V3)
-                    Utilities.Sleep(100)
-                    MySettings.VOLT_SELECT = Voltage.V3_3
-                End If
-            End Sub
-
-            Public Property USB_IsBootloaderMode As Boolean = False
-            Public Property USB_IsAppUpdaterMode As Boolean = False
-
-            Public Function USB_WaitForComplete() As Boolean
-                Dim timeout_counter As Integer
-                Dim task_id As Byte = 255
-                Do
-                    Dim packet_out(0) As Byte
-                    Utilities.Sleep(5) 'Prevents slamming the USB port
-                    Dim result As Boolean = USB_CONTROL_MSG_IN(USBREQ.GET_TASK, packet_out)
-                    If Not result Then
-                        task_id = 1 'WAITING
-                    Else
-                        task_id = packet_out(0)
-                    End If
-                    timeout_counter += 1
-                    If (timeout_counter = 1000) Then Return False 'Changed from 500
-                Loop While (task_id > 0)
-                Return True
-            End Function
-
-            Public Function LoadFirmwareVersion() As Boolean
-                Try
-                    USB_IsBootloaderMode = False
-                    USB_IsAppUpdaterMode = False
-                    If (USBHANDLE.UsbRegistryInfo.Vid = USB_VID_ATMEL) Then
-                        Me.HWBOARD = FCUSB_BOARD.DFU_BL
-                        Me.FW_VERSION = "1.00"
-                    ElseIf USBHANDLE.UsbRegistryInfo.Pid = USB_PID_FCUSB_PRO Then
-                        Dim b(3) As Byte
-                        If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, b) Then Return False
-                        Me.FW_VERSION = Utilities.Bytes.ToChrString({b(1), Asc("."), b(2), b(3)})
-                        If (b(0) = Asc("B")) Then
-                            Me.USB_IsBootloaderMode = True
-                            If (b(1) = Asc("5")) Then 'PCB 5.0
-                                Me.HWBOARD = FCUSB_BOARD.Professional_PCB5
-                            Else 'PCB 4.0
-                                Me.HWBOARD = FCUSB_BOARD.Professional_PCB4
-                            End If
-                        ElseIf (b(0) = Asc("F")) Then
-                            Me.HWBOARD = FCUSB_BOARD.Professional_PCB4
-                            Me.USB_IsBootloaderMode = True
-                        ElseIf (b(0) = Asc("P")) Then
-                            Me.HWBOARD = FCUSB_BOARD.Professional_PCB4
-                        ElseIf (b(0) = Asc("T")) Then
-                            Me.HWBOARD = FCUSB_BOARD.Professional_PCB5
-                        End If
-                    ElseIf USBHANDLE.UsbRegistryInfo.Pid = USB_PID_FCUSB_MACH Then
-                        Dim b(3) As Byte
-                        If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, b) Then Return False
-                        If (b(0) = Asc("B")) Then
-                            Me.USB_IsBootloaderMode = True
-                        End If
-                        Me.FW_VERSION = Utilities.Bytes.ToChrString({b(1), Asc("."), b(2), b(3)})
-                        Me.HWBOARD = FCUSB_BOARD.Mach1
-                        Return True
-                    Else
-                        Dim buff(3) As Byte
-                        Dim data_out(3) As Byte
-                        If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, buff) Then Return False
-                        Dim hw_byte As Byte = buff(0)
-                        If hw_byte = CByte(Asc("C")) Then
-                            Me.HWBOARD = FCUSB_BOARD.Classic
-                        ElseIf hw_byte = CByte(Asc("E")) Then
-                            Me.HWBOARD = FCUSB_BOARD.XPORT_PCB1
-                        ElseIf hw_byte = CByte(Asc("X")) Then
-                            Me.HWBOARD = FCUSB_BOARD.XPORT_PCB2
-                        ElseIf hw_byte = CByte(Asc("0")) Then
-                            Me.HWBOARD = FCUSB_BOARD.Classic
-                        End If
-                        data_out(3) = buff(3)
-                        data_out(2) = buff(2)
-                        data_out(1) = Asc(".")
-                        data_out(0) = buff(1)
-                        Dim fwstr As String = Utilities.Bytes.ToChrString(data_out)
-                        If fwstr.StartsWith("0") Then fwstr = Mid(fwstr, 2)
-                        Me.FW_VERSION = fwstr
-                        Return True
-                    End If
-                    Return False
-                Catch ex As Exception
-                    Return False
-                End Try
-                Return True
-            End Function
-
-            Public Function SAM3U_FirmwareUpdate(ByVal new_fw() As Byte, fw_version As Single) As Boolean
-                Try
-                    Dim result As Boolean = USB_CONTROL_MSG_OUT(USBREQ.FW_UPDATE, Nothing, new_fw.Length)
-                    If Not result Then Return False
-                    Dim bytes_left As UInt32 = new_fw.Length
-                    Dim ptr As Integer = 0
-                    RaiseEvent UpdateProgress(0, Me)
-                    While (bytes_left > 0)
-                        Dim count As Integer = bytes_left
-                        If (count > 4096) Then count = 4096
-                        Dim buffer(count - 1) As Byte
-                        Array.Copy(new_fw, ptr, buffer, 0, buffer.Length)
-                        result = USB_BULK_OUT(buffer)
-                        If Not result Then Return False
-                        ptr += count
-                        bytes_left -= count
-                        Dim p As Integer = Math.Floor((ptr / new_fw.Length) * 100)
-                        RaiseEvent UpdateProgress(p, Me)
-                        Utilities.Sleep(100)
-                    End While
-                    Dim fw_ver_data As UInt32 = &HFC000000UI Or (Math.Floor(fw_version) << 8) Or ((fw_version * 100) And 255)
-                    USB_CONTROL_MSG_OUT(USBREQ.FW_REBOOT, Nothing, fw_ver_data)
-                    RaiseEvent UpdateProgress(100, Me)
-                    Return True
-                Catch ex As Exception
-                    Return False
-                End Try
-            End Function
-
-            Public Function LOGIC_GetVersion() As UInt32
-                Dim cpld_data(3) As Byte
-                USB_CONTROL_MSG_IN(USBREQ.LOGIC_VERSION_GET, cpld_data)
-                Array.Reverse(cpld_data)
-                Dim result As UInt32 = Utilities.Bytes.ToUInt32(cpld_data)
-                Return result
-            End Function
-
-            Public Function LOGIC_SetVersion(new_ver As UInt32) As Boolean
-                Dim result As Boolean = USB_CONTROL_MSG_OUT(USBREQ.LOGIC_VERSION_SET, Nothing, new_ver)
-                Return result
-            End Function
-
-        End Class
-
         Private Sub ConnectionThread()
-            Do While (Not AppIsClosing)
-                For i = 0 To FCUSB.Count - 1
-                    If (Not FCUSB(i).UPDATE_IN_PROGRESS) Then
-                        If FCUSB(i).IS_CONNECTED AndAlso Not FCUSB(i).IsAlive Then
-                            FCUSB(i).Disconnect()
-                            RaiseEvent DeviceDisconnected(FCUSB(i))
-                            If Me.Count = 0 Then HW_MODE = FCUSB_BOARD.NotConnected
-                        End If
-                    End If
-                Next
-                Dim fcusb_list() As UsbRegistry = FindUsbDevices()
-                If fcusb_list IsNot Nothing Then
+            Do While (Not CloseService)
+                CheckConnectedDevices()
+                If Not CloseService Then ConnectToDevices()
+                Thread.Sleep(250)
+            Loop
+            DisconnectAll()
+        End Sub
+
+        Private Sub ConnectToDevices()
+            Try
+                Dim fcusb_list() As UsbRegistry = FindUsbDevices() 'Returns a list of all FCUSB devices connected
+                If fcusb_list IsNot Nothing AndAlso fcusb_list.Length > 0 Then
                     For Each this_fcusb In fcusb_list
-                        Dim fcusb_path As String = GetDeviceID(this_fcusb)
-                        Dim Found As Boolean = False
-                        For i = 0 To FCUSB.Count - 1
-                            If FCUSB(i).USB_PATH = fcusb_path Then Found = True : Exit For
-                        Next
-                        If (Not Found) Then 'New device connected
-                            For i = 0 To FCUSB.Count - 1
-                                If (FCUSB(i).USB_PATH = "") Then 'This slot is available
-                                    Dim this_dev As UsbDevice = this_fcusb.Device
-                                    If this_dev Is Nothing Then Exit For
-                                    If OpenUsbDevice(this_dev) Then
-                                        FCUSB(i).USBHANDLE = this_dev
-                                        FCUSB(i).USB_PATH = fcusb_path
-                                        FCUSB(i).UPDATE_IN_PROGRESS = False
-                                        FCUSB(i).IS_CONNECTED = True
-                                        FCUSB(i).LoadFirmwareVersion()
-                                        If (Not this_dev.UsbRegistryInfo.Vid = USB_VID_ATMEL) Then 'DFU Bootloader mode
-                                            Dim echo_cmd As Boolean = FCUSB(i).USB_Echo
-                                            If echo_cmd Then
-                                                If HW_MODE = FCUSB_BOARD.NotConnected Then
-                                                    HW_MODE = FCUSB(i).HWBOARD
-                                                ElseIf HW_MODE = FCUSB(i).HWBOARD Then
-                                                Else
-                                                    FCUSB(i).USB_PATH = ""
-                                                    FCUSB(i).IS_CONNECTED = False
-                                                    FCUSB(i).USBHANDLE = Nothing
-                                                    Exit For
-                                                End If
-                                            Else
-                                                FCUSB(i).USB_PATH = ""
-                                                FCUSB(i).IS_CONNECTED = False
-                                                FCUSB(i).USBHANDLE = Nothing
-                                                Exit For
-                                            End If
-                                        End If
-                                        RaiseEvent DeviceConnected(FCUSB(i))
-                                    End If
-                                    Exit For
-                                End If
-                            Next
+                        Dim fcusb_path As String = GetDevicePath(this_fcusb)
+                        If Not DevicePathIsConnected(fcusb_path) Then 'This device is not in our list
+                            Dim this_dev As UsbDevice = this_fcusb.Device
+                            If this_dev Is Nothing Then Exit For
+                            Dim new_fcusb_dev As FCUSB_DEVICE = Nothing
+                            If Connect(this_dev, new_fcusb_dev) Then
+                                ConnectedDevices.Add(new_fcusb_dev)
+                                AddHandler new_fcusb_dev.OnDisconnected, AddressOf FCUSB_Device_Disconnected
+                                RaiseEvent DeviceConnected(new_fcusb_dev)
+                            End If
                         End If
                     Next
                 End If
-                Thread.Sleep(250)
-            Loop
-            USBCLIENT.Disconnect_All()
+            Catch ex As Exception
+            End Try
         End Sub
 
-        Public Function Connect(usb_device_path As String) As FCUSB_DEVICE
+        Private Sub CheckConnectedDevices()
+            Dim disconnected_dev As New List(Of FCUSB_DEVICE)
+            For Each dev In ConnectedDevices
+                If dev.IS_CONNECTED Then
+                    Dim is_online As Boolean = dev.CheckConnection()
+                    If Not is_online Then disconnected_dev.Add(dev)
+                End If
+            Next
+            For Each dev In disconnected_dev
+                dev.Disconnect()
+            Next
+        End Sub
+
+        Private Sub FCUSB_Device_Disconnected(disconnected_device As FCUSB_DEVICE)
+            Try
+                ConnectedDevices.Remove(disconnected_device)
+            Catch ex As Exception
+            End Try
+            RaiseEvent DeviceDisconnected(disconnected_device)
+        End Sub
+
+        Private Function DevicePathIsConnected(path As String) As Boolean
+            Try
+                For Each dev In ConnectedDevices
+                    If dev.USB_PATH.Equals(path) Then Return True
+                Next
+            Catch ex As Exception
+            End Try
+            Return False 'Not found
+        End Function
+
+        Public Function Connect(usb_device_path As String, ByRef fcusb_dev As FCUSB_DEVICE) As Boolean
             Try
                 Dim fcusb_list() As UsbRegistry = FindUsbDevices()
                 If fcusb_list Is Nothing OrElse fcusb_list.Count = 0 Then Return Nothing
                 Dim this_dev As UsbDevice = Nothing
-                If (usb_device_path = "") Then
+                If (usb_device_path.Equals("")) Then
                     this_dev = fcusb_list(0).Device
                 Else
                     For i = 0 To fcusb_list.Count - 1
-                        Dim devpath As String = GetDeviceID(fcusb_list(i))
-                        If (devpath.ToUpper = usb_device_path.ToUpper) Then
+                        Dim devpath As String = GetDevicePath(fcusb_list(i))
+                        If (devpath.ToUpper.Equals(usb_device_path.ToUpper)) Then
                             this_dev = fcusb_list(0).Device : Exit For
                         End If
                     Next
                 End If
-                If this_dev Is Nothing Then Return Nothing
-                If this_dev.UsbRegistryInfo.Vid = USB_VID_ATMEL Then Return Nothing
-                If OpenUsbDevice(this_dev) Then
-                    Dim n As New FCUSB_DEVICE
-                    n.USBHANDLE = this_dev
-                    If n.USB_Echo Then
-                        n.UPDATE_IN_PROGRESS = False
-                        n.IS_CONNECTED = True
-                        n.LoadFirmwareVersion()
-                        Return n
-                    End If
+                If this_dev IsNot Nothing AndAlso Not this_dev.UsbRegistryInfo.Vid = USB_VID_ATMEL Then
+                    Return Connect(this_dev, fcusb_dev)
                 End If
             Catch ex As Exception
             End Try
-            Return Nothing
+            Return False
+        End Function
+
+        Public Function Connect(usb_device As UsbDevice, ByRef fcusb_dev As FCUSB_DEVICE) As Boolean
+            Try
+                If OpenUsbDevice(usb_device) Then
+                    Dim new_device As New FCUSB_DEVICE(usb_device)
+                    If (usb_device.UsbRegistryInfo.Vid = USB_VID_ATMEL) Then 'DFU Mode
+                        new_device.IS_CONNECTED = True
+                        fcusb_dev = new_device
+                        Return True
+                    Else
+                        If new_device.USB_Echo() Then
+                            new_device.IS_CONNECTED = True
+                            new_device.LoadFirmwareVersion()
+                            new_device.USB_LEDOn() 'Call after firmware version is loaded
+                            fcusb_dev = new_device
+                            Return True
+                        End If
+                    End If
+                    Return False
+                End If
+            Catch ex As Exception
+            End Try
+            Return False
         End Function
 
         Private Function OpenUsbDevice(usb_dev As UsbDevice) As Boolean
@@ -730,12 +185,6 @@ Namespace USB
 
         Private Function FindUsbDevices() As UsbRegistry()
             Try
-                Dim USB_PID_AT90USB162 As Integer = &H2FFA 'FCUSB PCB 1.x
-                Dim USB_PID_AT90USB1287 As Integer = &H2FFB 'FCUSB EX (PROTO)
-                Dim USB_PID_AT90USB646 As Integer = &H2FF9 'FCUSB EX (PRODUCTION)
-                Dim USB_PID_ATMEGA32U2 As Integer = &H2FF0 'FCUSB PCB 2.1-2.2
-                Dim USB_PID_ATMEGA32U4 As Integer = &H2FF4 'FCUSB PCB 3.2
-                Dim USB_PID_FCUSB As Integer = &H5DE 'Classic
                 Dim devices As New List(Of UsbRegistry)
                 AddDevicesToList(USB_VID_ATMEL, USB_PID_AT90USB162, devices)
                 AddDevicesToList(USB_VID_ATMEL, USB_PID_AT90USB1287, devices)
@@ -764,31 +213,6 @@ Namespace USB
             End If
         End Sub
 
-        Private Function GetDeviceID(ByVal device As UsbRegistry) As String
-            Try
-                Dim dev_loc As String = "USB\VID_" & Hex(device.Vid).PadLeft(4, "0") & "&PID_" & Hex(device.Pid).PadLeft(4, "0")
-                If device.GetType Is GetType(LibUsb.LibUsbRegistry) Then
-                    dev_loc &= "\" & device.DeviceProperties("LocationInformation")
-                ElseIf device.GetType Is GetType(LegacyUsbRegistry) Then
-                    Dim legacy As LegacyUsbRegistry = DirectCast(device, LegacyUsbRegistry)
-                    Dim DeviceFilename As String = DirectCast(legacy.Device, LibUsb.LibUsbDevice).DeviceFilename
-                    dev_loc &= DeviceFilename
-                End If
-                Return dev_loc
-            Catch ex As Exception
-                Return ""
-            End Try
-        End Function
-
-        Public Sub Disconnect_All()
-            Try
-                For Each dev In FCUSB
-                    dev.Disconnect()
-                Next
-            Catch ex As Exception
-            End Try
-        End Sub
-
         Public Function GetConnectedPaths() As String()
             Try
                 Dim paths As New List(Of String)
@@ -796,7 +220,7 @@ Namespace USB
                 If cnt_devices IsNot Nothing AndAlso cnt_devices.Count > 0 Then
                     For i = 0 To cnt_devices.Count - 1
                         Dim u As UsbRegistry = cnt_devices(i)
-                        Dim o As String = GetDeviceID(u)
+                        Dim o As String = GetDevicePath(u)
                         paths.Add(o)
                     Next
                 End If
@@ -806,36 +230,617 @@ Namespace USB
             End Try
         End Function
 
+        Public Sub DisconnectAll()
+            Try
+                Dim dev_list As New List(Of FCUSB_DEVICE)
+                For Each fc_devs In Me.ConnectedDevices
+                    dev_list.Add(fc_devs)
+                Next
+                For Each fc_devs In dev_list
+                    fc_devs.Disconnect()
+                Next
+            Catch ex As Exception
+            End Try
+        End Sub
+
+    End Class
+
+    Public Class FCUSB_DEVICE
+        Public Event OnDisconnected(this_dev As FCUSB_DEVICE)
+
+        Public USBHANDLE As UsbDevice = Nothing
+        Public ReadOnly Property USB_PATH As String
+        Public Property IS_CONNECTED As Boolean = False
+        Public Property FW_VERSION As String = ""
+        'Public Property UPDATE_IN_PROGRESS As Boolean = False
+        Public Property PROGRAMMER As MemoryDeviceUSB
+
+        Public SPI_NOR_IF As New SPI_Programmer(Me)
+        Public SQI_NOR_IF As New SQI_Programmer(Me)
+        Public SPI_NAND_IF As New SPINAND_Programmer(Me)
+        Public PARALLEL_IF As New PARALLEL_MEMORY(Me)
+        Public FWH_IF As New FWH_Programmer(Me)
+        Public EPROM_IF As New EPROM_Programmer(Me)
+        Public HF_IF As New HF_Port(Me)
+        Public JTAG_IF As New JTAG.JTAG_IF(Me)
+        Public I2C_IF As New I2C_Programmer(Me)
+        Public MW_IF As New Microwire_Programmer(Me)
+        Public SWI_IF As New SWI_Programmer(Me)
+        Public DFU_IF As New DFU_API(Me)
+        Public NAND_IF As New NAND_BLOCK_IF
+
+        Private USB_TIMEOUT_VALUE As Integer = DEFAULT_TIMEOUT
+
+        Public Property HWBOARD As FCUSB_BOARD
+
+        Public Event UpdateProgress(percent As Integer, device As FCUSB_DEVICE)
+
+        Public ReadOnly Property HasLogic() As Boolean
+            Get
+                If Me.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
+                    Return True
+                ElseIf Me.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
+                    Return True
+                ElseIf Me.HWBOARD = FCUSB_BOARD.Mach1 Then
+                    Return True
+                Else
+                    Return False
+                End If
+            End Get
+        End Property
+
+        Sub New(my_handle As UsbDevice)
+            Me.USBHANDLE = my_handle
+            Me.USB_PATH = GetDevicePath(my_handle.UsbRegistryInfo)
+            AddHandler SPI_NOR_IF.PrintConsole, AddressOf WriteConsole 'Lets set text output to the console
+            AddHandler SQI_NOR_IF.PrintConsole, AddressOf WriteConsole
+            AddHandler SPI_NAND_IF.PrintConsole, AddressOf WriteConsole
+            AddHandler I2C_IF.PrintConsole, AddressOf WriteConsole
+            AddHandler PARALLEL_IF.PrintConsole, AddressOf WriteConsole
+            AddHandler MW_IF.PrintConsole, AddressOf WriteConsole
+            AddHandler HF_IF.PrintConsole, AddressOf WriteConsole
+            AddHandler FWH_IF.PrintConsole, AddressOf WriteConsole
+            AddHandler EPROM_IF.PrintConsole, AddressOf WriteConsole
+            If IS_DEBUG_VER Then USB_TIMEOUT_VALUE = 5000000
+        End Sub
+
+        Public Function CheckConnection() As Boolean
+            If USBHANDLE Is Nothing Then Return False
+            If Not USBHANDLE.UsbRegistryInfo.IsAlive Then Return False
+            Return True
+        End Function
+
+        Public Sub Disconnect()
+            Try
+                If Not Me.IS_CONNECTED Then Exit Sub
+                Me.IS_CONNECTED = False
+                If Me.USBHANDLE IsNot Nothing Then
+                    Me.USB_LEDOff()
+                    Dim wholeUsbDevice As IUsbDevice = TryCast(Me.USBHANDLE, IUsbDevice)
+                    If wholeUsbDevice IsNot Nothing Then 'Libusb only
+                        wholeUsbDevice.ReleaseInterface(0)
+                    End If
+                    Me.USBHANDLE.Close()
+                    Me.USBHANDLE = Nothing
+                End If
+            Catch ex As Exception
+            End Try
+            RaiseEvent OnDisconnected(Me)
+        End Sub
+
+        Public Sub SelectProgrammer(dev As FlashcatSettings.DeviceMode)
+            Select Case dev
+                Case FlashcatSettings.DeviceMode.SPI
+                    Me.PROGRAMMER = SPI_NOR_IF
+                Case FlashcatSettings.DeviceMode.SQI
+                    Me.PROGRAMMER = SQI_NOR_IF
+                Case FlashcatSettings.DeviceMode.SPI_NAND
+                    Me.PROGRAMMER = SPI_NAND_IF
+                Case FlashcatSettings.DeviceMode.NOR_NAND
+                    Me.PROGRAMMER = PARALLEL_IF
+                Case FlashcatSettings.DeviceMode.FWH
+                    Me.PROGRAMMER = FWH_IF
+                Case FlashcatSettings.DeviceMode.EPROM
+                    Me.PROGRAMMER = EPROM_IF
+                Case FlashcatSettings.DeviceMode.HyperFlash
+                    Me.PROGRAMMER = HF_IF
+                Case FlashcatSettings.DeviceMode.JTAG
+                    Me.PROGRAMMER = JTAG_IF
+                Case FlashcatSettings.DeviceMode.I2C_EEPROM
+                    Me.PROGRAMMER = I2C_IF
+                Case FlashcatSettings.DeviceMode.Microwire
+                    Me.PROGRAMMER = MW_IF
+                Case FlashcatSettings.DeviceMode.SINGLE_WIRE
+                    Me.PROGRAMMER = SWI_IF
+                Case FlashcatSettings.DeviceMode.SPI_EEPROM
+                    Me.PROGRAMMER = SPI_NOR_IF
+            End Select
+        End Sub
+
+#Region "USB Control"
+        Private SPI_MODE_BYTE As Byte
+        Private SPI_ORDER_BYTE As Byte
+
+        Public Sub USB_SPI_SETUP(mode As SPIBUS_MODE, bit_order As SPI_ORDER, speed As Integer)
+            Try
+                Dim clock_speed As UInt32 = GetMaxSpiClock(Me.HWBOARD, speed)
+                Dim result As Boolean
+                If (Me.HWBOARD = FCUSB_BOARD.Professional_PCB4) Then
+                    result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, (clock_speed / 1000000))
+                ElseIf (Me.HWBOARD = FCUSB_BOARD.Professional_PCB5) Then
+                    result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, (clock_speed / 1000000))
+                ElseIf (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, (clock_speed / 1000000))
+                Else
+                    SPI_ORDER_BYTE = 0
+                    If bit_order = SPI_ORDER.SPI_ORDER_MSB_FIRST Then
+                        SPI_ORDER_BYTE = 0
+                    ElseIf bit_order = SPI_ORDER.SPI_ORDER_LSB_FIRST Then
+                        SPI_ORDER_BYTE = &H20
+                    End If
+                    SPI_MODE_BYTE = 0
+                    Select Case mode
+                        Case SPIBUS_MODE.SPI_MODE_0
+                            SPI_MODE_BYTE = 0
+                        Case SPIBUS_MODE.SPI_MODE_1
+                            SPI_MODE_BYTE = &H4
+                        Case SPIBUS_MODE.SPI_MODE_2
+                            SPI_MODE_BYTE = &H8
+                        Case SPIBUS_MODE.SPI_MODE_3
+                            SPI_MODE_BYTE = &HC
+                    End Select
+                    Dim clock_byte As Byte = &H80
+                    If clock_speed = 8000000 Then
+                        clock_byte = &H80 'SPI_CLOCK_FOSC_2
+                    ElseIf clock_speed = 4000000 Then
+                        clock_byte = &H0 'SPI_CLOCK_FOSC_4
+                    ElseIf clock_speed = 2000000 Then
+                        clock_byte = &H81 'SPI_CLOCK_FOSC_8
+                    ElseIf clock_speed = 1000000 Then
+                        clock_byte = &H1 'SPI_CLOCK_FOSC_16
+                    End If
+                    Dim spiConf As UInt16 = CUShort(clock_byte Or SPI_MODE_BYTE Or SPI_ORDER_BYTE)
+                    result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, CUInt(spiConf))
+                End If
+            Catch ex As Exception
+            End Try
+        End Sub
+
+        Private Sub USB_SPI_SETSPEED(MHZ As UInt32)
+            If (Me.HasLogic()) Then
+                USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, MHZ)
+            Else
+                Dim clock_byte As Byte
+                Select Case MHZ
+                    Case 8000000
+                        clock_byte = &H80 'SPI_CLOCK_FOSC_2
+                    Case 4000000
+                        clock_byte = &H0 'SPI_CLOCK_FOSC_4
+                    Case 2000000
+                        clock_byte = &H81 'SPI_CLOCK_FOSC_8
+                    Case 1000000
+                        clock_byte = &H1 'SPI_CLOCK_FOSC_16
+                End Select
+                Dim spiConf As UInt16 = CUShort(clock_byte Or SPI_MODE_BYTE Or SPI_ORDER_BYTE)
+                USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, CUInt(spiConf))
+            End If
+        End Sub
+
+        Public Function USB_SETUP_BULKOUT(RQ As USBREQ, SETUP() As Byte, BULK_OUT() As Byte, ByVal control_dt As UInt32, Optional timeout As Integer = -1) As Boolean
+            Try
+                If (Me.HasLogic()) Then
+                    Dim ErrCounter As Integer = 0
+                    Dim result As Boolean = True
+                    Do
+                        result = True
+                        If SETUP IsNot Nothing Then
+                            result = USB_CONTROL_MSG_OUT(USBREQ.LOAD_PAYLOAD, SETUP, SETUP.Length) 'Sends setup data
+                        End If
+                        If result Then
+                            result = USB_CONTROL_MSG_OUT(RQ, Nothing, control_dt) 'Sends setup command
+                        End If
+                        If result Then
+                            If BULK_OUT Is Nothing Then Return True
+                            Utilities.Sleep(2)
+                            result = USB_BULK_OUT(BULK_OUT, timeout)
+                        End If
+                        If result Then Return True
+                        If Not result Then ErrCounter += 1
+                        If ErrCounter = 3 Then
+                            Return False
+                        End If
+                    Loop
+                Else
+                    Dim result As Boolean = True = USB_CONTROL_MSG_OUT(RQ, SETUP, control_dt) 'Sends setup command and data
+                    If Not result Then Return False
+                    If BULK_OUT Is Nothing Then Return True
+                    result = USB_BULK_OUT(BULK_OUT)
+                    Return result
+                End If
+            Catch ex As Exception
+                Return False
+            End Try
+        End Function
+
+        Public Function USB_SETUP_BULKIN(RQ As USBREQ, SETUP() As Byte, ByRef DATA_IN() As Byte, control_dt As UInt32, Optional timeout As Integer = -1) As Boolean
+            Try
+                Dim result As Boolean
+                If (Me.HasLogic()) Then
+                    Dim ErrCounter As Integer = 0
+                    Do
+                        result = True
+                        If SETUP IsNot Nothing Then
+                            result = USB_CONTROL_MSG_OUT(USBREQ.LOAD_PAYLOAD, SETUP, SETUP.Length)
+                        End If
+                        If result Then
+                            result = USB_CONTROL_MSG_OUT(RQ, Nothing, control_dt) 'Sends the USB REQ and the CONTROL data
+                        End If
+                        If result Then
+                            Utilities.Sleep(5)
+                            result = USB_BULK_IN(DATA_IN, timeout)
+                        End If
+                        If Not result Then ErrCounter += 1
+                        If ErrCounter = 3 Then Return False
+                    Loop While Not result
+                    Return True
+                Else
+                    result = USB_CONTROL_MSG_OUT(RQ, SETUP, control_dt) 'Sends setup command and data
+                    If Not result Then Return False
+                    result = USB_BULK_IN(DATA_IN, timeout)
+                    Return result
+                End If
+            Catch ex As Exception
+                Return False
+            End Try
+        End Function
+        'Sends a control message with an optional byte buffer to write
+        Public Function USB_CONTROL_MSG_OUT(RQ As USBREQ, Optional buffer_out() As Byte = Nothing, Optional ByVal data As UInt32 = 0) As Boolean
+            Try
+                If USBHANDLE Is Nothing Then Return False
+                Dim result As Boolean
+                Dim usb_flag As Byte
+                If (Me.HasLogic()) Then
+                    usb_flag = (UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Interface Or UsbCtrlFlags.Direction_Out)
+                Else
+                    usb_flag = (UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Device Or UsbCtrlFlags.Direction_Out)
+                End If
+                Dim wValue As UInt16 = (data And &HFFFF0000UI) >> 16
+                Dim wIndex As UInt16 = (data And &HFFFF)
+                Dim bytes_out As Short = 0
+                If buffer_out IsNot Nothing Then bytes_out = CShort(buffer_out.Length)
+                Dim usbSetupPacket As New UsbSetupPacket(usb_flag, RQ, wValue, wIndex, bytes_out)
+                Dim bytes_xfer As Integer = 0
+                If buffer_out Is Nothing Then
+                    result = USBHANDLE.ControlTransfer(usbSetupPacket, Nothing, 0, bytes_xfer)
+                Else
+                    result = USBHANDLE.ControlTransfer(usbSetupPacket, buffer_out, buffer_out.Length, bytes_xfer)
+                End If
+                Return result
+            Catch ex As Exception
+                Return False
+            End Try
+        End Function
+        'Sends a control message with a byte buffer to receive data
+        Public Function USB_CONTROL_MSG_IN(RQ As USBREQ, ByRef Buffer_in() As Byte, Optional ByVal data As UInt32 = 0) As Boolean
+            Try
+                If USBHANDLE Is Nothing Then Return False
+                Dim usb_flag As Byte
+                Dim bytes_xfer As Integer = 0
+                If (Me.HasLogic()) Then
+                    usb_flag = UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Interface Or UsbCtrlFlags.Direction_In
+                Else
+                    usb_flag = UsbCtrlFlags.RequestType_Vendor Or UsbCtrlFlags.Recipient_Device Or UsbCtrlFlags.Direction_In
+                End If
+                Dim wValue As UInt16 = (data And &HFFFF0000UI) >> 16
+                Dim wIndex As UInt16 = (data And &HFFFF)
+                Dim usb_setup As New UsbSetupPacket(usb_flag, RQ, wValue, wIndex, CShort(Buffer_in.Length))
+                Dim result As Boolean = USBHANDLE.ControlTransfer(usb_setup, Buffer_in, Buffer_in.Length, bytes_xfer)
+                If Not result Then Return False
+                If Not Buffer_in.Length = bytes_xfer Then Return False
+                Return True 'No error
+            Catch ex As Exception
+                Return False
+            End Try
+        End Function
+
+        Public Function USB_BULK_IN(ByRef buffer_in() As Byte, Optional Timeout As Integer = -1) As Boolean
+            Try
+                If Timeout = -1 Then Timeout = USB_TIMEOUT_VALUE
+                If (Me.HasLogic()) Then
+                    Dim xfer As Integer = 0
+                    Using ep_reader As UsbEndpointReader = USBHANDLE.OpenEndpointReader(ReadEndpointID.Ep01, buffer_in.Length, EndpointType.Bulk)
+                        Dim ec2 As ErrorCode = ep_reader.Read(buffer_in, 0, CInt(buffer_in.Length), Timeout, xfer) '5 second timeout
+                        If ec2 = ErrorCode.IoCancelled Then Return False
+                        If (Not ec2 = ErrorCode.None) Then
+                            Dim result As Boolean = USB_CONTROL_MSG_OUT(USBREQ.ABORT)
+                            ep_reader.Reset()
+                            Return False
+                        End If
+                        Return True
+                    End Using
+                Else
+                    Dim BytesRead As Integer = 0
+                    Dim reader As UsbEndpointReader = USBHANDLE.OpenEndpointReader(ReadEndpointID.Ep01, buffer_in.Length, EndpointType.Bulk)
+                    Dim ec As ErrorCode = reader.Read(buffer_in, 0, buffer_in.Length, Timeout, BytesRead)
+                    If ec = ErrorCode.None Then Return True
+                End If
+            Catch ex As Exception
+            End Try
+            Return False
+        End Function
+
+        Public Function USB_BULK_OUT(buffer_out() As Byte, Optional Timeout As Integer = -1) As Boolean
+            Try
+                If Timeout = -1 Then Timeout = USB_TIMEOUT_VALUE
+                If (Me.HasLogic()) Then
+                    Dim xfer As Integer = 0
+                    Using ep_writer As UsbEndpointWriter = USBHANDLE.OpenEndpointWriter(WriteEndpointID.Ep02, EndpointType.Bulk)
+                        Dim ec2 As ErrorCode = ep_writer.Write(buffer_out, 0, CInt(buffer_out.Length), Timeout, xfer) '5 second timeout
+                        If (Not ec2 = ErrorCode.None) Then
+                            Dim result As Boolean = USB_CONTROL_MSG_OUT(USBREQ.ABORT)
+                            ep_writer.Reset()
+                            Return False 'LibUsbDotNet.Main.ErrorCode Win32Error {&HFFFFC011}
+                        End If
+                        Return True
+                    End Using
+                Else
+                    Dim BytesWritten As Integer = 0
+                    Dim writer As UsbEndpointWriter = USBHANDLE.OpenEndpointWriter(WriteEndpointID.Ep02, EndpointType.Bulk)
+                    Dim ec As ErrorCode = writer.Write(buffer_out, 0, buffer_out.Length, Timeout, BytesWritten)
+                    If Not ec = ErrorCode.None Or Not BytesWritten = buffer_out.Length Then Return False
+                    Return True
+                End If
+            Catch ex As Exception
+                Return False
+            End Try
+        End Function
+
+        Public Function USB_WaitForComplete() As Boolean
+            Dim timeout_counter As Integer
+            Dim task_id As Byte = 255
+            Do
+                Dim packet_out(0) As Byte
+                Utilities.Sleep(5) 'Prevents slamming the USB port
+                Dim result As Boolean = USB_CONTROL_MSG_IN(USBREQ.GET_TASK, packet_out)
+                If Not result Then
+                    task_id = 1 'WAITING
+                Else
+                    task_id = packet_out(0)
+                End If
+                timeout_counter += 1
+                If (timeout_counter = 1000) Then Return False 'Changed from 500
+            Loop While (task_id > 0)
+            Return True
+        End Function
+
+#End Region
+
+#Region "LED, VCC, and ECHO"
+        Public Sub USB_LEDOn()
+            Try
+                If HWBOARD = FCUSB_BOARD.ATMEL_DFU Then Exit Sub 'Bootloader does not have LED
+                USB_CONTROL_MSG_OUT(USBREQ.LEDON) 'SPIREQ.LEDON
+            Catch ex As Exception
+            End Try
+        End Sub
+
+        Public Sub USB_LEDOff()
+            Try
+                If HWBOARD = FCUSB_BOARD.ATMEL_DFU Then Exit Sub 'Bootloader does not have LED
+                USB_CONTROL_MSG_OUT(USBREQ.LEDOFF) 'SPIREQ.LEDOFF
+            Catch ex As Exception
+            End Try
+        End Sub
+
+        Public Sub USB_LEDBlink()
+            Try
+                If HWBOARD = FCUSB_BOARD.ATMEL_DFU Then Exit Sub 'Bootloader does not have LED
+                USB_CONTROL_MSG_OUT(USBREQ.LEDBLINK)
+            Catch ex As Exception
+            End Try
+        End Sub
+
+        Public Function USB_Echo() As Boolean
+            Try
+                If (USBHANDLE.UsbRegistryInfo.Pid = USB_PID_FCUSB_PRO) OrElse (USBHANDLE.UsbRegistryInfo.Pid = USB_PID_FCUSB_MACH) Then
+                    Dim packet_out(3) As Byte
+                    If Not USB_CONTROL_MSG_IN(USBREQ.ECHO, packet_out, &H45434643UI) Then Return False
+                    If Not packet_out(0) = &H45 Then Return False
+                    If Not packet_out(1) = &H43 Then Return False
+                    If Not packet_out(2) = &H46 Then Return False
+                    If Not packet_out(3) = &H43 Then Return False
+                Else
+                    Dim packet_out(7) As Byte
+                    Dim data_in As UInt32 = &H12345678UI
+                    If Not USB_CONTROL_MSG_IN(USBREQ.ECHO, packet_out, data_in) Then Return False 'SPIREQ.ECHO
+                    If packet_out(1) <> CByte(USBREQ.ECHO) Then Return False
+                    If packet_out(2) <> &H34 Then Return False
+                    If packet_out(3) <> &H12 Then Return False
+                    If packet_out(4) <> &H78 Then Return False
+                    If packet_out(5) <> &H56 Then Return False
+                    If packet_out(6) <> &H8 Then Return False
+                    If packet_out(7) <> &H0 Then Return False
+                End If
+                Return True 'Echo successful
+            Catch ex As Exception
+                Return False
+            End Try
+        End Function
+
         Public Sub USB_VCC_OFF()
-            For Each dev In FCUSB
-                If dev.IS_CONNECTED Then dev.USB_VCC_OFF()
-            Next
+            If (Me.HasLogic()) Then
+                USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
+                Utilities.Sleep(100)
+            End If
         End Sub
 
         Public Sub USB_VCC_ON()
-            For Each dev In FCUSB
-                If dev.IS_CONNECTED Then dev.USB_VCC_ON()
-            Next
+            If (Me.HasLogic()) Then
+                If (MySettings.VOLT_SELECT = Voltage.V1_8) Then
+                    USB_VCC_1V8()
+                Else
+                    USB_VCC_3V()
+                End If
+            End If
         End Sub
 
         Public Sub USB_VCC_1V8()
-            For Each dev In FCUSB
-                If dev.IS_CONNECTED Then dev.USB_VCC_1V8()
-            Next
+            If (Me.HasLogic()) Then
+                USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
+                Utilities.Sleep(250)
+                USB_CONTROL_MSG_OUT(USBREQ.LOGIC_1V8)
+                Utilities.Sleep(100)
+                MySettings.VOLT_SELECT = Voltage.V1_8
+            End If
         End Sub
 
         Public Sub USB_VCC_3V()
-            For Each dev In FCUSB
-                If dev.IS_CONNECTED Then dev.USB_VCC_3V()
-            Next
+            If (Me.HasLogic()) Then
+                USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
+                Utilities.Sleep(250)
+                USB_CONTROL_MSG_OUT(USBREQ.LOGIC_3V3)
+                Utilities.Sleep(100)
+                MySettings.VOLT_SELECT = Voltage.V3_3
+            End If
         End Sub
 
-        Public Function Count() As Integer 'Number of FlashcatUSB connectedInteger
-            Dim Counter As Integer = 0
-            For Each dev In FCUSB
-                If dev.IS_CONNECTED Then Counter += 1
-            Next
-            Return Counter
+#End Region
+
+        Public Property BOOTLOADER As Boolean = False
+
+        Public Function LoadFirmwareVersion() As Boolean
+            Try
+                Me.BOOTLOADER = False
+                If (USBHANDLE.UsbRegistryInfo.Vid = USB_VID_ATMEL) Then
+                    Me.HWBOARD = FCUSB_BOARD.ATMEL_DFU
+                    Me.FW_VERSION = "1.00"
+                    Me.BOOTLOADER = True
+                ElseIf USBHANDLE.UsbRegistryInfo.Pid = USB_PID_FCUSB_PRO Then
+                    Dim b(3) As Byte
+                    If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, b) Then Return False
+                    Me.FW_VERSION = Utilities.Bytes.ToChrString({b(1), Asc("."), b(2), b(3)})
+                    If (b(0) = Asc("B")) Then
+                        Me.BOOTLOADER = True
+                        If (b(1) = Asc("5")) Then 'PCB 5.0
+                            Me.HWBOARD = FCUSB_BOARD.Professional_PCB5
+                        Else 'PCB 4.0
+                            Me.HWBOARD = FCUSB_BOARD.Professional_PCB4
+                        End If
+                    ElseIf (b(0) = Asc("F")) Then
+                        Me.HWBOARD = FCUSB_BOARD.Professional_PCB4
+                        Me.BOOTLOADER = True
+                    ElseIf (b(0) = Asc("P")) Then
+                        Me.HWBOARD = FCUSB_BOARD.Professional_PCB4
+                    ElseIf (b(0) = Asc("T")) Then
+                        Me.HWBOARD = FCUSB_BOARD.Professional_PCB5
+                    End If
+                ElseIf USBHANDLE.UsbRegistryInfo.Pid = USB_PID_FCUSB_MACH Then
+                    Dim b(3) As Byte
+                    If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, b) Then Return False
+                    If (b(0) = Asc("B")) Then
+                        Me.BOOTLOADER = True
+                    End If
+                    Me.FW_VERSION = Utilities.Bytes.ToChrString({b(1), Asc("."), b(2), b(3)})
+                    Me.HWBOARD = FCUSB_BOARD.Mach1
+                    Return True
+                Else
+                    Dim buff(3) As Byte
+                    Dim data_out(3) As Byte
+                    If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, buff) Then Return False
+                    Dim hw_byte As Byte = buff(0)
+                    If hw_byte = CByte(Asc("C")) Then
+                        Me.HWBOARD = FCUSB_BOARD.Classic
+                    ElseIf hw_byte = CByte(Asc("E")) Then
+                        Me.HWBOARD = FCUSB_BOARD.XPORT_PCB1
+                    ElseIf hw_byte = CByte(Asc("X")) Then
+                        Me.HWBOARD = FCUSB_BOARD.XPORT_PCB2
+                    ElseIf hw_byte = CByte(Asc("0")) Then
+                        Me.HWBOARD = FCUSB_BOARD.Classic
+                    End If
+                    data_out(3) = buff(3)
+                    data_out(2) = buff(2)
+                    data_out(1) = Asc(".")
+                    data_out(0) = buff(1)
+                    Dim fwstr As String = Utilities.Bytes.ToChrString(data_out)
+                    If fwstr.StartsWith("0") Then fwstr = Mid(fwstr, 2)
+                    Me.FW_VERSION = fwstr
+                    Return True
+                End If
+                Return False
+            Catch ex As Exception
+                Return False
+            End Try
+            Return True
+        End Function
+
+        Public Function FirmwareUpdate(new_fw() As Byte, fw_version As Single) As Boolean
+            Try
+                If Not Me.BOOTLOADER Then Return False
+                Dim result As Boolean = USB_CONTROL_MSG_OUT(USBREQ.FW_UPDATE, Nothing, new_fw.Length)
+                If Not result Then Return False
+                Dim bytes_left As UInt32 = new_fw.Length
+                Dim ptr As Integer = 0
+                RaiseEvent UpdateProgress(0, Me)
+                While (bytes_left > 0)
+                    Dim count As Integer = bytes_left
+                    If (count > 4096) Then count = 4096
+                    Dim buffer(count - 1) As Byte
+                    Array.Copy(new_fw, ptr, buffer, 0, buffer.Length)
+                    result = USB_BULK_OUT(buffer)
+                    If Not result Then Return False
+                    ptr += count
+                    bytes_left -= count
+                    Dim p As Integer = Math.Floor((ptr / new_fw.Length) * 100)
+                    RaiseEvent UpdateProgress(p, Me)
+                    Utilities.Sleep(100)
+                End While
+                Dim fw_ver_data As UInt32 = &HFC000000UI Or (Math.Floor(fw_version) << 8) Or ((fw_version * 100) And 255)
+                USB_CONTROL_MSG_OUT(USBREQ.FW_REBOOT, Nothing, fw_ver_data)
+                RaiseEvent UpdateProgress(100, Me)
+                Return True
+            Catch ex As Exception
+                Return False
+            End Try
+        End Function
+
+        Public Function BootloaderUpdate(bl_data() As Byte) As Boolean
+            Try
+                If Me.BOOTLOADER Then Return False 'Can only update bootloader when running in APP mode
+                Dim result As Boolean = USB_CONTROL_MSG_OUT(USBREQ.FW_UPDATE, Nothing, bl_data.Length)
+                If Not result Then Return False
+                Dim bytes_left As UInt32 = bl_data.Length
+                Dim ptr As Integer = 0
+                RaiseEvent UpdateProgress(0, Me)
+                While (bytes_left > 0)
+                    Dim count As Integer = bytes_left
+                    If (count > 2048) Then count = 2048
+                    Dim buffer(count - 1) As Byte
+                    Array.Copy(bl_data, ptr, buffer, 0, buffer.Length)
+                    result = USB_BULK_OUT(buffer)
+                    If Not result Then Return False
+                    ptr += count
+                    bytes_left -= count
+                    Dim p As Integer = Math.Floor((ptr / bl_data.Length) * 100)
+                    RaiseEvent UpdateProgress(p, Me)
+                    Utilities.Sleep(100)
+                End While
+                Return True
+            Catch ex As Exception
+                Return False
+            End Try
+        End Function
+
+        Public Function LOGIC_GetVersion() As UInt32
+            Dim cpld_data(3) As Byte
+            USB_CONTROL_MSG_IN(USBREQ.LOGIC_VERSION_GET, cpld_data)
+            Array.Reverse(cpld_data)
+            Dim result As UInt32 = Utilities.Bytes.ToUInt32(cpld_data)
+            Return result
+        End Function
+
+        Public Function LOGIC_SetVersion(new_ver As UInt32) As Boolean
+            Dim result As Boolean = USB_CONTROL_MSG_OUT(USBREQ.LOGIC_VERSION_SET, Nothing, new_ver)
+            Return result
         End Function
 
     End Class
@@ -845,7 +850,6 @@ Namespace USB
         V1_8 = 1 'Low (300ma max)
         V3_3 = 2 'Default
     End Enum
-
     'USB commands
     Public Enum USBREQ As Byte
         JTAG_DETECT = &H10
@@ -947,7 +951,7 @@ Namespace USB
         GET_TASK = &H8F
         LOAD_PAYLOAD = &H90
         READ_PAYLOAD = &H91
-        FW_UPDATE = &H94 'Update the firmware
+        FW_UPDATE = &H94 'Update the firmware/bootloader
         FW_REBOOT = &H97
         TEST_READ = &HA1
         TEST_WRITE = &HA2
@@ -997,8 +1001,7 @@ Namespace USB
     End Enum
 
     Public Enum FCUSB_BOARD
-        NotConnected = 0
-        DFU_BL 'Bootloader
+        ATMEL_DFU 'Bootloader (either ATMEL_DFU or FC_BL)
         Classic 'Classic (PCB 2.x)
         XPORT_PCB1 'XPORT firmware (PCB 1.x)
         XPORT_PCB2 'XPORT firmware (PCB 2.x)

@@ -9,11 +9,9 @@ Namespace JTAG
     Public Class SVF_Player
         Public Property ExitStateMachine As Boolean = True
         Public Property IgnoreErrors As Boolean = False 'If set to true, this player will not stop executing on a readback error
-        Public Property Current_Hertz As Integer = 1000000 'Default of 1 MHz
-        Public Property Actual_Hertz As Integer = 500000 '500kHz
 
         Public Event Progress(percent As Integer)
-        Public Event SetFrequency(Hz As Integer)
+        Public Event SetFrequency(Hz As UInt32)
         Public Event SetTRST(Enabled As Boolean)
         Public Event Writeconsole(msg As String)
 
@@ -21,9 +19,7 @@ Namespace JTAG
         Public Event GotoState(dst_state As JTAG_MACHINE_STATE)
         Public Event ShiftIR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As Integer, exit_mode As Boolean)
         Public Event ShiftDR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As Integer, exit_mode As Boolean)
-        Public Event ToggleClock(ByVal clk_tck As UInt32)
-
-        Private Const COMPENSATE_CLK As Boolean = True
+        Public Event ToggleClock(clk_tck As UInt32)
 
         Sub New()
 
@@ -42,7 +38,6 @@ Namespace JTAG
         Public SDR_LAST_MASK() As Byte
 
         Private Sub Setup()
-            RaiseEvent SetFrequency(Current_Hertz)
             ENDIR = JTAG_MACHINE_STATE.RunTestIdle
             ENDDR = JTAG_MACHINE_STATE.RunTestIdle
             IR_TAIL = New svf_param
@@ -333,16 +328,16 @@ Namespace JTAG
             ElseIf line.ToUpper.StartsWith("TRST ") Then 'Disable Test Reset line
                 Dim s As String = Mid(line, 6).Trim.ToUpper
                 Dim EnableTrst As Boolean = False
-                If s = "ON" OrElse s = "YES" OrElse s = "TRUE" Then EnableTrst = True
+                If s.Equals("ON") OrElse s.Equals("YES") OrElse s.Equals("TRUE") Then EnableTrst = True
                 RaiseEvent SetTRST(EnableTrst)
             ElseIf line.ToUpper.StartsWith("FREQUENCY ") Then 'Sets the max freq of the device
                 Try
                     Dim s As String = Mid(line, 11).Trim
                     If s.ToUpper.EndsWith("HZ") Then s = Mid(s, 1, s.Length - 2).Trim
-                    Current_Hertz = Decimal.Parse(s, Globalization.NumberStyles.Float)
-                    RaiseEvent SetFrequency(Current_Hertz)
+                    Dim FREQ32 As UInt32 = CUInt(Decimal.Parse(s, Globalization.NumberStyles.Float))
+                    RaiseEvent SetFrequency(FREQ32)
                 Catch ex As Exception
-                    RaiseEvent SetFrequency(1000000) 'Default 1MHz
+                    RaiseEvent SetFrequency(1000000)
                 End Try
             ElseIf line.ToUpper.StartsWith("RUNTEST ") Then
                 DoRuntest(Mid(line, 9).Trim)
@@ -417,13 +412,7 @@ Namespace JTAG
                 Dim wait_time As Decimal = Decimal.Parse(Params(Counter), Globalization.NumberStyles.Float)
                 Select Case Params(Counter + 1).Trim.ToUpper
                     Case "TCK" 'Toggle test-clock
-                        Dim ticks As UInt32 = CUInt(wait_time)
-                        If COMPENSATE_CLK Then
-                            If Me.Actual_Hertz > Me.Current_Hertz Then
-                                ticks = ticks * (CSng(Me.Actual_Hertz) / CSng(Me.Current_Hertz))
-                            End If
-                        End If
-                        RaiseEvent ToggleClock(ticks)
+                        RaiseEvent ToggleClock(CUInt(wait_time))
                     Case "SCK" 'Toggle system-clock
                         Threading.Thread.Sleep(wait_time)
                     Case "SEC"

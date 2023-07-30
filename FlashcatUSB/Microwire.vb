@@ -1,15 +1,13 @@
 ﻿Imports FlashcatUSB.FlashMemory
-Imports FlashcatUSB.USB.HostClient
-
 Public Class Microwire_Programmer : Implements MemoryDeviceUSB
-    Private FCUSB As FCUSB_DEVICE
+    Private FCUSB As USB.FCUSB_DEVICE
 
     Private MICROWIRE_DEVIE As MICROWIRE
 
     Public Event PrintConsole(message As String) Implements MemoryDeviceUSB.PrintConsole
     Public Event SetProgress(percent As Integer) Implements MemoryDeviceUSB.SetProgress
 
-    Sub New(ByVal parent_if As FCUSB_DEVICE)
+    Sub New(parent_if As USB.FCUSB_DEVICE)
         FCUSB = parent_if
     End Sub
 

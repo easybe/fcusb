@@ -1,4 +1,4 @@
-﻿Imports FlashcatUSB.PARALLEL_NOR_NAND
+﻿Imports FlashcatUSB.PARALLEL_MEMORY
 Imports FlashcatUSB.FlashMemory
 Imports FlashcatUSB.USB
 Imports FlashcatUSB.USB.HostClient

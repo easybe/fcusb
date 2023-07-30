@@ -10,7 +10,6 @@ Public Class MainForm
         GUI = Me
         Me.MinimumSize = Me.Size
         Me.MyTabs.DrawMode = TabDrawMode.OwnerDrawFixed
-        MyTabs.TabPages.Remove(TabMultiDevice)
         InitStatusMessage()
         LoadSettingsIntoGui()
         ScriptEngine.PrintInformation() 'Script Engine
@@ -56,11 +55,7 @@ Public Class MainForm
         Me.mi_device_features.Text = RM.GetString("gui_menu_tools_vendor")
         Me.TabStatus.Text = "  " & RM.GetString("gui_tab_status") & "  "
         Me.TabConsole.Text = "  " & RM.GetString("gui_tab_console") & "  "
-        Me.TabMultiDevice.Text = "  " & RM.GetString("gui_tab_multi") & "  "
         Me.FlashStatusLabel.Text = RM.GetString("gui_status_welcome")
-        Me.cmd_gang_erase.Text = RM.GetString("gui_gang_erase")
-        Me.cmd_gang_write.Text = RM.GetString("gui_gane_write")
-        Me.lbl_gang_info.Text = RM.GetString("gui_gang_info")
         Me.lblStatus.Text = RM.GetString("gui_fcusb_disconnected")
     End Sub
 
@@ -117,7 +112,7 @@ Public Class MainForm
 
 #Region "Status System"
     Delegate Sub cbStatusPageProgress(percent As Integer)
-    Delegate Sub cbSetConnectionStatus(usb_dev As FCUSB_DEVICE)
+    Delegate Sub cbSetConnectionStatus()
     Delegate Sub cbUpdateStatusMessage(Label As String, Msg As String)
     Delegate Sub cbRemoveStatusMessage(Label As String)
     Delegate Sub cbClearStatusMessage()
@@ -141,28 +136,31 @@ Public Class MainForm
     End Sub
 
     Public Sub UpdateStatusMessage(Label As String, Msg As String)
-        If Me.InvokeRequired Then
-            Dim d As New cbUpdateStatusMessage(AddressOf UpdateStatusMessage)
-            Me.Invoke(d, New Object() {Label, Msg})
-        Else
-            For i = 0 To StatusMessageControls.Length - 1
-                Dim o As Object = DirectCast(StatusMessageControls(i), Label).Tag
-                If o IsNot Nothing AndAlso CStr(o).ToUpper = Label.ToUpper Then
-                    DirectCast(StatusMessageControls(i), Label).Text = Label & ": " & Msg
-                    Exit Sub
-                End If
-            Next
-            For i = 0 To StatusMessageControls.Length - 1
-                Dim o As Object = DirectCast(StatusMessageControls(i), Label).Tag
-                If o Is Nothing OrElse CStr(o) = "" Then
-                    DirectCast(StatusMessageControls(i), Label).Tag = Label
-                    DirectCast(StatusMessageControls(i), Label).Text = Label & ": " & Msg
-                    Exit Sub
-                End If
-            Next
-            Me.Refresh()
-            Application.DoEvents()
-        End If
+        Try
+            If Me.InvokeRequired Then
+                Dim d As New cbUpdateStatusMessage(AddressOf UpdateStatusMessage)
+                Me.Invoke(d, New Object() {Label, Msg})
+            Else
+                For i = 0 To StatusMessageControls.Length - 1
+                    Dim o As Object = DirectCast(StatusMessageControls(i), Label).Tag
+                    If o IsNot Nothing AndAlso CStr(o).ToUpper = Label.ToUpper Then
+                        DirectCast(StatusMessageControls(i), Label).Text = Label & ": " & Msg
+                        Exit Sub
+                    End If
+                Next
+                For i = 0 To StatusMessageControls.Length - 1
+                    Dim o As Object = DirectCast(StatusMessageControls(i), Label).Tag
+                    If o Is Nothing OrElse CStr(o) = "" Then
+                        DirectCast(StatusMessageControls(i), Label).Tag = Label
+                        DirectCast(StatusMessageControls(i), Label).Text = Label & ": " & Msg
+                        Exit Sub
+                    End If
+                Next
+                Me.Refresh()
+                Application.DoEvents()
+            End If
+        Catch ex As Exception
+        End Try
     End Sub
 
     Public Sub RemoveStatusMessage(ByVal Label As String)
@@ -322,16 +320,16 @@ Public Class MainForm
 
 #Region "Repeat Feature"
     Private MyLastOperation As MemControl_v2.XFER_Operation
-    Private MyLastUsbInterface As FCUSB_DEVICE 'This is the PORT of the device that was used
-    Private Delegate Sub cbSuccessfulWriteOperation(ByVal usb_dev As FCUSB_DEVICE, ByVal x As MemControl_v2.XFER_Operation)
+    Private MyLastMemoryDevice As MemoryDeviceInstance = Nothing
+    Private Delegate Sub cbSuccessfulWriteOperation(mem_dev As MemoryDeviceInstance, wr_oper As MemControl_v2.XFER_Operation)
 
-    Public Sub SuccessfulWriteOperation(ByVal usb_dev As FCUSB_DEVICE, ByVal x As MemControl_v2.XFER_Operation)
+    Public Sub SuccessfulWriteOperation(mem_dev As MemoryDeviceInstance, wr_oper As MemControl_v2.XFER_Operation)
         If Me.InvokeRequired Then
             Dim d As New cbSuccessfulWriteOperation(AddressOf SuccessfulWriteOperation)
-            Me.Invoke(d, New Object() {usb_dev, x})
+            Me.Invoke(d, New Object() {mem_dev, wr_oper})
         Else
-            MyLastOperation = x
-            MyLastUsbInterface = usb_dev
+            MyLastMemoryDevice = mem_dev
+            MyLastOperation = wr_oper
             mi_repeat.Enabled = True
         End If
     End Sub
@@ -340,9 +338,10 @@ Public Class MainForm
         Try
             mi_repeat.Enabled = False
             WriteConsole(RM.GetString("gui_repeat_beginning"))
-            MyLastUsbInterface.Disconnect()
+            MAIN_FCUSB.Disconnect()
+            Utilities.Sleep(200)
             Dim counter As Integer = 0
-            Do While (Not MyLastUsbInterface.IS_CONNECTED)
+            Do While (Not MAIN_FCUSB.IS_CONNECTED)
                 If counter = 100 Then '10 seconds
                     WriteConsole(RM.GetString("gui_repeat_failed_reconnect"))
                     Exit Sub
@@ -353,7 +352,7 @@ Public Class MainForm
             Loop
             Utilities.Sleep(1000)
             counter = 0
-            Do While MyLastUsbInterface.ATTACHED.Count = 0
+            Do While MEM_IF.DeviceCount = 0
                 If counter = 50 Then '10 seconds
                     WriteConsole(RM.GetString("gui_repeat_failed_detect"))
                     Exit Sub
@@ -362,7 +361,7 @@ Public Class MainForm
                 Utilities.Sleep(100)
                 counter += 1
             Loop
-            MyLastUsbInterface.ATTACHED(0).GuiControl.PerformWriteOperation(MyLastOperation)
+            MyLastMemoryDevice.GuiControl.PerformWriteOperation(MyLastOperation)
         Catch ex As Exception
         Finally
             mi_repeat.Enabled = True
@@ -384,25 +383,28 @@ Public Class MainForm
     Private Delegate Function cbGetControlText(usertabind As Integer, ctr_name As String)
 
     Public Sub RemoveAllTabs()
-        If Me.MyTabs.InvokeRequired Then
-            Dim d As New cbRemoveAllTabs(AddressOf RemoveAllTabs)
-            Me.Invoke(d)
-        Else
-            Dim list As New List(Of TabPage)
-            For Each tP As TabPage In MyTabs.Controls
-                If tP Is TabStatus Then
-                ElseIf tP Is TabConsole Then
-                Else
-                    list.Add(tP)
-                End If
-            Next
-            For i = 0 To list.Count - 1
-                MyTabs.Controls.Remove(CType(list(i), Control))
-            Next
-        End If
+        Try
+            If Me.MyTabs.InvokeRequired Then
+                Dim d As New cbRemoveAllTabs(AddressOf RemoveAllTabs)
+                Me.Invoke(d)
+            Else
+                Dim list As New List(Of TabPage)
+                For Each tP As TabPage In MyTabs.Controls
+                    If tP Is TabStatus Then
+                    ElseIf tP Is TabConsole Then
+                    Else
+                        list.Add(tP)
+                    End If
+                Next
+                For i = 0 To list.Count - 1
+                    MyTabs.Controls.Remove(CType(list(i), Control))
+                Next
+            End If
+        Catch ex As Exception
+        End Try
     End Sub
 
-    Public Sub AddTab(ByVal tb As TabPage)
+    Public Sub AddTab(tb As TabPage)
         If Me.MyTabs.InvokeRequired Then
             Dim d As New cbAddTab(AddressOf AddTab)
             Me.Invoke(d, New Object() {tb})
@@ -440,63 +442,12 @@ Public Class MainForm
         GUI.RemoveStatusMessageStartsWith(RM.GetString("gui_memory_device"))
         Dim current_devices() As MemoryDeviceInstance = MyTabs_GetDeviceInstances()
         If current_devices Is Nothing OrElse current_devices.Count = 0 Then Exit Sub
-        If MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.JTAG Then
-            If MyTabs.TabPages.Contains(TabMultiDevice) Then MyTabs.TabPages.Remove(TabMultiDevice)
-        Else
-            If (current_devices.Count > 1) Then
-                If (Not current_devices(0).FCUSB.SPI_NOR_IF.W25M121AV_Mode) Then
-                    If (Not MyTabs.TabPages.Contains(TabMultiDevice)) AndAlso (USBCLIENT.Count > 1) Then
-                        MyTabs.TabPages.Insert(2, TabMultiDevice)
-                    End If
-                End If
-            Else 'Not in multi mode
-                If MyTabs.TabPages.Contains(TabMultiDevice) Then
-                    MyTabs.TabPages.Remove(TabMultiDevice)
-                End If
-            End If
-        End If
-        lbl_gang1.Text = String.Format(RM.GetString("gui_mem_device_status"), "1")
-        lbl_gang2.Text = String.Format(RM.GetString("gui_mem_device_status"), "2")
-        lbl_gang3.Text = String.Format(RM.GetString("gui_mem_device_status"), "3")
-        lbl_gang4.Text = String.Format(RM.GetString("gui_mem_device_status"), "4")
-        lbl_gang5.Text = String.Format(RM.GetString("gui_mem_device_status"), "5")
         MyTabs.Refresh()
         Dim counter As Integer = 1
         For Each mem_device In current_devices
             If mem_device.GuiControl Is Nothing Then Continue For
             Dim flash_desc As String = mem_device.Name & " (" & Format(mem_device.Size, "#,###") & " bytes)"
             GUI.UpdateStatusMessage(RM.GetString("gui_memory_device") & " " & counter, flash_desc)
-            If (Not MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.JTAG) Then
-                If (USBCLIENT.Count > 1) Then
-                    mem_device.GuiControl.ShowIdentButton(True)
-                Else
-                    mem_device.GuiControl.ShowIdentButton(False)
-                End If
-            End If
-            Select Case counter
-                Case 1
-                    lbl_gang1.Text = flash_desc
-                    RemoveHandler mem_device.GuiControl.SetExternalProgress, AddressOf SetGangProgress_1
-                    AddHandler mem_device.GuiControl.SetExternalProgress, AddressOf SetGangProgress_1
-                Case 2
-                    lbl_gang2.Text = flash_desc
-                    RemoveHandler mem_device.GuiControl.SetExternalProgress, AddressOf SetGangProgress_2
-                    AddHandler mem_device.GuiControl.SetExternalProgress, AddressOf SetGangProgress_2
-                Case 3
-                    lbl_gang3.Text = flash_desc
-                    RemoveHandler mem_device.GuiControl.SetExternalProgress, AddressOf SetGangProgress_3
-                    AddHandler mem_device.GuiControl.SetExternalProgress, AddressOf SetGangProgress_3
-                Case 4
-                    lbl_gang4.Text = flash_desc
-                    RemoveHandler mem_device.GuiControl.SetExternalProgress, AddressOf SetGangProgress_4
-                    AddHandler mem_device.GuiControl.SetExternalProgress, AddressOf SetGangProgress_4
-                Case 5
-                    lbl_gang5.Text = flash_desc
-                    RemoveHandler mem_device.GuiControl.SetExternalProgress, AddressOf SetGangProgress_5
-                    AddHandler mem_device.GuiControl.SetExternalProgress, AddressOf SetGangProgress_5
-            End Select
-            Application.DoEvents()
-            counter += 1
         Next
     End Sub
 
@@ -692,14 +643,14 @@ Public Class MainForm
 #Region "Menu DropDownOpening"
 
     Private Sub mi_main_menu_DropDownOpening(sender As Object, e As EventArgs) Handles mi_main_menu.DropDownOpening
-        mi_usb_performance.Enabled = False
         If IsAnyDeviceBusy() Then
+            mi_usb_performance.Enabled = False
             mi_detect.Enabled = False
             mi_repeat.Enabled = False
             mi_refresh.Enabled = False
             Exit Sub
         End If
-        If (USBCLIENT.Count > 0) Then
+        If MAIN_FCUSB IsNot Nothing AndAlso MAIN_FCUSB.IS_CONNECTED Then
             mi_detect.Enabled = True
         Else
             mi_detect.Enabled = False
@@ -714,12 +665,18 @@ Public Class MainForm
         Else
             mi_refresh.Enabled = False
         End If
-        If USBCLIENT.HW_MODE = FCUSB_BOARD.Mach1 Then
-            mi_usb_performance.Enabled = True
-        ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB4 Then
-            mi_usb_performance.Enabled = True
-        ElseIf USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB5 Then
-            mi_usb_performance.Enabled = True
+        If MAIN_FCUSB IsNot Nothing Then
+            If MAIN_FCUSB.IS_CONNECTED AndAlso MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+                mi_usb_performance.Enabled = True
+            ElseIf MAIN_FCUSB.IS_CONNECTED AndAlso MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
+                mi_usb_performance.Enabled = True
+            ElseIf MAIN_FCUSB.IS_CONNECTED AndAlso MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
+                mi_usb_performance.Enabled = True
+            Else
+                mi_usb_performance.Enabled = False
+            End If
+        Else
+            mi_usb_performance.Enabled = False
         End If
     End Sub
 
@@ -741,6 +698,7 @@ Public Class MainForm
         mi_mode_i2c.Checked = False
         mi_mode_spieeprom.Checked = False
         mi_mode_nornand.Checked = False
+        mi_mode_fwh.Checked = False
         mi_mode_1wire.Checked = False
         mi_mode_spi_nand.Checked = False
         mi_mode_eprom_otp.Checked = False
@@ -774,6 +732,7 @@ Public Class MainForm
         mi_mode_1wire.Enabled = enabled
         mi_mode_3wire.Enabled = enabled
         mi_mode_nornand.Enabled = enabled
+        mi_mode_fwh.Enabled = enabled
         mi_mode_eprom_otp.Enabled = enabled
         mi_mode_hyperflash.Enabled = enabled
         mi_mode_mmc.Enabled = enabled
@@ -781,7 +740,7 @@ Public Class MainForm
     End Sub
 
     Private Sub mi_mode_enable_supported_modes()
-        If USBCLIENT.HW_MODE = FCUSB_BOARD.NotConnected Then
+        If MAIN_FCUSB Is Nothing OrElse (Not MAIN_FCUSB.IS_CONNECTED) Then
             mi_1V8.Enabled = True
             mi_3V3.Enabled = True
             mi_mode_spi.Enabled = True
@@ -793,18 +752,19 @@ Public Class MainForm
             mi_mode_3wire.Enabled = True
             mi_mode_eprom_otp.Enabled = True
             mi_mode_nornand.Enabled = True
+            mi_mode_fwh.Enabled = False
             mi_mode_jtag.Enabled = True
             mi_mode_hyperflash.Enabled = True
             mi_mode_mmc.Enabled = True
         Else
-            Dim SupportedModes() As FlashcatSettings.DeviceMode = GetSupportedModes(USBCLIENT.FCUSB(0))
-            If (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB4) Then
+            Dim SupportedModes() As FlashcatSettings.DeviceMode = GetSupportedModes(MAIN_FCUSB)
+            If (MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB4) Then
                 mi_1V8.Enabled = True
                 mi_3V3.Enabled = True
-            ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB5) Then
+            ElseIf (MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5) Then
                 mi_1V8.Enabled = True
                 mi_3V3.Enabled = True
-            ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Mach1) Then
+            ElseIf (MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Mach1) Then
                 mi_1V8.Enabled = True
                 mi_3V3.Enabled = True
             End If
@@ -816,6 +776,7 @@ Public Class MainForm
                 If mode = FlashcatSettings.DeviceMode.I2C_EEPROM Then mi_mode_i2c.Enabled = True
                 If mode = FlashcatSettings.DeviceMode.SPI_EEPROM Then mi_mode_spieeprom.Enabled = True
                 If mode = FlashcatSettings.DeviceMode.NOR_NAND Then mi_mode_nornand.Enabled = True
+                If mode = FlashcatSettings.DeviceMode.FWH Then mi_mode_fwh.Enabled = True
                 If mode = FlashcatSettings.DeviceMode.SINGLE_WIRE Then mi_mode_1wire.Enabled = True
                 If mode = FlashcatSettings.DeviceMode.EPROM Then mi_mode_eprom_otp.Enabled = True
                 If mode = FlashcatSettings.DeviceMode.HyperFlash Then mi_mode_hyperflash.Enabled = True
@@ -869,6 +830,8 @@ Public Class MainForm
                 mi_mode_spieeprom.Checked = True
             Case FlashcatSettings.DeviceMode.NOR_NAND
                 mi_mode_nornand.Checked = True
+            Case FlashcatSettings.DeviceMode.FWH
+                mi_mode_fwh.Checked = True
             Case FlashcatSettings.DeviceMode.SINGLE_WIRE
                 mi_mode_1wire.Checked = True
             Case FlashcatSettings.DeviceMode.SPI_NAND
@@ -1027,8 +990,8 @@ Public Class MainForm
 
 #Region "Form Events"
 
-    Private Delegate Sub cbOnNewDeviceConnected(ByVal usb_dev As FCUSB_DEVICE)
-    Private Delegate Sub cbOperation(ByVal mem_ctrl As MemControl_v2)
+    Private Delegate Sub cbOnNewDeviceConnected(mem_dev As MemoryDeviceInstance)
+    Private Delegate Sub cbOperation(mem_ctrl As MemControl_v2)
     Private Delegate Sub cbCloseApplication()
 
     Public Sub CloseApplication()
@@ -1061,8 +1024,8 @@ Public Class MainForm
     End Sub
 
     Private Sub Main_Closing(sender As Object, e As CancelEventArgs) Handles Me.Closing
-        AppIsClosing = True
         MySettings.Save()
+        AppClosing()
     End Sub
 
     Private Sub cmd_console_clear_Click(sender As Object, e As EventArgs) Handles cmd_console_clear.Click
@@ -1213,6 +1176,7 @@ Public Class MainForm
             mi_mode_spi_nand.Checked = False
             mi_mode_hyperflash.Checked = False
             mi_mode_mmc.Checked = False
+            mi_mode_fwh.Checked = False
         Catch ex As Exception
         End Try
     End Sub
@@ -1269,6 +1233,14 @@ Public Class MainForm
         Menu_Mode_UncheckAll()
         DirectCast(sender, ToolStripMenuItem).Checked = True
         MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.NOR_NAND
+        MySettings.Save()
+        detect_event()
+    End Sub
+
+    Private Sub mi_mode_fwh_Click(sender As Object, e As EventArgs) Handles mi_mode_fwh.Click
+        Menu_Mode_UncheckAll()
+        DirectCast(sender, ToolStripMenuItem).Checked = True
+        MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.FWH
         MySettings.Save()
         detect_event()
     End Sub
@@ -1371,7 +1343,7 @@ Public Class MainForm
             mi_1V8.Checked = True
             mi_3V3.Checked = False
             MySettings.VOLT_SELECT = Voltage.V1_8
-            USBCLIENT.USB_VCC_1V8()
+            MAIN_FCUSB.USB_VCC_1V8()
             MySettings.Save()
             PrintConsole(String.Format(RM.GetString("voltage_set_to"), "1.8v"))
             Dim t As New Threading.Thread(AddressOf FCUSBPRO_Update_Logic)
@@ -1386,7 +1358,7 @@ Public Class MainForm
             mi_1V8.Checked = False
             mi_3V3.Checked = True
             MySettings.VOLT_SELECT = Voltage.V3_3
-            USBCLIENT.USB_VCC_3V()
+            MAIN_FCUSB.USB_VCC_3V()
             MySettings.Save()
             PrintConsole(String.Format(RM.GetString("voltage_set_to"), "3.3v"))
             Dim t As New Threading.Thread(AddressOf FCUSBPRO_Update_Logic)
@@ -1401,11 +1373,13 @@ Public Class MainForm
     End Sub
 
     Private Sub detect_event()
+        MyLastOperation = Nothing
+        MyLastMemoryDevice = Nothing
         ClearStatusMessage()
         ScriptEngine.Unload() 'Unloads the device script and any objects/tabs
         RemoveStatusMessage(RM.GetString("gui_active_script"))
-        MEM_IF.Clear(Nothing) 'Removes all tabs
-        USBCLIENT.Disconnect_All()
+        MEM_IF.Clear() 'Removes all tabs
+        If MAIN_FCUSB IsNot Nothing Then MAIN_FCUSB.Disconnect()
     End Sub
 
     Private Sub mi_exit_Click(sender As Object, e As EventArgs) Handles mi_exit.Click
@@ -1574,7 +1548,7 @@ Public Class MainForm
         End If
     End Sub
 
-    Private Sub PrintNandFlashDetails(ByVal mem_dev As MemoryDeviceInstance)
+    Private Sub PrintNandFlashDetails(mem_dev As MemoryDeviceInstance)
         WriteConsole(RM.GetString("gui_creating_nand_file"))
         If mem_dev.FlashType = MemoryType.SERIAL_NAND Then
             WriteConsole("Memory device name: " & mem_dev.FCUSB.SPI_NAND_IF.MyFlashDevice.NAME)
@@ -1591,7 +1565,7 @@ Public Class MainForm
         End If
     End Sub
 
-    Private Function GetNandCfgParam(ByVal ParamName As String, ByVal File() As String) As String
+    Private Function GetNandCfgParam(ParamName As String, File() As String) As String
         For Each line In File
             If line.StartsWith("[" & ParamName & "]") Then
                 Dim x As Integer = ParamName.Length + 2
@@ -1601,7 +1575,7 @@ Public Class MainForm
         Return ""
     End Function
 
-    Private Function GetNandCfgParams(ByVal ParamName As String, ByVal File() As String) As String()
+    Private Function GetNandCfgParams(ParamName As String, File() As String) As String()
         Dim out As New List(Of String)
         For Each line In File
             If line.StartsWith("[" & ParamName & "]") Then
@@ -1612,7 +1586,7 @@ Public Class MainForm
         Return out.ToArray
     End Function
 
-    Private Sub PromptUserForSaveLocation(ByVal default_name As String)
+    Private Sub PromptUserForSaveLocation(default_name As String)
         If Me.InvokeRequired Then
             Dim d As New cbPromptUserForSaveLocation(AddressOf PromptUserForSaveLocation)
             Me.Invoke(d, {default_name})
@@ -1823,7 +1797,7 @@ Public Class MainForm
         End Try
     End Sub
     'This uses the current settings to indicate if this block is valid
-    Private Function NANDBACKUP_IsValid(ByVal block_data() As Byte, ByVal page_size As UInt32, ByVal oob_size As UInt32) As Boolean
+    Private Function NANDBACKUP_IsValid(block_data() As Byte, page_size As UInt32, oob_size As UInt32) As Boolean
         Try
             If MySettings.NAND_BadBlockManager = FlashcatSettings.BadBlockMode.Disabled Then Return True
             Dim layout_main As UInt32
@@ -1881,7 +1855,7 @@ Public Class MainForm
         End Try
     End Function
 
-    Private Function IsValidAddress(ByVal base As Long, ByRef list() As Long) As Boolean
+    Private Function IsValidAddress(base As Long, list() As Long) As Boolean
         For Each addr In list
             If addr = base Then Return False
         Next
@@ -1892,10 +1866,10 @@ Public Class MainForm
 
 #Region "Status Bar"
     Private StatusBar_IsNormal As Boolean = True
-    Private Delegate Sub cbStatusBar_SwitchToOperation(ByVal labels() As ToolStripStatusLabel)
+    Private Delegate Sub cbStatusBar_SwitchToOperation(labels() As ToolStripStatusLabel)
     Private Delegate Sub cbStatusBar_SwitchToNormal()
 
-    Public Sub StatusBar_SwitchToOperation(ByVal labels() As ToolStripStatusLabel)
+    Public Sub StatusBar_SwitchToOperation(labels() As ToolStripStatusLabel)
         If Me.InvokeRequired Then
             Dim d As New cbStatusBar_SwitchToOperation(AddressOf StatusBar_SwitchToOperation)
             Me.Invoke(d)
@@ -1925,7 +1899,7 @@ Public Class MainForm
         End If
     End Sub
 
-    Public Sub SetStatus(ByVal Msg As String)
+    Public Sub SetStatus(Msg As String)
         If Me.InvokeRequired Then
             Dim d As New cbSetStatus(AddressOf SetStatus)
             Me.Invoke(d, New Object() {[Msg]})
@@ -2037,7 +2011,7 @@ Public Class MainForm
         End If
     End Sub
 
-    Private Function GetCompatibleScripts(ByVal CPUID As UInteger) As String(,)
+    Private Function GetCompatibleScripts(CPUID As UInteger) As String(,)
         Dim Autorun As New IO.FileInfo(ScriptPath & "autorun.ini")
         If Autorun.Exists Then
             Dim autoscripts(,) As String = Nothing
@@ -2048,7 +2022,7 @@ Public Class MainForm
         Return Nothing
     End Function
 
-    Private Function ProcessAutorun(ByVal Autorun As IO.FileInfo, ByVal ID As UInteger, ByRef scripts(,) As String) As Boolean
+    Private Function ProcessAutorun(Autorun As IO.FileInfo, ID As UInteger, ByRef scripts(,) As String) As Boolean
         Try
             Dim f() As String = Utilities.FileIO.ReadFile(Autorun.FullName)
             Dim autoline() As String
@@ -2112,7 +2086,7 @@ Public Class MainForm
         End Try
     End Sub
 
-    Private Sub LoadScriptFile(ByVal scriptName As String)
+    Private Sub LoadScriptFile(scriptName As String)
         Dim f As New IO.FileInfo(scriptName)
         If f.Exists Then
             ScriptEngine.Unload()
@@ -2128,7 +2102,7 @@ Public Class MainForm
         End If
     End Sub
 
-    Private Sub LoadSelectedScript(ByVal sender As Object, ByVal e As EventArgs)
+    Private Sub LoadSelectedScript(sender As Object, e As EventArgs)
         Dim tsi As ToolStripMenuItem = sender
         If (Not tsi.Checked) Then
             Dim scr_obj As script_option = tsi.Tag
@@ -2145,182 +2119,6 @@ Public Class MainForm
             tsi.Checked = False
         Next
     End Sub
-
-#End Region
-
-#Region "GANG MODE"
-
-    Private Sub cmd_gang_write_Click(sender As Object, e As EventArgs) Handles cmd_gang_write.Click
-        If IsAnyDeviceBusy() Then
-            MsgBox(RM.GetString("gui_gang_device_busy"), MsgBoxStyle.Information, "FlashcatUSB Multi-IO")
-            Exit Sub
-        End If
-        Dim src_file As IO.FileInfo = Nothing
-        Dim max_prog_size As UInt32 = 0
-        Dim smallest_flash As UInt32 = &HFFFFFFFFUI
-        For i = 0 To MEM_IF.DeviceCount - 1
-            smallest_flash = Math.Min(MEM_IF.GetDevice(i).Size, smallest_flash)
-        Next
-        If OpenFileForMultiProg(src_file) Then
-            Dim dbox As New MemControl_v2.DynamicRangeBox
-            Dim FileSize As UInt32 = src_file.Length
-            Dim BaseAddress As UInt32 = 0 'The starting address to write the data
-            If dbox.ShowRangeBox(BaseAddress, FileSize, smallest_flash) Then
-                For i = 0 To MEM_IF.DeviceCount - 1
-                    Dim x As New MemControl_v2.XFER_Operation
-                    x.FileName = src_file
-                    x.DataStream = src_file.OpenRead
-                    x.Offset = BaseAddress
-                    x.Size = FileSize
-                    Dim t As New Threading.Thread(AddressOf MEM_IF.GetDevice(i).GuiControl.WriteMemoryThread)
-                    t.Name = "memWriteTd"
-                    t.Start(x)
-                Next
-                Dim td As New Threading.Thread(AddressOf GANGMODE_WriteAll)
-                td.Name = "gangWriteAll"
-                td.Start()
-            End If
-        End If
-    End Sub
-
-    Private Sub cmd_gang_erase_Click(sender As Object, e As EventArgs) Handles cmd_gang_erase.Click
-        If IsAnyDeviceBusy() Then
-            MsgBox(RM.GetString("gui_gang_device_busy"), MsgBoxStyle.Information, "FlashcatUSB Multi-IO")
-            Exit Sub
-        End If
-        If MsgBox(RM.GetString("gui_gand_erase_all_confirm"), MsgBoxStyle.YesNo, "Confirm") = MsgBoxResult.Yes Then
-            Dim td As New Threading.Thread(AddressOf GANGMODE_EraseAll)
-            td.Name = "gangEraseAll"
-            td.Start()
-        End If
-    End Sub
-
-    Private Sub GANGMODE_EraseAll()
-        Try
-            SetStatus(RM.GetString("gui_gang_erasing"))
-            GANGMODE_Buttons(False)
-            For i = 0 To MEM_IF.DeviceCount - 1
-                Dim erasetd As New Threading.Thread(AddressOf MEM_IF.GetDevice(i).EraseFlash)
-                erasetd.Start()
-            Next
-            For i = 0 To MEM_IF.DeviceCount - 1
-                Do While MEM_IF.GetDevice(i).IsBusy
-                    Utilities.Sleep(100)
-                Loop
-            Next
-            Utilities.Sleep(500)
-            For i = 0 To MEM_IF.DeviceCount - 1
-                MEM_IF.GetDevice(i).GuiControl.RefreshView()
-            Next
-            SetStatus(RM.GetString("gui_gang_erase_complete"))
-        Catch ex As Exception
-        Finally
-            GANGMODE_Buttons(True)
-        End Try
-    End Sub
-
-    Private Sub GANGMODE_WriteAll()
-        Try
-            GANGMODE_Buttons(False)
-            Application.DoEvents()
-            Utilities.Sleep(200) 'Wait for an operation to start
-            Do While IsAnyDeviceBusy()
-                Application.DoEvents()
-                Utilities.Sleep(250)
-            Loop
-            SetStatus(RM.GetString("gui_gang_devices_programmed"))
-        Catch ex As Exception
-        Finally
-            GANGMODE_Buttons(True)
-        End Try
-    End Sub
-
-    Private Delegate Sub CbGangButtons(ByVal enabled As Boolean)
-
-    Private Sub GANGMODE_Buttons(ByVal Enabled As Boolean)
-        If Me.InvokeRequired Then
-            Dim n As New CbGangButtons(AddressOf GANGMODE_Buttons)
-            Me.Invoke(n, {Enabled})
-        Else
-            cmd_gang_write.Enabled = Enabled
-            cmd_gang_erase.Enabled = Enabled
-        End If
-    End Sub
-
-    Private Function OpenFileForMultiProg(ByRef file As IO.FileInfo) As Boolean
-        Dim BinFile As String = "Binary files (*.bin)|*.bin"
-        Dim AllFiles As String = "All files (*.*)|*.*"
-        Dim OpenMe As New OpenFileDialog
-        OpenMe.AddExtension = True
-        OpenMe.InitialDirectory = Application.StartupPath
-        OpenMe.Title = RM.GetString("gui_gang_choose_binary")
-        OpenMe.CheckPathExists = True
-        OpenMe.Filter = BinFile & "|" & AllFiles 'Bin Files, All Files
-        If OpenMe.ShowDialog = DialogResult.OK Then
-            file = New IO.FileInfo(OpenMe.FileName)
-            Return True
-        Else
-            Return False
-        End If
-    End Function
-
-    Private Delegate Sub cbSetGangProgress_1(ByVal percent As Integer)
-
-    Private Sub SetGangProgress_1(ByVal percent As Integer)
-        If Me.InvokeRequired Then
-            Dim n As New CbGangButtons(AddressOf SetGangProgress_1)
-            Me.Invoke(n, {percent})
-        Else
-            pb_gang1.Value = percent
-        End If
-    End Sub
-
-    Private Sub SetGangProgress_2(ByVal percent As Integer)
-        If Me.InvokeRequired Then
-            Dim n As New CbGangButtons(AddressOf SetGangProgress_2)
-            Me.Invoke(n, {percent})
-        Else
-            pb_gang2.Value = percent
-        End If
-    End Sub
-
-    Private Sub SetGangProgress_3(ByVal percent As Integer)
-        If Me.InvokeRequired Then
-            Dim n As New CbGangButtons(AddressOf SetGangProgress_3)
-            Me.Invoke(n, {percent})
-        Else
-            pb_gang3.Value = percent
-        End If
-    End Sub
-
-    Private Sub SetGangProgress_4(ByVal percent As Integer)
-        If Me.InvokeRequired Then
-            Dim n As New CbGangButtons(AddressOf SetGangProgress_4)
-            Me.Invoke(n, {percent})
-        Else
-            pb_gang4.Value = percent
-        End If
-    End Sub
-
-    Private Sub SetGangProgress_5(ByVal percent As Integer)
-        If Me.InvokeRequired Then
-            Dim n As New CbGangButtons(AddressOf SetGangProgress_5)
-            Me.Invoke(n, {percent})
-        Else
-            pb_gang5.Value = percent
-        End If
-    End Sub
-
-    Private Function IsAnyDeviceBusy() As Boolean
-        If USBCLIENT.HW_BUSY Then Return True
-        For i = 0 To MEM_IF.DeviceCount - 1
-            If MEM_IF.GetDevice(i).IsBusy Or MEM_IF.GetDevice(i).IsTaskRunning Then Return True
-            If MEM_IF.GetDevice(i).GuiControl IsNot Nothing Then
-                If MEM_IF.GetDevice(i).GuiControl.IN_OPERATION Then Return True
-            End If
-        Next
-        Return False
-    End Function
 
 #End Region
 
@@ -2349,14 +2147,13 @@ Public Class MainForm
 
 #End Region
 
-    Public Sub SetConnectionStatus(ByVal usb_dev As FCUSB_DEVICE)
+    Public Sub SetConnectionStatus()
         If Me.InvokeRequired Then
             Dim d As New cbSetConnectionStatus(AddressOf SetConnectionStatus)
-            Me.Invoke(d, {usb_dev})
+            Me.Invoke(d)
         Else
             StatusMessages_LoadMemoryDevices()
-            Dim NumberOfDevices As Integer = USBCLIENT.Count()
-            If (NumberOfDevices = 0) Then
+            If (MAIN_FCUSB Is Nothing) Then
                 statuspage_progress.Value = 0
                 statuspage_progress.Visible = False
                 Me.lblStatus.Text = RM.GetString("gui_fcusb_disconnected")
@@ -2364,41 +2161,38 @@ Public Class MainForm
                 ScriptEngine.Unload() 'Unloads the device script and any objects/tabs
                 RemoveStatusMessage(RM.GetString("gui_active_script"))
                 If frm_vendor IsNot Nothing Then frm_vendor.Close() 'If the vendor form is open, close it
-            ElseIf NumberOfDevices = 1 Then
+            Else
                 Me.lblStatus.Text = RM.GetString("gui_fcusb_connected")
-            Else 'Multi programming!
-                Me.lblStatus.Text = String.Format(RM.GetString("gui_fcusb_connected_multi"), NumberOfDevices)
             End If
             Application.DoEvents()
         End If
     End Sub
 
-    Public Sub OnNewDeviceConnected(ByVal usb_dev As FCUSB_DEVICE)
+    Public Sub OnNewDeviceConnected(mem_dev As MemoryDeviceInstance)
         If Me.InvokeRequired Then
             Dim d As New cbOnNewDeviceConnected(AddressOf OnNewDeviceConnected)
-            Me.Invoke(d, {usb_dev})
+            Me.Invoke(d, {mem_dev})
         Else
             mi_refresh.Enabled = True
             StatusMessages_LoadMemoryDevices()
-            Dim mem_instance As MemoryDeviceInstance = usb_dev.ATTACHED.Last
-            SetStatus(String.Format(RM.GetString("gui_fcusb_new_device"), mem_instance.Name))
-            mem_instance.VendorMenu = Nothing
+            SetStatus(String.Format(RM.GetString("gui_fcusb_new_device"), mem_dev.Name))
+            mem_dev.VendorMenu = Nothing
             Dim flash_vendor As VENDOR_FEATURE = VENDOR_FEATURE.NotSupported
             Dim flash_programmer As MemoryDeviceUSB = Nothing
-            If mem_instance.FlashType = MemoryType.SERIAL_NOR Then
-                flash_vendor = usb_dev.SPI_NOR_IF.MyFlashDevice.VENDOR_SPECIFIC
-                flash_programmer = usb_dev.SPI_NOR_IF
-            ElseIf mem_instance.FlashType = MemoryType.SERIAL_QUAD Then
-                flash_vendor = usb_dev.SQI_NOR_IF.MyFlashDevice.VENDOR_SPECIFIC
-                flash_programmer = usb_dev.SQI_NOR_IF
+            If mem_dev.FlashType = MemoryType.SERIAL_NOR Then
+                flash_vendor = MAIN_FCUSB.SPI_NOR_IF.MyFlashDevice.VENDOR_SPECIFIC
+                flash_programmer = MAIN_FCUSB.SPI_NOR_IF
+            ElseIf mem_dev.FlashType = MemoryType.SERIAL_QUAD Then
+                flash_vendor = MAIN_FCUSB.SQI_NOR_IF.MyFlashDevice.VENDOR_SPECIFIC
+                flash_programmer = MAIN_FCUSB.SQI_NOR_IF
             End If
             If Not flash_vendor = VENDOR_FEATURE.NotSupported Then
                 If (flash_vendor = FlashMemory.VENDOR_FEATURE.Micron) Then
-                    mem_instance.VendorMenu = New vendor_micron(flash_programmer)
+                    mem_dev.VendorMenu = New vendor_micron(flash_programmer)
                 ElseIf (flash_vendor = FlashMemory.VENDOR_FEATURE.Spansion_FL) Then
-                    mem_instance.VendorMenu = New vendor_spansion_FL(flash_programmer)
+                    mem_dev.VendorMenu = New vendor_spansion_FL(flash_programmer)
                 ElseIf (flash_vendor = FlashMemory.VENDOR_FEATURE.ISSI) Then
-                    mem_instance.VendorMenu = New vendor_issi(flash_programmer)
+                    mem_dev.VendorMenu = New vendor_issi(flash_programmer)
                 End If
             End If
             ResizeToFitHexViewer()
@@ -2572,6 +2366,16 @@ Public Class MainForm
             memDev.FCUSB.USB_LEDOn()
         End Try
     End Sub
+
+    Private Function IsAnyDeviceBusy() As Boolean
+        For i = 0 To MEM_IF.DeviceCount - 1
+            If MEM_IF.GetDevice(i).IsBusy Or MEM_IF.GetDevice(i).IsTaskRunning Then Return True
+            If MEM_IF.GetDevice(i).GuiControl IsNot Nothing Then
+                If MEM_IF.GetDevice(i).GuiControl.IN_OPERATION Then Return True
+            End If
+        Next
+        Return False
+    End Function
 
 
 End Class

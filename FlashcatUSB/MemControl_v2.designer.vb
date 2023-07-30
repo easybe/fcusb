@@ -28,7 +28,6 @@ Partial Class MemControl_v2
         Me.gb_flash = New System.Windows.Forms.GroupBox()
         Me.cmd_edit = New System.Windows.Forms.CheckBox()
         Me.pb_ecc = New System.Windows.Forms.PictureBox()
-        Me.cmd_ident = New System.Windows.Forms.Button()
         Me.cmd_compare = New System.Windows.Forms.Button()
         Me.HexEditor64 = New FlashcatUSB.HexEditor_v2()
         Me.txtAddress = New System.Windows.Forms.TextBox()
@@ -67,7 +66,6 @@ Partial Class MemControl_v2
             Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.gb_flash.Controls.Add(Me.cmd_edit)
         Me.gb_flash.Controls.Add(Me.pb_ecc)
-        Me.gb_flash.Controls.Add(Me.cmd_ident)
         Me.gb_flash.Controls.Add(Me.cmd_compare)
         Me.gb_flash.Controls.Add(Me.HexEditor64)
         Me.gb_flash.Controls.Add(Me.txtAddress)
@@ -108,16 +106,6 @@ Partial Class MemControl_v2
         Me.pb_ecc.TabIndex = 28
         Me.pb_ecc.TabStop = False
         '
-        'cmd_ident
-        '
-        Me.cmd_ident.Image = Global.FlashcatUSB.My.Resources.Resources.ident
-        Me.cmd_ident.Location = New System.Drawing.Point(150, 19)
-        Me.cmd_ident.Name = "cmd_ident"
-        Me.cmd_ident.Size = New System.Drawing.Size(24, 24)
-        Me.cmd_ident.TabIndex = 25
-        Me.menu_tip.SetToolTip(Me.cmd_ident, "Identify (blink LED)")
-        Me.cmd_ident.UseVisualStyleBackColor = True
-        '
         'cmd_compare
         '
         Me.cmd_compare.Image = Global.FlashcatUSB.My.Resources.Resources.chip_verify
@@ -135,6 +123,8 @@ Partial Class MemControl_v2
             Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.HexEditor64.BaseOffset = CType(0, Long)
         Me.HexEditor64.BaseSize = CType(0, Long)
+        Me.HexEditor64.EDIT_MODE = False
+        Me.HexEditor64.HexDataByteSize = 0
         Me.HexEditor64.Location = New System.Drawing.Point(4, 66)
         Me.HexEditor64.Margin = New System.Windows.Forms.Padding(4)
         Me.HexEditor64.Name = "HexEditor64"
@@ -219,7 +209,6 @@ Partial Class MemControl_v2
     Friend WithEvents cmd_cancel As Button
     Friend WithEvents cmd_compare As Button
     Friend WithEvents menu_tip As ToolTip
-    Friend WithEvents cmd_ident As Button
     Friend WithEvents pb_ecc As PictureBox
     Friend WithEvents cmd_edit As CheckBox
 End Class

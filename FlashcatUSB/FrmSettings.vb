@@ -13,6 +13,146 @@ Public Class FrmSettings
         ' Add any initialization after the InitializeComponent() call.
     End Sub
 
+    Private Sub FrmSettings_Load(sender As Object, e As EventArgs) Handles Me.Load
+        Language_setup()
+        Microwire_Init()
+        Me.MyTabs.DrawMode = TabDrawMode.OwnerDrawFixed
+        If MySettings.MUTLI_NOR Then
+            cb_multi_ce.SelectedIndex = 1
+        Else
+            cb_multi_ce.SelectedIndex = 0
+        End If
+        cb_ce_select.SelectedIndex = (MySettings.MULTI_CE)
+        cb_sym_width.Enabled = False
+        SPI_SetMaximumClockSettings()
+        If MySettings.SPI_FASTREAD Then
+            rb_fastread_op.Checked = True
+        Else
+            rb_read_op.Checked = True
+        End If
+        Dim all_bytes(254) As String
+        For i = 1 To 255
+            all_bytes(i - 1) = "0x" & Hex(i).PadLeft(2, "0")
+        Next
+        op_read.Items.AddRange(all_bytes)
+        op_prog.Items.AddRange(all_bytes)
+        op_sectorerase.Items.AddRange(all_bytes)
+        op_we.Items.AddRange(all_bytes)
+        op_ce.Items.AddRange(all_bytes)
+        op_rs.Items.AddRange(all_bytes)
+        op_ws.Items.AddRange(all_bytes)
+        op_ewsr.Items.AddRange(all_bytes)
+        CustomDevice_LoadSettings()
+        cb_preserve.Checked = MySettings.NAND_Preserve
+        cb_mismatch.Checked = MySettings.NAND_MismatchSkip
+        Dim markers As Integer = MySettings.NAND_BadBlockMarkers
+        If (markers And FlashcatSettings.BadBlockMarker._1stByte_FirstPage) > 0 Then
+            cb_badmarker_1st_page1.Checked = True
+        End If
+        If (markers And FlashcatSettings.BadBlockMarker._1stByte_SecondPage) > 0 Then
+            cb_badmarker_1st_page2.Checked = True
+        End If
+        If (markers And FlashcatSettings.BadBlockMarker._1stByte_LastPage) > 0 Then
+            cb_badmarker_1st_lastpage.Checked = True
+        End If
+        If (markers And FlashcatSettings.BadBlockMarker._6thByte_FirstPage) > 0 Then
+            cb_badmarker_6th_page1.Checked = True
+        End If
+        If (markers And FlashcatSettings.BadBlockMarker._6thByte_SecondPage) > 0 Then
+            cb_badmarker_6th_page2.Checked = True
+        End If
+        Select Case MySettings.NAND_BadBlockManager
+            Case FlashcatSettings.BadBlockMode.Disabled
+                cb_badblock_disabled.Checked = True
+            Case FlashcatSettings.BadBlockMode.Enabled
+                cb_badblock_enabled.Checked = True
+        End Select
+        Select Case MySettings.NAND_Layout
+            Case FlashcatSettings.NandMemLayout.Separated
+                rb_mainspare_default.Checked = True
+            Case FlashcatSettings.NandMemLayout.Combined
+                rb_mainspare_all.Checked = True
+            Case FlashcatSettings.NandMemLayout.Segmented
+                rb_mainspare_segmented.Checked = True
+        End Select
+        cbNAND_Speed.SelectedIndex = MySettings.NAND_Speed
+        SetupSpiEeprom()
+        Setup_I2C_SWI_tab()
+
+        If MAIN_FCUSB Is Nothing Then
+            rb_speed_100khz.Enabled = False
+            rb_speed_1mhz.Enabled = False
+            rb_speed_400khz.Checked = True
+            rb_read_op.Enabled = False
+            rb_fastread_op.Enabled = False
+            rb_read_op.Checked = True
+        Else
+            If Not MAIN_FCUSB.IS_CONNECTED Then
+            ElseIf MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
+            ElseIf MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Professional_PCB5 Then
+            ElseIf MAIN_FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+            Else
+                rb_speed_100khz.Enabled = False
+                rb_speed_1mhz.Enabled = False
+                rb_speed_400khz.Checked = True
+                rb_read_op.Enabled = False
+                rb_fastread_op.Enabled = False
+                rb_read_op.Checked = True
+            End If
+        End If
+
+        cb_spinand_disable_ecc.Checked = MySettings.SPI_NAND_DISABLE_ECC
+        cb_nand_image_readverify.Checked = MySettings.NAND_Verify
+        cb_ECC_ReadEnable.Checked = MySettings.ECC_READ_ENABLED
+        cb_ECC_WriteEnable.Checked = MySettings.ECC_WRITE_ENABLED
+        cb_ecc_seperate.Checked = MySettings.ECC_Separate
+        cb_rs_reverse_data.Checked = MySettings.ECC_Reverse
+        Select Case MySettings.ECC_Algorithum
+            Case 0
+                rb_ECC_Hamming.Checked = True
+            Case 1
+                rb_ECC_ReedSolomon.Checked = True
+            Case 2
+                rb_ECC_BHC.Checked = True
+        End Select
+        SetBitErrorLevel(MySettings.ECC_BitError)
+        txt_ecc_location.Text = "0x" & Hex(MySettings.ECC_Location).PadLeft(2, "0")
+        Select Case MySettings.ECC_SymWidth
+            Case 9
+                cb_sym_width.SelectedIndex = 0
+            Case 10
+                cb_sym_width.SelectedIndex = 1
+        End Select
+        ECC_CheckIfEnabled()
+        cb_retry_write.SelectedIndex = (MySettings.VERIFY_COUNT - 1)
+        cbSrec.SelectedIndex = MySettings.SREC_BITMODE
+        Select Case MySettings.JTAG_SPEED
+            Case JTAG.JTAG_SPEED._10MHZ
+                cb_jtag_tck_speed.SelectedIndex = 0
+            Case JTAG.JTAG_SPEED._20MHZ
+                cb_jtag_tck_speed.SelectedIndex = 1
+            Case JTAG.JTAG_SPEED._40MHZ
+                cb_jtag_tck_speed.SelectedIndex = 2
+        End Select
+        For Each item In cb_nor_read_access.Items
+            If item.ToString.StartsWith(MySettings.NOR_READ_ACCESS) Then
+                cb_nor_read_access.SelectedItem = item
+                Exit For
+            End If
+        Next
+        For Each item In cb_nor_we_pulse.Items
+            If item.ToString.StartsWith(MySettings.NOR_WE_PULSE) Then
+                cb_nor_we_pulse.SelectedItem = item
+                Exit For
+            End If
+        Next
+        If LicenseStatus = LicenseStatusEnum.LicensedValid Then
+            gb_nandecc_title.Enabled = True
+        Else
+            gb_nandecc_title.Enabled = False
+        End If
+    End Sub
+
     Private Sub SPI_SetMaximumClockSettings()
         Select Case MySettings.SPI_CLOCK_MAX
             Case SPI.SPI_SPEED.MHZ_32
@@ -89,130 +229,6 @@ Public Class FrmSettings
             Case Else
                 MySettings.SQI_CLOCK_MAX = SPI.SQI_SPEED.MHZ_40
         End Select
-    End Sub
-
-    Private Sub FrmSettings_Load(sender As Object, e As EventArgs) Handles Me.Load
-        Language_setup()
-        Microwire_Init()
-        Me.MyTabs.DrawMode = TabDrawMode.OwnerDrawFixed
-        If MySettings.MUTLI_NOR Then
-            cb_multi_ce.SelectedIndex = 1
-        Else
-            cb_multi_ce.SelectedIndex = 0
-        End If
-        cb_ce_select.SelectedIndex = (MySettings.MULTI_CE)
-        cb_sym_width.Enabled = False
-        SPI_SetMaximumClockSettings()
-        If MySettings.SPI_FASTREAD Then
-            rb_fastread_op.Checked = True
-        Else
-            rb_read_op.Checked = True
-        End If
-        Dim all_bytes(254) As String
-        For i = 1 To 255
-            all_bytes(i - 1) = "0x" & Hex(i).PadLeft(2, "0")
-        Next
-        op_read.Items.AddRange(all_bytes)
-        op_prog.Items.AddRange(all_bytes)
-        op_sectorerase.Items.AddRange(all_bytes)
-        op_we.Items.AddRange(all_bytes)
-        op_ce.Items.AddRange(all_bytes)
-        op_rs.Items.AddRange(all_bytes)
-        op_ws.Items.AddRange(all_bytes)
-        op_ewsr.Items.AddRange(all_bytes)
-        CustomDevice_LoadSettings()
-        cb_preserve.Checked = MySettings.NAND_Preserve
-        cb_mismatch.Checked = MySettings.NAND_MismatchSkip
-        Dim markers As Integer = MySettings.NAND_BadBlockMarkers
-        If (markers And FlashcatSettings.BadBlockMarker._1stByte_FirstPage) > 0 Then
-            cb_badmarker_1st_page1.Checked = True
-        End If
-        If (markers And FlashcatSettings.BadBlockMarker._1stByte_SecondPage) > 0 Then
-            cb_badmarker_1st_page2.Checked = True
-        End If
-        If (markers And FlashcatSettings.BadBlockMarker._1stByte_LastPage) > 0 Then
-            cb_badmarker_1st_lastpage.Checked = True
-        End If
-        If (markers And FlashcatSettings.BadBlockMarker._6thByte_FirstPage) > 0 Then
-            cb_badmarker_6th_page1.Checked = True
-        End If
-        If (markers And FlashcatSettings.BadBlockMarker._6thByte_SecondPage) > 0 Then
-            cb_badmarker_6th_page2.Checked = True
-        End If
-        Select Case MySettings.NAND_BadBlockManager
-            Case FlashcatSettings.BadBlockMode.Disabled
-                cb_badblock_disabled.Checked = True
-            Case FlashcatSettings.BadBlockMode.Enabled
-                cb_badblock_enabled.Checked = True
-        End Select
-        Select Case MySettings.NAND_Layout
-            Case FlashcatSettings.NandMemLayout.Separated
-                rb_mainspare_default.Checked = True
-            Case FlashcatSettings.NandMemLayout.Combined
-                rb_mainspare_all.Checked = True
-            Case FlashcatSettings.NandMemLayout.Segmented
-                rb_mainspare_segmented.Checked = True
-        End Select
-        cbNAND_Speed.SelectedIndex = MySettings.NAND_Speed
-        SetupSpiEeprom()
-        Setup_I2C_SWI_tab()
-        If USBCLIENT.HW_MODE = FCUSB_BOARD.NotConnected Then
-        ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB4) Then
-        ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB5) Then
-        ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Mach1) Then
-        Else
-            rb_speed_100khz.Enabled = False
-            rb_speed_1mhz.Enabled = False
-            rb_speed_400khz.Checked = True
-            rb_read_op.Enabled = False
-            rb_fastread_op.Enabled = False
-            rb_read_op.Checked = True
-        End If
-        cb_spinand_disable_ecc.Checked = MySettings.SPI_NAND_DISABLE_ECC
-        cb_nand_image_readverify.Checked = MySettings.NAND_Verify
-        cb_ECC_ReadEnable.Checked = MySettings.ECC_READ_ENABLED
-        cb_ECC_WriteEnable.Checked = MySettings.ECC_WRITE_ENABLED
-        cb_ecc_seperate.Checked = MySettings.ECC_Separate
-        cb_rs_reverse_data.Checked = MySettings.ECC_Reverse
-        Select Case MySettings.ECC_Algorithum
-            Case 0
-                rb_ECC_Hamming.Checked = True
-            Case 1
-                rb_ECC_ReedSolomon.Checked = True
-            Case 2
-                rb_ECC_BHC.Checked = True
-        End Select
-        SetBitErrorLevel(MySettings.ECC_BitError)
-        txt_ecc_location.Text = "0x" & Hex(MySettings.ECC_Location).PadLeft(2, "0")
-        Select Case MySettings.ECC_SymWidth
-            Case 9
-                cb_sym_width.SelectedIndex = 0
-            Case 10
-                cb_sym_width.SelectedIndex = 1
-        End Select
-        ECC_CheckIfEnabled()
-        cb_retry_write.SelectedIndex = (MySettings.VERIFY_COUNT - 1)
-        cbSrec.SelectedIndex = MySettings.SREC_BITMODE
-        Select Case MySettings.JTAG_SPEED
-            Case JTAG.JTAG_SPEED._10MHZ
-                cb_jtag_tck_speed.SelectedIndex = 0
-            Case JTAG.JTAG_SPEED._20MHZ
-                cb_jtag_tck_speed.SelectedIndex = 1
-            Case JTAG.JTAG_SPEED._40MHZ
-                cb_jtag_tck_speed.SelectedIndex = 2
-        End Select
-        For Each item In cb_nor_read_access.Items
-            If item.ToString.StartsWith(MySettings.NOR_READ_ACCESS) Then
-                cb_nor_read_access.SelectedItem = item
-                Exit For
-            End If
-        Next
-        For Each item In cb_nor_we_pulse.Items
-            If item.ToString.StartsWith(MySettings.NOR_WE_PULSE) Then
-                cb_nor_we_pulse.SelectedItem = item
-                Exit For
-            End If
-        Next
     End Sub
 
     Private Sub Language_setup()

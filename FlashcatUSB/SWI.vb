@@ -1,8 +1,7 @@
 ﻿Imports FlashcatUSB.FlashMemory
-Imports FlashcatUSB.USB.HostClient
 
 Public Class SWI_Programmer : Implements MemoryDeviceUSB
-    Private FCUSB As FCUSB_DEVICE
+    Private FCUSB As USB.FCUSB_DEVICE
 
     Public Event PrintConsole(message As String) Implements MemoryDeviceUSB.PrintConsole
     Public Event SetProgress(percent As Integer) Implements MemoryDeviceUSB.SetProgress
@@ -12,7 +11,7 @@ Public Class SWI_Programmer : Implements MemoryDeviceUSB
     Private SWI_DEV_PAGE As UInt16
 
 
-    Sub New(ByVal parent_if As FCUSB_DEVICE)
+    Sub New(parent_if As USB.FCUSB_DEVICE)
         FCUSB = parent_if
     End Sub
 

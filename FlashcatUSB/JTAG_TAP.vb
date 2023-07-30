@@ -590,7 +590,6 @@ Public Class JTAG_STATE_CONTROLLER
     Public Sub Reset()
         RaiseEvent Shift_TMS(5, {255}) 'Sets machine state to TestLogicReset
         Me.STATE = JTAG_MACHINE_STATE.TestLogicReset
-        GotoState(JTAG_MACHINE_STATE.Select_DR)
     End Sub
 
     Public Sub ShiftDR(tdi_bits() As Byte, ByRef tdo_bits() As Byte, bit_count As Integer, Optional exit_mode As Boolean = True)

@@ -1,7 +1,7 @@
 ﻿Imports FlashcatUSB.FlashMemory.NAND_LAYOUT_TOOL
 
 Public Class NAND_Block_Management
-    Private FCUSB As USB.HostClient.FCUSB_DEVICE
+    Private FCUSB As USB.FCUSB_DEVICE
 
     Private SELECTED_BLOCK As Integer = -1
     Private PERFORMING_ANALYZE As Boolean = False
@@ -24,7 +24,7 @@ Public Class NAND_Block_Management
     Private Property BLOCK_COUNT As UInt32 'Number of blocks per device
     Private Property NAND_LAYOUT As NANDLAYOUT_STRUCTURE
 
-    Public Sub SetDeviceParameters(ByVal Name As String, ByVal p_size As UInt32, ByVal pages_per_block As UInt32, ByVal block_count As UInt32, ByVal n_layout As NANDLAYOUT_STRUCTURE)
+    Public Sub SetDeviceParameters(Name As String, p_size As UInt32, pages_per_block As UInt32, block_count As UInt32, n_layout As NANDLAYOUT_STRUCTURE)
         Me.NAND_NAME = Name
         Me.PAGE_SIZE_TOTAL = p_size
         Me.PAGE_COUNT = pages_per_block
@@ -32,7 +32,7 @@ Public Class NAND_Block_Management
         Me.NAND_LAYOUT = n_layout
     End Sub
 
-    Sub New(ByVal usb_dev As USB.HostClient.FCUSB_DEVICE)
+    Sub New(usb_dev As USB.FCUSB_DEVICE)
 
         ' This call is required by the designer.
         InitializeComponent()

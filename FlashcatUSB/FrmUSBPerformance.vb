@@ -1,8 +1,8 @@
 ﻿Imports FlashcatUSB.USB.HostClient
 
 Public Class FrmUSBPerformance
-    Delegate Sub cbStatusPageProgress(ByVal percent As Integer)
-    Delegate Sub cbSpeed(ByVal lbl As String)
+    Delegate Sub cbStatusPageProgress(percent As Integer)
+    Delegate Sub cbSpeed(lbl As String)
     Delegate Sub cbTestComplete()
     Private MB_DN_INDEX As Integer = 0
     Private IS_ERROR As Boolean = False
@@ -26,7 +26,7 @@ Public Class FrmUSBPerformance
         t.Start()
     End Sub
 
-    Public Sub SetProgress(ByVal percent As Integer)
+    Public Sub SetProgress(percent As Integer)
         If Me.InvokeRequired Then
             Dim d As New cbStatusPageProgress(AddressOf SetProgress)
             Me.Invoke(d, New Object() {percent})
@@ -37,7 +37,7 @@ Public Class FrmUSBPerformance
         End If
     End Sub
 
-    Public Sub SetStatus(ByVal msg As String)
+    Public Sub SetStatus(msg As String)
         If Me.InvokeRequired Then
             Dim d As New cbSpeed(AddressOf SetStatus)
             Me.Invoke(d, New Object() {msg})
@@ -47,7 +47,7 @@ Public Class FrmUSBPerformance
         End If
     End Sub
 
-    Public Sub SetReadSpeed(ByVal speed_label As String)
+    Public Sub SetReadSpeed(speed_label As String)
         If Me.InvokeRequired Then
             Dim d As New cbSpeed(AddressOf SetReadSpeed)
             Me.Invoke(d, New Object() {speed_label})
@@ -58,7 +58,7 @@ Public Class FrmUSBPerformance
         End If
     End Sub
 
-    Public Sub SetWriteSpeed(ByVal speed_label As String)
+    Public Sub SetWriteSpeed(speed_label As String)
         If Me.InvokeRequired Then
             Dim d As New cbSpeed(AddressOf SetWriteSpeed)
             Me.Invoke(d, New Object() {speed_label})
@@ -103,7 +103,7 @@ Public Class FrmUSBPerformance
         Dim counter As Integer = 0
         t.Start()
         Do
-            Dim result As Boolean = USBCLIENT.FCUSB(0).USB_SETUP_BULKIN(USB.USBREQ.TEST_READ, Nothing, data_test, data_test.Length)
+            Dim result As Boolean = MAIN_FCUSB.USB_SETUP_BULKIN(USB.USBREQ.TEST_READ, Nothing, data_test, data_test.Length)
             If Not result Then
                 MsgBox("Error on USB Bulk In operation")
                 IS_ERROR = True
@@ -128,7 +128,7 @@ Public Class FrmUSBPerformance
         Dim bytes_transfered As Integer = 0
         t.Start()
         Do
-            Dim result As Boolean = USBCLIENT.FCUSB(0).USB_SETUP_BULKOUT(USB.USBREQ.TEST_WRITE, Nothing, data_test, data_test.Length)
+            Dim result As Boolean = MAIN_FCUSB.USB_SETUP_BULKOUT(USB.USBREQ.TEST_WRITE, Nothing, data_test, data_test.Length)
             If Not result Then
                 MsgBox("Error on USB Bulk Out operation")
                 IS_ERROR = True
@@ -144,7 +144,7 @@ Public Class FrmUSBPerformance
         t.Stop()
     End Sub
 
-    Private Function UpdateSpeed_GetText(ByVal bytes_per_second As Integer) As String
+    Private Function UpdateSpeed_GetText(bytes_per_second As Integer) As String
         Dim Mb008 As UInt32 = 1048576
         Dim speed_str As String
         If (bytes_per_second > (Mb008 - 1)) Then '1MB or higher

@@ -5,12 +5,11 @@
 'ACKNOWLEDGEMENT: USB driver functionality provided by LibUsbDotNet (sourceforge.net/projects/libusbdotnet)
 
 Imports FlashcatUSB.FlashMemory
-Imports FlashcatUSB.USB.HostClient
 
 Namespace JTAG
 
     Public Class JTAG_IF
-        Public FCUSB As FCUSB_DEVICE
+        Public FCUSB As USB.FCUSB_DEVICE
         Public Property Detected As Boolean = False
         Public Property Count As Integer = 0
         Public Property Chain_Length As Integer = -1
@@ -21,7 +20,7 @@ Namespace JTAG
 
         Public WithEvents SW_TAP As JTAG_STATE_CONTROLLER 'JTAG state machine for Classic
 
-        Sub New(parent_if As FCUSB_DEVICE)
+        Sub New(parent_if As USB.FCUSB_DEVICE)
             FCUSB = parent_if
             BSDL_Init()
         End Sub
@@ -38,30 +37,16 @@ Namespace JTAG
                         If Me.TCK_SPEED = JTAG_SPEED._40MHZ Then Me.TCK_SPEED = JTAG_SPEED._20MHZ
                         If Me.TCK_SPEED = JTAG_SPEED._1MHZ Then Me.TCK_SPEED = JTAG_SPEED._10MHZ
                     End If
-                    Select Case Me.TCK_SPEED
-                        Case JTAG_SPEED._40MHZ
-                            WriteConsole("JTAG TCK speed: 40 MHz")
-                            JSP.Actual_Hertz = 40000000
-                        Case JTAG_SPEED._20MHZ
-                            WriteConsole("JTAG TCK speed: 20 MHz")
-                            JSP.Actual_Hertz = 20000000
-                        Case JTAG_SPEED._10MHZ
-                            WriteConsole("JTAG TCK speed: 10 MHz")
-                            JSP.Actual_Hertz = 10000000
-                        Case JTAG_SPEED._1MHZ
-                            WriteConsole("JTAG TCK speed: 1 MHz")
-                            JSP.Actual_Hertz = 1000000
-                    End Select
                     FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_INIT, Nothing, Me.TCK_SPEED)
                 Else
-                    If ((FCUSB.HWBOARD = USB.FCUSB_BOARD.Professional_PCB4) Or (FCUSB.HWBOARD = USB.FCUSB_BOARD.Mach1)) Then
+                    If FCUSB.HasLogic() Then
                         FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_INIT, Nothing, (1 << 16) Or Me.TCK_SPEED)
                     Else
                         FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_INIT, Nothing, 0)
                     End If
-                    JSP.Actual_Hertz = 500000
-                    TAP_EnableSoftwareStateMachine() 'Classic, PCB4, and MACH1.
+                    TAP_EnableSoftwareStateMachine()
                 End If
+                JTAG_PrintClockSpeed()
                 Utilities.Sleep(200) 'We need to wait
                 If Not TAP_Detect() Then Return False
                 WriteConsole("JTAG chain detected: " & Me.Count & " devices")
@@ -398,6 +383,33 @@ Namespace JTAG
 
 #End Region
 
+        Private Sub JTAG_PrintClockSpeed()
+            Select Case Me.TCK_SPEED
+                Case JTAG_SPEED._40MHZ
+                    WriteConsole("JTAG TCK speed: 40 MHz")
+                Case JTAG_SPEED._20MHZ
+                    WriteConsole("JTAG TCK speed: 20 MHz")
+                Case JTAG_SPEED._10MHZ
+                    WriteConsole("JTAG TCK speed: 10 MHz")
+                Case JTAG_SPEED._1MHZ
+                    WriteConsole("JTAG TCK speed: 1 MHz")
+            End Select
+        End Sub
+
+        Private Function JTAG_GetTckInHerz() As UInt32
+            Select Case Me.TCK_SPEED
+                Case JTAG_SPEED._1MHZ
+                    Return 1000000
+                Case JTAG_SPEED._10MHZ
+                    Return 10000000
+                Case JTAG_SPEED._20MHZ
+                    Return 20000000
+                Case JTAG_SPEED._40MHZ
+                    Return 40000000
+                Case Else
+                    Return 0
+            End Select
+        End Function
         'Attempts to auto-detect a JTAG device on the TAP, returns the IR Length of the device
         Private Function TAP_Detect() As Boolean
             Dim r_data(63) As Byte
@@ -414,8 +426,7 @@ Namespace JTAG
                 ID32 = ID32 Or (CUInt(r_data(ptr + 2)) << 8)
                 ID32 = ID32 Or (CUInt(r_data(ptr + 3)) << 0)
                 ptr += 4
-                If ID32 = 0 Or ID32 = &HFFFFFFFFUI Then
-                Else
+                If Not (ID32 = 0 Or ID32 = &HFFFFFFFFUI) Then
                     Dim n As New JTAG_DEVICE
                     n.IDCODE = ID32
                     n.VERSION = CShort((ID32 And &HF0000000L) >> 28)
@@ -714,11 +725,11 @@ Namespace JTAG
 
         Public Function BoundaryScan_Detect() As Boolean
             Me.CFI = Nothing
-            Dim FLASH_RESULT As PARALLEL_NOR_NAND.FlashDetectResult
+            Dim FLASH_RESULT As PARALLEL_MEMORY.FlashDetectResult
             If Me.BSDL_IO = BSDL_DQ_IO.X8 Then
-                FLASH_RESULT = PARALLEL_NOR_NAND.GetFlashResult(BSDL_ReadIdent(False)) 'X8 Device
+                FLASH_RESULT = PARALLEL_MEMORY.GetFlashResult(BSDL_ReadIdent(False)) 'X8 Device
             Else
-                FLASH_RESULT = PARALLEL_NOR_NAND.GetFlashResult(BSDL_ReadIdent(True)) 'X16 Device
+                FLASH_RESULT = PARALLEL_MEMORY.GetFlashResult(BSDL_ReadIdent(True)) 'X16 Device
             End If
             If FLASH_RESULT.Successful Then
                 Me.CFI = New NOR_CFI(BSDL_GetCFI())
@@ -1271,6 +1282,11 @@ Namespace JTAG
 
 #Region "SVF Player"
         Public WithEvents JSP As New SVF_Player() 'SVF / XSVF Parser and player
+        Private CurrentHz As UInt32 = 1000000
+
+        Private Sub JSP_SetFrequency(Hz As UInt32) Handles JSP.SetFrequency
+            CurrentHz = Hz
+        End Sub
 
         Private Sub JSP_ResetTap() Handles JSP.ResetTap
             Reset_StateMachine()
@@ -1281,7 +1297,9 @@ Namespace JTAG
         End Sub
 
         Private Function JSP_ToggleClock(ticks As UInt32) Handles JSP.ToggleClock
-            Return Tap_Toggle(ticks)
+            Dim hz As UInt32 = Me.JTAG_GetTckInHerz()
+            Dim mult As Integer = (CSng(hz) / CSng(CurrentHz))
+            Return Tap_Toggle(ticks * mult)
         End Function
 
         Private Sub HandleJtagPrintRequest(msg As String) Handles JSP.Writeconsole
@@ -2101,8 +2119,14 @@ Namespace JTAG
                     Dim toggle_count As UInt32 = IIf(ticks_left <= 10000000UI, ticks_left, 10000000UI) 'MAX 10 million cycles
                     Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.JTAG_TOGGLE, Nothing, toggle_count)
                     If Not result Then Return False
-                    result = FCUSB.USB_WaitForComplete()
-                    If Not result Then Return False
+                    Dim current_hz As UInt32 = JTAG_GetTckInHerz()
+                    Dim delay_ms As Integer = (CDbl(toggle_count) / CDbl(current_hz)) * 1000
+                    Utilities.Sleep(delay_ms + 5)
+                    If FCUSB.HasLogic Then
+                        Utilities.Sleep(100)
+                        result = FCUSB.USB_WaitForComplete()
+                        If Not result Then Return False
+                    End If
                     ticks_left -= toggle_count
                     If (ticks_left > 0) Then
                         Threading.Thread.CurrentThread.Join(10) 'Pump a message
@@ -2154,7 +2178,7 @@ Namespace JTAG
             Return Utilities.Bytes.ToUInt32(tdo)
         End Function
 
-        Public Sub ShiftTMS(ByVal BitCount As UInt32, ByVal tms_bits() As Byte)
+        Public Sub ShiftTMS(BitCount As UInt32, tms_bits() As Byte)
             Dim BytesLeft As Integer = tms_bits.Length
             Dim BitsLeft As UInt32 = BitCount
             Dim ptr As Integer = 0
@@ -2604,7 +2628,7 @@ Namespace JTAG
         _40MHZ = 0  'Not supported on PCB 4.x
         _20MHZ = 1
         _10MHZ = 2
-        _1MHZ = 3 'Not supported on PCB 4.x
+        _1MHZ = 3
     End Enum
 
     Public Enum JTAG_MACHINE_STATE As Byte

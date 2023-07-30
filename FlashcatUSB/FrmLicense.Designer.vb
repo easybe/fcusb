@@ -96,7 +96,7 @@ Partial Class FrmLicense
         Me.ShowIcon = False
         Me.ShowInTaskbar = False
         Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent
-        Me.Text = "Software License"
+        Me.Text = "Software License (Commericial use)"
         Me.ResumeLayout(False)
         Me.PerformLayout()
 

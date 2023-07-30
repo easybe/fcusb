@@ -9,13 +9,12 @@ Public Class MemControl_v2
     Private ParentMemDevice As MemoryInterface.MemoryDeviceInstance
 
     Private AreaSelected As FlashMemory.FlashArea = FlashMemory.FlashArea.Main
-    Private FCUSB As USB.HostClient.FCUSB_DEVICE
+    Private FCUSB As USB.FCUSB_DEVICE
     Private FlashName As String 'Contains the MFG and PART NUMBER
     Private FlashAvailable As Long  'The total bytes available for the hex editor
     Private FlashBase As Long 'Offset if this device is not at 0x0
     Private HexLock As New Object 'Used to lock the gui
     Private EnableChipErase As Boolean = True 'EEPROM devices do not allow this
-    Private DisplayIdent As Boolean = False
 
     Public LAST_WRITE_OPERATION As XFER_Operation = Nothing
 
@@ -32,7 +31,7 @@ Public Class MemControl_v2
     Public Event GetSectorBaseAddress(sector_int As UInt32, area As FlashMemory.FlashArea, ByRef addr As Long)
     Public Event GetSectorSize(sector_int As UInt32, area As FlashMemory.FlashArea, ByRef sector_size As UInt32)
     Public Event EraseMemory()
-    Public Event SuccessfulWrite(ByVal mydev As USB.HostClient.FCUSB_DEVICE, ByVal x As XFER_Operation)
+    Public Event SuccessfulWrite(mydev As USB.FCUSB_DEVICE, x As XFER_Operation)
     Public Event GetEccLastResult(ByRef result As ECC_DECODE_RESULT)
 
     Public Property IN_OPERATION As Boolean = False
@@ -60,7 +59,6 @@ Public Class MemControl_v2
         StatusBar_Create()
         SetProgress(0)
         cmd_cancel.Visible = False
-        cmd_ident.Visible = False
     End Sub
 
 #Region "Status Bar"
@@ -206,7 +204,7 @@ Public Class MemControl_v2
     End Class
 
     'Call this to setup this control
-    Public Sub InitMemoryDevice(usb_dev As USB.HostClient.FCUSB_DEVICE, Name As String, flash_size As Long, access As access_mode, Optional mem_base As UInt32 = 0)
+    Public Sub InitMemoryDevice(usb_dev As USB.FCUSB_DEVICE, Name As String, flash_size As Long, access As access_mode, Optional mem_base As UInt32 = 0)
         Me.FCUSB = usb_dev
         Me.FlashName = Name
         Me.FlashAvailable = flash_size 'Main area first
@@ -336,7 +334,7 @@ Public Class MemControl_v2
             End If
         End Sub
 
-        Private Sub DynForm_Keydown(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyEventArgs)
+        Private Sub DynForm_Keydown(sender As Object, e As KeyEventArgs)
             If e.KeyCode = 13 Then 'Enter pressed
                 Dim Btn As TextBox = CType(sender, TextBox)
                 Dim SendFrm As Form = Btn.FindForm
@@ -344,34 +342,34 @@ Public Class MemControl_v2
             End If
         End Sub
         'Always centers the dynamic input form on top of the original form
-        Private Sub DynForm_Load(ByVal sender As System.Object, ByVal e As System.EventArgs)
+        Private Sub DynForm_Load(sender As Object, e As EventArgs)
             Dim frm As Form = CType(sender, Form)
             frm.Top = CInt(GUI.Top + ((GUI.Height / 2) - (frm.Height / 2)))
             frm.Left = CInt(GUI.Left + ((GUI.Width / 2) - (frm.Width / 2)))
         End Sub
         'Handles the dynamic form for a click
-        Private Sub Dyn_OkClick(ByVal sender As System.Object, ByVal e As System.EventArgs)
+        Private Sub Dyn_OkClick(sender As Object, e As EventArgs)
             Dim Btn As Button = CType(sender, Button)
             Dim SendFrm As Form = Btn.FindForm
             SendFrm.DialogResult = DialogResult.OK
         End Sub
 
-        Private Sub Dyn_CancelClick(ByVal sender As System.Object, ByVal e As System.EventArgs)
+        Private Sub Dyn_CancelClick(ByVal sender As Object, e As EventArgs)
             Dim Btn As Button = CType(sender, Button)
             Dim SendFrm As Form = Btn.FindForm
             SendFrm.DialogResult = DialogResult.Cancel
         End Sub
 
-        Private Sub Dyn_MouseDown(ByVal sender As System.Object, ByVal e As System.Windows.Forms.MouseEventArgs)
+        Private Sub Dyn_MouseDown(sender As Object, e As MouseEventArgs)
             MouseDownOnForm = True
             ClickPoint = New Point(Cursor.Position.X, Cursor.Position.Y)
         End Sub
 
-        Private Sub Dyn_MouseUp(ByVal sender As System.Object, ByVal e As System.Windows.Forms.MouseEventArgs)
+        Private Sub Dyn_MouseUp(sender As Object, e As MouseEventArgs)
             MouseDownOnForm = False
         End Sub
 
-        Private Sub Dyn_MouseMove(ByVal sender As System.Object, ByVal e As System.Windows.Forms.MouseEventArgs)
+        Private Sub Dyn_MouseMove(sender As Object, e As MouseEventArgs)
             If MouseDownOnForm Then
                 Dim newPoint As New Point(Cursor.Position.X, Cursor.Position.Y)
                 Dim ThisForm As Form = CType(sender, Form)
@@ -381,7 +379,7 @@ Public Class MemControl_v2
             End If
         End Sub
         'Hanldes the move if a label is being dragged
-        Private Sub DynLabel_MouseMove(ByVal sender As System.Object, ByVal e As System.Windows.Forms.MouseEventArgs)
+        Private Sub DynLabel_MouseMove(sender As Object, e As MouseEventArgs)
             If MouseDownOnForm Then
                 Dim newPoint As New Point(Cursor.Position.X, Cursor.Position.Y)
                 Dim Btn As Label = CType(sender, Label)
@@ -409,21 +407,6 @@ Public Class MemControl_v2
             d.Invoke()
         Else
             cmd_erase.Enabled = False
-        End If
-    End Sub
-
-    Public Sub ShowIdentButton(ByVal display As Boolean)
-        If Me.InvokeRequired Then
-            Dim d As New cbDisableControls(AddressOf ShowIdentButton)
-            d.Invoke(display)
-        Else
-            If display Then
-                cmd_ident.Visible = True
-                DisplayIdent = True
-            Else
-                cmd_ident.Visible = False
-                DisplayIdent = False
-            End If
         End If
     End Sub
 
@@ -474,9 +457,9 @@ Public Class MemControl_v2
 #End Region
 
 #Region "Page Layout - NAND devices"
-    Private Delegate Sub cbExtendedAreaVisibility(ByVal show As Boolean)
-    Private Delegate Sub cbAddExtendedArea(ByVal page_count As UInt32, ByVal page_size As UInt16, ByVal ext_size As UInt16, ByVal pages_per_block As UInt32)
-    Private Delegate Sub cbSetSelectedArea(ByVal area As FlashMemory.FlashArea)
+    Private Delegate Sub cbExtendedAreaVisibility(show As Boolean)
+    Private Delegate Sub cbAddExtendedArea(page_count As UInt32, page_size As UInt16, ext_size As UInt16, pages_per_block As UInt32)
+    Private Delegate Sub cbSetSelectedArea(area As FlashMemory.FlashArea)
 
     Private Property EXTAREA_PAGECOUNT As UInt32 'Total number of pages
     Private Property EXTAREA_BLOCK_PAGES As UInt32 'Number of pages in a block/sector
@@ -485,7 +468,7 @@ Public Class MemControl_v2
     Private Property HAS_EXTAREA As Boolean = False 'Indicates we have split memory (main/spare)
 
     'This setups the editor to use a Flash with an extended area (such as spare data)
-    Private Sub AddExtendedArea(ByVal page_count As UInt32, ByVal page_size As UInt16, ByVal ext_size As UInt16, ByVal pages_per_block As UInt32)
+    Private Sub AddExtendedArea(page_count As UInt32, page_size As UInt16, ext_size As UInt16, pages_per_block As UInt32)
         If Me.InvokeRequired Then
             Dim d As New cbAddExtendedArea(AddressOf AddExtendedArea)
             Me.Invoke(d, {page_count, page_size, ext_size, pages_per_block})
@@ -501,7 +484,7 @@ Public Class MemControl_v2
         End If
     End Sub
 
-    Private Sub SetSelectedArea(ByVal area As FlashMemory.FlashArea)
+    Private Sub SetSelectedArea(area As FlashMemory.FlashArea)
         If Me.InvokeRequired Then
             Dim d As New cbSetSelectedArea(AddressOf SetSelectedArea)
             Me.Invoke(d, area)
@@ -575,7 +558,7 @@ Public Class MemControl_v2
         End Try
     End Sub
 
-    Private Sub ReadingMem_Status_Update(ByVal total_count As UInt32, ByRef Params As ReadParameters)
+    Private Sub ReadingMem_Status_Update(total_count As UInt32, ByRef Params As ReadParameters)
         Try
             Dim Percent As Single = CSng(((total_count - Params.Count) / total_count) * 100) 'Calulate % done
             Dim current_str As String = Format((total_count - Params.Count), "#,###")
@@ -591,7 +574,7 @@ Public Class MemControl_v2
         End Try
     End Sub
 
-    Private Sub cmd_area_Click(ByVal sender As Object, e As EventArgs) Handles cmd_area.Click
+    Private Sub cmd_area_Click(sender As Object, e As EventArgs) Handles cmd_area.Click
         Select Case AreaSelected
             Case FlashMemory.FlashArea.Main
                 SetSelectedArea(FlashMemory.FlashArea.OOB)
@@ -679,7 +662,6 @@ Public Class MemControl_v2
             cmd_write.Visible = True
             cmd_erase.Visible = True
             cmd_edit.Visible = True
-            If DisplayIdent Then cmd_ident.Visible = True
             cmd_compare.Visible = True
             cmd_area.Enabled = True
             cmd_cancel.Visible = False
@@ -705,7 +687,6 @@ Public Class MemControl_v2
                 cmd_read.Visible = False
                 cmd_write.Visible = False
                 cmd_erase.Visible = False
-                cmd_ident.Visible = False
                 cmd_edit.Visible = False
                 cmd_compare.Visible = False
             Else
@@ -715,7 +696,6 @@ Public Class MemControl_v2
                 cmd_write.Visible = True
                 cmd_erase.Visible = True
                 cmd_edit.Visible = True
-                If DisplayIdent Then cmd_ident.Visible = True
                 cmd_compare.Visible = True
             End If
             HexEditor64.Focus()
@@ -1400,25 +1380,6 @@ Public Class MemControl_v2
                 ReadingParams.AbortOperation = True
             End If
         Catch ex As Exception
-        End Try
-    End Sub
-
-    Private Sub cmd_ident_Click(sender As Object, e As EventArgs) Handles cmd_ident.Click
-        Try
-            cmd_ident.Enabled = False
-            For i = 0 To 8
-                FCUSB.USB_LEDOff()
-                FCUSB.USB_WaitForComplete()
-                Application.DoEvents()
-                Utilities.Sleep(100)
-                FCUSB.USB_LEDOn()
-                FCUSB.USB_WaitForComplete()
-                Application.DoEvents()
-                Utilities.Sleep(100)
-            Next
-        Catch ex As Exception
-        Finally
-            cmd_ident.Enabled = True
         End Try
     End Sub
 

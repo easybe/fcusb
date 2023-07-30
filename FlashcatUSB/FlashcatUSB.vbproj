@@ -115,8 +115,9 @@
     <Compile Include="FrmLicense.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="FWH.vb" />
     <Compile Include="ISC_LOGIC_PROG.vb" />
-    <Compile Include="Parallel_NOR_NAND.vb" />
+    <Compile Include="PARALLEL_MEMORY.vb" />
     <Compile Include="FlashMemory.vb" />
     <Compile Include="FrmSettings.designer.vb">
       <DependentUpon>FrmSettings.vb</DependentUpon>

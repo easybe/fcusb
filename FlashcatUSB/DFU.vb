@@ -3,11 +3,10 @@
 'ANY USE OF THIS CODE MUST ADHERE TO THE LICENSE FILE INCLUDED WITH THIS SDK
 'INFO: This class interfaces the DFU protocol bootloader
 
-Imports FlashcatUSB.USB.HostClient
 Imports LibUsbDotNet.Main
 
 Public Class DFU_API
-    Public FCUSB As FCUSB_DEVICE
+    Public FCUSB As USB.FCUSB_DEVICE
 
     Private Const USB_VID_ATMEL As Integer = &H3EB
     Private Const USB_PID_AT90USB162 As Integer = &H2FFA 'FCUSB PCB 1.x
@@ -16,7 +15,7 @@ Public Class DFU_API
     Private Const USB_PID_ATMEGA32U2 As Integer = &H2FF0 'FCUSB PCB 2.2
     Private Const USB_PID_ATMEGA32U4 As Integer = &H2FF4 'FCUSB PCB 2.3
 
-    Sub New(ByVal parent_if As FCUSB_DEVICE)
+    Sub New(parent_if As USB.FCUSB_DEVICE)
         FCUSB = parent_if
     End Sub
 
@@ -33,7 +32,7 @@ Public Class DFU_API
     Private Const USB_DT_DEVICE As Byte = 1
     Private transaction As Integer = 0
 
-    Public Event OnStatus(ByVal Percent As Integer)
+    Public Event OnStatus(Percent As Integer)
 
     Structure DFU_STATUS
         Dim Err As Boolean 'True if device failed to retrieve this object
@@ -156,7 +155,7 @@ Public Class DFU_API
         Return True
     End Function
 
-    Public Function WriteFlash(ByVal data() As Byte) As Boolean
+    Public Function WriteFlash(data() As Byte) As Boolean
         RaiseEvent OnStatus(0)
         Dim UsbStatus As DFU_STATUS
         Dim EndAddress As Integer = data.Length
@@ -185,7 +184,7 @@ Public Class DFU_API
         Return True
     End Function
 
-    Private Sub PrintErrorMsg(ByVal input As DFU_STATUS)
+    Private Sub PrintErrorMsg(input As DFU_STATUS)
         Dim State As String = DfuStateToString(input.State)
         Dim ErrorReason As String = DfuStatusToString(input.StatusCode)
         WriteConsole("AVR DFU Error")
@@ -193,7 +192,7 @@ Public Class DFU_API
         WriteConsole("Status: " & ErrorReason)
     End Sub
 
-    Private Function DfuStateToString(ByVal StateVal As DFU_STATE_CODE) As String
+    Private Function DfuStateToString(StateVal As DFU_STATE_CODE) As String
         Dim State As String = ""
         Select Case StateVal
             Case DFU_STATE_CODE.appDETACH
@@ -222,7 +221,7 @@ Public Class DFU_API
         Return State
     End Function
 
-    Private Function DfuStatusToString(ByVal StatusCode As DFU_STATUS_CODE) As String
+    Private Function DfuStatusToString(StatusCode As DFU_STATUS_CODE) As String
         Dim ErrorReason As String = ""
         Select Case StatusCode
             Case DFU_STATUS_CODE.OK
@@ -261,7 +260,7 @@ Public Class DFU_API
         Return ErrorReason
     End Function
     'Prepares the usb send packate containing header+firmware+suffix
-    Private Function PrepareDnData(ByVal data() As Byte, ByVal start As Integer, ByRef endaddress As Integer) As Byte()
+    Private Function PrepareDnData(data() As Byte, start As Integer, ByRef endaddress As Integer) As Byte()
         Dim DataSize As Integer = 512 '512 bytes per packet of fw data
         If (start + DataSize) > data.Length Then
             DataSize = data.Length - start
