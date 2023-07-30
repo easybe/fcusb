@@ -18,21 +18,21 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 589
+    Public Const Build As Integer = 590
 
-    Private Const PRO_PCB4_FW As Single = 1.19F 'This is the embedded firmware version for pro
+    Private Const PRO_PCB4_FW As Single = 1.21F 'This is the embedded firmware version for pro
     Private Const PRO_PCB5_FW As Single = 1.02F 'This is the embedded firmware version for pro
     Private Const MACH1_PCB2_FW As Single = 2.14F 'Firmware version for Mach1
     Private Const XPORT_PCB1_FW As Single = 4.55F 'XPORT PCB 1.x
-    Private Const XPORT_PCB2_FW As Single = 5.12F 'XPORT PCB 2.x
+    Private Const XPORT_PCB2_FW As Single = 5.13F 'XPORT PCB 2.x
     Private Const CLASSIC_FW As Single = 4.49F 'Min revision allowed for classic (PCB 2.x)
 
     Private Const CPLD_SPI_3V3 As UInt32 = &HCD330003UI 'ID CODE FOR SPI (3.3v)
     Private Const CPLD_SPI_1V8 As UInt32 = &HCD180003UI 'ID CODE FOR JTAG (1.8v)
-    Private Const CPLD_I2C As UInt32 = &HBD330002UI 'ID CODE FOR I2C (3.3v)
     Private Const CPLD_JTAG As UInt32 = &HCD330101UI 'ID CODE FOR JTAG (3.3v)
-    Private Const CPLD_QSPI_3V3 As UInt32 = &HCD330121UI 'ID CODE FOR JTAG (3.3v)
-    Private Const CPLD_QSPI_1V8 As UInt32 = &HCD180121UI 'ID CODE FOR JTAG (1.8v)
+    Private Const CPLD_I2C As UInt32 = &HCD330202UI 'ID CODE FOR I2C (3.3v)
+    Private Const CPLD_QSPI_3V3 As UInt32 = &HCD330301UI 'ID CODE FOR JTAG (3.3v)
+    Private Const CPLD_QSPI_1V8 As UInt32 = &HCD180301UI 'ID CODE FOR JTAG (1.8v)
     Private Const MACH1_FGPA_3V3 As UInt32 = &HAF330006UI
     Private Const MACH1_FGPA_1V8 As UInt32 = &HAF180006UI
     Private Const MACH1_SPI_3V3 As UInt32 = &HAF330101UI 'Passthrough for SPI
@@ -47,7 +47,7 @@ Public Module MainApp
     Public Platform As String
     Public CUSTOM_SPI_DEV As SPI_NOR
     Private FcMutex As Mutex
-    Public IS_DEBUG_VER As Boolean = False
+    Public Const IS_DEBUG_VER As Boolean = False
 
     Sub Main(Args() As String)
         Try 'This makes it only allow one instance
@@ -72,6 +72,7 @@ Public Module MainApp
         Thread.CurrentThread.CurrentCulture = Globalization.CultureInfo.CreateSpecificCulture("en-US")
         My.Application.ChangeUICulture("en-US")
         My.Application.ChangeCulture("en-US")
+        LicenseSystem_Init()
         If CUSTOM_SPI_DEV Is Nothing Then CUSTOM_SPI_DEV = New SPI_NOR("User-defined", VCC_IF.SERIAL_3V, Mb001, 0, 0)
         CreateGrayCodeTable()
         Create_SPI_EEPROM_List() 'Adds the SPI EEPROM devices
@@ -112,6 +113,30 @@ Public Module MainApp
         Public Timer As Stopwatch 'To monitor the transfer speed
         Public AbortOperation As Boolean = False
     End Class
+
+#Region "License System"
+
+    Public Enum LicenseStatusEnum
+        NotLicensed
+        LicensedValid
+        LicenseExpired
+    End Enum
+
+    Public Property LicenseStatus As LicenseStatusEnum = LicenseStatusEnum.NotLicensed
+
+    Public Sub LicenseSystem_Init()
+        If MySettings.LICENSED_TO.Equals("") Then
+            LicenseStatus = LicenseStatusEnum.NotLicensed
+        ElseIf MySettings.LICENSE_EXP.Date.Year = 1 Then
+            LicenseStatus = LicenseStatusEnum.LicensedValid
+        ElseIf Date.Compare(DateTime.Now, MySettings.LICENSE_EXP.Date) < 0 Then
+            LicenseStatus = LicenseStatusEnum.LicensedValid
+        Else
+            LicenseStatus = LicenseStatusEnum.LicenseExpired
+        End If
+    End Sub
+
+#End Region
 
 #Region "Error correcting code"
     Public NAND_ECC_ENG As ECC_LIB.Engine
@@ -483,6 +508,12 @@ Public Module MainApp
         ConsoleWriteLine("Copyright " & DateTime.Now.Year & " - Embedded Computers LLC")
         ConsoleWriteLine(String.Format("Running on: {0}", Platform))
         Environment.ExitCode = 0
+        If (Not LicenseStatus = LicenseStatusEnum.LicensedValid) Then
+            ConsoleWriteLine("Console mode is only available with a valid license")
+            ConsoleWriteLine("Please contact license@embeddedcomputers.net for options")
+            Console_Exit()
+            Exit Sub
+        End If
         If (args Is Nothing OrElse args.Length = 0) Then
             Console_DisplayHelp()
             Console_Exit()
@@ -1111,23 +1142,15 @@ Public Module MainApp
     End Function
 
     Public Function GetMaxSqiClock(brd As FCUSB_BOARD, desired_speed As UInt32) As SQI_SPEED
-        Dim MCK As UInt32 = 0
         Select Case brd
             Case FCUSB_BOARD.Mach1
-                If (desired_speed > SQI_SPEED.MHZ_40) Then Return SQI_SPEED.MHZ_40  'Fastest possible
-                MCK = 80000000
+                If (desired_speed > SQI_SPEED.MHZ_40) Then Return SQI_SPEED.MHZ_40
             Case FCUSB_BOARD.Professional_PCB4
-                If (desired_speed > SQI_SPEED.MHZ_20) Then Return SQI_SPEED.MHZ_20  'Fastest possible
-                MCK = SQI_SPEED.MHZ_40
+                If (desired_speed > SQI_SPEED.MHZ_20) Then Return SQI_SPEED.MHZ_20
             Case FCUSB_BOARD.Professional_PCB5
-                If (desired_speed > SQI_SPEED.MHZ_40) Then Return SQI_SPEED.MHZ_40  'Fastest possible
-                MCK = 80000000
-            Case Else
-                Return 0
+                If (desired_speed > SQI_SPEED.MHZ_40) Then Return SQI_SPEED.MHZ_40
         End Select
-        Dim spi_baud_div As UInt32 = Math.Ceiling(CSng(MCK) / CSng(desired_speed))
-        Dim max_speed As UInt32 = (MCK / spi_baud_div)
-        Return max_speed
+        Return desired_speed
     End Function
 
 #End Region
@@ -1746,13 +1769,18 @@ Public Module MainApp
                 modes.Add(DeviceMode.SPI)
                 modes.Add(DeviceMode.I2C_EEPROM)
                 modes.Add(DeviceMode.SPI_EEPROM)
-                modes.Add(DeviceMode.Microwire)
                 modes.Add(DeviceMode.SPI_NAND)
+                modes.Add(DeviceMode.Microwire)
                 modes.Add(DeviceMode.SQI)
                 modes.Add(DeviceMode.JTAG)
             Case FCUSB_BOARD.Professional_PCB5
-                modes.Add(DeviceMode.SQI)
+                modes.Add(DeviceMode.SPI)
+                modes.Add(DeviceMode.I2C_EEPROM)
+                modes.Add(DeviceMode.SPI_EEPROM)
                 modes.Add(DeviceMode.SPI_NAND)
+                modes.Add(DeviceMode.Microwire)
+                modes.Add(DeviceMode.SQI)
+                'modes.Add(DeviceMode.JTAG)
             Case FCUSB_BOARD.Mach1
                 modes.Add(DeviceMode.SPI)
                 modes.Add(DeviceMode.SPI_NAND)
@@ -1834,7 +1862,7 @@ Public Module MainApp
                 ElseIf usb_dev.USB_IsAppUpdaterMode Then
                     FCUSBPRO_Bootloader(usb_dev, "PCB4_BL_1.02.bin") 'This programs the bootloader
                 End If
-                GUI.PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Pro", fw_str}))
+                GUI.PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Pro (PCB 4.x)", fw_str}))
                 Dim AvrVerSng As Single = Utilities.StringToSingle(fw_str)
                 If (Not AvrVerSng = PRO_PCB4_FW) Then 'Current firmware is newer or different, do unit update
                     FCUSBPRO_RebootToBootloader(usb_dev)
@@ -1844,10 +1872,9 @@ Public Module MainApp
                 GUI.SetStatus("Connected to FlashcatUSB Professional (PCB 5.x)")
                 If usb_dev.USB_IsBootloaderMode() Then
                     FCUSBPRO_Bootloader(usb_dev, "PCB5_Source.bin") 'Current PCB5 firmware
-                    FCUSBPRO_Bootloader(usb_dev, "PCB5_Source.bin") 'Current PCB5 firmware
                     Exit Sub
                 End If
-                GUI.PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Pro", fw_str}))
+                GUI.PrintConsole(String.Format(RM.GetString("connected_fw_ver"), {"FlashcatUSB Pro (PCB 5.x)", fw_str}))
                 Dim AvrVerSng As Single = Utilities.StringToSingle(fw_str)
                 If (Not AvrVerSng = PRO_PCB5_FW) Then 'Current firmware is newer or different, do unit update
                     FCUSBPRO_RebootToBootloader(usb_dev)
@@ -1873,12 +1900,17 @@ Public Module MainApp
         Select Case usb_dev.HWBOARD
             Case FCUSB_BOARD.Professional_PCB4
                 If Not FCUSBPRO_PCB4_Init(usb_dev, MySettings.OPERATION_MODE) Then Exit Sub
+                FCUSBPRO_SetDeviceVoltage(usb_dev, True)
             Case FCUSB_BOARD.Professional_PCB5
-                If Not FCUSBPRO_PCB5_Init(usb_dev, MySettings.OPERATION_MODE) Then Exit Sub
+                If Not FCUSBPRO_PCB5_Init(usb_dev, MySettings.OPERATION_MODE) Then
+                    GUI.SetStatus("Unable to load logic into FPGA")
+                    GUI.PrintConsole("Error: unable to load FPGA bitstream")
+                    Exit Sub
+                End If
             Case FCUSB_BOARD.Mach1
                 If Not FCUSBMACH1_Init(usb_dev, MySettings.OPERATION_MODE) Then Exit Sub
+                FCUSBPRO_SetDeviceVoltage(usb_dev, True)
         End Select
-        FCUSBPRO_SetDeviceVoltage(usb_dev, True)
         If (MySettings.OPERATION_MODE = FlashcatSettings.DeviceMode.SPI) Then
             GUI.UpdateStatusMessage(RM.GetString("device_mode"), "Serial Programmable Interface (SPI)")
             DetectDevice(usb_dev)
@@ -1996,7 +2028,7 @@ Public Module MainApp
             End If
         ElseIf MySettings.OPERATION_MODE = DeviceMode.SQI Then
             GUI.PrintConsole("Attempting to detect SPI device in SPI extended mode")
-            usb_dev.SQI_NOR_IF.SQIBUS_Setup(GetMaxSpiClock(usb_dev.HWBOARD, SQI_SPEED.MHZ_10))
+            usb_dev.SQI_NOR_IF.SQIBUS_Setup(GetMaxSqiClock(usb_dev.HWBOARD, SQI_SPEED.MHZ_10))
             If usb_dev.SQI_NOR_IF.DeviceInit() Then
                 usb_dev.SQI_NOR_IF.SQIBUS_Setup(GetMaxSqiClock(usb_dev.HWBOARD, MySettings.SQI_CLOCK_MAX))
                 Dim mem_name As String = "SPI Flash"
@@ -2006,7 +2038,7 @@ Public Module MainApp
                     Case MULTI_IO_MODE.Quad
                         mem_name &= " (Quad)"
                 End Select
-                If usb_dev.HWBOARD = FCUSB_BOARD.Professional_PCB4 OrElse usb_dev.HWBOARD = FCUSB_BOARD.Mach1 Then
+                If usb_dev.HasLogic() Then
                     Connected_Event(usb_dev, MemoryType.SERIAL_QUAD, mem_name, 131072)
                 Else
                     Connected_Event(usb_dev, MemoryType.SERIAL_QUAD, mem_name, 16384)
@@ -2433,19 +2465,19 @@ Public Module MainApp
                         WriteConsole("Updating all CPLD logic")
                         FCUSBPRO_PCB4_Init(device, MySettings.OPERATION_MODE)
                         SetStatus("CPLD logic successfully updated")
-                        Application.DoEvents()
+                    ElseIf device.HWBOARD = FCUSB_BOARD.Professional_PCB4 Then
+                        FCUSBPRO_PCB5_Init(device, MySettings.OPERATION_MODE)
                     ElseIf device.HWBOARD = FCUSB_BOARD.Mach1 Then
                         WriteConsole("Updating all FPGA logic")
                         FCUSBMACH1_Init(device, MySettings.OPERATION_MODE)
                         SetStatus("FPGA logic successfully updated")
-                        Application.DoEvents()
                     End If
                 End If
             Next
         Catch ex As Exception
         End Try
     End Sub
-    'PCB 4.x only
+    'PCB 4.x
     Public Function FCUSBPRO_PCB4_Init(usb_dev As FCUSB_DEVICE, CurrentMode As DeviceMode) As Boolean
         usb_dev.USB_VCC_OFF()
         If (Not usb_dev.HWBOARD = FCUSB_BOARD.Professional_PCB4) Then Return False
@@ -2504,10 +2536,22 @@ Public Module MainApp
     End Function
 
     Public Function FCUSBPRO_PCB5_Init(usb_dev As FCUSB_DEVICE, CurrentMode As DeviceMode) As Boolean
-        'SPI programming here
-
-
-        Return True 'Continue
+        usb_dev.USB_VCC_OFF()
+        Utilities.Sleep(100)
+        If (Not usb_dev.HWBOARD = FCUSB_BOARD.Professional_PCB5) Then Return False
+        Dim bit_data() As Byte = Nothing
+        If Utilities.StringToSingle(usb_dev.FW_VERSION()) = PRO_PCB5_FW Then
+            If MySettings.VOLT_SELECT = Voltage.V1_8 Then
+                bit_data = Utilities.GetResourceAsBytes("PRO5_1V8.bit")
+                usb_dev.USB_VCC_1V8()
+            ElseIf MySettings.VOLT_SELECT = Voltage.V3_3 Then
+                bit_data = Utilities.GetResourceAsBytes("PRO5_3V.bit")
+                usb_dev.USB_VCC_3V()
+                'usb_dev.USB_CONTROL_MSG_OUT(USBREQ.LOGIC_START)
+            End If
+        End If
+        Dim SPI_CFG_IF As New ISC_LOGIC_PROG(usb_dev)
+        Return SPI_CFG_IF.SSPI_ProgramICE(bit_data)
     End Function
 
     Private Sub OnUpdateProgress(ByVal percent As Integer)
@@ -2583,26 +2627,26 @@ Public Module MainApp
             End If
         End If
         If (bit_data IsNot Nothing) Then
-            Return ProgramSPI(usb_dev, bit_data, svf_code)
+            Return MACH_ProgramLogic(usb_dev, bit_data, svf_code)
         End If
         Return True
     End Function
 
-    Private Function ProgramSPI(usb_dev As FCUSB_DEVICE, bit_data() As Byte, bit_code As UInt32) As Boolean
+    Private Function MACH_ProgramLogic(usb_dev As FCUSB_DEVICE, bit_data() As Byte, bit_code As UInt32) As Boolean
         Try
             Dim SPI_CFG_IF As New ISC_LOGIC_PROG(usb_dev)
             AddHandler SPI_CFG_IF.PrintConsole, AddressOf WriteConsole
             AddHandler SPI_CFG_IF.SetProgress, AddressOf OnUpdateProgress
-            SPI_CFG_IF.SSPI_Init()
+            SPI_CFG_IF.SSPI_Init(0, 1, 24) 'CS_1
             Dim SPI_ID As UInt32 = SPI_CFG_IF.SSPI_ReadIdent()
             If Not (SPI_ID = &H12BC043) Then
                 MACH1_FPGA_ERASE(usb_dev)
-                SPI_CFG_IF.SSPI_Init() 'May not be needed
+                SPI_CFG_IF.SSPI_Init(0, 1, 24)
                 SPI_ID = SPI_CFG_IF.SSPI_ReadIdent()
             End If
             If Not (SPI_ID = &H12BC043) Then Return False
             SetStatus("Programming on board FPGA with new logic")
-            If SPI_CFG_IF.SSPI_ProgramBitstream(bit_data) Then
+            If SPI_CFG_IF.SSPI_ProgramMACHXO(bit_data) Then
                 Dim status_msg As String = "FPGA device successfully programmed"
                 WriteConsole(status_msg) : SetStatus(status_msg)
                 usb_dev.LOGIC_SetVersion(bit_code)

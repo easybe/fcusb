@@ -15,7 +15,6 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
 
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
         Dim s93_devices() As Device = FlashDatabase.GetFlashDevices(MemoryType.SERIAL_MICROWIRE)
-        FCUSB.USB_VCC_3V() 'Ignored by PCB 2.x
         Me.MICROWIRE_DEVIE = Nothing
         Dim org_mode As UInt32 = MySettings.S93_DEVICE_ORG '0=8-bit,1=16-bit
         If Not MySettings.S93_DEVICE.Equals("") Then
@@ -32,21 +31,17 @@ Public Class Microwire_Programmer : Implements MemoryDeviceUSB
             Return False
         End If
         Dim addr_bits As UInt32 = 0
-        Select Case Me.MICROWIRE_DEVIE.FLASH_SIZE
-            Case 128
-                addr_bits = (7 - org_mode)
-            Case 256, 512
-                addr_bits = (9 - org_mode)
-            Case 1024
-                addr_bits = (10 - org_mode)
-            Case 2048
-                addr_bits = (11 - org_mode)
-        End Select
-        Dim org_str As String = "X8"
-        If org_mode = 1 Then org_str = "X16"
+        Dim org_str As String
+        If org_mode = 0 Then '8-bit
+            org_str = "X8"
+            addr_bits = Me.MICROWIRE_DEVIE.X8_ADDRSIZE
+        Else '16-bit mode
+            org_str = "X16"
+            addr_bits = Me.MICROWIRE_DEVIE.X16_ADDRSIZE
+        End If
         RaiseEvent PrintConsole("Microwire device: " & Me.DeviceName & " (" & Me.MICROWIRE_DEVIE.FLASH_SIZE & " bytes) " & org_str & " mode")
         Dim setup_data As UInt32 = (addr_bits << 8) Or (org_mode)
-        Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.S93_INIT, Nothing, setup_data) '0x0700
+        Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.S93_INIT, Nothing, setup_data)
         Return result
     End Function
 

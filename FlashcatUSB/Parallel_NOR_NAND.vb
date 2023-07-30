@@ -792,8 +792,13 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
 
     Public Function EPROM_ReadData(ByVal logical_address As UInt32, ByVal data_count As UInt32) As Byte()
         Dim M27C160 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &HB1, 0, MemoryType.OTP_EPROM)
+        Dim M27C801 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &H42, 0, MemoryType.OTP_EPROM)
+        Dim M27C1001 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &H5, 0, MemoryType.OTP_EPROM)
         If MyFlashDevice Is M27C160 Then
             HardwareControl(EXPIO_CTRL.VPP_5V)
+            HardwareControl(EXPIO_CTRL.OE_LOW)
+        ElseIf MyFlashDevice Is M27C1001 Then
+            HardwareControl(EXPIO_CTRL.VPP_0V)
             HardwareControl(EXPIO_CTRL.OE_LOW)
         Else
             HardwareControl(EXPIO_CTRL.VPP_0V)
@@ -810,14 +815,17 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Try
             Dim PacketSize As UInt32 = 2048
             Dim M27C160 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &HB1, 0, MemoryType.OTP_EPROM)
+            Dim M27C801 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &H42, 0, MemoryType.OTP_EPROM)
+            Dim M27C1001 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &H5, 0, MemoryType.OTP_EPROM)
             Dim BytesWritten As UInt32 = 0
             Dim DataToWrite As UInt32 = data_to_write.Length
             Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / PacketSize)) 'Calcuates iterations
             HardwareControl(EXPIO_CTRL.WE_HIGH)
             HardwareControl(EXPIO_CTRL.VPP_12V)
             HardwareControl(EXPIO_CTRL.VPP_ENABLE)
-            If MyFlashDevice Is M27C160 Then HardwareControl(EXPIO_CTRL.OE_HIGH)
-            Utilities.Sleep(150)
+            If (MyFlashDevice Is M27C160) Then HardwareControl(EXPIO_CTRL.OE_HIGH)
+            If (MyFlashDevice Is M27C1001) Then HardwareControl(EXPIO_CTRL.OE_HIGH)
+            Utilities.Sleep(200)
             For i As Integer = 0 To Loops - 1
                 If Params.AbortOperation Then Return False
                 Dim BufferSize As Integer = DataToWrite
@@ -831,7 +839,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                 BytesWritten += data_packet.Length
             Next
             HardwareControl(EXPIO_CTRL.VPP_0V)
-            If MyFlashDevice Is M27C160 Then HardwareControl(EXPIO_CTRL.OE_LOW)
+            If (MyFlashDevice Is M27C160) Then HardwareControl(EXPIO_CTRL.OE_LOW)
             HardwareControl(EXPIO_CTRL.VPP_DISABLE)
         Catch ex As Exception
         End Try
@@ -1280,15 +1288,17 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                 LAST_DETECT = Me.FLASH_IDENT
             End If
         End If
-        Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.FWH)
-        If Me.FLASH_IDENT.Successful Then
-            Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, 0, MemoryType.FWH_NOR)
-            If (d.Count > 0) Then
-                RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "FWH"))
-                MyAdapter = MEM_PROTOCOL.FWH
-                Return True
-            Else
-                LAST_DETECT = Me.FLASH_IDENT
+        If Not FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
+            Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.FWH)
+            If Me.FLASH_IDENT.Successful Then
+                Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, 0, MemoryType.FWH_NOR)
+                If (d.Count > 0) Then
+                    RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "FWH"))
+                    MyAdapter = MEM_PROTOCOL.FWH
+                    Return True
+                Else
+                    LAST_DETECT = Me.FLASH_IDENT
+                End If
             End If
         End If
         If (Not LAST_DETECT.MFG = 0) Then

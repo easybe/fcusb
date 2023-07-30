@@ -23,13 +23,13 @@ Public Class ISC_LOGIC_PROG
         Me.sel_usb_dev = usb_dev
     End Sub
 
-    Public Sub SSPI_Init()
-        Dim speed As UInt32 = 24 'In MHZ
-        Dim spi_select As UInt32 = 1 '0=CS0; 1=CS1 (1=SLAVE SPI PORT)
-        sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, (spi_select << 16) Or speed)
-    End Sub
+    Public Function SSPI_Init(spi_mode As UInt32, spi_select As UInt32, speed_mhz As UInt32) As Boolean
+        Dim w32 As UInt32 = (spi_mode << 24) Or (spi_select << 16) Or speed_mhz
+        Dim result As Boolean = sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, w32)
+        Return result
+    End Function
 
-    Private Sub SSPI_SS(enabled As Boolean)
+    Public Sub SSPI_SS(enabled As Boolean)
         If enabled Then
             sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.SPI_SS_ENABLE) 'SS=LOW
         Else
@@ -38,13 +38,13 @@ Public Class ISC_LOGIC_PROG
         Utilities.Sleep(2)
     End Sub
 
-    Private Function SSPI_WriteData(data() As Byte)
-        sel_usb_dev.USB_SETUP_BULKOUT(USBREQ.SPI_WR_DATA, Nothing, data, data.Length)
+    Public Function SSPI_WriteData(data() As Byte) As Boolean
+        Dim result As Boolean = sel_usb_dev.USB_SETUP_BULKOUT(USBREQ.SPI_WR_DATA, Nothing, data, data.Length)
         Utilities.Sleep(2)
-        Return True
+        Return result
     End Function
 
-    Private Function SSPI_ReadData(ByRef Data_In() As Byte) As Boolean
+    Public Function SSPI_ReadData(ByRef Data_In() As Byte) As Boolean
         Dim Success As Boolean = False
         Try
             Success = sel_usb_dev.USB_SETUP_BULKIN(USBREQ.SPI_RD_DATA, Nothing, Data_In, Data_In.Length)
@@ -53,7 +53,7 @@ Public Class ISC_LOGIC_PROG
         Return Success
     End Function
 
-    Private Function SSPI_WriteRead(WriteBuffer() As Byte, Optional ByRef ReadBuffer() As Byte = Nothing) As UInt32
+    Public Function SSPI_WriteRead(WriteBuffer() As Byte, Optional ByRef ReadBuffer() As Byte = Nothing) As UInt32
         If WriteBuffer Is Nothing And ReadBuffer Is Nothing Then Return 0
         Dim TotalBytesTransfered As UInt32 = 0
         SSPI_SS(True)
@@ -136,7 +136,7 @@ Public Class ISC_LOGIC_PROG
         Return Nothing
     End Function
     'Fast! This will load an entire bitstream into the FPGA in 3 seconds.
-    Public Function SSPI_ProgramBitstream(logic() As Byte) As Boolean
+    Public Function SSPI_ProgramMACHXO(logic() As Byte) As Boolean
         Dim bytes_left As Integer = logic.Length
         WriteConsole("Programming FPGA with bitstream (" & String.Format(bytes_left, "#,###") & " bytes)")
         RaiseEvent SetProgress(0)
@@ -208,57 +208,59 @@ Public Class ISC_LOGIC_PROG
             Return False
         End If
     End Function
-    'This uses just internal SPI. The new version above does it via hardware buffer and is better.
-    Public Function SSPI_ProgramBitstream_Legacy(logic() As Byte) As Boolean
-        Dim bytes_left As Integer = logic.Length
-        WriteConsole("Programming FPGA with bitstream (" & String.Format(bytes_left, "#,###") & " bytes)")
-        RaiseEvent SetProgress(0)
-        Dim status As SSPI_Status = SSPI_ReadStatus()
-        If status.BUSY_FLAG Then
-            WriteConsole("Error: FPGA device is busy") : Return False
-        End If
-        SSPI_WriteRead(ISC_ENABLE)
-        status = SSPI_ReadStatus()
-        If (status.FAIL_FLAG) Or (Not status.CFG_IF_ENABLED) Then
-            WriteConsole("Error: unable to enabling configuration interface") : Return False
-        End If
-        SSPI_WriteRead(ISC_ERASE)
-        SSPI_Wait()
-        status = SSPI_ReadStatus()
-        If (status.FAIL_FLAG Or (Not status.CHECK_STATUS = SSPI_Status.CFG_CHECK_STATUS.No_error)) Then
-            WriteConsole("Error: logic erase command failed") : Return False
-        End If
-        SSPI_WriteRead(LSC_INITADDRESS)
-        Dim ptr As Integer = 0
-        Dim counter As Integer = 0
-        While (bytes_left > 0)
-            Dim page(MACHXO2_PAGE_SIZE + LSC_PROGINCRNV.Length - 1) As Byte
-            Array.Copy(LSC_PROGINCRNV, 0, page, 0, LSC_PROGINCRNV.Length)
-            Dim data_count As Integer = Math.Min(bytes_left, 16)
-            Array.Copy(logic, ptr, page, LSC_PROGINCRNV.Length, data_count)
-            bytes_left -= data_count
-            ptr += data_count
-            SSPI_WriteRead(page)
-            counter += 1
-            If (counter Mod 10 = 0) Then
-                Dim percent_done As Integer = ((logic.Length - bytes_left) / logic.Length) * 100
-                If (percent_done > 100) Then percent_done = 100
-                RaiseEvent SetProgress(percent_done)
+    'For programming FlashcatUSB Professional PCB 5.0
+    Public Function SSPI_ProgramICE(logic() As Byte) As Boolean
+        Try
+            SSPI_Init(3, 1, 24) 'MODE_3, CS_0, 24MHZ; PIN_FPGA_RESET=HIGH
+            SSPI_SS(True) 'SS_LOW
+            sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.PULSE_RESET) 'PCRESET_B=LOW; delay_us(200); PCRESET_B=HIGH
+            Utilities.Sleep(1)
+            SSPI_SS(False) 'SS_HIGH
+            SSPI_WriteData({0}) '8 dummy clocks
+            SSPI_SS(True) 'SS_LOW
+            SSPI_WriteData(logic)
+            SSPI_SS(False) 'SS_HIGH
+            SSPI_WriteData({0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+            Dim Success As Boolean = SSPI_ICE_GetCDONE()
+            If Success Then
+                sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.LOGIC_START) 'SMC_Init(); PIN_FPGA_RESET=LOW
+                FPGA_TEST_MODE()
             End If
-        End While
-        SSPI_WriteRead(ISC_PROGRAMDONE)
-        SSPI_Wait()
-        RaiseEvent SetProgress(100)
-        status = SSPI_ReadStatus()
-        If Not status.DONE_FLAG Then Return False
-        SSPI_WriteRead(LSC_REFRESH)
-        status = SSPI_ReadStatus()
-        If (Not status.BUSY_FLAG) AndAlso status.CHECK_STATUS = SSPI_Status.CFG_CHECK_STATUS.No_error Then
-            Return True
-        Else
-            Return False
-        End If
+            Return Success
+        Catch ex As Exception
+        End Try
+        Return False
     End Function
+
+    Public Function SSPI_ICE_GetCDONE() As Boolean
+        Dim s(3) As Byte
+        sel_usb_dev.USB_CONTROL_MSG_IN(USBREQ.LOGIC_STATUS, s)
+        If (s(0) = 0) Then Return False
+        Return True
+    End Function
+
+    Private Sub FPGA_TEST_MODE()
+        'Dim d_size As Integer = 512
+        'Dim data_out(d_size - 1) As Byte
+        'Dim data_in(d_size - 1) As Byte
+        'For i = 0 To data_out.Length - 1
+        '    data_out(i) = CByte(i And 255)
+        'Next
+        'sel_usb_dev.USB_SETUP_BULKIN(USBREQ.TEST_READ, Nothing, data_in, data_in.Length)
+        'sel_usb_dev.USB_SETUP_BULKOUT(USBREQ.TEST_WRITE, Nothing, data_out, data_out.Length)
+        'sel_usb_dev.USB_SETUP_BULKIN(USBREQ.TEST_READ, Nothing, data_in, data_in.Length)
+        'Beep() 'data_in is correct!! 0x01 0x02 0x03 etc.
+        'sel_usb_dev.SQI_NOR_IF.SQIBUS_Setup(SPI.SQI_SPEED.MHZ_10)
+        'Dim io_mode As Byte = SPI.MULTI_IO_MODE.Single
+        'sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.SQI_SS_ENABLE)
+        'Dim value_index As UInt32 = (CUInt(io_mode) << 24) Or (1 And &HFFFFFF)
+        'sel_usb_dev.USB_SETUP_BULKOUT(USBREQ.SQI_WR_DATA, Nothing, {&H9F}, value_index)
+        'value_index = (CUInt(io_mode) << 24) Or (4 And &HFFFFFF)
+        'Dim s_data_in(3) As Byte
+        'sel_usb_dev.USB_SETUP_BULKIN(USBREQ.SQI_RD_DATA, Nothing, s_data_in, value_index)
+        'sel_usb_dev.USB_CONTROL_MSG_OUT(USBREQ.SQI_SS_DISABLE)
+        'Beep()
+    End Sub
 
 
 End Class

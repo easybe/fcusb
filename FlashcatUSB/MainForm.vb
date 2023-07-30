@@ -25,7 +25,7 @@ Public Class MainForm
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "OTP/UV EPROM memory", FlashDatabase.PartCount(MemoryType.OTP_EPROM)))
         statuspage_progress.Visible = False
         Language_Setup()
-        License_Init()
+        MyForm_LicenseInit()
     End Sub
 
 #Region "Language"
@@ -116,15 +116,15 @@ Public Class MainForm
 #End Region
 
 #Region "Status System"
-    Delegate Sub cbStatusPageProgress(ByVal percent As Integer)
-    Delegate Sub cbSetConnectionStatus(ByVal usb_dev As FCUSB_DEVICE)
-    Delegate Sub cbUpdateStatusMessage(ByVal Label As String, ByVal Msg As String)
-    Delegate Sub cbRemoveStatusMessage(ByVal Label As String)
+    Delegate Sub cbStatusPageProgress(percent As Integer)
+    Delegate Sub cbSetConnectionStatus(usb_dev As FCUSB_DEVICE)
+    Delegate Sub cbUpdateStatusMessage(Label As String, Msg As String)
+    Delegate Sub cbRemoveStatusMessage(Label As String)
     Delegate Sub cbClearStatusMessage()
 
     Private StatusMessageControls() As Control 'Holds the label that the form displays
 
-    Public Sub SetStatusPageProgress(ByVal percent As Integer)
+    Public Sub SetStatusPageProgress(percent As Integer)
         If Me.InvokeRequired Then
             Dim d As New cbStatusPageProgress(AddressOf SetStatusPageProgress)
             Me.Invoke(d, New Object() {percent})
@@ -137,12 +137,10 @@ Public Class MainForm
                 Me.statuspage_progress.Value = percent
                 Me.statuspage_progress.Visible = True
             End If
-            'Me.Refresh()
-            'Application.DoEvents()
         End If
     End Sub
 
-    Public Sub UpdateStatusMessage(ByVal Label As String, ByVal Msg As String)
+    Public Sub UpdateStatusMessage(Label As String, Msg As String)
         If Me.InvokeRequired Then
             Dim d As New cbUpdateStatusMessage(AddressOf UpdateStatusMessage)
             Me.Invoke(d, New Object() {Label, Msg})
@@ -2307,23 +2305,20 @@ Public Class MainForm
     Private Sub mi_license_menu_Click(sender As Object, e As EventArgs) Handles mi_license_menu.Click
         Dim n As New FrmLicense
         n.ShowDialog()
-        License_Init()
+        MyForm_LicenseInit()
     End Sub
 
-    Private Sub License_Init()
+    Private Sub MyForm_LicenseInit()
         Try
             Dim left_part As String = "FlashcatUSB (Build " & Build & ")"
-            If MySettings.LICENSED_TO.Equals("") Then
-                Me.Text = left_part & " - Personal Use Only"
-            Else
-                If MySettings.LICENSE_EXP.Date.Year = 1 Then
+            Select Case LicenseStatus
+                Case LicenseStatusEnum.NotLicensed
+                    Me.Text = left_part & " - Personal Use Only"
+                Case LicenseStatusEnum.LicenseExpired
+                    Me.Text = left_part & " - LICENSE EXPIRED"
+                Case LicenseStatusEnum.LicensedValid
                     Me.Text = left_part & " - Licensed to " & MySettings.LICENSED_TO
-                ElseIf Date.Compare(DateTime.Now, MySettings.LICENSE_EXP.Date) > 0 Then
-                    Me.Text = left_part & " - LICENSE EXPIRED!"
-                Else
-                    Me.Text = left_part & " - Licensed to " & MySettings.LICENSED_TO
-                End If
-            End If
+            End Select
         Catch ex As Exception
         End Try
     End Sub
@@ -2540,8 +2535,10 @@ Public Class MainForm
                 If Not is_blank Then Exit For
             Next
             If is_blank Then
-                SetStatus("EPROM device is blank")
+                WriteConsole("Blank check performed: device is blank (erased)")
+                SetStatus("EPROM device is blank (erased)")
             Else
+                WriteConsole("Blank check performed: device is not blank")
                 SetStatus("EPROM device is not blank (0x" & Hex(data_addr).PadLeft(8, "0") & " contains data)")
             End If
         Catch ex As Exception

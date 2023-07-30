@@ -151,7 +151,6 @@ Namespace USB
                         Dim spiConf As UInt16 = CUShort(clock_byte Or SPI_MODE_BYTE Or SPI_ORDER_BYTE)
                         result = USB_CONTROL_MSG_OUT(USBREQ.SPI_INIT, Nothing, CUInt(spiConf))
                     End If
-                    Thread.Sleep(50)
                 Catch ex As Exception
                 End Try
             End Sub
@@ -483,18 +482,24 @@ Namespace USB
                         Me.HWBOARD = FCUSB_BOARD.DFU_BL
                         Me.FW_VERSION = "1.00"
                     ElseIf USBHANDLE.UsbRegistryInfo.Pid = USB_PID_FCUSB_PRO Then
-                        Me.HWBOARD = FCUSB_BOARD.Professional_PCB4
                         Dim b(3) As Byte
                         If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, b) Then Return False
                         Me.FW_VERSION = Utilities.Bytes.ToChrString({b(1), Asc("."), b(2), b(3)})
                         If (b(0) = Asc("B")) Then
                             Me.USB_IsBootloaderMode = True
+                            If (b(1) = Asc("5")) Then 'PCB 5.0
+                                Me.HWBOARD = FCUSB_BOARD.Professional_PCB5
+                            Else 'PCB 4.0
+                                Me.HWBOARD = FCUSB_BOARD.Professional_PCB4
+                            End If
                         ElseIf (b(0) = Asc("F")) Then
-                            Me.USB_IsAppUpdaterMode = True
+                            Me.HWBOARD = FCUSB_BOARD.Professional_PCB4
+                            Me.USB_IsBootloaderMode = True
+                        ElseIf (b(0) = Asc("P")) Then
+                            Me.HWBOARD = FCUSB_BOARD.Professional_PCB4
                         ElseIf (b(0) = Asc("T")) Then
                             Me.HWBOARD = FCUSB_BOARD.Professional_PCB5
                         End If
-                        Return True
                     ElseIf USBHANDLE.UsbRegistryInfo.Pid = USB_PID_FCUSB_MACH Then
                         Dim b(3) As Byte
                         If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, b) Then Return False
@@ -921,6 +926,7 @@ Namespace USB
         SWI_RD_REG = &HB3
         SWI_WR_REG = &HB4
         SWI_LOCK_REG = &HB5
+        PULSE_RESET = &HB6
         LOGIC_STATUS = &HC0
         LOGIC_OFF = &HC1  'Turns off LOGIC circuit
         LOGIC_1V8 = &HC2  'Turns on 1.8V and then LOGIC
@@ -929,6 +935,7 @@ Namespace USB
         LOGIC_VERSION_SET = &HC5  'Writes the LOGIC to the Flash
         SPI_REPEAT = &HC6
         EPROM_RESULT = &HC7
+        LOGIC_START = &HC8
     End Enum
 
     Public Enum EXPIO_CTRL As Byte

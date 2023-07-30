@@ -58,7 +58,7 @@ Namespace JTAG
                     Dim jtag_dev_name As String = GetJedecDescription(Devices(i).IDCODE)
                     WriteConsole("JEDEC ID: 0x" & Hex(Devices(i).IDCODE).PadLeft(8, "0") & " (" & jtag_dev_name & ")")
                 Next
-                Select_Device(0) 'By defailt, select the first chain item
+                Select_Device(0) 'By default, select the first chain item
                 If Devices(0).IDCODE = &HBA02477 Then
                     Dim tdo(3) As Byte
                     Dim tdi(3) As Byte

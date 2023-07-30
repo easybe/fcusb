@@ -92,11 +92,11 @@ Namespace FlashMemory
         RYRB = 8 'Wait for RY/BY pin to be HIGH
     End Enum
 
-    Public Enum MICROWIRE_ORG
-        _8BIT = 0
-        _16BIT = 1
-        _8BIT_16BIT = 2
-    End Enum
+    'Public Enum MICROWIRE_ORG
+    '    _8BIT = 0
+    '    _16BIT = 1
+    '    _8BIT_16BIT = 2
+    'End Enum
 
     Public Enum VCC_IF As UInt16
         UNKNOWN = 0
@@ -238,7 +238,7 @@ Namespace FlashMemory
         Public Property HARDWARE_DELAY As UInt16 = 50 'uS wait after each word program
 
 
-        Sub New(f_name As String, vcc As VCC_IF, MFG As Byte, ID1 As UInt16, f_size As UInt32)
+        Sub New(f_name As String, vcc As VCC_IF, MFG As Byte, ID1 As UInt16, f_size As UInt32, word_write As UInt16)
             Me.NAME = f_name
             Me.IFACE = vcc
             Me.MFG_CODE = MFG
@@ -693,13 +693,14 @@ Namespace FlashMemory
         Public ReadOnly Property SECTOR_COUNT As UInt32 = 0 Implements Device.Sector_Count
         Public Property ERASE_REQUIRED As Boolean = False Implements Device.ERASE_REQUIRED
         'Microwire specific options
-        Public Property ORGANIZATION As MICROWIRE_ORG
+        Public ReadOnly Property X8_ADDRSIZE As Byte = 0 '0=Means not supported
+        Public ReadOnly Property X16_ADDRSIZE As Byte
 
-        Sub New(F_NAME As String, F_SIZE As UInt32, F_ORG As MICROWIRE_ORG, F_VCC As VCC_IF)
+        Sub New(F_NAME As String, F_SIZE As UInt32, X8_ADDRS As Byte, X16_ADDRS As Byte)
             Me.NAME = F_NAME
-            Me.IFACE = F_VCC
             Me.FLASH_SIZE = F_SIZE
-            Me.ORGANIZATION = F_ORG
+            Me.X8_ADDRSIZE = X8_ADDRS
+            Me.X16_ADDRSIZE = X16_ADDRS
         End Sub
 
         Public Overrides Function ToString() As String
@@ -1219,6 +1220,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("Gigadevice GD25LQ20", SPI_1V8, Mb002, &HC8, &H6012))
             FlashDB.Add(New SPI_NOR("Gigadevice GD25LQ10", SPI_1V8, Mb001, &HC8, &H6011))
             'ISSI
+            FlashDB.Add(New SPI_NOR("ISSI IS25LP512", SPI_3V, Mb512, &H9D, &H601A) With {.SEND_EN4B = True})
             FlashDB.Add(New SPI_NOR("ISSI IS25LP256", SPI_3V, Mb256, &H9D, &H6019) With {.SEND_EN4B = True}) 'CV
             FlashDB.Add(New SPI_NOR("ISSI IS25LP128", SPI_3V, Mb128, &H9D, &H6018))
             FlashDB.Add(New SPI_NOR("ISSI IS25LP064", SPI_3V, Mb064, &H9D, &H6017))
@@ -1329,24 +1331,38 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NAND("GigaDevice GD5F4GQ4UC", SPI_3V, &HC8, &HB468, Gb004, 4096, 256, Mb002, False))
             FlashDB.Add(New SPI_NAND("GigaDevice GD5F4GQ4RC", SPI_1V8, &HC8, &HA468, Gb004, 4096, 256, Mb002, False))
             FlashDB.Add(New SPI_NAND("GigaDevice GD5F4GQ4UBYIG", SPI_1V8, &HC8, &HA468, Gb004, 4096, 256, Mb002, False))
-
-            FlashDB.Add(New SPI_NAND("Winbond W25M02GV", SPI_3V, &HEF, &HAB21, Gb002, 2048, 64, Mb001, False) With {.STACKED_DIES = 2})
-            FlashDB.Add(New SPI_NAND("Winbond W25M02GW", SPI_1V8, &HEF, &HBB21, Gb002, 2048, 64, Mb001, False) With {.STACKED_DIES = 2})
-            FlashDB.Add(New SPI_NAND("Winbond W25N01GV", SPI_3V, &HEF, &HAA21, Gb001, 2048, 64, Mb001, False))
-            FlashDB.Add(New SPI_NAND("Winbond W25N01GW", SPI_1V8, &HEF, &HBA21, Gb001, 2048, 64, Mb001, False))
+            'Winbond SPI-NAND 3V
             FlashDB.Add(New SPI_NAND("Winbond W25N512GV", SPI_3V, &HEF, &HAA20, Mb512, 2048, 64, Mb001, False))
+            FlashDB.Add(New SPI_NAND("Winbond W25N01GV", SPI_3V, &HEF, &HAA21, Gb001, 2048, 64, Mb001, False))
+            FlashDB.Add(New SPI_NAND("Winbond W25M02GV", SPI_3V, &HEF, &HAB21, Gb002, 2048, 64, Mb001, False) With {.STACKED_DIES = 2})
+            'Winbond SPI-NAND 1.8V
             FlashDB.Add(New SPI_NAND("Winbond W25N512GW", SPI_1V8, &HEF, &HBA20, Mb512, 2048, 64, Mb001, False))
-
-            FlashDB.Add(New SPI_NAND("ISSI IS37/38SML01G1", SPI_3V, &HC8, &H21, Gb001, 2048, 64, Mb001, False))
-            FlashDB.Add(New SPI_NAND("ESMT F50L1G41A", SPI_3V, &HC8, &H217F, Gb001, 2048, 64, Mb001, False))
-
+            FlashDB.Add(New SPI_NAND("Winbond W25N01GW", SPI_1V8, &HEF, &HBA21, Gb001, 2048, 64, Mb001, False))
+            FlashDB.Add(New SPI_NAND("Winbond W25M02GW", SPI_1V8, &HEF, &HBB21, Gb002, 2048, 64, Mb001, False) With {.STACKED_DIES = 2})
+            'Toshiba SPI-NAND 3V
             FlashDB.Add(New SPI_NAND("Toshiba TC58CVG0S3", SPI_3V, &H98, &HC2, Gb001, 2048, 128, Mb001, False))
             FlashDB.Add(New SPI_NAND("Toshiba TC58CVG1S3", SPI_3V, &H98, &HCB, Gb002, 2048, 128, Mb001, False))
             FlashDB.Add(New SPI_NAND("Toshiba TC58CVG2S0", SPI_3V, &H98, &HCD, Gb004, 4096, 256, Mb002, False))
+            'Toshiba SPI-NAND 1.8V
             FlashDB.Add(New SPI_NAND("Toshiba TC58CYG0S3", SPI_1V8, &H98, &HB2, Gb001, 2048, 128, Mb001, False))
             FlashDB.Add(New SPI_NAND("Toshiba TC58CYG1S3", SPI_1V8, &H98, &HBB, Gb002, 2048, 128, Mb001, False))
             FlashDB.Add(New SPI_NAND("Toshiba TC58CYG2S0", SPI_1V8, &H98, &HBD, Gb004, 4096, 256, Mb002, False))
-
+            'Kioxia (Subsiduary of Toshiba) - 2nd gen. SPI-NAND
+            FlashDB.Add(New SPI_NAND("Kioxia TC58CVG0S3HRAIJ", SPI_3V, &H98, &HE240, Gb001, 2048, 128, Mb001, False))
+            FlashDB.Add(New SPI_NAND("Kioxia TC58CVG1S3HRAIJ", SPI_3V, &H98, &HEB40, Gb002, 2048, 128, Mb001, False))
+            FlashDB.Add(New SPI_NAND("Kioxia TC58CVG2S0HRAIJ", SPI_3V, &H98, &HED51, Gb004, 4096, 256, Mb002, False))
+            FlashDB.Add(New SPI_NAND("Kioxia TH58CVG3S0HRAIJ", SPI_3V, &H98, &HE451, Gb008, 4096, 256, Mb002, False))
+            FlashDB.Add(New SPI_NAND("Kioxia TC58CYG0S3HRAIJ", SPI_1V8, &H98, &HD240, Gb001, 2048, 128, Mb001, False))
+            FlashDB.Add(New SPI_NAND("Kioxia TC58CYG1S3HRAIJ", SPI_1V8, &H98, &HDB40, Gb002, 2048, 128, Mb001, False))
+            FlashDB.Add(New SPI_NAND("Kioxia TC58CYG2S0HRAIJ", SPI_1V8, &H98, &HDD51, Gb004, 4096, 256, Mb002, False))
+            FlashDB.Add(New SPI_NAND("Kioxia TH58CYG3S0HRAIJ", SPI_1V8, &H98, &HD451, Gb008, 4096, 256, Mb002, False))
+            'Others
+            FlashDB.Add(New SPI_NAND("MXIC MX35LF1GE4AB", SPI_3V, &HC2, &H12, Gb001, 2048, 64, Mb001, False))
+            FlashDB.Add(New SPI_NAND("MXIC MX35LF2GE4AB", SPI_3V, &HC2, &H22, Gb002, 2048, 64, Mb001, True))
+            FlashDB.Add(New SPI_NAND("ISSI IS37/38SML01G1", SPI_3V, &HC8, &H21, Gb001, 2048, 64, Mb001, False))
+            FlashDB.Add(New SPI_NAND("ESMT F50L1G41A", SPI_3V, &HC8, &H217F, Gb001, 2048, 64, Mb001, False))
+            FlashDB.Add(New SPI_NAND("FMSH FM25G01", SPI_3V, &HA1, &HF1, Gb001, 2048, 64, Mb002, False)) 'Shanghai Fudan Microelectronics
+            FlashDB.Add(New SPI_NAND("FMSH FM25G02", SPI_3V, &HA1, &HF2, Gb002, 2048, 64, Mb002, False)) 'Shanghai Fudan Microelectronics
         End Sub
 
         Private Sub MFP_Database()
@@ -1538,14 +1554,16 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("Cypress S29GL01GT", &H1, &H227E, Gb001, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H2801) With {.PAGE_SIZE = 512}) '(CHIP-VAULT)
             FlashDB.Add(New P_NOR("Cypress S70GL02G", &H1, &H227E, Gb002, VCC_IF.X16_3V, BLKLYT.Mb001_Uni, MFP_PRG.Buffer2, MFP_DELAY.SR1, &H4801) With {.PAGE_SIZE = 512}) '(CHIP-VAULT)
             'ST Microelectronics (now numonyx)
-            FlashDB.Add(New P_NOR("ST M29F080A", &H20, &HF1, Mb008, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
-
             FlashDB.Add(New P_NOR("ST M29F200T", &H20, &HD3, Mb002, VCC_IF.X16_5V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
             FlashDB.Add(New P_NOR("ST M29F200B", &H20, &HD4, Mb002, VCC_IF.X16_5V, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
             FlashDB.Add(New P_NOR("ST M29F400T", &H20, &HD5, Mb004, VCC_IF.X16_5V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
             FlashDB.Add(New P_NOR("ST M29F400B", &H20, &HD6, Mb004, VCC_IF.X16_5V, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
+            FlashDB.Add(New P_NOR("ST M29F080A", &H20, &HF1, Mb008, VCC_IF.X8_5V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
             FlashDB.Add(New P_NOR("ST M29F800T", &H20, &HEC, Mb008, VCC_IF.X16_5V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
             FlashDB.Add(New P_NOR("ST M29F800B", &H20, &H58, Mb008, VCC_IF.X16_5V, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS)) 'Available in TSOP48/SO44
+            'ST 3V NOR
+            FlashDB.Add(New P_NOR("ST M29W400DT", &H20, &HEE, Mb004, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
+            FlashDB.Add(New P_NOR("ST M29W400DB", &H20, &HEF, Mb004, VCC_IF.X16_3V, BLKLYT.Four_Btm, MFP_PRG.BypassMode, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("ST M29W800AT", &H20, &HD7, Mb008, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("ST M29W800AB", &H20, &H5B, Mb008, VCC_IF.X16_3V, BLKLYT.Four_Btm, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("ST M29W800DT", &H20, &H22D7, Mb008, VCC_IF.X16_3V, BLKLYT.Four_Top, MFP_PRG.BypassMode, MFP_DELAY.uS))
@@ -1862,27 +1880,28 @@ Namespace FlashMemory
             'Others
             FlashDB.Add(New P_NAND("Zentel A5U1GA31ATS", &H92, &HF1809540UI, Gb001, 2048, 64, Mb001, VCC_IF.X8_3V))
             FlashDB.Add(New P_NAND("ESMT F59L1G81MA", &HC8, &HD1809540UI, Gb001, 2048, 64, Mb001, VCC_IF.X8_3V))
+            FlashDB.Add(New P_NAND("ESMT F59L1G81LA", &HC8, &HD1809542UI, Gb001, 2048, 64, Mb001, VCC_IF.X8_3V))
             'FlashDB.Add(New P_NAND("SanDisk SDTNPNAHEM-008G", &H45, &HDE989272UI, Gb064, 8192, 744, Mb016, VCC_IF.X8_3V)) 'GUESS ON PAGE SETTINGS
 
         End Sub
 
         Private Sub OTP_Database()
-            FlashDB.Add(New OTP_EPROM("ATMEL AT27C010", VCC_IF.X8_5V_12VPP, &H1E, &H5, Mb001))
-            FlashDB.Add(New OTP_EPROM("ATMEL AT27C020", VCC_IF.X8_5V_12VPP, &H1E, &H86, Mb002))
-            FlashDB.Add(New OTP_EPROM("ATMEL AT27C040", VCC_IF.X8_5V_12VPP, &H1E, &HB, Mb004))
-            FlashDB.Add(New OTP_EPROM("ATMEL AT27C516", VCC_IF.X16_5V_12VPP, &H1E, &HF2, Kb512))
-            FlashDB.Add(New OTP_EPROM("ATMEL AT27C1024", VCC_IF.X16_5V_12VPP, &H1E, &HF1, Mb001))
-            FlashDB.Add(New OTP_EPROM("ATMEL AT27C2048", VCC_IF.X16_5V_12VPP, &H1E, &HF7, Mb002))
-            FlashDB.Add(New OTP_EPROM("ATMEL AT27C4096", VCC_IF.X16_5V_12VPP, &H1E, &HF4, Mb004))
-            FlashDB.Add(New OTP_EPROM("ST M27C1024", VCC_IF.X16_5V_12VPP, &H20, &H8C, Mb001))
-            FlashDB.Add(New OTP_EPROM("ST M27C256B", VCC_IF.X8_5V_12VPP, &H20, &H8D, Kb256))
-            FlashDB.Add(New OTP_EPROM("ST M27C512", VCC_IF.X8_5V_12VPP, &H20, &H3D, Kb512))
-            FlashDB.Add(New OTP_EPROM("ST M27C1001", VCC_IF.X8_5V_12VPP, &H20, &H5, Mb001))
-            FlashDB.Add(New OTP_EPROM("ST M27C2001", VCC_IF.X8_5V_12VPP, &H20, &H61, Mb002))
-            FlashDB.Add(New OTP_EPROM("ST M27C4001", VCC_IF.X8_5V_12VPP, &H20, &H41, Mb004))
-            FlashDB.Add(New OTP_EPROM("ST M27C801", VCC_IF.X8_5V_12VPP, &H20, &H42, Mb008))
-            FlashDB.Add(New OTP_EPROM("ST M27C160", VCC_IF.X16_5V_12VPP, &H20, &HB1, Mb016)) 'DIP42,SO44,PLCC44
-            FlashDB.Add(New OTP_EPROM("ST M27C322", VCC_IF.X16_5V_12VPP, &H20, &H34, Mb032)) 'DIP42
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C010", VCC_IF.X8_5V_12VPP, &H1E, &H5, Mb001, 60))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C020", VCC_IF.X8_5V_12VPP, &H1E, &H86, Mb002, 60))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C040", VCC_IF.X8_5V_12VPP, &H1E, &HB, Mb004, 60))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C516", VCC_IF.X16_5V_12VPP, &H1E, &HF2, Kb512, 60))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C1024", VCC_IF.X16_5V_12VPP, &H1E, &HF1, Mb001, 60))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C2048", VCC_IF.X16_5V_12VPP, &H1E, &HF7, Mb002, 60))
+            FlashDB.Add(New OTP_EPROM("ATMEL AT27C4096", VCC_IF.X16_5V_12VPP, &H1E, &HF4, Mb004, 60))
+            FlashDB.Add(New OTP_EPROM("ST M27C1024", VCC_IF.X16_5V_12VPP, &H20, &H8C, Mb001, 60))
+            FlashDB.Add(New OTP_EPROM("ST M27C256B", VCC_IF.X8_5V_12VPP, &H20, &H8D, Kb256, 60))
+            FlashDB.Add(New OTP_EPROM("ST M27C512", VCC_IF.X8_5V_12VPP, &H20, &H3D, Kb512, 60))
+            FlashDB.Add(New OTP_EPROM("ST M27C1001", VCC_IF.X8_5V_12VPP, &H20, &H5, Mb001, 60))
+            FlashDB.Add(New OTP_EPROM("ST M27C2001", VCC_IF.X8_5V_12VPP, &H20, &H61, Mb002, 60))
+            FlashDB.Add(New OTP_EPROM("ST M27C4001", VCC_IF.X8_5V_12VPP, &H20, &H41, Mb004, 60))
+            FlashDB.Add(New OTP_EPROM("ST M27C801", VCC_IF.X8_5V_12VPP, &H20, &H42, Mb008, 60))
+            FlashDB.Add(New OTP_EPROM("ST M27C160", VCC_IF.X16_5V_12VPP, &H20, &HB1, Mb016, 60)) 'DIP42,SO44,PLCC44
+            FlashDB.Add(New OTP_EPROM("ST M27C322", VCC_IF.X16_5V_12VPP, &H20, &H34, Mb032, 60)) 'DIP42
         End Sub
 
         Private Sub FWH_Database()
@@ -1902,60 +1921,21 @@ Namespace FlashMemory
         End Sub
 
         Private Sub MICROWIRE_Database()
-            FlashDB.Add(New MICROWIRE("ATMEL AT93C46", 128, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("ATMEL AT93C46E", 128, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_1V8_5V)) 'Does not support ORG pin
-            FlashDB.Add(New MICROWIRE("ATMEL AT93C56", 256, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("ATMEL AT93C66", 512, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("ONSemi CAT93C46", 128, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_1V8_5V)) 'ON Semiconductor
-            FlashDB.Add(New MICROWIRE("ONSemi CAT93C56", 256, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_1V8_5V)) 'ON Semiconductor
-            FlashDB.Add(New MICROWIRE("ONSemi CAT93C66", 512, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_1V8_5V)) 'ON Semiconductor
-            FlashDB.Add(New MICROWIRE("ONSemi CAT93C76", 1024, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_1V8_5V)) 'ON Semiconductor
-            FlashDB.Add(New MICROWIRE("ONSemi CAT93C86", 2048, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_1V8_5V)) 'ON Semiconductor
-            FlashDB.Add(New MICROWIRE("Microchip 93AA46A", 128, MICROWIRE_ORG._8BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93AA46B", 128, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93LC46A", 128, MICROWIRE_ORG._8BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93LC46B", 128, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93C46A", 128, MICROWIRE_ORG._8BIT, VCC_IF.SERIAL_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93C46B", 128, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93AA46C", 128, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93LC46C", 128, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93C46C", 128, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93AA56A", 256, MICROWIRE_ORG._8BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93AA56B", 256, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93LC56A", 256, MICROWIRE_ORG._8BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93LC56B", 256, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93C56A", 256, MICROWIRE_ORG._8BIT, VCC_IF.SERIAL_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93C56B", 256, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93AA56C", 256, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93LC56C", 256, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93C56C", 256, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93AA66A", 512, MICROWIRE_ORG._8BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93AA66B", 512, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93LC66A", 512, MICROWIRE_ORG._8BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93LC66B", 512, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93C66A", 512, MICROWIRE_ORG._8BIT, VCC_IF.SERIAL_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93C66B", 512, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93AA66C", 512, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93LC66C", 512, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93C46C", 512, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93AA76A", 1024, MICROWIRE_ORG._8BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93AA76B", 1024, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93LC76A", 1024, MICROWIRE_ORG._8BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93LC76B", 1024, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93C76A", 1024, MICROWIRE_ORG._8BIT, VCC_IF.SERIAL_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93C76B", 1024, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93AA76C", 1024, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93LC76C", 1024, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93C76C", 1024, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93AA86A", 2048, MICROWIRE_ORG._8BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93AA86B", 2048, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93LC86A", 2048, MICROWIRE_ORG._8BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93LC86B", 2048, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93C86A", 2048, MICROWIRE_ORG._8BIT, VCC_IF.SERIAL_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93C86B", 2048, MICROWIRE_ORG._16BIT, VCC_IF.SERIAL_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93AA86C", 2048, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_1V8_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93LC86C", 2048, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_2V7_5V))
-            FlashDB.Add(New MICROWIRE("Microchip 93C86C", 2048, MICROWIRE_ORG._8BIT_16BIT, VCC_IF.SERIAL_2V7_5V))
+            FlashDB.Add(New MICROWIRE("Generic 93xx46A", 128, 7, 0)) 'X8 ONLY
+            FlashDB.Add(New MICROWIRE("Generic 93xx46B", 128, 0, 6)) 'X16 ONLY
+            FlashDB.Add(New MICROWIRE("Generic 93xx46C", 128, 7, 6)) 'X8/X16
+            FlashDB.Add(New MICROWIRE("Generic 93xx56A", 256, 9, 0)) 'X8 ONLY
+            FlashDB.Add(New MICROWIRE("Generic 93xx56B", 256, 0, 8)) 'X16 ONLY
+            FlashDB.Add(New MICROWIRE("Generic 93xx56C", 256, 9, 8)) 'X8/X16
+            FlashDB.Add(New MICROWIRE("Generic 93xx66A", 512, 9, 0)) 'X8 ONLY
+            FlashDB.Add(New MICROWIRE("Generic 93xx66B", 512, 0, 8)) 'X16 ONLY
+            FlashDB.Add(New MICROWIRE("Generic 93xx66C", 512, 9, 8)) 'X8/X16
+            FlashDB.Add(New MICROWIRE("Generic 93xx76A", 1024, 10, 0)) 'X8 ONLY
+            FlashDB.Add(New MICROWIRE("Generic 93xx76B", 1024, 0, 9)) 'X16 ONLY
+            FlashDB.Add(New MICROWIRE("Generic 93xx76C", 1024, 10, 9)) 'X8/X16
+            FlashDB.Add(New MICROWIRE("Generic 93xx86A", 2048, 11, 0)) 'X8 ONLY
+            FlashDB.Add(New MICROWIRE("Generic 93xx86B", 2048, 0, 10)) 'X16 ONLY
+            FlashDB.Add(New MICROWIRE("Generic 93xx86C", 2048, 11, 10)) 'X8/X16
         End Sub
         'Helper function to create the proper definition for Atmel/Adesto Series 45 SPI devices
         Private Function CreateSeries45(atName As String, mbitsize As UInt32, id1 As UInt16, id2 As UInt16, page_size As UInt32) As SPI_NOR

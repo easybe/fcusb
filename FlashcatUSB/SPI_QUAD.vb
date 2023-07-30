@@ -27,14 +27,6 @@ Namespace SPI
         Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
             MyFlashStatus = DeviceStatus.NotDetected
             Dim FLASH_IDENT As SPI_IDENT = Nothing
-            If (FCUSB.HasLogic()) Then
-                If MySettings.VOLT_SELECT = Voltage.V1_8 Then
-                    FCUSB.USB_VCC_1V8()
-                Else
-                    FCUSB.USB_VCC_3V()
-                End If
-            End If
-            Utilities.Sleep(200)
             FLASH_IDENT = ReadDeviceID(MULTI_IO_MODE.Single) 'Read ID first, then see if we can access QUAD/DUAL
             FLASH_IDENT = ReadDeviceID(MULTI_IO_MODE.Quad)
             If Not FLASH_IDENT.DETECTED Then FLASH_IDENT = ReadDeviceID(MULTI_IO_MODE.Dual)

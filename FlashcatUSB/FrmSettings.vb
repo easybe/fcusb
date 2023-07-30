@@ -158,6 +158,8 @@ Public Class FrmSettings
         Setup_I2C_SWI_tab()
         If USBCLIENT.HW_MODE = FCUSB_BOARD.NotConnected Then
         ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB4) Then
+        ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Professional_PCB5) Then
+        ElseIf (USBCLIENT.HW_MODE = FCUSB_BOARD.Mach1) Then
         Else
             rb_speed_100khz.Enabled = False
             rb_speed_1mhz.Enabled = False
@@ -936,10 +938,9 @@ Public Class FrmSettings
                 End If
                 i += 1
             Next
-        Else
-            cb_s93_org.Enabled = False
-            cb_s93_devices.SelectedIndex = 0
         End If
+        cb_s93_org.Enabled = False
+        cb_s93_devices.SelectedIndex = 0
     End Sub
 
     Private Sub Microwire_Save()
@@ -957,14 +958,19 @@ Public Class FrmSettings
             Dim s93 As FlashMemory.MICROWIRE = cb_s93_devices.SelectedItem
             lbl_s93_size.Text = "Device Size: " & s93.FLASH_SIZE.ToString & " bytes"
             lbl_s93_size.Visible = True
-            If s93.ORGANIZATION = FlashMemory.MICROWIRE_ORG._8BIT_16BIT Then
-                cb_s93_org.Enabled = True
-            ElseIf s93.ORGANIZATION = FlashMemory.MICROWIRE_ORG._8BIT Then
-                cb_s93_org.Enabled = False
-                cb_s93_org.SelectedIndex = 0
-            ElseIf s93.ORGANIZATION = FlashMemory.MICROWIRE_ORG._16BIT Then
+            If s93.X8_ADDRSIZE = 0 And (Not s93.X16_ADDRSIZE = 0) Then 'X16 only
                 cb_s93_org.Enabled = False
                 cb_s93_org.SelectedIndex = 1
+            ElseIf (Not s93.X8_ADDRSIZE = 0) And s93.X16_ADDRSIZE = 0 Then 'X8 only
+                cb_s93_org.Enabled = False
+                cb_s93_org.SelectedIndex = 0
+            Else 'X8 or X16
+                cb_s93_org.Enabled = True
+                If MySettings.S93_DEVICE_ORG = 0 Then
+                    cb_s93_org.SelectedIndex = 0
+                Else
+                    cb_s93_org.SelectedIndex = 1
+                End If
             End If
         Else
             cb_s93_org.Enabled = False
