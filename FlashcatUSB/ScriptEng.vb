@@ -10,7 +10,7 @@ Imports FlashcatUSB.MemoryInterface
 Public Class FcScriptEngine
     Implements IDisposable
 
-    Private Const Build As Integer = 300
+    Private Const Build As Integer = 302
     Private script_is_running As Boolean = False
     Private CmdFunctions As New ScriptCmd
     Private CurrentScript As New ScriptFile
@@ -128,6 +128,11 @@ Public Class FcScriptEngine
         BSDL.Add("addpin", {CmdParam.String, CmdParam.Integer, CmdParam.Integer, CmdParam.Integer_Optional}, New ScriptFunction(AddressOf c_bsdl_addpin))
         BSDL.Add("detect", Nothing, New ScriptFunction(AddressOf c_bsdl_detect))
         CmdFunctions.AddNest(BSDL)
+        Dim LOADOPT As New ScriptCmd("load")
+        LOADOPT.Add("firmware", Nothing, New ScriptFunction(AddressOf c_load_firmware))
+        LOADOPT.Add("logic", Nothing, New ScriptFunction(AddressOf c_load_logic))
+        CmdFunctions.AddNest(LOADOPT)
+        'Generic functions
         CmdFunctions.Add("writeline", {CmdParam.Any, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_writeline))
         CmdFunctions.Add("print", {CmdParam.Any, CmdParam.Bool_Optional}, New ScriptFunction(AddressOf c_writeline))
         CmdFunctions.Add("msgbox", {CmdParam.Any}, New ScriptFunction(AddressOf c_msgbox))
@@ -139,6 +144,8 @@ Public Class FcScriptEngine
         CmdFunctions.Add("ask", {CmdParam.String}, New ScriptFunction(AddressOf c_ask))
         CmdFunctions.Add("endian", {CmdParam.String}, New ScriptFunction(AddressOf c_endian))
         CmdFunctions.Add("abort", Nothing, New ScriptFunction(AddressOf c_abort))
+        CmdFunctions.Add("parallel", Nothing, New ScriptFunction(AddressOf c_parallel))
+        CmdFunctions.Add("catalog", Nothing, New ScriptFunction(AddressOf c_catalog))
         CmdFunctions.Add("cpen", {CmdParam.Bool}, New ScriptFunction(AddressOf c_cpen))
         CmdFunctions.Add("crc16", {CmdParam.Data}, New ScriptFunction(AddressOf c_crc16))
         CmdFunctions.Add("crc32", {CmdParam.Data}, New ScriptFunction(AddressOf c_crc32))
@@ -2609,6 +2616,34 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
+    Private Function c_parallel(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Dim td As New Threading.Thread(AddressOf USBCLIENT.FCUSB(Index).EXT_IF.PARALLEL_PORT_TEST)
+            td.Start()
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Parallel function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_catalog(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Dim Gb004 As UInt32 = 536870912
+            RaiseEvent WriteConsole("Creating HTML catalogs for all supported parts")
+            FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.SERIAL_NOR, 3, "spi_database.html")
+            FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.SERIAL_NAND, 3, "spinand_database.html")
+            FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.PARALLEL_NOR, 3, "mpf_database.html")
+            FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.NAND, 3, "nand_all_database.html")
+            FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.NAND, 3, "nand_small_database.html", Gb004)
+            FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.HYPERFLASH, 3, "hf_database.html")
+            FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.OTP_EPROM, 3, "otp_database.html")
+            FlashDatabase.CreateHtmlCatalog(FlashMemory.MemoryType.FWH_NOR, 3, "fwh_database.html")
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Catalog function exception"}
+        End Try
+        Return Nothing
+    End Function
+
 #End Region
 
 #Region "String commands"
@@ -3287,7 +3322,7 @@ Public Class FcScriptEngine
         Return Nothing
     End Function
 
-    Private Function c_spi_getsr(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+    Private Function c_spi_getsr(arguments() As ScriptVariable, Index As UInt32) As ScriptVariable
         Try
             If Me.CURRENT_DEVICE_MODE = FlashcatSettings.DeviceMode.SPI Then
             ElseIf Me.CURRENT_DEVICE_MODE = FlashcatSettings.DeviceMode.SQI Then
@@ -3905,6 +3940,46 @@ Public Class FcScriptEngine
             Return sv
         Catch ex As Exception
             Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "BoundaryScan.Detect function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+#End Region
+
+#Region "LOAD"
+    Private Function c_load_firmware(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Select Case USBCLIENT.FCUSB(Index).HWBOARD
+                Case USB.FCUSB_BOARD.Professional_PCB4
+                Case USB.FCUSB_BOARD.Professional_PCB5
+                Case USB.FCUSB_BOARD.Mach1
+                Case Else
+                    Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Load.Firmware only available for PRO or MACH1"}
+            End Select
+            USBCLIENT.FCUSB(Index).USB_CONTROL_MSG_OUT(USB.USBREQ.FW_REBOOT, Nothing, &HFFFFFFFFUI)
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Load.Firmware function exception"}
+        End Try
+        Return Nothing
+    End Function
+
+    Private Function c_load_logic(ByVal arguments() As ScriptVariable, ByVal Index As UInt32) As ScriptVariable
+        Try
+            Select Case USBCLIENT.FCUSB(Index).HWBOARD
+                Case USB.FCUSB_BOARD.Professional_PCB4
+                    USBCLIENT.FCUSB(Index).LOGIC_SetVersion(&HFFFFFFFFUI)
+                    FCUSBPRO_PCB4_Init(USBCLIENT.FCUSB(Index))
+                Case USB.FCUSB_BOARD.Professional_PCB5
+                    USBCLIENT.FCUSB(Index).LOGIC_SetVersion(&HFFFFFFFFUI)
+                    FCUSBPRO_PCB5_Init(USBCLIENT.FCUSB(Index))
+                Case USB.FCUSB_BOARD.Mach1
+                    USBCLIENT.FCUSB(Index).LOGIC_SetVersion(&HFFFFFFFFUI)
+                    FCUSBPRO_Mach1_Init(USBCLIENT.FCUSB(Index))
+                Case Else
+                    Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Load.Logic only available for PRO or MACH1"}
+            End Select
+        Catch ex As Exception
+            Return New ScriptVariable("ERROR", OperandType.FncError) With {.Value = "Load.Logic function exception"}
         End Try
         Return Nothing
     End Function

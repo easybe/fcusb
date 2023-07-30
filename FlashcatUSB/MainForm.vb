@@ -20,8 +20,9 @@ Public Class MainForm
         PrintConsole("Running on: " & My.Computer.Info.OSFullName & " (" & GetOsBitsString() & ")")
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Serial NOR memory", FlashDatabase.PartCount(MemoryType.SERIAL_NOR)))
         PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Serial NAND", FlashDatabase.PartCount(MemoryType.SERIAL_NAND)))
-        PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Parallel NOR memory (x8/x16)", FlashDatabase.PartCount(MemoryType.PARALLEL_NOR)))
-        PrintConsole(String.Format(RM.GetString("gui_database_supported"), "SLC NAND memory (x8)", FlashDatabase.PartCount(MemoryType.NAND)))
+        PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Parallel NOR memory", FlashDatabase.PartCount(MemoryType.PARALLEL_NOR)))
+        PrintConsole(String.Format(RM.GetString("gui_database_supported"), "Parallel NAND memory", FlashDatabase.PartCount(MemoryType.NAND)))
+        PrintConsole(String.Format(RM.GetString("gui_database_supported"), "OTP/UV EPROM memory", FlashDatabase.PartCount(MemoryType.OTP_EPROM)))
         statuspage_progress.Visible = False
         Language_Setup()
         License_Init()
@@ -794,6 +795,7 @@ Public Class MainForm
             End If
             For Each mode In SupportedModes
                 If mode = FlashcatSettings.DeviceMode.SPI Then mi_mode_spi.Enabled = True
+                If mode = FlashcatSettings.DeviceMode.SPI_NAND Then mi_mode_spi_nand.Enabled = True
                 If mode = FlashcatSettings.DeviceMode.SQI Then mi_mode_sqi.Enabled = True
                 If mode = FlashcatSettings.DeviceMode.JTAG Then mi_mode_jtag.Enabled = True
                 If mode = FlashcatSettings.DeviceMode.I2C_EEPROM Then mi_mode_i2c.Enabled = True
@@ -805,7 +807,6 @@ Public Class MainForm
                 If mode = FlashcatSettings.DeviceMode.Microwire Then mi_mode_3wire.Enabled = True
             Next
             If mi_mode_i2c.Enabled AndAlso MySettings.I2C_INDEX = 0 Then mi_mode_i2c.Enabled = False
-            If mi_mode_eprom_otp.Enabled AndAlso MySettings.OTP_MFG = 0 Then mi_mode_eprom_otp.Enabled = False
             If mi_mode_spieeprom.Enabled AndAlso MySettings.SPI_EEPROM = SPI_EEPROM.None Then mi_mode_spieeprom.Enabled = False
             If mi_mode_3wire.Enabled AndAlso MySettings.S93_DEVICE_INDEX = 0 Then mi_mode_3wire.Enabled = False
         End If

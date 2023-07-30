@@ -152,13 +152,13 @@ Namespace Utilities
                 End If
             End Function
 
-            Public Function FromLong(ByVal lng_in As Long) As Byte()
+            Public Function FromLong(lng_in As Long) As Byte()
                 Dim d() As Byte = BitConverter.GetBytes(lng_in)
                 Array.Reverse(d)
                 Return d
             End Function
 
-            Public Function FromBool(ByVal str_in As String) As Byte()
+            Public Function FromBool(str_in As String) As Byte()
                 If str_in.ToUpper = "TRUE" Then Return New Byte() {1}
                 Return New Byte() {0}
             End Function
@@ -736,11 +736,16 @@ Namespace Utilities
                 End Try
             End Function
 
-            Public Function ReadBytes(ByVal FileName As String) As Byte()
+            Public Function ReadBytes(FileName As String, Optional MaximumSize As Integer = 0) As Byte()
                 Try
                     Dim local_file As New IO.FileInfo(FileName)
                     If (Not local_file.Exists) Or (local_file.Length = 0) Then Return Nothing
-                    Dim BytesOut(local_file.Length - 1) As Byte
+                    Dim BytesOut() As Byte
+                    If MaximumSize > 0 Then
+                        ReDim BytesOut(MaximumSize - 1)
+                    Else
+                        ReDim BytesOut(local_file.Length - 1)
+                    End If
                     Using file_reader As New IO.BinaryReader(local_file.OpenRead)
                         For i As UInt32 = 0 To BytesOut.Length - 1
                             BytesOut(i) = file_reader.ReadByte
@@ -753,7 +758,7 @@ Namespace Utilities
                 End Try
             End Function
 
-            Public Function WriteBytes(ByVal DataOut() As Byte, ByVal FileName As String) As Boolean
+            Public Function WriteBytes(DataOut() As Byte, FileName As String) As Boolean
                 Try
                     Dim local_file As New IO.FileInfo(FileName)
                     If local_file.Exists Then local_file.Delete()

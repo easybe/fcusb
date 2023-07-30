@@ -11,10 +11,10 @@ Namespace USB
         Public Event DeviceDisconnected(ByVal usb_dev As FCUSB_DEVICE)
 
         Private Const DEFAULT_TIMEOUT As Integer = 5000
-        Private Const USB_VID_ATMEL As Integer = &H3EB
-        Private Const USB_VID_EC As Integer = &H16C0
-        Private Const USB_PID_FCUSB_PRO As Integer = &H5E0
-        Private Const USB_PID_FCUSB_MACH As Integer = &H5E1
+        Private Const USB_VID_ATMEL As UInt16 = &H3EB
+        Private Const USB_VID_EC As UInt16 = &H16C0
+        Private Const USB_PID_FCUSB_PRO As UInt16 = &H5E0
+        Private Const USB_PID_FCUSB_MACH As UInt16 = &H5E1
         Private Const BUFFER_SIZE As UInt16 = 2048
 
         Public FCUSB() As FCUSB_DEVICE
@@ -85,7 +85,6 @@ Namespace USB
                     End If
                 End Get
             End Property
-
 
             Sub New()
                 AddHandler SPI_NOR_IF.PrintConsole, AddressOf WriteConsole 'Lets set text output to the console
@@ -363,7 +362,7 @@ Namespace USB
 
             Public Sub USB_LEDOn()
                 Try
-                    If HWBOARD = FCUSB_BOARD.Classic_BL Then Exit Sub 'Bootloader does not have LED
+                    If HWBOARD = FCUSB_BOARD.DFU_BL Then Exit Sub 'Bootloader does not have LED
                     USB_CONTROL_MSG_OUT(USBREQ.LEDON) 'SPIREQ.LEDON
                 Catch ex As Exception
                 End Try
@@ -371,7 +370,7 @@ Namespace USB
 
             Public Sub USB_LEDOff()
                 Try
-                    If HWBOARD = FCUSB_BOARD.Classic_BL Then Exit Sub 'Bootloader does not have LED
+                    If HWBOARD = FCUSB_BOARD.DFU_BL Then Exit Sub 'Bootloader does not have LED
                     USB_CONTROL_MSG_OUT(USBREQ.LEDOFF) 'SPIREQ.LEDOFF
                 Catch ex As Exception
                 End Try
@@ -379,7 +378,7 @@ Namespace USB
 
             Public Sub USB_LEDBlink()
                 Try
-                    If HWBOARD = FCUSB_BOARD.Classic_BL Then Exit Sub 'Bootloader does not have LED
+                    If HWBOARD = FCUSB_BOARD.DFU_BL Then Exit Sub 'Bootloader does not have LED
                     USB_CONTROL_MSG_OUT(USBREQ.LEDBLINK)
                 Catch ex As Exception
                 End Try
@@ -415,6 +414,16 @@ Namespace USB
             Public Sub USB_VCC_OFF()
                 If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
                     USB_CONTROL_MSG_OUT(USBREQ.LOGIC_OFF)
+                End If
+            End Sub
+
+            Public Sub USB_VCC_ON()
+                If (Me.IsProfessional) OrElse (Me.HWBOARD = FCUSB_BOARD.Mach1) Then
+                    If (MySettings.VOLT_SELECT = Voltage.V1_8) Then
+                        USB_VCC_1V8()
+                    Else
+                        USB_VCC_3V()
+                    End If
                 End If
             End Sub
 
@@ -458,9 +467,8 @@ Namespace USB
                 Try
                     USB_IsBootloaderMode = False
                     USB_IsAppUpdaterMode = False
-                    Dim USB_PID_FCUSB_JTAG As Integer = &H5DD
                     If (USBHANDLE.UsbRegistryInfo.Vid = USB_VID_ATMEL) Then
-                        Me.HWBOARD = FCUSB_BOARD.Classic_BL
+                        Me.HWBOARD = FCUSB_BOARD.DFU_BL
                         Me.FW_VERSION = "1.00"
                     ElseIf USBHANDLE.UsbRegistryInfo.Pid = USB_PID_FCUSB_PRO Then
                         Me.HWBOARD = FCUSB_BOARD.Professional_PCB4
@@ -489,20 +497,14 @@ Namespace USB
                         Dim data_out(3) As Byte
                         If Not USB_CONTROL_MSG_IN(USBREQ.VERSION, buff) Then Return False
                         Dim hw_byte As Byte = buff(0)
-                        If USBHANDLE.Info.Descriptor.ProductID = USB_PID_FCUSB_JTAG Then
-                            Me.HWBOARD = FCUSB_BOARD.Classic_JTAG
-                        Else
-                            If hw_byte = CByte(Asc("C")) Then
-                                Me.HWBOARD = FCUSB_BOARD.Classic_SPI
-                            ElseIf hw_byte = CByte(Asc("E")) Then
-                                Me.HWBOARD = FCUSB_BOARD.XPORT_PCB1
-                            ElseIf hw_byte = CByte(Asc("X")) Then
-                                Me.HWBOARD = FCUSB_BOARD.XPORT_PCB2
-                            ElseIf hw_byte = CByte(Asc("W")) Then
-                                Me.HWBOARD = FCUSB_BOARD.Classic_SWI
-                            ElseIf hw_byte = CByte(Asc("0")) Then
-                                Me.HWBOARD = FCUSB_BOARD.Classic_SPI
-                            End If
+                        If hw_byte = CByte(Asc("C")) Then
+                            Me.HWBOARD = FCUSB_BOARD.Classic
+                        ElseIf hw_byte = CByte(Asc("E")) Then
+                            Me.HWBOARD = FCUSB_BOARD.XPORT_PCB1
+                        ElseIf hw_byte = CByte(Asc("X")) Then
+                            Me.HWBOARD = FCUSB_BOARD.XPORT_PCB2
+                        ElseIf hw_byte = CByte(Asc("0")) Then
+                            Me.HWBOARD = FCUSB_BOARD.Classic
                         End If
                         data_out(3) = buff(3)
                         data_out(2) = buff(2)
@@ -680,80 +682,36 @@ Namespace USB
                 Dim USB_PID_AT90USB162 As Integer = &H2FFA 'FCUSB PCB 1.x
                 Dim USB_PID_AT90USB1287 As Integer = &H2FFB 'FCUSB EX (PROTO)
                 Dim USB_PID_AT90USB646 As Integer = &H2FF9 'FCUSB EX (PRODUCTION)
-                Dim USB_PID_ATMEGA32U2 As Integer = &H2FF0 'FCUSB PCB 2.x
-                Dim USB_PID_FCUSB_JTAG As Integer = &H5DD
-                Dim USB_PID_FCUSB_SPI As Integer = &H5DE
+                Dim USB_PID_ATMEGA32U2 As Integer = &H2FF0 'FCUSB PCB 2.1-2.2
+                Dim USB_PID_ATMEGA32U4 As Integer = &H2FF4 'FCUSB PCB 3.2
+                Dim USB_PID_FCUSB As Integer = &H5DE 'Classic
                 Dim devices As New List(Of UsbRegistry)
-                Dim atmel_dev1 As New UsbDeviceFinder(USB_VID_ATMEL, USB_PID_AT90USB162)
-                Dim fcusb_list As UsbRegDeviceList = UsbDevice.AllDevices.FindAll(atmel_dev1)
-                If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
-                    For i = 0 To fcusb_list.Count - 1
-                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire() : Return Nothing
-                        devices.Add(fcusb_list(i))
-                    Next
-                End If
-                Dim atmel_dev2 As New UsbDeviceFinder(USB_VID_ATMEL, USB_PID_AT90USB1287)
-                fcusb_list = UsbDevice.AllDevices.FindAll(atmel_dev2)
-                If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
-                    For i = 0 To fcusb_list.Count - 1
-                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire() : Return Nothing
-                        devices.Add(fcusb_list(i))
-                    Next
-                End If
-                Dim atmel_dev3 As New UsbDeviceFinder(USB_VID_ATMEL, USB_PID_ATMEGA32U2)
-                fcusb_list = UsbDevice.AllDevices.FindAll(atmel_dev3)
-                If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
-                    For i = 0 To fcusb_list.Count - 1
-                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire() : Return Nothing
-                        devices.Add(fcusb_list(i))
-                    Next
-                End If
-                Dim atmel_dev4 As New UsbDeviceFinder(USB_VID_ATMEL, USB_PID_AT90USB646)
-                fcusb_list = UsbDevice.AllDevices.FindAll(atmel_dev4)
-                If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
-                    For i = 0 To fcusb_list.Count - 1
-                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire() : Return Nothing
-                        devices.Add(fcusb_list(i))
-                    Next
-                End If
-                Dim fcusb_1 As New UsbDeviceFinder(USB_VID_EC, USB_PID_FCUSB_JTAG)
-                fcusb_list = UsbDevice.AllDevices.FindAll(fcusb_1)
-                If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
-                    For i = 0 To fcusb_list.Count - 1
-                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire() : Return Nothing
-                        devices.Add(fcusb_list(i))
-                    Next
-                End If
-                Dim fcusb_2 As New UsbDeviceFinder(USB_VID_EC, USB_PID_FCUSB_SPI)
-                fcusb_list = UsbDevice.AllDevices.FindAll(fcusb_2)
-                If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
-                    For i = 0 To fcusb_list.Count - 1
-                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire() : Return Nothing
-                        devices.Add(fcusb_list(i))
-                    Next
-                End If
-                Dim fcusb_pro As New UsbDeviceFinder(USB_VID_EC, USB_PID_FCUSB_PRO)
-                fcusb_list = UsbDevice.AllDevices.FindAll(fcusb_pro)
-                If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
-                    For i = 0 To fcusb_list.Count - 1
-                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire() : Return Nothing
-                        devices.Add(fcusb_list(i))
-                    Next
-                End If
-                Dim fcusb_mach1 As New UsbDeviceFinder(USB_VID_EC, USB_PID_FCUSB_MACH)
-                fcusb_list = UsbDevice.AllDevices.FindAll(fcusb_mach1)
-                If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
-                    For i = 0 To fcusb_list.Count - 1
-                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire() : Return Nothing
-                        devices.Add(fcusb_list(i))
-                    Next
-                End If
+                AddDevicesToList(USB_VID_ATMEL, USB_PID_AT90USB162, devices)
+                AddDevicesToList(USB_VID_ATMEL, USB_PID_AT90USB1287, devices)
+                AddDevicesToList(USB_VID_ATMEL, USB_PID_ATMEGA32U2, devices)
+                AddDevicesToList(USB_VID_ATMEL, USB_PID_AT90USB646, devices)
+                AddDevicesToList(USB_VID_ATMEL, USB_PID_ATMEGA32U4, devices)
+                AddDevicesToList(USB_VID_EC, USB_PID_FCUSB, devices)
+                AddDevicesToList(USB_VID_EC, USB_PID_FCUSB_PRO, devices)
+                AddDevicesToList(USB_VID_EC, USB_PID_FCUSB_MACH, devices)
                 If devices.Count = 0 Then Return Nothing
                 Return devices.ToArray
             Catch ex As Exception
             End Try
             Return Nothing
         End Function
+
+        Private Sub AddDevicesToList(VID As UInt16, PID As UInt16, DeviceList As List(Of UsbRegistry))
+            Dim fcusb_usb_device As New UsbDeviceFinder(VID, PID)
+            Dim fcusb_list As UsbRegDeviceList = UsbDevice.AllDevices.FindAll(fcusb_usb_device)
+            If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
+                For i = 0 To fcusb_list.Count - 1
+                    If fcusb_list(i).GetType IsNot GetType(WinUsb.WinUsbRegistry) Then
+                        DeviceList.Add(fcusb_list(i))
+                    End If
+                Next
+            End If
+        End Sub
 
         Private Function GetDeviceID(ByVal device As UsbRegistry) As String
             Try
@@ -803,6 +761,12 @@ Namespace USB
             Next
         End Sub
 
+        Public Sub USB_VCC_ON()
+            For Each dev In FCUSB
+                If dev.IS_CONNECTED Then dev.USB_VCC_ON()
+            Next
+        End Sub
+
         Public Sub USB_VCC_1V8()
             For Each dev In FCUSB
                 If dev.IS_CONNECTED Then dev.USB_VCC_1V8()
@@ -822,15 +786,6 @@ Namespace USB
             Next
             Return Counter
         End Function
-
-        Private Sub HaltAndCatchFire()
-            Try
-                MsgBox(RM.GetString("usb_driver_out_of_date"), vbCritical, "FLASHCATUSB DRIVER ERROR")
-                AppIsClosing = True
-                If GUI IsNot Nothing Then GUI.CloseApplication()
-            Catch ex As Exception
-            End Try
-        End Sub
 
     End Class
 
@@ -910,19 +865,20 @@ Namespace USB
         EXPIO_NAND_SR = &H6D
         EXPIO_NAND_PAGEOFFSET = &H6E
         EXPIO_MODE_ADDRESS = &H6F
-        EXPIO_MODE_IDENT = &H70
-        EXPIO_MODE_ERSCR = &H71
-        EXPIO_MODE_ERCHP = &H72
+        'EXPIO_MODE_IDENT = &H70
+        'EXPIO_MODE_ERSCR = &H71
+        'EXPIO_MODE_ERCHP = &H72
         EXPIO_MODE_READ = &H73
         EXPIO_MODE_WRITE = &H74
         EXPIO_MODE_DELAY = &H75
         EXPIO_CTRL = &H76
         EXPIO_DELAY = &H78
-        EXPIO_RESET = &H79
-        EXPIO_WAIT = &H7A
-        EXPIO_CPEN = &H7D  'Mach1
-        EXPIO_SR = &H7E  'Mach1
-        EXPIO_WRADRDATA = &H7F
+        EXPIO_WRCMDDATA = &H7A
+        EXPIO_WRMEMDATA = &H7B
+        EXPIO_RDMEMDATA = &H7C
+        EXPIO_WAIT = &H7D
+        EXPIO_CPEN = &H7E
+        EXPIO_SR = &H7F
         VERSION = &H80
         ECHO = &H81
         LEDON = &H82
@@ -969,6 +925,10 @@ Namespace USB
         VPP_0V = 7
         VPP_5V = 8
         VPP_12V = 9
+        RELAY_ON = 10
+        RELAY_OFF = 11
+        VPP_DISABLE = 12
+        VPP_ENABLE = 13
     End Enum
 
     Public Enum DeviceStatus
@@ -981,10 +941,8 @@ Namespace USB
 
     Public Enum FCUSB_BOARD
         NotConnected = 0
-        Classic_BL 'Bootloader
-        Classic_JTAG 'JTAG firmware
-        Classic_SPI 'SPI firmware
-        Classic_SWI 'Single-wire interface
+        DFU_BL 'Bootloader
+        Classic 'Classic (PCB 2.x)
         XPORT_PCB1 'XPORT firmware (PCB 1.x)
         XPORT_PCB2 'XPORT firmware (PCB 2.x)
         Professional_PCB4 'Professional (PCB 4.x)

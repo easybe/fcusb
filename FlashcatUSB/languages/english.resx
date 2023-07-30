@@ -558,10 +558,10 @@
     <value>Successfully connected to FlashcatUSB over USB</value>
   </data>
   <data name="sw_requires_fw" xml:space="preserve">
-    <value>Software requires firmware version {0} or newer</value>
+    <value>Software requires firmware version {0}</value>
   </data>
   <data name="unknown_device_email" xml:space="preserve">
-    <value>For device support email contact@embeddedcomputers.net with the CHIP ID</value>
+    <value>For device support email contact@embeddedcomputers.net with the DEVICE ID</value>
   </data>
   <data name="usb_driver_out_of_date" xml:space="preserve">
     <value>Your FlashcatUSB driver is out of date, please update your driver to the newest version included in this software release</value>

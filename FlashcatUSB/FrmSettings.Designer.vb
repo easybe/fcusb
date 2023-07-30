@@ -125,8 +125,6 @@ Partial Class FrmSettings
         Me.lbl_nandecc_biterror = New System.Windows.Forms.Label()
         Me.TP_GEN = New System.Windows.Forms.TabPage()
         Me.GroupBox7 = New System.Windows.Forms.GroupBox()
-        Me.cb_otp_device_list = New System.Windows.Forms.ComboBox()
-        Me.Label2 = New System.Windows.Forms.Label()
         Me.cb_s93_devices = New System.Windows.Forms.ComboBox()
         Me.Label18 = New System.Windows.Forms.Label()
         Me.cb_s93_org = New System.Windows.Forms.ComboBox()
@@ -1262,43 +1260,23 @@ Partial Class FrmSettings
         '
         'GroupBox7
         '
-        Me.GroupBox7.Controls.Add(Me.cb_otp_device_list)
-        Me.GroupBox7.Controls.Add(Me.Label2)
         Me.GroupBox7.Controls.Add(Me.cb_s93_devices)
         Me.GroupBox7.Controls.Add(Me.Label18)
         Me.GroupBox7.Controls.Add(Me.cb_s93_org)
         Me.GroupBox7.Controls.Add(Me.Label19)
         Me.GroupBox7.Location = New System.Drawing.Point(256, 6)
         Me.GroupBox7.Name = "GroupBox7"
-        Me.GroupBox7.Size = New System.Drawing.Size(262, 178)
+        Me.GroupBox7.Size = New System.Drawing.Size(262, 85)
         Me.GroupBox7.TabIndex = 53
         Me.GroupBox7.TabStop = False
-        Me.GroupBox7.Text = "EEPROM Selection"
-        '
-        'cb_otp_device_list
-        '
-        Me.cb_otp_device_list.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.cb_otp_device_list.FormattingEnabled = True
-        Me.cb_otp_device_list.Location = New System.Drawing.Point(9, 39)
-        Me.cb_otp_device_list.Name = "cb_otp_device_list"
-        Me.cb_otp_device_list.Size = New System.Drawing.Size(171, 21)
-        Me.cb_otp_device_list.TabIndex = 37
-        '
-        'Label2
-        '
-        Me.Label2.AutoSize = True
-        Me.Label2.Location = New System.Drawing.Point(9, 21)
-        Me.Label2.Name = "Label2"
-        Me.Label2.Size = New System.Drawing.Size(122, 13)
-        Me.Label2.TabIndex = 38
-        Me.Label2.Text = "OTP EPROM (series 27)"
+        Me.GroupBox7.Text = "Microwire"
         '
         'cb_s93_devices
         '
         Me.cb_s93_devices.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_s93_devices.FormattingEnabled = True
         Me.cb_s93_devices.Items.AddRange(New Object() {"(Not Selected)", "93xx46  128 bytes (1Kbit)", "93xx56  256 bytes (2Kbit)", "93xx66  512 bytes (4Kbit)", "93xx76  1024 bytes (8Kbit)", "93xx86  2048 bytes (16Kbit)"})
-        Me.cb_s93_devices.Location = New System.Drawing.Point(9, 90)
+        Me.cb_s93_devices.Location = New System.Drawing.Point(11, 40)
         Me.cb_s93_devices.Name = "cb_s93_devices"
         Me.cb_s93_devices.Size = New System.Drawing.Size(171, 21)
         Me.cb_s93_devices.TabIndex = 41
@@ -1306,18 +1284,18 @@ Partial Class FrmSettings
         'Label18
         '
         Me.Label18.AutoSize = True
-        Me.Label18.Location = New System.Drawing.Point(9, 72)
+        Me.Label18.Location = New System.Drawing.Point(11, 22)
         Me.Label18.Name = "Label18"
-        Me.Label18.Size = New System.Drawing.Size(152, 13)
+        Me.Label18.Size = New System.Drawing.Size(90, 13)
         Me.Label18.TabIndex = 42
-        Me.Label18.Text = "Microwire EEPROM (series 93)"
+        Me.Label18.Text = "EEPROM Device"
         '
         'cb_s93_org
         '
         Me.cb_s93_org.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_s93_org.FormattingEnabled = True
         Me.cb_s93_org.Items.AddRange(New Object() {"8-bit", "16-bit"})
-        Me.cb_s93_org.Location = New System.Drawing.Point(186, 90)
+        Me.cb_s93_org.Location = New System.Drawing.Point(188, 40)
         Me.cb_s93_org.Name = "cb_s93_org"
         Me.cb_s93_org.Size = New System.Drawing.Size(63, 21)
         Me.cb_s93_org.TabIndex = 43
@@ -1325,7 +1303,7 @@ Partial Class FrmSettings
         'Label19
         '
         Me.Label19.AutoSize = True
-        Me.Label19.Location = New System.Drawing.Point(183, 72)
+        Me.Label19.Location = New System.Drawing.Point(185, 22)
         Me.Label19.Name = "Label19"
         Me.Label19.Size = New System.Drawing.Size(66, 13)
         Me.Label19.TabIndex = 44
@@ -1588,8 +1566,6 @@ Partial Class FrmSettings
     Friend WithEvents cb_sym_width As ComboBox
     Friend WithEvents lbl_sym_width As Label
     Friend WithEvents TP_GEN As TabPage
-    Friend WithEvents Label2 As Label
-    Friend WithEvents cb_otp_device_list As ComboBox
     Friend WithEvents lbl_ECC_size As Label
     Friend WithEvents cb_ecc_seperate As CheckBox
     Friend WithEvents txt_ecc_location As TextBox

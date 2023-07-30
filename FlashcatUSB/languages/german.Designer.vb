@@ -3114,9 +3114,9 @@ Namespace My.Resources
                 Return ResourceManager.GetString("successfully_connected", resourceCulture)
             End Get
         End Property
-        
+
         '''<summary>
-        '''  Looks up a localized string similar to Die Software benötigt die Firmware-Version {0} oder neuer.
+        '''  Looks up a localized string similar to Die Software benötigt die Firmware-Version {0}.
         '''</summary>
         Friend Shared ReadOnly Property sw_requires_fw() As String
             Get

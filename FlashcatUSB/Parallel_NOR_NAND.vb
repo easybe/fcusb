@@ -15,13 +15,9 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
     Public Property CFI_table As Byte() = Nothing
 
-    Public MyAdapter As AdatperType 'This is the kind of socket adapter connected and the mode it is in
-    Private CURRENT_WRITE_MODE As E_EXPIO_WRITEDATA
-    Private CURRENT_ADDR_MODE As E_EXPIO_WRADDR
+    Public MyAdapter As MEM_PROTOCOL 'This is the kind of socket adapter connected and the mode it is in
 
-    Public CHIPID_MFG As Byte = 0
-    Public CHIPID_PART As UInt32 = 0
-    Public CHIPID_DETECT As FlashDetectResult
+    Public FLASH_IDENT As FlashDetectResult
 
     Public Event PrintConsole(ByVal msg As String) Implements MemoryDeviceUSB.PrintConsole
     Public Event SetProgress(ByVal percent As Integer) Implements MemoryDeviceUSB.SetProgress
@@ -30,14 +26,13 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     Public Property DIE_SELECTED As Integer = 0
     Public Property ECC_LAST_RESULT As decode_result = decode_result.NoErrors
 
-
-    Sub New(ByVal parent_if As FCUSB_DEVICE)
+    Sub New(parent_if As FCUSB_DEVICE)
         FCUSB = parent_if
     End Sub
 
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
         MyFlashDevice = Nothing
-        If Not EXPIO_SETUP_USB(EXPIO_Mode.Setup) Then
+        If Not EXPIO_SETUP_USB(MEM_PROTOCOL.SETUP) Then
             RaiseEvent PrintConsole(RM.GetString("ext_unable_to_connect_to_board"))
             MyFlashStatus = DeviceStatus.ExtIoNotConnected
             Return False
@@ -45,30 +40,28 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
             RaiseEvent PrintConsole(RM.GetString("ext_board_initalized"))
         End If
         If DetectFlashDevice() Then
-            Dim chip_id_str As String = Hex(CHIPID_MFG).PadLeft(2, "0") & Hex(CHIPID_PART).PadLeft(8, "0")
+            Dim chip_id_str As String = Hex(FLASH_IDENT.MFG).PadLeft(2, "0") & Hex(FLASH_IDENT.PART).PadLeft(8, "0")
             RaiseEvent PrintConsole(String.Format(RM.GetString("ext_connected_chipid"), chip_id_str))
-            Dim ID1 As UInt16 = (CHIPID_PART >> 16)
-            Dim ID2 As UInt16 = (CHIPID_PART And &HFFFF)
             If (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB1) Or (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB2) Then
-                If (ID1 >> 8 = 255) Then ID1 = (ID1 And 255) 'XPORT IO is a little different than the EXTIO for X8 devices
+                If (FLASH_IDENT.ID1 >> 8 = 255) Then FLASH_IDENT.ID1 = (FLASH_IDENT.ID1 And 255) 'XPORT IO is a little different than the EXTIO for X8 devices
             End If
             Dim device_matches() As Device
-            If (MyAdapter = AdatperType.NAND_X8) Then
-                device_matches = FlashDatabase.FindDevices(CHIPID_MFG, ID1, ID2, MemoryType.NAND)
+            If (MyAdapter = MEM_PROTOCOL.NAND_X8) Then
+                device_matches = FlashDatabase.FindDevices(FLASH_IDENT.MFG, FLASH_IDENT.ID1, FLASH_IDENT.ID2, MemoryType.NAND)
             Else
-                If MyAdapter = AdatperType.X8_Type1 Or MyAdapter = AdatperType.X8_Type2 Then
-                    device_matches = FlashDatabase.FindDevices(CHIPID_MFG, ID1, 0, MemoryType.PARALLEL_NOR)
-                ElseIf MyAdapter = AdatperType.FWH Then
-                    device_matches = FlashDatabase.FindDevices(CHIPID_MFG, ID1, 0, MemoryType.FWH_NOR)
+                If MyAdapter = MEM_PROTOCOL.NOR_X8 Then
+                    device_matches = FlashDatabase.FindDevices(FLASH_IDENT.MFG, FLASH_IDENT.ID1, 0, MemoryType.PARALLEL_NOR)
+                ElseIf MyAdapter = MEM_PROTOCOL.FWH Then
+                    device_matches = FlashDatabase.FindDevices(FLASH_IDENT.MFG, FLASH_IDENT.ID1, 0, MemoryType.FWH_NOR)
                 Else
-                    device_matches = FlashDatabase.FindDevices(CHIPID_MFG, ID1, ID2, MemoryType.PARALLEL_NOR)
+                    device_matches = FlashDatabase.FindDevices(FLASH_IDENT.MFG, FLASH_IDENT.ID1, FLASH_IDENT.ID2, MemoryType.PARALLEL_NOR)
                 End If
             End If
             If (device_matches IsNot Nothing AndAlso device_matches.Count > 0) Then
                 MyFlashDevice_SelectBest(device_matches)
                 RaiseEvent PrintConsole(String.Format(RM.GetString("flash_detected"), MyFlashDevice.NAME, Format(MyFlashDevice.FLASH_SIZE, "#,###")))
                 RaiseEvent PrintConsole(RM.GetString("ext_prog_mode"))
-                SetupFlashDevice()
+                PrintDeviceInterface()
                 If (MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR) Then
                     Dim NOR_FLASH As P_NOR = DirectCast(MyFlashDevice, P_NOR)
                     If MySettings.MUTLI_NOR Then
@@ -83,33 +76,25 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                     If NOR_FLASH.RESET_ENABLED Then Me.ResetDevice() 'This is needed for some devices
                     EXPIO_SETUP_WRITEDELAY(NOR_FLASH.HARDWARE_DELAY)
                     EXPIO_SETUP_DELAY(NOR_FLASH.DELAY_MODE)
-                    If (MyAdapter = AdatperType.X8_Type1 Or MyAdapter = AdatperType.X16_Type1) Then
-                        EXPIO_SETUP_CHIPERASE(E_EXPIO_CHIPERASE.Type1) '0x5555=0xAA;0x2AAA=0x55;0x5555=0x80;0x5555=0xAA;0x2AAA=0x55;0x5555=0x10
-                        EXPIO_SETUP_ERASESECTOR(E_EXPIO_SECTOR.Type1) '0x5555=0xAA;0x2AAA=0x55;0x5555=0x80;0x5555=0xAA;0x2AAA=0x55;SA=0x30
-                        EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type1) '0x5555=0xAA;0x2AAA=0x55;0x5555=0xA0;SA=DATA;DELAY
-                    ElseIf (MyAdapter = AdatperType.X16_Type2 Or MyAdapter = AdatperType.X16_Type3) Then
-                        EXPIO_SETUP_CHIPERASE(E_EXPIO_CHIPERASE.Type3) '0x555=0xAA;0x2AA=0x55;0x555=0x80;0x555=0xAA;0x2AA=0x55;0x555=0x10
-                        EXPIO_SETUP_ERASESECTOR(E_EXPIO_SECTOR.Type3) '0x555=0xAA,0x2AA=0x55,0x555=0x80,0x555=0xAA,0x2AA=0x55;SA=0x30
-                        EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type3) '0x555=0xAA;0x2AA=0x55;0x555=0xA0,SA=DATA;DELAY
-                    ElseIf MyAdapter = AdatperType.X8_Type2 Then
-                        EXPIO_SETUP_CHIPERASE(E_EXPIO_CHIPERASE.Type2) '0xAAA=0xAA;0x555=0x55;0xAAA=0x80;0xAAA=0xAA;0x555=0x55;0xAAA=0x10
-                        EXPIO_SETUP_ERASESECTOR(E_EXPIO_SECTOR.Type2) '0xAAA=0xAA;0x555=0x55;0xAAA=0x80;0xAAA=0xAA;0x555=0x55;SA=0x30
-                        EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type2) '0xAAA=0xAA;0x555=0x55;0xAAA=0xA0;SA=DATA;DELAY 
-                    End If
                     Select Case NOR_FLASH.WriteMode
+                        Case MFP_PRG.Standard
+                            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Standard)
                         Case MFP_PRG.IntelSharp
-                            EXPIO_SETUP_ERASESECTOR(E_EXPIO_SECTOR.Type4) 'SA=0x50;SA=0x60;SA=0xD0(SR.7)SA=0x20;SA=0xD0(SR.7)
-                            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type4) 'SA=0x40;SA=DATA;SR.7
+                            Me.CURRENT_SECTOR_ERASE = E_EXPIO_SECTOR.Intel
+                            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Intel)
                         Case MFP_PRG.BypassMode 'Writes 64 bytes using ByPass sequence
-                            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type5) '(Bypass) 0x555=0xAA;0x2AA=55;0x555=20;(0x00=0xA0;SA=DATA;...)0x00=0x90;0x00=0x00
+                            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Bypass)
                         Case MFP_PRG.PageMode 'Writes an entire page of data (128 bytes etc.)
-                            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type6)
+                            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Page)
                         Case MFP_PRG.Buffer1 'Writes to a buffer that is than auto-programmed
-                            EXPIO_SETUP_ERASESECTOR(E_EXPIO_SECTOR.Type4) 'SA=0x50;SA=0x60;SA=0xD0,SR.7,SA=0x20;SA=0xD0,SR.7
-                            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type7)
+                            Me.CURRENT_SECTOR_ERASE = E_EXPIO_SECTOR.Intel
+                            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Buffer_1)
                         Case MFP_PRG.Buffer2
-                            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type8)
+                            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Buffer_2)
                     End Select
+                    If (NOR_FLASH.AVAILABLE_SIZE >= Mb512) AndAlso Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X16 Then
+                        EXPIO_SETUP_WRITEADDRESS(E_EXPIO_WRADDR.Parallel_X16_EXT)
+                    End If
                     WaitForReady()
                 ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.NAND Then
                     RaiseEvent PrintConsole(String.Format(RM.GetString("ext_page_size"), MyFlashDevice.PAGE_SIZE, DirectCast(MyFlashDevice, P_NAND).EXT_PAGE_SIZE))
@@ -138,13 +123,13 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                             Return False
                         End If
                     End If
-                    EXPIO_SETUP_ERASESECTOR(E_EXPIO_SECTOR.NAND)
                     NAND_SetupHandlers()
                     FCUSB.NAND_IF.CreateMap(nand_mem.FLASH_SIZE, nand_mem.PAGE_SIZE, nand_mem.EXT_PAGE_SIZE, nand_mem.BLOCK_SIZE)
                     FCUSB.NAND_IF.EnableBlockManager() 'If enabled 
                     FCUSB.NAND_IF.ProcessMap()
                 ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.FWH_NOR Then
-                    'Nothing to setup
+                    Dim FWH_FLASH As FWH = DirectCast(MyFlashDevice, FWH)
+                    FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_WRITE, Nothing, FWH_FLASH.ERASE_CMD)
                 End If
                 EXPIO_PrintCurrentWriteMode()
                 Utilities.Sleep(10) 'We need to wait here (device is being configured)
@@ -163,8 +148,10 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
     End Function
 
     Private Sub MyFlashDevice_SelectBest(device_matches() As Device)
-        If Not ((MyAdapter = AdatperType.NAND_X8) Or (MyAdapter = AdatperType.NAND_X16)) Then
-            CFI_Load()
+        If Not ((MyAdapter = MEM_PROTOCOL.NAND_X8) Or (MyAdapter = MEM_PROTOCOL.NAND_X16)) Then
+            If EXPIO_LoadCFI() Then
+                FLASH_IDENT.CFI_MULTI = CFI_table(26)
+            End If
             If (device_matches(0).MFG_CODE = &H1 AndAlso device_matches(0).ID1 = &HAD) Then 'AM29F016x (we need to figure out which one)
                 If CFI_table Is Nothing Then
                     MyFlashDevice = device_matches(0) 'AM29F016B (Uses Legacy programming)
@@ -173,8 +160,8 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                 End If
                 Exit Sub
             End If
-            If (device_matches.Count > 1) AndAlso CHIPID_DETECT IsNot Nothing Then
-                Dim cfi_page_size As UInt32 = (2 ^ CHIPID_DETECT.CFI_MULTI)
+            If (device_matches.Count > 1) AndAlso Not FLASH_IDENT.MFG = 0 Then
+                Dim cfi_page_size As UInt32 = (2 ^ FLASH_IDENT.CFI_MULTI)
                 For i = 0 To device_matches.Count - 1
                     If device_matches(i).PAGE_SIZE = cfi_page_size Then
                         MyFlashDevice = device_matches(i) : Exit Sub
@@ -186,102 +173,6 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         MyFlashDevice = device_matches(0)
     End Sub
 
-    Private Function CFI_Load() As Boolean
-        Try
-            CFI_table = Nothing
-            If CFI_ExecuteCommand(Sub() WriteAddressData(&H55, &H98)) Then 'Issue Enter CFI command
-                WriteConsole("CFI table: loaded successfully")
-            ElseIf CFI_ExecuteCommand(Sub()
-                                          WriteAddressData(&H5555, &HAA)
-                                          WriteAddressData(&H2AAA, &H55)
-                                          WriteAddressData(&H5555, &H98)
-                                      End Sub) Then
-                WriteConsole("CFI table: loaded successfully")
-            Else
-                CFI_table = Nothing
-                WriteConsole("CFI table: not found")
-            End If
-        Catch ex As Exception
-        Finally
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_RESET)
-            Utilities.Sleep(50)
-        End Try
-        Return False
-    End Function
-
-    Private Delegate Sub cfi_cmd_sub()
-
-    Private Function CFI_ExecuteCommand(cfi_cmd As cfi_cmd_sub) As Boolean
-        cfi_cmd.Invoke()
-        Dim flash_data(63) As Byte
-        Dim result As Boolean = FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, GetSetupPacket_NOR(&H20, 64, 0), flash_data, 0)
-        If Not result Then Return False
-        If flash_data Is Nothing Then Return False
-        ReDim CFI_table(31)
-        For i = 0 To flash_data.Length - 1 Step 2
-            CFI_table(i / 2) = flash_data(i)
-        Next
-        If CFI_table(0) = &H51 And CFI_table(1) = &H52 And CFI_table(2) = &H59 Then
-            Return True
-        End If
-        Return False
-    End Function
-
-    Public Function EPROM_Init() As Boolean
-        MyFlashDevice = Nothing
-        If Not EXPIO_SETUP_USB(EXPIO_Mode.Setup) Then
-            RaiseEvent PrintConsole(RM.GetString("ext_unable_to_connect_to_board"))
-            MyFlashStatus = DeviceStatus.ExtIoNotConnected
-            SetStatus(RM.GetString("ext_not_detected"))
-            Return False
-        Else
-            RaiseEvent PrintConsole(RM.GetString("ext_board_initalized"))
-        End If
-        MyFlashDevice = FlashDatabase.FindDevice(MySettings.OTP_MFG, MySettings.OTP_ID, 0, MemoryType.OTP_EPROM)
-        Dim s27_eprom As OTP_EPROM = DirectCast(MyFlashDevice, OTP_EPROM)
-        If IsIFACE8X(s27_eprom.IFACE) Then
-            MyAdapter = AdatperType.X8_Type1
-            EXPIO_SETUP_USB(EXPIO_Mode.NOR_x8)
-            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type9)
-            RaiseEvent PrintConsole("Device mode set to EPROM (8-bit)")
-        Else
-            MyAdapter = AdatperType.X16_Type1
-            EXPIO_SETUP_USB(EXPIO_Mode.NOR_x16)
-            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.Type10)
-            RaiseEvent PrintConsole("Device mode set to EPROM (16-bit)")
-        End If
-        EXPIO_SETUP_DELAY(MFP_DELAY.uS)
-        EXPIO_SETUP_WRITEDELAY(s27_eprom.HARDWARE_DELAY)
-        RaiseEvent PrintConsole("Memory name: " & MyFlashDevice.NAME & ", size: " & Format(MyFlashDevice.FLASH_SIZE, "#,###") & " bytes")
-        DirectCast(MyFlashDevice, OTP_EPROM).IS_BLANK = True
-        'DirectCast(MyFlashDevice, OTP_EPROM).IS_BLANK = EPROM_BlankCheck()
-        SetStatus("EPROM mode ready for operation")
-        MyFlashStatus = DeviceStatus.Supported
-        Return True
-    End Function
-
-    Public Function EPROM_BlankCheck() As Boolean
-        SetStatus("Performing EPROM blank check")
-        RaiseEvent SetProgress(0)
-        Dim entire_data(MyFlashDevice.FLASH_SIZE - 1) As Byte
-        Dim BlockCount As Integer = (entire_data.Length / 8192)
-        For i = 0 To BlockCount - 1
-            If AppIsClosing Then Return False
-            Dim block() As Byte = ReadBulk_NOR(i * 8191, 8191)
-            Array.Copy(block, 0, entire_data, i * 8191, 8191)
-            Dim percent As Single = (i / BlockCount) * 100
-            RaiseEvent SetProgress(Math.Floor(percent))
-        Next
-        If Utilities.IsByteArrayFilled(entire_data, 255) Then
-            RaiseEvent PrintConsole("EPROM device is blank and can be programmed")
-            DirectCast(MyFlashDevice, OTP_EPROM).IS_BLANK = True
-            Return True
-        Else
-            RaiseEvent PrintConsole("EPROM device is not blank")
-            DirectCast(MyFlashDevice, OTP_EPROM).IS_BLANK = False
-            Return False
-        End If
-    End Function
 
 #Region "Public Interface"
 
@@ -323,7 +214,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         End Get
     End Property
 
-    Public Function ReadData(ByVal logical_address As Long, ByVal data_count As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
+    Public Function ReadData(logical_address As Long, data_count As UInt32, Optional memory_area As FlashArea = FlashArea.Main) As Byte() Implements MemoryDeviceUSB.ReadData
         If MyFlashDevice.FLASH_TYPE = MemoryType.NAND Then
             Dim nand_dev As P_NAND = DirectCast(MyFlashDevice, P_NAND)
             Dim page_addr As Long  'This is the page address
@@ -363,7 +254,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.FWH_NOR Then
             Return ReadData_FWH(logical_address, data_count)
         ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM Then
-            Return ReadData_EPROM(logical_address, data_count)
+            Return EPROM_ReadData(logical_address, data_count)
         Else 'NOR memory
             If Me.MULTI_DIE Then
                 Dim data_to_read(data_count - 1) As Byte
@@ -376,7 +267,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                 Loop
                 Return data_to_read
             Else
-                Return ReadBulk_NOR(logical_address, data_count)
+                Return ReadBulk_NOR(CUInt(logical_address), data_count)
             End If
         End If
     End Function
@@ -392,7 +283,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
             If die_id = 0 Then
                 w_data = Me.CURRENT_ADDR_MODE
             Else
-                w_data = PARALLEL_NOR_NAND.E_EXPIO_WRADDR.Parallel_CE Or ((MySettings.MULTI_CE + 17) << 16)
+                w_data = PARALLEL_NOR_NAND.E_EXPIO_WRADDR.Parallel_CE_X16 Or ((MySettings.MULTI_CE + 17) << 16)
             End If
             Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_MODE_ADDRESS, Nothing, w_data)
             Utilities.Sleep(10)
@@ -403,7 +294,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Return die_addr
     End Function
 
-    Public Function SectorErase(ByVal sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.SectorErase
+    Public Function SectorErase(sector_index As UInt32, Optional memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.SectorErase
         If Not MyFlashDevice.ERASE_REQUIRED Then Return True
         If MyFlashDevice.FLASH_TYPE = MemoryType.NAND Then
             Dim pages_per_block As UInt32 = (DirectCast(MyFlashDevice, P_NAND).BLOCK_SIZE / MyFlashDevice.PAGE_SIZE)
@@ -413,7 +304,6 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.FWH_NOR Then
             Dim fwh_device As FWH = DirectCast(MyFlashDevice, FWH)
             Dim Result As Boolean = False
-
             Dim Logical_Address As UInt32 = 0
             If (sector_index > 0) Then
                 For i As UInt32 = 0 To sector_index - 1
@@ -421,9 +311,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                     Logical_Address += s_size
                 Next
             End If
-            Dim erase_cmd As UInt32 = fwh_device.ERASE_CMD
-            Dim setup_data() As Byte = GetSetupPacket_NOR(Logical_Address, 0, 0)
-            Result = FCUSB.USB_SETUP_BULKOUT(USBREQ.EXPIO_SECTORERASE, setup_data, Nothing, (erase_cmd << 16))
+            Result = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_SECTORERASE, Nothing, Logical_Address)
             If Not Result Then Return False
             Utilities.Sleep(50)
             Dim blank_result As Boolean = BlankCheck(Logical_Address)
@@ -442,20 +330,10 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                         Next
                     End If
                     EXPIO_VPP_ENABLE() 'Enables +12V for supported devices
-                    Dim Result As Boolean = False
-                    Try
-                        Dim sector_start_addr As UInt32 = 0
-                        If Me.MULTI_DIE Then
-                            sector_start_addr = GetAddressForMultiDie(Logical_Address, 0, 0)
-                        Else
-                            sector_start_addr = Logical_Address
-                        End If
-                        Dim setup_data() As Byte = GetSetupPacket_NOR(sector_start_addr, 0, 0)
-                        Result = FCUSB.USB_SETUP_BULKOUT(USBREQ.EXPIO_SECTORERASE, setup_data, Nothing, 0)
-                    Catch ex As Exception
-                    End Try
+                    Dim sector_start_addr As UInt32 = Logical_Address
+                    If Me.MULTI_DIE Then sector_start_addr = GetAddressForMultiDie(Logical_Address, 0, 0)
+                    EXPIO_EraseSector(sector_start_addr)
                     EXPIO_VPP_DISABLE()
-                    If Not Result Then Return False
                     If nor_device.DELAY_MODE = MFP_DELAY.DQ7 Or nor_device.DELAY_MODE = MFP_DELAY.SR1 Or nor_device.DELAY_MODE = MFP_DELAY.SR2 Then
                         FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT) 'Calls the assigned WAIT function (uS, mS, SR, DQ7)
                         FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
@@ -479,7 +357,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         End If
     End Function
 
-    Public Function WriteData(ByVal logical_address As Long, ByVal data_to_write() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
+    Public Function WriteData(logical_address As Long, data_to_write() As Byte, Optional ByRef Params As WriteParameters = Nothing) As Boolean Implements MemoryDeviceUSB.WriteData
         If (MyFlashDevice.FLASH_TYPE = MemoryType.NAND) Then
             Dim page_addr As UInt32 = GetNandPageAddress(MyFlashDevice, logical_address, Params.Memory_Area)
             page_addr = FCUSB.NAND_IF.GetPageMapping(page_addr) 'Adjusts the page to point to a valid page
@@ -487,7 +365,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
             FCUSB.USB_WaitForComplete()
             Return result
         ElseIf (MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM) Then
-            Return WriteData_EPROM(logical_address, data_to_write, Params)
+            Return EPROM_WriteData(logical_address, data_to_write, Params)
         ElseIf (MyFlashDevice.FLASH_TYPE = MemoryType.FWH_NOR) Then
             Return WriteData_FWH(logical_address, data_to_write, Params)
         Else
@@ -584,74 +462,9 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Return data_out
     End Function
 
-    Public Function ReadData_EPROM(ByVal logical_address As UInt32, ByVal data_count As UInt32) As Byte()
-        'Dim M27C322 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &H34, 0, MemoryType.OTP_EPROM)
-        Dim M27C160 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &HB1, 0, MemoryType.OTP_EPROM)
-        If MyFlashDevice Is M27C160 Then
-            HardwareControl(EXPIO_CTRL.VPP_5V)
-            Utilities.Sleep(5)
-        Else
-            HardwareControl(EXPIO_CTRL.VPP_0V)
-            Utilities.Sleep(5)
-        End If
-        HardwareControl(EXPIO_CTRL.WE_LOW)
-        Utilities.Sleep(10)
-        Dim data_out() As Byte = ReadBulk_NOR(logical_address, data_count)
-        HardwareControl(EXPIO_CTRL.WE_HIGH)
-        Utilities.Sleep(5)
-        HardwareControl(EXPIO_CTRL.VPP_0V)
-        Return data_out
-    End Function
-
-    Private Function WriteData_EPROM(ByVal logical_address As UInt32, ByVal data_to_write() As Byte, ByRef Params As WriteParameters) As Boolean
-        'Dim M27C322 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &H34, 0, MemoryType.OTP_EPROM)
-        Dim M27C160 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &HB1, 0, MemoryType.OTP_EPROM)
-        If MyFlashDevice Is M27C160 Then
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_ADDRESS, Nothing, E_EXPIO_WRADDR.Parallel_CE Or (23 << 16)) 'We want to set A23 to HIGH
-            Utilities.Sleep(5)
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_ADDRESS, Nothing, 0) 'A23(G)=5V
-            Utilities.Sleep(5)
-        End If
-        HardwareControl(EXPIO_CTRL.VPP_12V)
-        Utilities.Sleep(10)
-        Try
-            Dim PacketSize As UInt32 = 1024
-            Dim BytesWritten As UInt32 = 0
-            Dim DataToWrite As UInt32 = data_to_write.Length
-            Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / PacketSize)) 'Calcuates iterations
-            For i As Integer = 0 To Loops - 1
-                If Params.AbortOperation Then Return False
-                Dim BufferSize As Integer = DataToWrite
-                If (BufferSize > PacketSize) Then BufferSize = PacketSize
-                Dim data(BufferSize - 1) As Byte
-                Array.Copy(data_to_write, (i * PacketSize), data, 0, data.Length)
-                Dim ReturnValue As Boolean = WriteBulk_NOR(logical_address, data)
-                If (Not ReturnValue) Then Return False
-                Utilities.Sleep(10)
-                logical_address += data.Length
-                DataToWrite -= data.Length
-                BytesWritten += data.Length
-                FCUSB.USB_WaitForComplete()
-            Next
-        Catch ex As Exception
-        End Try
-        If MyFlashDevice Is M27C160 Then
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_ADDRESS, Nothing, E_EXPIO_WRADDR.Parallel)
-            Utilities.Sleep(5)
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_ADDRESS, Nothing, 0) 'A23(G)=0V
-            Utilities.Sleep(50)
-            HardwareControl(EXPIO_CTRL.VPP_5V)
-        Else
-            HardwareControl(EXPIO_CTRL.VPP_0V)
-        End If
-        Return True
-    End Function
-
     Public Sub WaitForReady() Implements MemoryDeviceUSB.WaitUntilReady
         If MyFlashDevice.FLASH_TYPE = MemoryType.NAND Then
-            Utilities.Sleep(10) 'Checks READ/BUSY# pin
-            FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT)
-            FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
+            EXPIO_WAIT()
         ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
             Utilities.Sleep(100) 'Some flash devices have registers, some rely on delays
         ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.FWH_NOR Then
@@ -722,7 +535,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
                         RaiseEvent SetProgress(0)
                         Return True 'Device successfully erased
                     Else
-                        FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_CHIPERASE)
+                        EXPIO_EraseChip()
                         Utilities.Sleep(200) 'Perform blank check
                         For i = 0 To 179 '3 minutes
                             If BlankCheck(0) Then Return True
@@ -806,9 +619,8 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         write_result = WriteBulk_NAND(page_addr, main, oob, memory_area)
     End Sub
 
-    Private Sub NAND_EraseSector(ByVal page_addr As UInt32, ByRef erase_result As Boolean)
-        Dim setup_data() As Byte = GetSetupPacket_NAND(page_addr, 0, 0, FlashArea.All)
-        erase_result = FCUSB.USB_SETUP_BULKOUT(USBREQ.EXPIO_SECTORERASE, setup_data, Nothing, 1)
+    Private Sub NAND_EraseSector(page_addr As UInt32, ByRef erase_result As Boolean)
+        erase_result = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_SECTORERASE, Nothing, page_addr)
         If (MyFlashDevice.PAGE_SIZE = 512) Then 'LEGACY NAND DEVICE
             Utilities.Sleep(250) 'Micron NAND legacy delay (was 200), always wait! Just to be sure.
         Else
@@ -826,60 +638,189 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
 
 #End Region
 
+#Region "EPROM / OTP"
+    'Private Property EPROM_X16_MODE As Boolean
+
+    Public Function EPROM_Init() As Boolean
+        MyFlashDevice = Nothing
+        If EPROM_Detect(True) Then 'X16
+            Me.MyAdapter = MEM_PROTOCOL.NOR_X16
+            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.EPROM_X16)
+            RaiseEvent PrintConsole("Device mode set to EPROM (16-bit)")
+        ElseIf EPROM_Detect(False) Then 'X8
+            Me.MyAdapter = MEM_PROTOCOL.NOR_X8
+            EXPIO_SETUP_WRITEDATA(E_EXPIO_WRITEDATA.EPROM_X8)
+            RaiseEvent PrintConsole("Device mode set to EPROM (8-bit)")
+        Else
+            RaiseEvent PrintConsole("Unable to automatically detect EPROM/OTP device")
+            Return False
+        End If
+        RaiseEvent PrintConsole("EPROM successfully detected!")
+        RaiseEvent PrintConsole("EPROM device: " & MyFlashDevice.NAME & ", size: " & Format(MyFlashDevice.FLASH_SIZE, "#,###") & " bytes")
+        EXPIO_SETUP_DELAY(MFP_DELAY.uS)
+        EXPIO_SETUP_WRITEDELAY(DirectCast(MyFlashDevice, OTP_EPROM).HARDWARE_DELAY)
+        DirectCast(MyFlashDevice, OTP_EPROM).IS_BLANK = True
+        'DirectCast(MyFlashDevice, OTP_EPROM).IS_BLANK = EPROM_BlankCheck()
+        SetStatus("EPROM mode ready for operation")
+        MyFlashStatus = DeviceStatus.Supported
+        Return True
+    End Function
+
+    Public Function EPROM_Detect(X16_MODE As Boolean) As Boolean
+        'Me.EPROM_X16_MODE = X16_MODE
+        If X16_MODE Then
+            EXPIO_SETUP_USB(MEM_PROTOCOL.EPROM_X16)
+        Else
+            EXPIO_SETUP_USB(MEM_PROTOCOL.EPROM_X8)
+        End If
+        Utilities.Sleep(100)
+        Dim IDENT_DATA(3) As Byte
+        HardwareControl(EXPIO_CTRL.VPP_DISABLE)
+        HardwareControl(EXPIO_CTRL.OE_LOW)
+        HardwareControl(EXPIO_CTRL.WE_LOW)
+        HardwareControl(EXPIO_CTRL.VPP_12V)
+        HardwareControl(EXPIO_CTRL.RELAY_ON)
+        Utilities.Sleep(100)
+        Dim setup_data() As Byte = GetSetupPacket_NOR(0, 4, 0)
+        FCUSB.USB_SETUP_BULKIN(USBREQ.EXPIO_READDATA, setup_data, IDENT_DATA, 0)
+        HardwareControl(EXPIO_CTRL.RELAY_OFF)
+        HardwareControl(EXPIO_CTRL.VPP_0V)
+        HardwareControl(EXPIO_CTRL.WE_HIGH)
+        HardwareControl(EXPIO_CTRL.VPP_ENABLE)
+
+        Dim EPROM_MFG As Byte = IDENT_DATA(0)
+        Dim EPROM_PART As Byte
+        If X16_MODE Then
+            EPROM_PART = IDENT_DATA(2)
+            RaiseEvent PrintConsole("EPROM X16 IDENT CODE returned MFG: 0x" & Hex(EPROM_MFG) & " and PART 0x" & Hex(EPROM_PART))
+        Else
+            EPROM_PART = IDENT_DATA(1)
+            RaiseEvent PrintConsole("EPROM X8 IDENT CODE returned MFG: 0x" & Hex(EPROM_MFG) & " and PART 0x" & Hex(EPROM_PART))
+        End If
+        MyFlashDevice = FlashDatabase.FindDevice(EPROM_MFG, EPROM_PART, 0, MemoryType.OTP_EPROM)
+        If MyFlashDevice IsNot Nothing Then Return True 'Detected!
+        Return False
+    End Function
+
+    Public Function EPROM_BlankCheck() As Boolean
+        SetStatus("Performing EPROM blank check")
+        RaiseEvent SetProgress(0)
+        Dim entire_data(MyFlashDevice.FLASH_SIZE - 1) As Byte
+        Dim BlockCount As Integer = (entire_data.Length / 8192)
+        For i = 0 To BlockCount - 1
+            If AppIsClosing Then Return False
+            Dim block() As Byte = ReadBulk_NOR(i * 8191, 8191)
+            Array.Copy(block, 0, entire_data, i * 8191, 8191)
+            Dim percent As Single = (i / BlockCount) * 100
+            RaiseEvent SetProgress(Math.Floor(percent))
+        Next
+        If Utilities.IsByteArrayFilled(entire_data, 255) Then
+            RaiseEvent PrintConsole("EPROM device is blank and can be programmed")
+            DirectCast(MyFlashDevice, OTP_EPROM).IS_BLANK = True
+            Return True
+        Else
+            RaiseEvent PrintConsole("EPROM device is not blank")
+            DirectCast(MyFlashDevice, OTP_EPROM).IS_BLANK = False
+            Return False
+        End If
+    End Function
+
+    Public Function EPROM_ReadData(ByVal logical_address As UInt32, ByVal data_count As UInt32) As Byte()
+        Dim M27C160 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &HB1, 0, MemoryType.OTP_EPROM)
+        If MyFlashDevice Is M27C160 Then
+            HardwareControl(EXPIO_CTRL.VPP_5V)
+            HardwareControl(EXPIO_CTRL.OE_LOW)
+        Else
+            HardwareControl(EXPIO_CTRL.VPP_0V)
+        End If
+        HardwareControl(EXPIO_CTRL.WE_LOW)
+        Dim data_out() As Byte = ReadBulk_NOR(logical_address, data_count)
+        HardwareControl(EXPIO_CTRL.WE_HIGH)
+        HardwareControl(EXPIO_CTRL.VPP_0V)
+        Return data_out
+    End Function
+
+    Private Function EPROM_WriteData(ByVal logical_address As UInt32, ByVal data_to_write() As Byte, ByRef Params As WriteParameters) As Boolean
+        Dim M27C160 As OTP_EPROM = FlashDatabase.FindDevice(&H20, &HB1, 0, MemoryType.OTP_EPROM)
+        HardwareControl(EXPIO_CTRL.WE_HIGH)
+        If MyFlashDevice Is M27C160 Then
+            HardwareControl(EXPIO_CTRL.OE_HIGH)
+        End If
+        HardwareControl(EXPIO_CTRL.VPP_12V)
+        Utilities.Sleep(20)
+        Try
+            Dim PacketSize As UInt32 = 1024
+            Dim BytesWritten As UInt32 = 0
+            Dim DataToWrite As UInt32 = data_to_write.Length
+            Dim Loops As Integer = CInt(Math.Ceiling(DataToWrite / PacketSize)) 'Calcuates iterations
+            For i As Integer = 0 To Loops - 1
+                If Params.AbortOperation Then Return False
+                Dim BufferSize As Integer = DataToWrite
+                If (BufferSize > PacketSize) Then BufferSize = PacketSize
+                Dim data(BufferSize - 1) As Byte
+                Array.Copy(data_to_write, (i * PacketSize), data, 0, data.Length)
+                Dim ReturnValue As Boolean = WriteBulk_NOR(logical_address, data)
+                If (Not ReturnValue) Then Return False
+                Utilities.Sleep(10)
+                logical_address += data.Length
+                DataToWrite -= data.Length
+                BytesWritten += data.Length
+                FCUSB.USB_WaitForComplete()
+            Next
+        Catch ex As Exception
+        End Try
+        If MyFlashDevice Is M27C160 Then
+            HardwareControl(EXPIO_CTRL.VPP_5V)
+            HardwareControl(EXPIO_CTRL.OE_LOW)
+        Else
+            HardwareControl(EXPIO_CTRL.VPP_0V)
+        End If
+        Return True
+    End Function
+
+#End Region
+
 #Region "EXPIO SETUP"
 
-    Public Enum E_EXPIO_WRADDR As UInt16
-        Parallel = 1 'Standard 27-bit address set
-        Parallel_A1 = 2 'Uses DQ15 for A-1 (TSOP48 X8)
-        Parallel_CE = 3 'Uses standard with a programmable bit that can be set for secondary CE control
-        Parallel_X16 = 4 'Uses X8 addressing for X16 IO
+    Private Enum E_EXPIO_WRADDR As UInt16
+        Parallel_X8 = 1 'Addressing is done A0-A27 (BYTE ADDR)
+        Parallel_X16 = 2 'Addressing is done A1-A27 (WORD ADDR)
+        Parallel_CE_X8 = 3 'Chip-select with BYTE ADDR
+        Parallel_CE_X16 = 4 'Chip-select with WORD ADDR
+        Parallel_A1 = 5
+        Parallel_X16_EXT = 6 '26-bit mode for XPORT PCB 1.x (Legacy)
     End Enum
 
-    Public Enum E_EXPIO_IDENT As UInt16
-        Type1 = 1 '(0x5555=0xAA;0x2AAA=0x55;0x5555=0x90) READ 0x00,0x01,0x02 (0x5555=0xAA;0x2AAA=0x55;0x5555=0xF0)
-        Type2 = 2 '(0x555=0xAA;2AA=0x55;0x555=0x90) READ 0x00,0x01,0x0E,0x0F,0x03 (0x00=0x00F0), x16 (typically)
-        Type3 = 3 '(0xAAA=0xAA;0x555=0x55;0xAAA=0x90)
-        NAND = 4
-        HF = 5
+    Private Enum E_BUS_WIDTH 'Number of bits transfered per operation
+        X0 = 0 'Default
+        X8 = 8
+        X16 = 16
     End Enum
 
-    Public Enum E_EXPIO_SECTOR As UInt16
-        Type1 = 1 '0x5555=0xAA;0x2AAA=0x55;0x5555=0x80;0x5555=0xAA;0x2AAA=0x55;SA=0x30 (used by older devices)
-        Type2 = 2 '0xAAA=0xAA;0x555=0x55;0xAAA=0x80;0xAAA=0xAA;0x555=0x55;SA=0x30 (used by x8 devices)
-        Type3 = 3 '0x555=0xAA,0x2AA=0x55,0x555=0x80,0x555=0xAA,0x2AA=0x55;SA=0x30 (used by x16 devices)
-        Type4 = 4 'SA=0x50;SA=0x60;SA=0xD0,SR.7,SA=0x20;SA=0xD0,SR.7 (used by Intel/Sharp devices)
-        NAND = 5
-        HF = 6
+    Private Enum E_EXPIO_SECTOR As UInt16
+        Standard = 1 '0x5555=0xAA;0x2AAA=0x55;0x5555=0x80;0x5555=0xAA;0x2AAA=0x55;SA=0x30
+        Intel = 2 'SA=0x50;SA=0x60;SA=0xD0,SR.7,SA=0x20;SA=0xD0,SR.7 (used by Intel/Sharp devices)
     End Enum
 
-    Public Enum E_EXPIO_CHIPERASE As UInt16
-        Type1 = 1 '0x5555=0xAA;0x2AAA=0x55;0x5555=0x80;0x5555=0xAA;0x2AAA=0x55;0x5555=0x10 (used by older devices)
-        Type2 = 2 '0xAAA=0xAA;0x555=0x55;0xAAA=0x80;0xAAA=0xAA;0x555=0x55;0xAAA=0x10 (used by x8 devices)
-        Type3 = 3 '0x555=0xAA;0x2AA=0x55;0x555=0x80;0x555=0xAA;0x2AA=0x55;0x555=0x10 (used by x16 devices)
-        Type4 = 4 '0x00=0x30;0x00=0xD0;
-        HF = 5
+    Private Enum E_EXPIO_CHIPERASE As UInt16
+        Standard = 1 '0x5555=0xAA;0x2AAA=0x55;0x5555=0x80;0x5555=0xAA;0x2AAA=0x55;0x5555=0x10
+        Intel = 2 '0x00=0x30;0x00=0xD0; (used by Intel/Sharp devices)
     End Enum
 
     Private Enum E_EXPIO_WRITEDATA As UInt16
-        Type1 = 1 '0x5555=0xAA;0x2AAA=0x55;0x5555=0xA0;SA=DATA;DELAY
-        Type2 = 2 '0xAAA=0xAA;0x555=0x55;0xAAA=0xA0;SA=DATA;DELAY
-        Type3 = 3 '0x555=0xAA;0x2AA=0x55;0x555=0xA0,SA=DATA;DELAY
-        Type4 = 4 'SA=0x40;SA=DATA;SR.7
-        Type5 = 5 '(Bypass) 0x555=0xAA;0x2AA=55;0x555=20;(0x00=0xA0;SA=DATA;...)0x00=0x90;0x00=0x00
-        Type6 = 6 '(Page)0x5555,0x2AAA,0x5555;(BA/DATA)
-        Type7 = 7 '(Buffer)0xE8...0xD0
-        Type8 = 8 '(buffer)0x555=0xAA,0x2AA=0x55,SA=0x25,SA=(WC-1)..
-        Type9 = 9 '(VPP=HIGH) ADDR/DATA (EPROM_8BIT)
-        Type10 = 10 '(VPP=HIGH) ADDR/DATA (EPROM_16BIT)
+        Standard = 1 '0x5555=0xAA;0x2AAA=0x55;0x5555=0xA0;SA=DATA;DELAY
+        Intel = 2 'SA=0x40;SA=DATA;SR.7
+        Bypass = 3 '0x555=0xAA;0x2AA=55;0x555=20;(0x00=0xA0;SA=DATA;...)0x00=0x90;0x00=0x00
+        Page = 4 '0x5555,0x2AAA,0x5555;(BA/DATA)
+        Buffer_1 = 5 '0xE8...0xD0 (Used by Intel/Sharp)
+        Buffer_2 = 6 '0x555=0xAA,0x2AA=0x55,SA=0x25,SA=(WC-1).. (Used by Spanion/Cypress)
+        EPROM_X8 = 7 '8-BIT EPROM DEVICE
+        EPROM_X16 = 8 '16-BIT EPROM DEVICE
     End Enum
 
-    Public Enum VPP_LEVEL As Integer
-        V0 = 1
-        V5 = 2
-        V12 = 3
-    End Enum
+    Private Property CURRENT_BUS_WIDTH As E_BUS_WIDTH = E_BUS_WIDTH.X0
 
-    Private Function EXPIO_SETUP_USB(ByVal mode As EXPIO_Mode) As Boolean
+    Private Function EXPIO_SETUP_USB(mode As MEM_PROTOCOL) As Boolean
         Try
             Dim result_data(0) As Byte
             Dim setup_data As UInt32 = mode Or (10 << 16)
@@ -887,6 +828,26 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
             If Not result Then Return False
             If (result_data(0) = &H17) Then 'Extension port returns 0x17 if it can communicate with the MCP23S17
                 Threading.Thread.Sleep(50) 'Give the USB time to change modes
+                Select Case mode
+                    Case MEM_PROTOCOL.NOR_X8
+                        Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X8
+                    Case MEM_PROTOCOL.NOR_X16
+                        Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X16
+                    Case MEM_PROTOCOL.NOR_X16_X8
+                        Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X16
+                    Case MEM_PROTOCOL.NAND_X8
+                        Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X8
+                    Case MEM_PROTOCOL.NAND_X16
+                        Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X16
+                    Case MEM_PROTOCOL.FWH
+                        Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X8
+                    Case MEM_PROTOCOL.HYPERFLASH
+                        Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X16
+                    Case MEM_PROTOCOL.EPROM_X8
+                        Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X8
+                    Case MEM_PROTOCOL.EPROM_X16
+                        Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X16
+                End Select
                 Return True 'Communication successful
             Else
                 Return False
@@ -896,50 +857,22 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         End Try
     End Function
 
-    Private Function EXPIO_SETUP_READIDENT(ByVal mode As E_EXPIO_IDENT) As Boolean
+    Private Function EXPIO_SETUP_WRITEADDRESS(mode As E_EXPIO_WRADDR) As Boolean
         Try
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_IDENT, Nothing, mode)
-            Threading.Thread.Sleep(25)
+            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_ADDRESS, Nothing, mode)
+            Utilities.Sleep(10)
+            Me.CURRENT_ADDR_MODE = mode
             Return result
         Catch ex As Exception
             Return False
         End Try
     End Function
 
-    Public Function EXPIO_SETUP_WRITEADDRESS(ByVal mode As E_EXPIO_WRADDR) As Boolean
-        Try
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_MODE_ADDRESS, Nothing, mode)
-            CURRENT_ADDR_MODE = mode
-            Return result
-        Catch ex As Exception
-            Return False
-        End Try
-    End Function
-
-    Private Function EXPIO_SETUP_ERASESECTOR(ByVal mode As E_EXPIO_SECTOR) As Boolean
-        Try
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_MODE_ERSCR, Nothing, mode)
-            Threading.Thread.Sleep(25)
-            Return result
-        Catch ex As Exception
-            Return False
-        End Try
-    End Function
-
-    Private Function EXPIO_SETUP_CHIPERASE(ByVal mode As E_EXPIO_CHIPERASE) As Boolean
-        Try
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USB.USBREQ.EXPIO_MODE_ERCHP, Nothing, mode)
-            Threading.Thread.Sleep(25)
-            Return result
-        Catch ex As Exception
-            Return False
-        End Try
-    End Function
-
-    Private Function EXPIO_SETUP_WRITEDATA(ByVal mode As E_EXPIO_WRITEDATA) As Boolean
+    Private Function EXPIO_SETUP_WRITEDATA(mode As E_EXPIO_WRITEDATA) As Boolean
         Try
             Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_WRITE, Nothing, mode)
-            CURRENT_WRITE_MODE = mode
+            Utilities.Sleep(10)
+            Me.CURRENT_WRITE_MODE = mode
             Return result
         Catch ex As Exception
             Return False
@@ -1006,245 +939,402 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         If (MyFlashDevice.FLASH_TYPE = MemoryType.NAND) Then
         Else
             Select Case CURRENT_WRITE_MODE
-                Case E_EXPIO_WRITEDATA.Type1 '0x5555=0xAA;0x2AAA=0x55;0x5555=0xA0;SA=DATA;DELAY
-                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-1 (Byte Program)")
-                Case E_EXPIO_WRITEDATA.Type2 '0xAAA=0xAA;0x555=0x55;0xAAA=0xA0;SA=DATA;DELAY
-                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-2 (Word Program)")
-                Case E_EXPIO_WRITEDATA.Type3 '0x555=0xAA;0x2AA=0x55;0x555=0xA0,SA=DATA;DELAY
-                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-3 (Word Program)")
-                Case E_EXPIO_WRITEDATA.Type4 'SA=0x40;SA=DATA;SR.7
-                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-4 (Auto-Word Program)")
-                Case E_EXPIO_WRITEDATA.Type5 '0x555=0xAA;0x2AA=55;0x555=20;(0x00=0xA0;SA=DATA;...)0x00=0x90;0x00=0x00
-                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-5 (Bypass Mode)")
-                Case E_EXPIO_WRITEDATA.Type6 '0x5555,0x2AAA,0x5555;(BA/DATA)
-                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-6 (Page Write)")
-                Case E_EXPIO_WRITEDATA.Type7 '0xE8...0xD0
-                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-7 (Write-to-Buffer)")
-                Case E_EXPIO_WRITEDATA.Type8 '0x555=0xAA,0x2AA=0x55,SA=0x25,SA=(WC-1)..
-                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Type-8 (Write-to-Buffer)")
+                Case E_EXPIO_WRITEDATA.Standard  '0x5555=0xAA;0x2AAA=0x55;0x5555=0xA0;SA=DATA;DELAY
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Standard")
+                Case E_EXPIO_WRITEDATA.Intel 'SA=0x40;SA=DATA;SR.7
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Auto-Word Program")
+                Case E_EXPIO_WRITEDATA.Bypass '0x555=0xAA;0x2AA=55;0x555=20;(0x00=0xA0;SA=DATA;...)0x00=0x90;0x00=0x00
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Bypass Mode")
+                Case E_EXPIO_WRITEDATA.Page  '0x5555,0x2AAA,0x5555;(BA/DATA)
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Page Write")
+                Case E_EXPIO_WRITEDATA.Buffer_1  '0xE8...0xD0
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Buffer (Intel)")
+                Case E_EXPIO_WRITEDATA.Buffer_2 '0x555=0xAA,0x2AA=0x55,SA=0x25,SA=(WC-1)..
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": Buffer (Cypress)")
+                Case E_EXPIO_WRITEDATA.EPROM_X8
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": EPROM (8-bit)")
+                Case E_EXPIO_WRITEDATA.EPROM_X16
+                    RaiseEvent PrintConsole(RM.GetString("ext_write_mode_supported") & ": EPROM (16-bit)")
             End Select
         End If
     End Sub
 
 #End Region
 
-    Public Enum AdatperType As Byte
-        X8_Type1  'PLCC32/DIP32
-        X8_Type2 'TSOP48 X8 only device (i.e. SST39VF1681)
-        X16_Type1 'SO-44 X16 devices (legacy)
-        X16_Type2 'TSOP48 X16
-        X16_Type3 'TSOP56 28F (uses X8 addressing with X16 IO)
-        FWH 'Firmware Hub
-        NAND_X8 'X8 IO NAND
-        NAND_X16 'X16 IO NAND
-    End Enum
+#Region "PARALLEL NOR"
+    Private Property CURRENT_WRITE_MODE As E_EXPIO_WRITEDATA
+    Private Property CURRENT_SECTOR_ERASE As E_EXPIO_SECTOR
+    Private Property CURRENT_CHIP_ERASE As E_EXPIO_CHIPERASE
+    Private Property CURRENT_ADDR_MODE As E_EXPIO_WRADDR
 
-    Public Enum EXPIO_Mode
-        Setup = 0
-        NOR_x8 = 1
-        NOR_x16 = 2
-        NAND_x8 = 3
-        FWH = 4
-        HYPERFLASH = 5
-        NAND_x16 = 6
-    End Enum
+    Private Delegate Sub cfi_cmd_sub()
+
+    '0xAAA=0xAA;0x555=0x55;0xAAA=0x90; (X8/X16 DEVICES)
+    Private Function EXPIO_ReadIdent(X16_MODE As Boolean) As Byte()
+        Dim ident(7) As Byte
+        Dim SHIFT As UInt32 = 0
+        If X16_MODE Then SHIFT = 1
+        EXPIO_ResetDevice()
+        Utilities.Sleep(1)
+        WriteCommandData(&H5555, &HAA)
+        WriteCommandData(&H2AAA, &H55)
+        WriteCommandData(&H5555, &H90)
+        Utilities.Sleep(10)
+        ident(0) = CByte(ReadMemoryAddress(0) And &HFF)             'MFG
+        Dim ID1 As UInt16 = ReadMemoryAddress(1 << SHIFT)
+        If Not X16_MODE Then ID1 = (ID1 And &HFF)                   'X8 ID1
+        ident(1) = CByte((ID1 >> 8) And &HFF)                       'ID1(UPPER)
+        ident(2) = CByte(ID1 And &HFF)                              'ID1(LOWER)
+        ident(3) = CByte(ReadMemoryAddress(&HE << SHIFT) And &HFF)  'ID2
+        ident(4) = CByte(ReadMemoryAddress(&HF << SHIFT) And &HFF)  'ID3
+        EXPIO_ResetDevice()
+        Utilities.Sleep(1)
+        Me.CURRENT_SECTOR_ERASE = E_EXPIO_SECTOR.Standard
+        Me.CURRENT_CHIP_ERASE = E_EXPIO_CHIPERASE.Standard
+        Me.CURRENT_WRITE_MODE = E_EXPIO_WRITEDATA.Standard
+        Return ident
+    End Function
+    '(X8/X16 DEVICES)
+    Private Sub EXPIO_EraseSector_Standard(addr As UInt32)
+        'Write Unlock Cycles
+        WriteCommandData(&H5555, &HAA)
+        WriteCommandData(&H2AAA, &H55)
+        'Write Sector Erase Cycles
+        WriteCommandData(&H5555, &H80)
+        WriteCommandData(&H5555, &HAA)
+        WriteCommandData(&H2AAA, &H55)
+        WriteMemoryAddress(addr, &H30)
+    End Sub
+
+    Private Sub EXPIO_EraseSector_Intel(addr As UInt32)
+        WriteMemoryAddress(addr, &H50) 'clear register
+        WriteMemoryAddress(addr, &H60) 'Unlock block (just in case)
+        WriteMemoryAddress(addr, &HD0) 'Confirm Command
+        EXPIO_WAIT()
+        WriteMemoryAddress(addr, &H20)
+        WriteMemoryAddress(addr, &HD0)
+        EXPIO_WAIT()
+        WriteMemoryAddress(0, &HFF) 'Puts the device back into READ mode
+        WriteMemoryAddress(0, &HF0)
+    End Sub
+
+    Private Sub EXPIO_EraseChip_Standard()
+        WriteCommandData(&H5555, &HAA)
+        WriteCommandData(&H2AAA, &H55)
+        WriteCommandData(&H5555, &H80)
+        WriteCommandData(&H5555, &HAA)
+        WriteCommandData(&H2AAA, &H55)
+        WriteCommandData(&H5555, &H10)
+    End Sub
+
+    Private Sub EXPIO_EraseChip_Intel()
+        WriteMemoryAddress(&H0, &H30)
+        WriteMemoryAddress(&H0, &HD0)
+    End Sub
+
+    Private Sub EXPIO_ResetDevice()
+        WriteCommandData(&H5555, &HAA) 'Standard
+        WriteCommandData(&H2AAA, &H55)
+        WriteCommandData(&H5555, &HF0)
+        WriteCommandData(0, &HFF)
+        WriteCommandData(0, &HF0) 'Intel
+    End Sub
+
+    Private Sub EXPIO_EraseChip()
+        Select Case CURRENT_CHIP_ERASE
+            Case E_EXPIO_CHIPERASE.Standard
+                EXPIO_EraseChip_Standard()
+            Case E_EXPIO_CHIPERASE.Intel
+                EXPIO_EraseChip_Intel()
+        End Select
+    End Sub
+
+    Private Sub EXPIO_EraseSector(sector_addr As UInt32)
+        Select Case CURRENT_SECTOR_ERASE
+            Case E_EXPIO_SECTOR.Standard
+                EXPIO_EraseSector_Standard(sector_addr)
+            Case E_EXPIO_SECTOR.Intel
+                EXPIO_EraseSector_Intel(sector_addr)
+        End Select
+    End Sub
+
+    Private Function EXPIO_LoadCFI() As Boolean
+        Try
+            CFI_table = Nothing
+            If CFI_ExecuteCommand(Sub() WriteCommandData(&H55, &H98)) Then 'Issue Enter CFI command
+                WriteConsole("Common Flash Interface information present")
+                Return True
+            ElseIf CFI_ExecuteCommand(Sub()
+                                          WriteCommandData(&H5555, &HAA)
+                                          WriteCommandData(&H2AAA, &H55)
+                                          WriteCommandData(&H5555, &H98)
+                                      End Sub) Then
+                WriteConsole("Common Flash Interface information present")
+                Return True
+            Else
+                CFI_table = Nothing
+                WriteConsole("Common Flash Interface information not present")
+                Return False
+            End If
+        Catch ex As Exception
+        Finally
+            EXPIO_ResetDevice()
+            Utilities.Sleep(50)
+        End Try
+        Return False
+    End Function
+
+    Private Function CFI_ExecuteCommand(cfi_cmd As cfi_cmd_sub) As Boolean
+        cfi_cmd.Invoke()
+        ReDim CFI_table(31)
+        Dim SHIFT As UInt32 = 0
+        'If (Me.CURRENT_ADDR_MODE = E_EXPIO_WRADDR.Parallel_X16) Or (Me.CURRENT_ADDR_MODE = E_EXPIO_WRADDR.Parallel_CE_X16) Then SHIFT = 1
+        If Me.CURRENT_BUS_WIDTH = E_BUS_WIDTH.X16 Then SHIFT = 1
+        ReDim CFI_table(31)
+        For i = 0 To CFI_table.Length - 1
+            CFI_table(i) = CByte(ReadMemoryAddress((&H10 + i) << SHIFT) And 255)
+        Next
+        If CFI_table(0) = &H51 And CFI_table(1) = &H52 And CFI_table(2) = &H59 Then
+            Return True
+        End If
+        Return False
+    End Function
+
+    Private Sub EXPIO_WAIT()
+        Utilities.Sleep(10) 'Checks READ/BUSY# pin
+        FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WAIT)
+        FCUSB.USB_WaitForComplete() 'Checks for WAIT flag to clear
+    End Sub
+    'This is used to write data (8/16 bit) to the EXTIO IO (parallel NOR) port. CMD ADDRESS
+    Public Function WriteCommandData(cmd_addr As UInt32, cmd_data As UInt16) As Boolean
+        Dim addr_data(5) As Byte
+        addr_data(0) = CByte((cmd_addr >> 24) And 255)
+        addr_data(1) = CByte((cmd_addr >> 16) And 255)
+        addr_data(2) = CByte((cmd_addr >> 8) And 255)
+        addr_data(3) = CByte(cmd_addr And 255)
+        addr_data(4) = CByte((cmd_data >> 8) And 255)
+        addr_data(5) = CByte(cmd_data And 255)
+        Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRCMDDATA, addr_data)
+    End Function
+
+    Public Function WriteMemoryAddress(mem_addr As UInt32, mem_data As UInt16) As UInt16
+        Dim addr_data(5) As Byte
+        addr_data(0) = CByte((mem_addr >> 24) And 255)
+        addr_data(1) = CByte((mem_addr >> 16) And 255)
+        addr_data(2) = CByte((mem_addr >> 8) And 255)
+        addr_data(3) = CByte(mem_addr And 255)
+        addr_data(4) = CByte((mem_data >> 8) And 255)
+        addr_data(5) = CByte(mem_data And 255)
+        Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRMEMDATA, addr_data)
+    End Function
+
+    Public Function ReadMemoryAddress(mem_addr As UInt32) As UInt16
+        Dim data_out(1) As Byte
+        FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_RDMEMDATA, data_out, mem_addr)
+        Return (CUShort(data_out(1)) << 8) Or data_out(0)
+    End Function
+
+#End Region
+
+#Region "Detect Flash Device"
 
     Private Function DetectFlashDevice() As Boolean
         RaiseEvent PrintConsole(RM.GetString("ext_detecting_device")) 'Attempting to automatically detect Flash device
-        CHIPID_MFG = 0
-        CHIPID_PART = 0
         Dim LAST_DETECT As FlashDetectResult = Nothing
-        If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
-            Me.CHIPID_DETECT = DetectFlashByMode(AdatperType.NAND_X16)
-            If Me.CHIPID_DETECT.Successful Then
-                Dim d() As Device = FlashDatabase.FindDevices(Me.CHIPID_DETECT.MFG, Me.CHIPID_DETECT.ID1, Me.CHIPID_DETECT.ID2, MemoryType.NAND)
+        LAST_DETECT.MFG = 0
+        If (FCUSB.HWBOARD = FCUSB_BOARD.Mach1) Then
+            Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NAND_X16)
+            If Me.FLASH_IDENT.Successful Then
+                Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, Me.FLASH_IDENT.ID2, MemoryType.NAND)
                 If (d.Count > 0) Then
                     RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NAND X16"))
-                    CHIPID_MFG = Me.CHIPID_DETECT.MFG
-                    CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16) Or (Me.CHIPID_DETECT.ID2)
-                    MyAdapter = AdatperType.NAND_X8
+                    MyAdapter = MEM_PROTOCOL.NAND_X8
                     Return True
                 Else
-                    LAST_DETECT = Me.CHIPID_DETECT
+                    LAST_DETECT = Me.FLASH_IDENT
                 End If
             End If
         End If
-        Me.CHIPID_DETECT = DetectFlashByMode(AdatperType.NAND_X8)
-        If Me.CHIPID_DETECT.Successful Then
-            Dim d() As Device = FlashDatabase.FindDevices(Me.CHIPID_DETECT.MFG, Me.CHIPID_DETECT.ID1, Me.CHIPID_DETECT.ID2, MemoryType.NAND)
+        Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NAND_X8)
+        If Me.FLASH_IDENT.Successful Then
+            Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, Me.FLASH_IDENT.ID2, MemoryType.NAND)
             If (d.Count > 0) Then
                 RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NAND X8"))
-                CHIPID_MFG = Me.CHIPID_DETECT.MFG
-                CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16) Or (Me.CHIPID_DETECT.ID2)
-                MyAdapter = AdatperType.NAND_X8
+                MyAdapter = MEM_PROTOCOL.NAND_X8
                 Return True
             Else
-                LAST_DETECT = Me.CHIPID_DETECT
+                LAST_DETECT = Me.FLASH_IDENT
             End If
         End If
-        If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then Return False 'Mach1 can only detect NAND devices
-        Me.CHIPID_DETECT = DetectFlashByMode(AdatperType.X16_Type2) 'TSOP-48/56 devices
-        If Me.CHIPID_DETECT.Successful Then
-            Dim d() As Device = FlashDatabase.FindDevices(Me.CHIPID_DETECT.MFG, Me.CHIPID_DETECT.ID1, Me.CHIPID_DETECT.ID2, MemoryType.PARALLEL_NOR)
+        'REMOVE WHEN TESTED
+        If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then Return False
+        Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NOR_X16)
+        If Me.FLASH_IDENT.Successful Then
+            Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, Me.FLASH_IDENT.ID2, MemoryType.PARALLEL_NOR)
             If (d.Count > 0) AndAlso IsIFACE16X(DirectCast(d(0), P_NOR).IFACE) Then
-                RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X16 (Type-2)"))
-                CHIPID_MFG = Me.CHIPID_DETECT.MFG
-                CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16) Or (Me.CHIPID_DETECT.ID2)
-                MyAdapter = AdatperType.X16_Type2
+                RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X16 (Word addressing)"))
+                MyAdapter = MEM_PROTOCOL.NOR_X16
                 Return True
             Else
-                LAST_DETECT = Me.CHIPID_DETECT
+                LAST_DETECT = Me.FLASH_IDENT
             End If
         End If
-        Me.CHIPID_DETECT = DetectFlashByMode(AdatperType.X16_Type1) 'Legacy SO-44 devices
-        If Me.CHIPID_DETECT.Successful Then
-            Dim d() As Device = FlashDatabase.FindDevices(Me.CHIPID_DETECT.MFG, Me.CHIPID_DETECT.ID1, 0, MemoryType.PARALLEL_NOR)
-            If (d.Count > 0) AndAlso IsIFACE16X(DirectCast(d(0), P_NOR).IFACE) Then
-                RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X16 (Type-1)"))
-                CHIPID_MFG = Me.CHIPID_DETECT.MFG
-                CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16)
-                MyAdapter = AdatperType.X16_Type1
-                Return True
-            Else
-                LAST_DETECT = Me.CHIPID_DETECT
-            End If
-        End If
-        If (FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB2) Then 'XPORT PCB 1.x does not need this
-            Me.CHIPID_DETECT = DetectFlashByMode(AdatperType.X16_Type3) 'TSOP56 28F devices
-            If Me.CHIPID_DETECT.Successful Then
-                Dim d() As Device = FlashDatabase.FindDevices(Me.CHIPID_DETECT.MFG, Me.CHIPID_DETECT.ID1, 0, MemoryType.PARALLEL_NOR)
+        If Not FCUSB.HWBOARD = FCUSB_BOARD.XPORT_PCB1 Then
+            Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NOR_X16_X8)
+            If Me.FLASH_IDENT.Successful Then
+                Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, 0, MemoryType.PARALLEL_NOR)
                 If (d.Count > 0) AndAlso IsIFACE16X(DirectCast(d(0), P_NOR).IFACE) Then
-                    RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X16 (Type-3)"))
-                    CHIPID_MFG = Me.CHIPID_DETECT.MFG
-                    CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16)
-                    MyAdapter = AdatperType.X16_Type3
+                    RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X16 (Byte addressing)"))
+                    MyAdapter = MEM_PROTOCOL.NOR_X16
                     Return True
                 Else
-                    LAST_DETECT = Me.CHIPID_DETECT
+                    LAST_DETECT = Me.FLASH_IDENT
                 End If
             End If
         End If
-        Me.CHIPID_DETECT = DetectFlashByMode(AdatperType.X8_Type1) 'PLCC32/DIP32
-        If Me.CHIPID_DETECT.Successful Then
-            Dim d() As Device = FlashDatabase.FindDevices(Me.CHIPID_DETECT.MFG, Me.CHIPID_DETECT.ID1, 0, MemoryType.PARALLEL_NOR)
+        Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.NOR_X8)
+        If Me.FLASH_IDENT.Successful Then
+            Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, 0, MemoryType.PARALLEL_NOR)
             If (d.Count > 0) AndAlso IsIFACE8X(DirectCast(d(0), P_NOR).IFACE) Then
-                RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X8 (Type-1)"))
-                CHIPID_MFG = Me.CHIPID_DETECT.MFG
-                CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16)
-                MyAdapter = AdatperType.X8_Type1
+                RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X8"))
+                MyAdapter = MEM_PROTOCOL.NOR_X8
                 Return True
             Else
-                LAST_DETECT = Me.CHIPID_DETECT
+                LAST_DETECT = Me.FLASH_IDENT
             End If
         End If
-        Me.CHIPID_DETECT = DetectFlashByMode(AdatperType.X8_Type2) 'TSOP48 (X8)
-        If Me.CHIPID_DETECT.Successful Then
-            Dim d() As Device = FlashDatabase.FindDevices(Me.CHIPID_DETECT.MFG, Me.CHIPID_DETECT.ID1, 0, MemoryType.PARALLEL_NOR)
-            If (d.Count > 0) AndAlso IsIFACE8X(DirectCast(d(0), P_NOR).IFACE) Then
-                RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "NOR X8 (Type-2)"))
-                CHIPID_MFG = Me.CHIPID_DETECT.MFG
-                CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16)
-                MyAdapter = AdatperType.X8_Type2
-                Return True
-            Else
-                LAST_DETECT = Me.CHIPID_DETECT
-            End If
-        End If
-        Me.CHIPID_DETECT = DetectFlashByMode(AdatperType.FWH)
-        If Me.CHIPID_DETECT.Successful Then
-            Dim d() As Device = FlashDatabase.FindDevices(Me.CHIPID_DETECT.MFG, Me.CHIPID_DETECT.ID1, 0, MemoryType.FWH_NOR)
+        Me.FLASH_IDENT = DetectFlash(MEM_PROTOCOL.FWH)
+        If Me.FLASH_IDENT.Successful Then
+            Dim d() As Device = FlashDatabase.FindDevices(Me.FLASH_IDENT.MFG, Me.FLASH_IDENT.ID1, 0, MemoryType.FWH_NOR)
             If (d.Count > 0) Then
                 RaiseEvent PrintConsole(String.Format(RM.GetString("ext_device_detected"), "FWH"))
-                CHIPID_MFG = Me.CHIPID_DETECT.MFG
-                CHIPID_PART = (CUInt(Me.CHIPID_DETECT.ID1) << 16)
-                MyAdapter = AdatperType.FWH
+                MyAdapter = MEM_PROTOCOL.FWH
                 Return True
             Else
-                LAST_DETECT = Me.CHIPID_DETECT
+                LAST_DETECT = Me.FLASH_IDENT
             End If
         End If
-        If (LAST_DETECT IsNot Nothing) Then
-            Me.CHIPID_DETECT = LAST_DETECT
-            CHIPID_MFG = LAST_DETECT.MFG
-            CHIPID_PART = (CUInt(LAST_DETECT.ID1) << 16) Or (LAST_DETECT.ID2)
+        If (Not LAST_DETECT.MFG = 0) Then
+            Me.FLASH_IDENT = LAST_DETECT
             Return True 'Found, but not in library
         End If
         Return False 'No devices detected
     End Function
 
-    Private Function DetectFlashByMode(mode As AdatperType) As FlashDetectResult
+    Private Function DetectFlash(mode As MEM_PROTOCOL) As FlashDetectResult
         Dim mode_name As String = ""
+        Dim ident_data(7) As Byte '8 bytes total
+        Dim result As FlashDetectResult
         Select Case mode
-            Case AdatperType.X8_Type1
-                mode_name = "NOR X8 (Type-1)"
-                EXPIO_SETUP_USB(EXPIO_Mode.NOR_x8)
-                EXPIO_SETUP_READIDENT(E_EXPIO_IDENT.Type1) '(0x5555=0xAA;0x2AAA=0x55;0x5555=0x90)
-                Me.CURRENT_ADDR_MODE = E_EXPIO_WRADDR.Parallel
-            Case AdatperType.X8_Type2 'TSOP48 (X8)
-                mode_name = "NOR X8 (Type-2)"
-                EXPIO_SETUP_USB(EXPIO_Mode.NOR_x8)
-                EXPIO_SETUP_READIDENT(E_EXPIO_IDENT.Type3) '(0x555=0xAA;2AA=0x55;0x555=0x90)
-                EXPIO_SETUP_WRITEADDRESS(E_EXPIO_WRADDR.Parallel_A1)
-                Me.CURRENT_ADDR_MODE = E_EXPIO_WRADDR.Parallel_A1
-            Case AdatperType.X16_Type1
-                mode_name = "NOR X16 (Type-1)"
-                EXPIO_SETUP_USB(EXPIO_Mode.NOR_x16)
-                EXPIO_SETUP_READIDENT(E_EXPIO_IDENT.Type1) '(0x5555=0xAA;0x2AAA=0x55;0x5555=0x90)
-                Me.CURRENT_ADDR_MODE = E_EXPIO_WRADDR.Parallel
-            Case AdatperType.X16_Type2
-                mode_name = "NOR X16 (Type-2)"
-                EXPIO_SETUP_USB(EXPIO_Mode.NOR_x16)
-                EXPIO_SETUP_READIDENT(E_EXPIO_IDENT.Type2) '(0x555=0xAA;2AA=0x55;0x555=0x90)
-                Me.CURRENT_ADDR_MODE = E_EXPIO_WRADDR.Parallel
-            Case AdatperType.X16_Type3
-                mode_name = "NOR X16 (Type-3)"
-                EXPIO_SETUP_USB(EXPIO_Mode.NOR_x16)
-                EXPIO_SETUP_READIDENT(E_EXPIO_IDENT.Type2) '(0x555=0xAA;2AA=0x55;0x555=0x90)
-                EXPIO_SETUP_WRITEADDRESS(E_EXPIO_WRADDR.Parallel_X16)
-                Me.CURRENT_ADDR_MODE = E_EXPIO_WRADDR.Parallel_X16
-            Case AdatperType.FWH
+            Case MEM_PROTOCOL.NOR_X16
+                mode_name = "NOR X16 (Word addressing)"
+                result = EXPIO_DetectX16()
+            Case MEM_PROTOCOL.NOR_X16_X8
+                mode_name = "NOR X16 (Byte addressing)"
+                result = EXPIO_DetectX16_X8()
+            Case MEM_PROTOCOL.NOR_X8
+                mode_name = "NOR X8"
+                result = EXPIO_DetectX8()
+            Case MEM_PROTOCOL.FWH
                 mode_name = "FWH"
-                EXPIO_SETUP_USB(EXPIO_Mode.FWH)
-            Case AdatperType.NAND_X8
+                result = EXPIO_DetectFWH()
+            Case MEM_PROTOCOL.NAND_X8
                 mode_name = "NAND X8"
-                EXPIO_SETUP_USB(EXPIO_Mode.NAND_x8)
-            Case AdatperType.NAND_X16
+                EXPIO_SETUP_USB(MEM_PROTOCOL.NAND_X8)
+                result = EXPIO_DetectNAND()
+            Case MEM_PROTOCOL.NAND_X16
                 mode_name = "NAND X16"
-                EXPIO_SETUP_USB(EXPIO_Mode.NAND_x16)
+                EXPIO_SETUP_USB(MEM_PROTOCOL.NAND_X16)
+                result = EXPIO_DetectNAND()
         End Select
-        Threading.Thread.Sleep(20) 'Delay
-        Dim result As FlashDetectResult = DetectFlash()
-        Dim part As UInt32 = (CUInt(result.ID1) << 16) Or (result.ID2)
-        Dim chip_id_str As String = Hex(result.MFG).PadLeft(2, "0") & Hex(part).PadLeft(8, "0")
-        RaiseEvent PrintConsole("Mode " & mode_name & " returned ident code: 0x" & chip_id_str)
+        If result.Successful Then
+            Dim part As UInt32 = (CUInt(result.ID1) << 16) Or (result.ID2)
+            Dim chip_id_str As String = Hex(result.MFG).PadLeft(2, "0") & Hex(part).PadLeft(8, "0")
+            RaiseEvent PrintConsole("Mode " & mode_name & " returned ident code: 0x" & chip_id_str)
+        End If
         Return result
     End Function
-    'contains AutoSelect Device ID and some CFI-ID space
-    Public Class FlashDetectResult
-        Public Successful As Boolean
-        Public MFG As Byte   '0
-        Public ID1 As UInt16 '1 2
-        Public ID2 As UInt16 '3 4
-        Public BOOT_LOCK As Byte  '5
-        Public SUPPORTED As Byte '6
-        Public CFI_MULTI As Byte '7 'Max. number of bytes supported per write operation
-    End Class
 
-    Private Sub SetupFlashDevice()
+    Private Function EXPIO_DetectX16() As FlashDetectResult
+        Dim ident_data() As Byte = Nothing
+        Dim devices() As Device = Nothing
+        EXPIO_SETUP_USB(MEM_PROTOCOL.NOR_X16)
+        ident_data = EXPIO_ReadIdent(True)
+        Return GetFlashResult(ident_data)
+    End Function
+
+    Private Function EXPIO_DetectX16_X8() As FlashDetectResult
+        Dim ident_data() As Byte = Nothing
+        Dim devices() As Device = Nothing
+        EXPIO_SETUP_USB(MEM_PROTOCOL.NOR_X16_X8)
+        ident_data = EXPIO_ReadIdent(True)
+        Return GetFlashResult(ident_data)
+    End Function
+
+    Private Function EXPIO_DetectX8() As FlashDetectResult
+        Dim ident_data() As Byte = Nothing
+        Dim devices() As Device = Nothing
+        EXPIO_SETUP_USB(MEM_PROTOCOL.NOR_X8)
+        ident_data = EXPIO_ReadIdent(False)
+        Return GetFlashResult(ident_data)
+    End Function
+
+    Private Function EXPIO_DetectFWH() As FlashDetectResult
+        Dim ident_data(7) As Byte
+        EXPIO_SETUP_USB(MEM_PROTOCOL.FWH)
+        FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_RDID, ident_data)
+        Return GetFlashResult(ident_data)
+    End Function
+
+    Private Function EXPIO_DetectNAND() As FlashDetectResult
+        Dim ident_data(7) As Byte
+        FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_RDID, ident_data)
+        Return GetFlashResult(ident_data)
+    End Function
+    'contains AutoSelect Device ID and some CFI-ID space
+    Public Structure FlashDetectResult
+        Public Property Successful As Boolean
+        Public Property MFG As Byte
+        Public Property ID1 As UInt16
+        Public Property ID2 As UInt16
+        Public Property CFI_MULTI As Byte 'Number of bytes in page programming mode
+
+        Public ReadOnly Property PART As UInt32
+            Get
+                Return (CUInt(Me.ID1) << 16) Or (Me.ID2)
+            End Get
+        End Property
+
+    End Structure
+
+    Private Function GetFlashResult(ident_data() As Byte) As FlashDetectResult
+        Dim result As New FlashDetectResult
+        result.Successful = False
+        If ident_data Is Nothing Then Return result
+        If ident_data(0) = 0 AndAlso ident_data(2) = 0 Then Return result '0x0000
+        If ident_data(0) = &H90 AndAlso ident_data(2) = &H90 Then Return result '0x9090 
+        If ident_data(0) = &H90 AndAlso ident_data(2) = 0 Then Return result '0x9000 
+        If ident_data(0) = &HFF AndAlso ident_data(2) = &HFF Then Return result '0xFFFF 
+        If ident_data(0) = &HFF AndAlso ident_data(2) = 0 Then Return result '0xFF00
+        If ident_data(0) = &H1 AndAlso ident_data(1) = 0 AndAlso ident_data(2) = &H1 AndAlso ident_data(3) = 0 Then Return result '0x01000100
+        If Array.TrueForAll(ident_data, Function(a) a.Equals(ident_data(0))) Then Return result 'If all bytes are the same
+        result.MFG = ident_data(0)
+        result.ID1 = (CUInt(ident_data(1)) << 8) Or CUInt(ident_data(2))
+        result.ID2 = (CUInt(ident_data(3)) << 8) Or CUInt(ident_data(4))
+        If result.ID1 = 0 AndAlso result.ID2 = 0 Then Return result
+        result.Successful = True
+        Return result
+    End Function
+
+#End Region
+
+    Private Sub PrintDeviceInterface()
         If (MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR) Or (MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM) Then
             Select Case DirectCast(MyFlashDevice, P_NOR).IFACE
                 Case VCC_IF.X8_3V
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X8 (3V)")
-                    If MyAdapter = AdatperType.X16_Type1 Or MyAdapter = AdatperType.X16_Type2 Then
-                        DetectFlashByMode(AdatperType.X8_Type2)
-                        MyAdapter = AdatperType.X8_Type2
-                    End If
                 Case VCC_IF.X8_5V
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X8 (5V)")
-                    If MyAdapter = AdatperType.X16_Type1 Or MyAdapter = AdatperType.X16_Type2 Then
-                        DetectFlashByMode(AdatperType.X8_Type2)
-                        MyAdapter = AdatperType.X8_Type2
-                    End If
                 Case VCC_IF.X8_5V_12VPP
                     RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR X16 (5V/12V VPP)")
                 Case VCC_IF.X16_3V
@@ -1258,32 +1348,6 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
             RaiseEvent PrintConsole(RM.GetString("ext_device_interface") & ": NOR (FWH)")
         End If
     End Sub
-
-    Private Function DetectFlash() As FlashDetectResult
-        Dim result As New FlashDetectResult
-        result.Successful = False
-        Try
-            Dim ident_data(7) As Byte 'Contains 8 bytes
-            If Not FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_RDID, ident_data) Then Return result
-            If ident_data(0) = 0 AndAlso ident_data(2) = 0 Then Return result '0x0000
-            If ident_data(0) = &H90 AndAlso ident_data(2) = &H90 Then Return result '0x9090 
-            If ident_data(0) = &H90 AndAlso ident_data(2) = 0 Then Return result '0x9000 
-            If ident_data(0) = &HFF AndAlso ident_data(2) = &HFF Then Return result '0xFFFF 
-            If ident_data(0) = &HFF AndAlso ident_data(2) = 0 Then Return result '0xFF00
-            If ident_data(0) = &H1 AndAlso ident_data(1) = 0 AndAlso ident_data(2) = &H1 AndAlso ident_data(3) = 0 Then Return result '0x01000100
-            If Array.TrueForAll(ident_data, Function(a) a.Equals(ident_data(0))) Then Return result 'If all bytes are the same
-            result.MFG = ident_data(0)
-            result.ID1 = (CUInt(ident_data(1)) << 8) Or CUInt(ident_data(2))
-            result.ID2 = (CUInt(ident_data(3)) << 8) Or CUInt(ident_data(4))
-            If result.ID1 = 0 AndAlso result.ID2 = 0 Then Return result
-            result.BOOT_LOCK = ident_data(5)
-            result.SUPPORTED = ident_data(6)
-            result.CFI_MULTI = ident_data(7)
-            result.Successful = True
-        Catch ex As Exception
-        End Try
-        Return result
-    End Function
 
     Private Function IsIFACE8X(input As VCC_IF) As Boolean
         Select Case input
@@ -1311,35 +1375,19 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         End Select
     End Function
 
-    Private Function IsFlashX8Mode() As Boolean
-        Select Case MyAdapter
-            Case AdatperType.X8_Type1
-                Return True
-            Case AdatperType.X8_Type2
-                Return True
-            Case AdatperType.FWH
-                Return True
-            Case Else
-                Return False
-        End Select
-    End Function
-
     Public Function ResetDevice() As Boolean
         Try
             If MyFlashDevice.FLASH_TYPE = MemoryType.PARALLEL_NOR Then
-                Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_RESET)
-                Utilities.Sleep(50)
-                Return result
+                EXPIO_ResetDevice()
             ElseIf MyFlashDevice.FLASH_TYPE = MemoryType.OTP_EPROM Then
-                Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_RESET)
-                Utilities.Sleep(50)
-                Return result
-            Else
-                Return True 'Device does not have RESET mode
+                EXPIO_ResetDevice()
             End If
         Catch ex As Exception
             Return False
+        Finally
+            Utilities.Sleep(50)
         End Try
+        Return True
     End Function
 
     Private Function GetSetupPacket_NAND(page_addr As UInt32, page_offset As UInt16, transfer_size As UInt32, area As FlashArea) As Byte()
@@ -1384,35 +1432,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Return setup_data
     End Function
 
-    Private Function GetSetupPacket_NAND_debug(page_addr As UInt32, page_offset As UInt16, transfer_size As UInt32, area As FlashArea) As Byte()
-        Dim TX_NAND_ADDRSIZE As Byte = 4
-        Dim TX_OOB_SIZE As UInt16 = 64
-        Dim TX_MAIN_SIZE As UInt16 = 2048
-        Dim setup_data(19) As Byte '18 bytes total
-        setup_data(0) = CByte(page_addr And 255)
-        setup_data(1) = CByte((page_addr >> 8) And 255)
-        setup_data(2) = CByte((page_addr >> 16) And 255)
-        setup_data(3) = CByte((page_addr >> 24) And 255)
-        setup_data(4) = CByte(transfer_size And 255)
-        setup_data(5) = CByte((transfer_size >> 8) And 255)
-        setup_data(6) = CByte((transfer_size >> 16) And 255)
-        setup_data(7) = CByte((transfer_size >> 24) And 255)
-        setup_data(8) = CByte(page_offset And 255)
-        setup_data(9) = CByte((page_offset >> 8) And 255)
-        setup_data(10) = CByte(TX_MAIN_SIZE And 255)
-        setup_data(11) = CByte((TX_MAIN_SIZE >> 8) And 255)
-        setup_data(12) = CByte(TX_OOB_SIZE And 255)
-        setup_data(13) = CByte((TX_OOB_SIZE >> 8) And 255)
-        setup_data(14) = CByte(TX_MAIN_SIZE And 255)
-        setup_data(15) = CByte((TX_MAIN_SIZE >> 8) And 255)
-        setup_data(16) = CByte(TX_OOB_SIZE And 255)
-        setup_data(17) = CByte((TX_OOB_SIZE >> 8) And 255)
-        setup_data(18) = TX_NAND_ADDRSIZE
-        setup_data(19) = area 'Area (0=main,1=spare,2=all), note: all ignores layout settings
-        Return setup_data
-    End Function
-
-    Private Function GetSetupPacket_NOR(ByVal Address As UInt32, ByVal Count As UInt32, ByVal PageSize As UInt16) As Byte()
+    Private Function GetSetupPacket_NOR(Address As UInt32, Count As UInt32, PageSize As UInt16) As Byte()
         Dim addr_bytes As Byte = 0
         Dim data_in(19) As Byte '18 bytes total
         data_in(0) = CByte(Address And 255)
@@ -1428,7 +1448,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         Return data_in
     End Function
 
-    Private Function BlankCheck(ByVal base_addr As UInt32) As Boolean
+    Private Function BlankCheck(base_addr As UInt32) As Boolean
         Try
             Dim IsBlank As Boolean = False
             Dim Counter As Integer = 0
@@ -1451,7 +1471,7 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
             Dim read_count As UInt32 = count
             Dim addr_offset As Boolean = False
             Dim count_offset As Boolean = False
-            If (Not IsFlashX8Mode()) Then 'We are using x16 mode, we need to read from low addresses only
+            If Not (MyAdapter = MEM_PROTOCOL.NOR_X8 OrElse MyAdapter = MEM_PROTOCOL.FWH) Then
                 If (address Mod 2 = 1) Then
                     addr_offset = True
                     address = (address - 1)
@@ -1577,21 +1597,48 @@ Public Class PARALLEL_NOR_NAND : Implements MemoryDeviceUSB
         End Try
         Return False
     End Function
-    'This is used to write data (8/16 bit) to the EXTIO IO (parallel NOR) port.
-    Public Function WriteAddressData(addr As UInt32, data As UInt16)
-        Dim addr_data(5) As Byte
-        addr_data(0) = CByte((addr >> 24) And 255)
-        addr_data(1) = CByte((addr >> 16) And 255)
-        addr_data(2) = CByte((addr >> 8) And 255)
-        addr_data(3) = CByte(addr And 255)
-        addr_data(4) = CByte((data >> 8) And 255)
-        addr_data(5) = CByte(data And 255)
-        Return FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_WRADRDATA, addr_data)
-    End Function
 
     Public Sub HardwareControl(cmd As EXPIO_CTRL)
         FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_CTRL, Nothing, cmd)
+        Utilities.Sleep(10)
     End Sub
+
+    Public Sub PARALLEL_PORT_TEST()
+        SetStatus("Performing parallel I/O output test")
+        EXPIO_SETUP_USB(MEM_PROTOCOL.NOR_X16)
+        WriteCommandData(0, 0)
+        Utilities.Sleep(500)
+        HardwareControl(EXPIO_CTRL.VPP_5V)
+        Utilities.Sleep(300)
+        HardwareControl(EXPIO_CTRL.VPP_0V)
+        For i = 0 To 15
+            WriteCommandData(0, 1 << i)
+            Utilities.Sleep(300)
+        Next
+        WriteCommandData(0, 0)
+        HardwareControl(EXPIO_CTRL.OE_LOW)
+        HardwareControl(EXPIO_CTRL.CE_LOW)
+        HardwareControl(EXPIO_CTRL.WE_LOW)
+        Utilities.Sleep(300)
+        HardwareControl(EXPIO_CTRL.OE_HIGH)
+        Utilities.Sleep(300)
+        HardwareControl(EXPIO_CTRL.OE_LOW)
+        HardwareControl(EXPIO_CTRL.WE_HIGH)
+        Utilities.Sleep(300)
+        HardwareControl(EXPIO_CTRL.WE_LOW)
+        HardwareControl(EXPIO_CTRL.CE_HIGH)
+        Utilities.Sleep(300)
+        HardwareControl(EXPIO_CTRL.CE_LOW)
+        Utilities.Sleep(300)
+
+        For i = 0 To 27
+            WriteCommandData(1 << i, 0)
+            Utilities.Sleep(300)
+        Next
+        WriteCommandData(0, 0)
+        SetStatus("Parallel I/O output test complete")
+    End Sub
+
 
 
 End Class

@@ -219,7 +219,7 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="NAND_Block_Manager.vb" />
-    <Compile Include="SQI.vb" />
+    <Compile Include="SPI_QUAD.vb" />
     <Compile Include="SSPIEm_DLL.vb" />
     <Compile Include="SWI.vb" />
     <Compile Include="vendor\vendor_microchip_at21.Designer.vb">
@@ -247,8 +247,8 @@
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="ScriptEng.vb" />
-    <Compile Include="SPI.vb" />
-    <Compile Include="SERIAL_NAND.vb" />
+    <Compile Include="SPI_NOR.vb" />
+    <Compile Include="SPI_NAND.vb" />
     <Compile Include="USB.vb" />
     <Compile Include="Utilities.vb" />
   </ItemGroup>

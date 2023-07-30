@@ -13,7 +13,8 @@ Public Class DFU_API
     Private Const USB_PID_AT90USB162 As Integer = &H2FFA 'FCUSB PCB 1.x
     Private Const USB_PID_AT90USB1287 As Integer = &H2FFB 'FCUSB EX (PROTO)
     Private Const USB_PID_AT90USB646 As Integer = &H2FF9 'FCUSB EX (PRODUCTION)
-    Private Const USB_PID_ATMEGA32U2 As Integer = &H2FF0 'FCUSB PCB 2.x
+    Private Const USB_PID_ATMEGA32U2 As Integer = &H2FF0 'FCUSB PCB 2.2
+    Private Const USB_PID_ATMEGA32U4 As Integer = &H2FF4 'FCUSB PCB 2.3
 
     Sub New(ByVal parent_if As FCUSB_DEVICE)
         FCUSB = parent_if
@@ -100,7 +101,7 @@ Public Class DFU_API
                 Return 122880'(120KB data, 8KB bootloader)
             Case USB_PID_AT90USB646 '0x0000 - 0x77FF WORD
                 Return 61440 '(60KB, 4KB bootloader)
-            Case USB_PID_ATMEGA32U2
+            Case USB_PID_ATMEGA32U2, USB_PID_ATMEGA32U4
                 Return 28672 '0 to 0x2FFF (32KB total, 4KB bootloader)
             Case Else
                 Return 0
@@ -115,7 +116,7 @@ Public Class DFU_API
                 Return 8192 '(8KB total)
             Case USB_PID_AT90USB646
                 Return 4096 '(4KB total)
-            Case USB_PID_ATMEGA32U2
+            Case USB_PID_ATMEGA32U2, USB_PID_ATMEGA32U4
                 Return 4096 '(4KB total)
             Case Else
                 Return 0

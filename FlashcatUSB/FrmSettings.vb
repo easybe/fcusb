@@ -134,27 +134,6 @@ Public Class FrmSettings
                 cb_sym_width.SelectedIndex = 1
         End Select
         ECC_CheckIfEnabled()
-        Dim otp_index As Integer = 0
-        Dim otp_counter As Integer = 1
-        cb_otp_device_list.Items.Add("(Not Selected)")
-        Dim d() As FlashMemory.Device = FlashDatabase.GetFlashDevices(FlashMemory.MemoryType.OTP_EPROM)
-        For Each mem In d
-            Dim o As FlashMemory.OTP_EPROM = DirectCast(mem, FlashMemory.OTP_EPROM)
-            otp_devices.Add(o)
-            Dim size_str As String
-            If (o.FLASH_SIZE < 131072) Then
-                size_str = (o.FLASH_SIZE / 128).ToString & "Kbit"
-            Else
-                size_str = (o.FLASH_SIZE / 131072).ToString & "Mbit"
-            End If
-            Dim list_str As String = o.NAME & " (" & size_str & ")"
-            cb_otp_device_list.Items.Add(list_str)
-            If o.MFG_CODE = MySettings.OTP_MFG AndAlso o.ID1 = MySettings.OTP_ID Then
-                otp_index = otp_counter
-            End If
-            otp_counter += 1
-        Next
-        cb_otp_device_list.SelectedIndex = otp_index
         cb_s93_devices.SelectedIndex = MySettings.S93_DEVICE_INDEX
         cb_s93_org.SelectedIndex = MySettings.S93_DEVICE_ORG
         cb_retry_write.SelectedIndex = (MySettings.VERIFY_COUNT - 1)
@@ -320,15 +299,6 @@ Public Class FrmSettings
                 MySettings.ECC_SymWidth = 9
             Case 1
                 MySettings.ECC_SymWidth = 10
-        End Select
-        Select Case cb_otp_device_list.SelectedIndex
-            Case 0
-                MySettings.OTP_MFG = 0
-                MySettings.OTP_ID = 0
-            Case Else
-                Dim o As FlashMemory.OTP_EPROM = otp_devices(cb_otp_device_list.SelectedIndex - 1)
-                MySettings.OTP_MFG = o.MFG_CODE
-                MySettings.OTP_ID = o.ID1
         End Select
         MySettings.VERIFY_COUNT = cb_retry_write.SelectedIndex + 1
         MySettings.S93_DEVICE_INDEX = cb_s93_devices.SelectedIndex
@@ -918,7 +888,6 @@ Public Class FrmSettings
         End Try
         txt_ecc_location.Text = "0x" & Hex(MySettings.ECC_Location).PadLeft(2, "0")
     End Sub
-
 
 
 

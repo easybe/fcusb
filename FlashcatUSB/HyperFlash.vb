@@ -18,10 +18,7 @@ Public Class HF_Port : Implements MemoryDeviceUSB
     Public Function DeviceInit() As Boolean Implements MemoryDeviceUSB.DeviceInit
         FCUSB.USB_VCC_OFF()
         MyFlashDevice = Nothing
-        EXPIO_SETUP_USB(EXPIO_Mode.HYPERFLASH)
-        EXPIO_SETUP_READIDENT(E_EXPIO_IDENT.HF)
-        EXPIO_SETUP_CHIPERASE(E_EXPIO_CHIPERASE.HF)
-        EXPIO_SETUP_ERASESECTOR(E_EXPIO_SECTOR.HF)
+        EXPIO_SETUP_USB(MEM_PROTOCOL.HYPERFLASH)
         If MySettings.VOLT_SELECT = Voltage.V1_8 Then
             FCUSB.USB_VCC_1V8()
         ElseIf MySettings.VOLT_SELECT = Voltage.V3_3 Then
@@ -74,7 +71,7 @@ Public Class HF_Port : Implements MemoryDeviceUSB
         Return ReadBulk_NOR(logical_address, data_count)
     End Function
 
-    Public Function SectorErase(ByVal sector_index As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.SectorErase
+    Public Function SectorErase(sector_index As UInt32, Optional memory_area As FlashArea = FlashArea.Main) As Boolean Implements MemoryDeviceUSB.SectorErase
         Try
             If sector_index = 0 AndAlso SectorSize(0) = MyFlashDevice.FLASH_SIZE Then
                 Return EraseDevice() 'Single sector, must do a full chip erase instead
@@ -88,8 +85,7 @@ Public Class HF_Port : Implements MemoryDeviceUSB
                 End If
                 Dim Result As Boolean = False
                 Try
-                    Dim setup_data() As Byte = GetSetupPacket(Logical_Address, 0, 0)
-                    Result = FCUSB.USB_SETUP_BULKOUT(USBREQ.EXPIO_SECTORERASE, setup_data, Nothing, 0)
+                    Result = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_SECTORERASE, Nothing, Logical_Address)
                 Catch ex As Exception
                 End Try
                 If Not Result Then Return False
@@ -184,7 +180,7 @@ Public Class HF_Port : Implements MemoryDeviceUSB
         Return False
     End Function
 
-    Friend ReadOnly Property SectorSize(ByVal sector As UInt32, Optional ByVal memory_area As FlashArea = FlashArea.Main) As UInt32 Implements MemoryDeviceUSB.SectorSize
+    Friend ReadOnly Property SectorSize(sector As UInt32, Optional memory_area As FlashArea = FlashArea.Main) As UInt32 Implements MemoryDeviceUSB.SectorSize
         Get
             Return MyFlashDevice.SECTOR_SIZE
         End Get
@@ -194,45 +190,14 @@ Public Class HF_Port : Implements MemoryDeviceUSB
 
 #Region "EXPIO_SETUP"
 
-    Private Function EXPIO_SETUP_USB(ByVal mode As EXPIO_Mode) As Boolean
+    Private Function EXPIO_SETUP_USB(mode As MEM_PROTOCOL) As Boolean
         Try
             Dim result_data(0) As Byte
-            Dim setup_data As UInt32 = mode Or (10 << 16)
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_INIT, result_data, setup_data)
+            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_IN(USBREQ.EXPIO_INIT, result_data, mode Or (10 << 16))
             Return result
         Catch ex As Exception
         End Try
         Return False
-    End Function
-
-    Private Function EXPIO_SETUP_READIDENT(ByVal mode As E_EXPIO_IDENT) As Boolean
-        Try
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_IDENT, Nothing, mode)
-            Threading.Thread.Sleep(25)
-            Return result
-        Catch ex As Exception
-            Return False
-        End Try
-    End Function
-
-    Private Function EXPIO_SETUP_CHIPERASE(ByVal mode As E_EXPIO_CHIPERASE) As Boolean
-        Try
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_ERCHP, Nothing, mode)
-            Threading.Thread.Sleep(25)
-            Return result
-        Catch ex As Exception
-            Return False
-        End Try
-    End Function
-
-    Private Function EXPIO_SETUP_ERASESECTOR(ByVal mode As E_EXPIO_SECTOR) As Boolean
-        Try
-            Dim result As Boolean = FCUSB.USB_CONTROL_MSG_OUT(USBREQ.EXPIO_MODE_ERSCR, Nothing, mode)
-            Threading.Thread.Sleep(25)
-            Return result
-        Catch ex As Exception
-            Return False
-        End Try
     End Function
 
 #End Region
@@ -253,9 +218,6 @@ Public Class HF_Port : Implements MemoryDeviceUSB
             result.ID1 = (CUInt(ident_data(1)) << 8) Or CUInt(ident_data(2))
             result.ID2 = (CUInt(ident_data(3)) << 8) Or CUInt(ident_data(4))
             If result.ID1 = 0 AndAlso result.ID2 = 0 Then Return result
-            result.BOOT_LOCK = ident_data(5)
-            result.SUPPORTED = ident_data(6)
-            result.CFI_MULTI = ident_data(7)
             result.Successful = True
         Catch ex As Exception
         End Try

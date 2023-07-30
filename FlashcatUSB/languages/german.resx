@@ -555,7 +555,7 @@
     <value>Erfolgreich über USB mit FlashcatUSB verbunden</value>
   </data>
   <data name="sw_requires_fw" xml:space="preserve">
-    <value>Die Software benötigt die Firmware-Version {0} oder neuer</value>
+    <value>Die Software benötigt die Firmware-Version {0}</value>
   </data>
   <data name="unknown_device_email" xml:space="preserve">
     <value>Zur Unterstützung eines Chips senden Sie eine E-Mail an contact@embeddedcomputers.net mit der entsprechenden CHIP ID</value>

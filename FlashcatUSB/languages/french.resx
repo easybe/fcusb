@@ -557,7 +557,7 @@
     <value>FlashcatUSB connecté avec succès sur port USB</value>
   </data>
   <data name="sw_requires_fw" xml:space="preserve">
-    <value>Le logiciel nécessite la version {0} du firmware ou plus récente</value>
+    <value>Le logiciel nécessite la version {0} du firmware</value>
   </data>
   <data name="unknown_device_email" xml:space="preserve">
     <value>Pour compatibilité avec ce circuit contacter contact@embeddedcomputers.net en indiquant le CHIP ID</value>

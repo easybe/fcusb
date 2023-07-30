@@ -12,8 +12,8 @@ Namespace SPI
 
     Public Class SPI_Programmer : Implements MemoryDeviceUSB
         Private FCUSB As FCUSB_DEVICE
-        Public Event PrintConsole(ByVal msg As String) Implements MemoryDeviceUSB.PrintConsole
-        Public Event SetProgress(ByVal percent As Integer) Implements MemoryDeviceUSB.SetProgress
+        Public Event PrintConsole(msg As String) Implements MemoryDeviceUSB.PrintConsole
+        Public Event SetProgress(percent As Integer) Implements MemoryDeviceUSB.SetProgress
         Public Property MyFlashDevice As SPI_NOR 'Contains the definition of the Flash device that is connected
         Public Property MyFlashStatus As DeviceStatus = DeviceStatus.NotDetected
         Public Property DIE_SELECTED As Integer = 0

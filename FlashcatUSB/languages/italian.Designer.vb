@@ -3116,7 +3116,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Il software richiede la versione del firmware {0} o più recente.
+        '''  Looks up a localized string similar to Il software richiede la versione del firmware {0}.
         '''</summary>
         Friend Shared ReadOnly Property sw_requires_fw() As String
             Get
@@ -3125,7 +3125,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Looks up a localized string similar to Il software richiede la versione del firmware {0} o più recente….
+        '''  Looks up a localized string similar to Per l&apos;e-mail di supporto del dispositivo contact@embeddedcomputers.net con DEVICE ID.
         '''</summary>
         Friend Shared ReadOnly Property unknown_device_email() As String
             Get

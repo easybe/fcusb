@@ -558,10 +558,10 @@
     <value>Collegato correttamente a FlashcatUSB tramite USB</value>
   </data>
   <data name="sw_requires_fw" xml:space="preserve">
-    <value>Il software richiede la versione del firmware {0} o più recente</value>
+    <value>Il software richiede la versione del firmware {0}</value>
   </data>
   <data name="unknown_device_email" xml:space="preserve">
-    <value>Il software richiede la versione del firmware {0} o più recente…</value>
+    <value>Per l'e-mail di supporto del dispositivo contact@embeddedcomputers.net con DEVICE ID</value>
   </data>
   <data name="usb_driver_out_of_date" xml:space="preserve">
     <value>Il tuo driver FlashcatUSB non è aggiornato, aggiorna il driver alla versione più recente inclusa in questa versione del software</value>

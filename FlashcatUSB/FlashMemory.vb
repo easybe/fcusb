@@ -371,6 +371,10 @@ Namespace FlashMemory
 
 #End Region
 
+        Public Overrides Function ToString() As String
+            Return Me.NAME
+        End Function
+
     End Class
 
     <Serializable()> Public Class SPI_NOR : Implements ISerializable : Implements Device
@@ -739,15 +743,6 @@ Namespace FlashMemory
             FlashDB.Add(New HYPERFLASH("Cypress S26KL128S", &H1, &H7E73, Mb128)) '3.3V
             FlashDB.Add(New HYPERFLASH("Cypress S26KL256S", &H1, &H7E71, Mb256)) '3.3V
             FlashDB.Add(New HYPERFLASH("Cypress S26KL512S", &H1, &H7E6F, Mb512)) '3.3V
-
-            'CreateHtmlCatalog(MemoryType.SERIAL_NOR, 3, "d: \spi_database.html")
-            'CreateHtmlCatalog(MemoryType.SERIAL_NAND, 3, "d:\spinand_database.html")
-            'CreateHtmlCatalog(MemoryType.PARALLEL_NOR, 3, "d:\mpf_database.html")
-            'CreateHtmlCatalog(MemoryType.NAND, 3, "d:\nand_all_database.html")
-            'CreateHtmlCatalog(MemoryType.NAND, 3, "d:\nand_small_database.html", Gb004)
-            'CreateHtmlCatalog(MemoryType.HYPERFLASH, 3, "d:\hf_database.html")
-            'CreateHtmlCatalog(MemoryType.OTP_EPROM, 3, "d:\otp_database.html")
-            'CreateHtmlCatalog(MemoryType.FWH_NOR, 3, "d:\fwh_database.html")
 
         End Sub
 
@@ -1129,6 +1124,8 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR("BOYAMICRO BY25Q32", SPI_3V, Mb032, &H68, &H4016))
             FlashDB.Add(New SPI_NOR("BOYAMICRO BY25Q64", SPI_3V, Mb064, &H68, &H4017))
             FlashDB.Add(New SPI_NOR("BOYAMICRO BY25Q128A", SPI_3V, Mb128, &H68, &H4018))
+            'FlashDB.Add(New SPI_NOR("MR25Q40", SPI_3V, Mb004, &HD8, &H4113))
+
             'SUPPORTED EEPROM SPI DEVICES:
             FlashDB.Add(New SPI_NOR("Atmel AT25128B", SPI_3V, 16384, 0, 0) With {.PAGE_SIZE = 64}) 'Same as AT25128A
             FlashDB.Add(New SPI_NOR("Atmel AT25256B", SPI_3V, 32768, 0, 0) With {.PAGE_SIZE = 64}) 'Same as AT25256A
@@ -1178,17 +1175,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NAND("GigaDevice GD5F4GQ4RB", SPI_1V8, &HC8, &HC4, Gb004, 4096, 256, Mb002, False))
             FlashDB.Add(New SPI_NAND("GigaDevice GD5F4GQ4UC", SPI_3V, &HC8, &HB468, Gb004, 4096, 256, Mb002, False))
             FlashDB.Add(New SPI_NAND("GigaDevice GD5F4GQ4RC", SPI_1V8, &HC8, &HA468, Gb004, 4096, 256, Mb002, False))
-
-
-
             FlashDB.Add(New SPI_NAND("GigaDevice GD5F4GQ4UBYIG", SPI_1V8, &HC8, &HA468, Gb004, 4096, 256, Mb002, False))
-
-            'GD5F4GQ4UBYIG
-
-
-            'D400C8
-
-
 
             FlashDB.Add(New SPI_NAND("Winbond W25M02GV", SPI_3V, &HEF, &HAB21, Gb002, 2048, 64, Mb001, False) With {.STACKED_DIES = 2})
             FlashDB.Add(New SPI_NAND("Winbond W25M02GW", SPI_1V8, &HEF, &HBB21, Gb002, 2048, 64, Mb001, False) With {.STACKED_DIES = 2})
@@ -1200,11 +1187,12 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NAND("ISSI IS37/38SML01G1", SPI_3V, &HC8, &H21, Gb001, 2048, 64, Mb001, False))
             FlashDB.Add(New SPI_NAND("ESMT F50L1G41A", SPI_3V, &HC8, &H217F, Gb001, 2048, 64, Mb001, False))
 
-            ''TC58CVG2S0HxAIx
-            'FlashDB.Add(New SPI_NAND_Flash("Toshiba TC58CVG0S3", &H98, &H0, Gb001, 4096, 128, Mb001, False))
-            'FlashDB.Add(New SPI_NAND_Flash("Toshiba TC58CVG1S3", &H98, &H0, Gb002, 4096, 128, Mb001, False))
-            'FlashDB.Add(New SPI_NAND_Flash("Toshiba TC58CVG2S0", &H98, &HCD, Gb004, 4096, 128, Mb001, False))
-            'Get Samples of TC58CVG2S0HQAIE, TC58CVG1S3HQAIE, TC58CVG0S3HQAIE
+            FlashDB.Add(New SPI_NAND("Toshiba TC58CVG0S3", SPI_3V, &H98, &HC2, Gb001, 2048, 128, Mb001, False))
+            FlashDB.Add(New SPI_NAND("Toshiba TC58CVG1S3", SPI_3V, &H98, &HCB, Gb002, 2048, 128, Mb001, False))
+            FlashDB.Add(New SPI_NAND("Toshiba TC58CVG2S0", SPI_3V, &H98, &HCD, Gb004, 4096, 256, Mb002, False))
+            FlashDB.Add(New SPI_NAND("Toshiba TC58CYG0S3", SPI_1V8, &H98, &HB2, Gb001, 2048, 128, Mb001, False))
+            FlashDB.Add(New SPI_NAND("Toshiba TC58CYG1S3", SPI_1V8, &H98, &HBB, Gb002, 2048, 128, Mb001, False))
+            FlashDB.Add(New SPI_NAND("Toshiba TC58CYG2S0", SPI_1V8, &H98, &HBD, Gb004, 4096, 256, Mb002, False))
 
         End Sub
 
@@ -1299,12 +1287,12 @@ Namespace FlashMemory
             FlashDB.Add(New P_NOR("SST 39VF160", &HBF, &H2782, Mb016, VCC_IF.X16_3V, BLKLYT.Kb032_Uni, MFP_PRG.Standard, MFP_DELAY.uS))
             FlashDB.Add(New P_NOR("SST 39VF1681", &HBF, &HC8, Mb016, VCC_IF.X8_3V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.uS)) 'Verified 520
             FlashDB.Add(New P_NOR("SST 39VF1682", &HBF, &HC9, Mb016, VCC_IF.X8_3V, BLKLYT.Kb512_Uni, MFP_PRG.Standard, MFP_DELAY.uS))
-            FlashDB.Add(New P_NOR("SST 39VF1601", &HBF, &H4B, Mb016, VCC_IF.X16_3V, BLKLYT.Kb032_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
-            FlashDB.Add(New P_NOR("SST 39VF1602", &HBF, &H4A, Mb016, VCC_IF.X16_3V, BLKLYT.Kb032_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
-            FlashDB.Add(New P_NOR("SST 39VF3201", &HBF, &H5B, Mb032, VCC_IF.X16_3V, BLKLYT.Kb032_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
-            FlashDB.Add(New P_NOR("SST 39VF3202", &HBF, &H5A, Mb032, VCC_IF.X16_3V, BLKLYT.Kb032_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
-            FlashDB.Add(New P_NOR("SST 39VF6401", &HBF, &H6B, Mb064, VCC_IF.X16_3V, BLKLYT.Kb032_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
-            FlashDB.Add(New P_NOR("SST 39VF6402", &HBF, &H6A, Mb064, VCC_IF.X16_3V, BLKLYT.Kb032_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
+            FlashDB.Add(New P_NOR("SST 39VF1601", &HBF, &H234B, Mb016, VCC_IF.X16_3V, BLKLYT.Kb032_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
+            FlashDB.Add(New P_NOR("SST 39VF1602", &HBF, &H234A, Mb016, VCC_IF.X16_3V, BLKLYT.Kb032_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
+            FlashDB.Add(New P_NOR("SST 39VF3201", &HBF, &H235B, Mb032, VCC_IF.X16_3V, BLKLYT.Kb032_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
+            FlashDB.Add(New P_NOR("SST 39VF3202", &HBF, &H235A, Mb032, VCC_IF.X16_3V, BLKLYT.Kb032_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
+            FlashDB.Add(New P_NOR("SST 39VF6401", &HBF, &H236B, Mb064, VCC_IF.X16_3V, BLKLYT.Kb032_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
+            FlashDB.Add(New P_NOR("SST 39VF6402", &HBF, &H236A, Mb064, VCC_IF.X16_3V, BLKLYT.Kb032_Uni, MFP_PRG.Standard, MFP_DELAY.DQ7))
             'Atmel
             FlashDB.Add(New P_NOR("Atmel AT29C010A", &H1F, &HD5, Mb001, VCC_IF.X8_5V, BLKLYT.Kb256_Uni, MFP_PRG.PageMode, MFP_DELAY.DQ7) With {.ERASE_REQUIRED = False, .PAGE_SIZE = 128, .RESET_ENABLED = False})
             FlashDB.Add(New P_NOR("Atmel AT49F512", &H1F, &H3, Kb512, VCC_IF.X8_5V, BLKLYT.EntireDevice, MFP_PRG.Standard, MFP_DELAY.uS)) 'No SE, only BE
@@ -1736,7 +1724,7 @@ Namespace FlashMemory
             FlashDB.Add(New FWH("SST 49LF008A", &HBF, &H5A, Mb008, Kb032, &H30))
             FlashDB.Add(New FWH("SST 49LF080A", &HBF, &H5B, Mb008, Kb032, &H30))
             FlashDB.Add(New FWH("SST 49LF016C", &HBF, &H5C, Mb016, Kb032, &H30))
-            FlashDB.Add(New FWH("ISSI PM49FL002", &H9D, &H6D, Mb002, Kb032, &H30)) 'http://www.issiusa.com/pdf/Pm49FL002-004.pdf
+            FlashDB.Add(New FWH("ISSI PM49FL002", &H9D, &H6D, Mb002, Kb032, &H30))
             FlashDB.Add(New FWH("ISSI PM49FL004", &H9D, &H6E, Mb004, Kb032, &H30))
             FlashDB.Add(New FWH("ISSI PM49FL008", &H9D, &H6A, Mb008, Kb032, &H30))
         End Sub
@@ -1850,7 +1838,7 @@ Namespace FlashMemory
 
 
 #Region "Catalog / Data file"
-        Private Sub CreateHtmlCatalog(FlashType As MemoryType, ColumnCount As UInt32, file_name As String, Optional size_limit As Int64 = 0)
+        Public Sub CreateHtmlCatalog(FlashType As MemoryType, ColumnCount As UInt32, file_name As String, Optional size_limit As Int64 = 0)
             Dim TotalParts() As Device = GetFlashDevices(FlashType)
             Dim FilteredParts As New List(Of Device)
             If size_limit = 0 Then
@@ -1936,7 +1924,7 @@ Namespace FlashMemory
             Utilities.FileIO.WriteFile(file_out.ToArray, file_name)
         End Sub
         'Creates the part table/cell
-        Private Function CreatePartTable(ByVal title As String, ByVal part_str() As String, ByVal part_prefix As String, ByVal column_size As Integer) As String
+        Private Function CreatePartTable(title As String, part_str() As String, part_prefix As String, column_size As Integer) As String
             Dim table_name As String = part_prefix & "_table"
             Dim link_name As String = part_prefix & "_lnk"
             Dim str_out As String = ""
@@ -2025,9 +2013,10 @@ Namespace FlashMemory
                 If dev.FLASH_TYPE = MemoryType.SERIAL_NOR Then
                     If DirectCast(dev, SPI_NOR).EEPROM Then SkipAdd = True
                 End If
-                If Not SkipAdd Then
-                    Dim Manu As String = dev.NAME.Substring(0, dev.NAME.IndexOf(" "))
-                    Dim Part As String = dev.NAME.Substring(Manu.Length + 1)
+                If (Not SkipAdd) Then
+                    Dim Manu As String = dev.NAME
+                    If Manu.Contains(" ") Then Manu = Manu.Substring(0, Manu.IndexOf(" "))
+                    'Dim Part As String = dev.NAME.Substring(Manu.Length + 1)
                     Dim s As DeviceCollection = DevColIndexOf(GrowingCollection, Manu)
                     If (s Is Nothing) Then
                         Dim new_item As New DeviceCollection
@@ -2062,12 +2051,13 @@ Namespace FlashMemory
             Friend Parts() As Device
         End Class
 
-        Private Sub GeneratePartNames(ByVal input As DeviceCollection, ByRef part_numbers() As String)
+        Private Sub GeneratePartNames(input As DeviceCollection, ByRef part_numbers() As String)
             ReDim part_numbers(input.Parts.Length - 1)
             For i = 0 To part_numbers.Length - 1
                 Dim part_name As String = input.Parts(i).NAME
-                part_name = part_name.Substring(input.Name.Length + 1)
-                If part_name = "W25M121AV" Then
+                If part_name.Contains(" ") Then part_name = part_name.Substring(input.Name.Length + 1)
+
+                If part_name.Equals("W25M121AV") Then
                     part_numbers(i) = part_name & " (128Mbit/1Gbit)"
                 Else
                     Dim size_str As String = ""

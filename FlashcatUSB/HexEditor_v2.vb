@@ -116,25 +116,28 @@
     End Sub
 
     Public Sub HexEditor_Resize(ByVal sender As Object, ByVal e As EventArgs) Handles Me.Resize
-        If Not IsLoaded Then Exit Sub 'Only resize if we are shown
-        If (PBOX.Height > 0) Then
-            Background = CreateBackground()
-            Dim visible_lines As Integer = GetNumOfVisibleLines()
-            BytesPerLine = GetVisisbleDataAreaCount() 'Each column = 1 byte
-            If BytesPerLine > 0 Then
-                SBAR.LargeChange = visible_lines
-                SBAR.Maximum = CInt(Math.Ceiling(BaseSize / BytesPerLine))
-                If HexView_AtBottom Then
-                    SBAR.Value = SBAR.Maximum - visible_lines + 1
-                ElseIf (SBAR.Value + visible_lines) > SBAR.Maximum Then
-                    SBAR.Value = SBAR.Maximum - visible_lines + 1
-                Else
-                    Dim x As Integer = GetVisisbleDataAreaCount()
-                    SBAR.Value = Math.Floor(TopAddress / x) + 1
+        Try
+            If Not IsLoaded Then Exit Sub 'Only resize if we are shown
+            If (PBOX.Height > 0) Then
+                Background = CreateBackground()
+                Dim visible_lines As Integer = GetNumOfVisibleLines()
+                BytesPerLine = GetVisisbleDataAreaCount() 'Each column = 1 byte
+                If BytesPerLine > 0 Then
+                    SBAR.LargeChange = visible_lines
+                    SBAR.Maximum = CInt(Math.Ceiling(BaseSize / BytesPerLine))
+                    If HexView_AtBottom Then
+                        SBAR.Value = SBAR.Maximum - visible_lines + 1
+                    ElseIf (SBAR.Value + visible_lines) > SBAR.Maximum Then
+                        SBAR.Value = SBAR.Maximum - visible_lines + 1
+                    Else
+                        Dim x As Integer = GetVisisbleDataAreaCount()
+                        SBAR.Value = Math.Floor(TopAddress / x) + 1
+                    End If
+                    UpdateScreen()
                 End If
-                UpdateScreen()
             End If
-        End If
+        Catch ex As Exception
+        End Try
     End Sub
 
     Private Function GetNumOfVisibleLines() As Integer

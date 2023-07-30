@@ -295,18 +295,18 @@ Public Class MemoryInterface
             Return data_out
         End Function
 
-        Public Function WriteBytes(ByVal Address As Long, ByVal Data() As Byte, ByVal memory_area As FlashArea, ByVal verify_wr As Boolean, Optional callback As StatusCallback = Nothing) As Boolean
+        Public Function WriteBytes(mem_addr As Long, mem_data() As Byte, memory_area As FlashArea, verify_wr As Boolean, Optional callback As StatusCallback = Nothing) As Boolean
             Try
                 Me.NoErrors = True
                 Dim f_params As New WriteParameters
-                f_params.Address = Address
-                f_params.BytesLeft = Data.Length
+                f_params.Address = mem_addr
+                f_params.BytesLeft = mem_data.Length
                 f_params.Memory_Area = memory_area
                 f_params.Verify = verify_wr
                 If callback IsNot Nothing Then
                     f_params.Status = callback
                 End If
-                Using n As New IO.MemoryStream(Data)
+                Using n As New IO.MemoryStream(mem_data)
                     Return WriteStream(n, f_params)
                 End Using
             Catch ex As Exception
@@ -379,7 +379,7 @@ Public Class MemoryInterface
             Return False
         End Function
 
-        Private Function WriteStream(ByVal data_stream As IO.Stream, ByVal params As WriteParameters) As Boolean
+        Private Function WriteStream(data_stream As IO.Stream, params As WriteParameters) As Boolean
             Try : Me.IsTaskRunning = True
                 Me.NoErrors = True
                 If (Threading.Thread.CurrentThread.Name = "") Then
@@ -472,7 +472,7 @@ Public Class MemoryInterface
                     Application.DoEvents()
                     Utilities.Sleep(50)
                     If FlashType = MemoryType.OTP_EPROM Then
-                        FCUSB.EXT_IF.ReadData_EPROM(Params.Address, BlockSize) 'Before we verify, we should read the entire block once
+                        FCUSB.EXT_IF.EPROM_ReadData(Params.Address, BlockSize) 'Before we verify, we should read the entire block once
                     End If
                     Dim ReadResult As Boolean = WriteBytes_VerifyWrite(Params.Address, packet_data, Params.Memory_Area)
                     If Not ReadResult Then Return False
@@ -513,7 +513,7 @@ Public Class MemoryInterface
             Return True 'Operation was successful
         End Function
 
-        Private Function WriteBytes_NonVolatile(ByVal data_stream As IO.Stream, ByRef Params As WriteParameters) As Boolean
+        Private Function WriteBytes_NonVolatile(data_stream As IO.Stream, Params As WriteParameters) As Boolean
             Me.WaitUntilReady() 'Some flash devices requires us to wait before sending data
             Dim TotalSectors As UInt32 = GetSectorCount()
             Params.BytesTotal = Params.BytesLeft 'Total size of the data we are writing
@@ -575,7 +575,7 @@ Public Class MemoryInterface
             Return True 'Operation was successful
         End Function
 
-        Private Function WriteBytes_I2C(ByVal data_stream As IO.Stream, ByRef Params As WriteParameters) As Boolean
+        Private Function WriteBytes_I2C(data_stream As IO.Stream, Params As WriteParameters) As Boolean
             Try
                 Dim TotalSize As UInt32 = Params.BytesLeft
                 Dim BytesPerPacket As UInt32 = PreferredBlockSize
@@ -656,7 +656,7 @@ Public Class MemoryInterface
             End Try
         End Function
 
-        Private Function GetSectorInfo(ByVal sector_index As UInt32, ByVal area As Byte) As SectorInfo
+        Private Function GetSectorInfo(sector_index As UInt32, area As Byte) As SectorInfo
             Dim si As SectorInfo
             si.BaseAddress = GetSectorBaseAddress(sector_index, area)
             si.Size = GetSectorSize(sector_index, area)
@@ -668,7 +668,7 @@ Public Class MemoryInterface
             Dim Size As UInt32
         End Structure
         'Does the actual erase sector and program functions
-        Private Function WriteBytes_EraseSectorAndWrite(ByRef sector As UInt32, ByVal data() As Byte, ByVal Percent As Integer, ByRef Params As WriteParameters) As Boolean
+        Private Function WriteBytes_EraseSectorAndWrite(ByRef sector As UInt32, data() As Byte, Percent As Integer, Params As WriteParameters) As Boolean
             Try
                 Dim FailedAttempts As Integer = 0
                 Dim ReadResult As Boolean
@@ -685,6 +685,7 @@ Public Class MemoryInterface
                         End If
                         EraseSector(sector, Params.Memory_Area)
                         If Not Me.NoErrors Then
+                            RaiseEvent PrintConsole("Failed to erase memory at address: 0x" & Hex(Params.Address).PadLeft(8, "0"))
                             If Not GetMessageBoxForSectorErase(Params.Address, sector) Then Return False
                         End If
                     End If
@@ -728,7 +729,7 @@ Public Class MemoryInterface
                                     RaiseEvent PrintConsole(String.Format(RM.GetString("mem_bad_nand_block"), Hex(page_addr).PadLeft(6, "0"), block_addr))
                                     Return False
                                 ElseIf (FlashType = FlashMemory.MemoryType.SERIAL_NAND) Then
-                                    Dim n_dev As SPI_NAND = DirectCast(FCUSB.EXT_IF.MyFlashDevice, SPI_NAND)
+                                    Dim n_dev As SPI_NAND = DirectCast(FCUSB.SPI_NAND_IF.MyFlashDevice, SPI_NAND)
                                     Dim pages_per_block As UInt32 = (n_dev.BLOCK_SIZE / n_dev.PAGE_SIZE)
                                     Dim page_addr As UInt32 = GetNandPageAddress(n_dev, Params.Address, Params.Memory_Area)
                                     Dim block_addr As UInt32 = Math.Floor(page_addr / pages_per_block)
@@ -763,6 +764,7 @@ Public Class MemoryInterface
                     End If
                 Loop Until ReadResult Or (Not Params.Verify)
             Catch ex As Exception
+                Return False 'ERROR
             End Try
             Return True
         End Function

@@ -34,6 +34,7 @@ Partial Class DfuControl
         '
         'lblAvrCrc
         '
+        Me.lblAvrCrc.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.lblAvrCrc.AutoSize = True
         Me.lblAvrCrc.ForeColor = System.Drawing.Color.Gray
         Me.lblAvrCrc.Location = New System.Drawing.Point(351, 4)
@@ -44,6 +45,7 @@ Partial Class DfuControl
         '
         'lblAvrRange
         '
+        Me.lblAvrRange.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.lblAvrRange.AutoSize = True
         Me.lblAvrRange.ForeColor = System.Drawing.Color.Gray
         Me.lblAvrRange.Location = New System.Drawing.Point(232, 4)
@@ -102,13 +104,15 @@ Partial Class DfuControl
         Me.AvrEditor.Anchor = CType((((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Bottom) _
             Or System.Windows.Forms.AnchorStyles.Left) _
             Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.AvrEditor.BaseOffset = CType(0UI, UInteger)
-        Me.AvrEditor.BaseSize = CType(0UI, UInteger)
+        Me.AvrEditor.BaseOffset = CType(0, Long)
+        Me.AvrEditor.BaseSize = CType(0, Long)
+        Me.AvrEditor.EDIT_MODE = False
+        Me.AvrEditor.HexDataByteSize = 0
         Me.AvrEditor.Location = New System.Drawing.Point(3, 48)
         Me.AvrEditor.Name = "AvrEditor"
         Me.AvrEditor.Size = New System.Drawing.Size(430, 162)
         Me.AvrEditor.TabIndex = 22
-        Me.AvrEditor.TopAddress = CType(0UI, UInteger)
+        Me.AvrEditor.TopAddress = CType(0, Long)
         '
         'DfuControl
         '
