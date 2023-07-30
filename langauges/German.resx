@@ -1,0 +1,714 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="fcusb_avrwrite" xml:space="preserve">
+    <value>Starte AVR Flash schreiben ({0} Bytes)</value>
+  </data>
+  <data name="fcusb_avr_err1" xml:space="preserve">
+    <value>Fehler: Die Hex-Datei Daten sind größer als die Größe des DFU-Speicher</value>
+  </data>
+  <data name="fcusb_avr_err2" xml:space="preserve">
+    <value>Löschen des AVR Flash-Speichers</value>
+  </data>
+  <data name="fcusb_avr_err3" xml:space="preserve">
+    <value>Sende AVR DFU Löschbefehl</value>
+  </data>
+  <data name="fcusb_avr_err4" xml:space="preserve">
+    <value>Fehler: AVR Flash Erase ist fehlgeschlagen</value>
+  </data>
+  <data name="fcusb_avr_err5" xml:space="preserve">
+    <value>Fehler: AVR Flash Schreiben ist fehlgeschlagen</value>
+  </data>
+  <data name="fcusb_avr_sucess" xml:space="preserve">
+    <value>AVR DFU Befehl erfolgreich</value>
+  </data>
+  <data name="fcusb_avr_writedone" xml:space="preserve">
+    <value>AVR Flash erfolgreich geschrieben</value>
+  </data>
+  <data name="fcusb_avr_writedonegui" xml:space="preserve">
+    <value>Neue AVR Firmware wurde programmiert (klicken Sie auf 'Start Anwendung' um zu beginnen)</value>
+  </data>
+  <data name="fcusb_baseaddress" xml:space="preserve">
+    <value>Basisadresse</value>
+  </data>
+  <data name="fcusb_cancel" xml:space="preserve">
+    <value>Stornieren</value>
+  </data>
+  <data name="fcusb_cfi_base" xml:space="preserve">
+    <value>Flash-Basis-Adresse: {0}</value>
+  </data>
+  <data name="fcusb_cfi_bitbus" xml:space="preserve">
+    <value>({0} Bit-Bus)</value>
+  </data>
+  <data name="fcusb_cfi_desc" xml:space="preserve">
+    <value>Flash-Beschreibung: {0}</value>
+  </data>
+  <data name="fcusb_cfi_erasecomplete" xml:space="preserve">
+    <value>CFI Löschvorgang erfolgreich</value>
+  </data>
+  <data name="fcusb_cfi_erasing" xml:space="preserve">
+    <value>Löschen von Flash-CFI (dies könnte einen Moment dauern)</value>
+  </data>
+  <data name="fcusb_cfi_err1" xml:space="preserve">
+    <value>Konnte Gerät in JEDEC-Modus nicht öffnen</value>
+  </data>
+  <data name="fcusb_cfi_founddev" xml:space="preserve">
+    <value>Installierte CFI kompatibles Flash-Gerät auf: {0}</value>
+  </data>
+  <data name="fcusb_cfi_info1" xml:space="preserve">
+    <value>Ändere Parameter für bestehenden Bereich: {0}</value>
+  </data>
+  <data name="fcusb_cfi_interface" xml:space="preserve">
+    <value>Schnittstelle</value>
+  </data>
+  <data name="fcusb_cfi_jedecid" xml:space="preserve">
+    <value>Flash-JEDEC-ID: {0}</value>
+  </data>
+  <data name="fcusb_cfi_pmode" xml:space="preserve">
+    <value>Programmiermodus</value>
+  </data>
+  <data name="fcusb_cfi_unknown" xml:space="preserve">
+    <value>(Unbekannt)</value>
+  </data>
+  <data name="fcusb_common_avrtoprog" xml:space="preserve">
+    <value>Wählen Sie das zu installierende  AVR Firmware-Programm aus</value>
+  </data>
+  <data name="fcusb_console_save" xml:space="preserve">
+    <value>Wählen Sie einen Dateipfad aus, um das Konsolen Protokoll zu speichern</value>
+  </data>
+  <data name="fcusb_dfu_conn" xml:space="preserve">
+    <value>Gerät in den DFU-Bootloader-Modus geschaltet</value>
+  </data>
+  <data name="fcusb_dfu_ready" xml:space="preserve">
+    <value>FlashcatUSB betriebsbereit für den DFU-Modus</value>
+  </data>
+  <data name="fcusb_disconnected" xml:space="preserve">
+    <value>Keine Verbindung zu FlashcatUSB</value>
+  </data>
+  <data name="fcusb_err1" xml:space="preserve">
+    <value>Fehler bei Abfrage der Board-Firmware-Version</value>
+  </data>
+  <data name="fcusb_err2" xml:space="preserve">
+    <value>Bitte aktualisieren Sie die AVR-Firmware auf {0} oder neuer</value>
+  </data>
+  <data name="fcusb_err3" xml:space="preserve">
+    <value>FlashcatUSB Bord hat eine veraltete Firmware</value>
+  </data>
+  <data name="fcusb_err4" xml:space="preserve">
+    <value>FlashcatUSB konnte kein Verbindung zum Ziel über JTAG aufbauen</value>
+  </data>
+  <data name="fcusb_err5" xml:space="preserve">
+    <value>Kann Wert nicht setzten (ungültige Eingabe)</value>
+  </data>
+  <data name="fcusb_err6" xml:space="preserve">
+    <value>Kann Wert nicht setzten (Wert ist größer als 1 Byte)</value>
+  </data>
+  <data name="fcusb_err7" xml:space="preserve">
+    <value>Kann Wert nicht setzen (Wert ist größer als 4 Bytes)</value>
+  </data>
+  <data name="fcusb_err8" xml:space="preserve">
+    <value>Fehler: Datei ist beschädigt oder keine AVR Hex-Datei</value>
+  </data>
+  <data name="fcusb_file" xml:space="preserve">
+    <value>Datei: {0}</value>
+  </data>
+  <data name="fcusb_flasherr1" xml:space="preserve">
+    <value>Kann Daten nicht auf Flash schreiben (out of bounds)</value>
+  </data>
+  <data name="fcusb_hex_nofile" xml:space="preserve">
+    <value>Datei: Aktuell keine Datei geladen</value>
+  </data>
+  <data name="fcusb_initjtag" xml:space="preserve">
+    <value>Initialisiere EJTAG engine</value>
+  </data>
+  <data name="fcusb_jtagsetup" xml:space="preserve">
+    <value>JTAG-Engine Setup erfolgreich</value>
+  </data>
+  <data name="fcusb_jtag_conn" xml:space="preserve">
+    <value>Geräte im JTAG-Modus verbunden: {0}</value>
+  </data>
+  <data name="fcusb_jtag_cpureset" xml:space="preserve">
+    <value>JTAG: Reset Befehl an Prozessor gesendet</value>
+  </data>
+  <data name="fcusb_jtag_debugon" xml:space="preserve">
+    <value>JTAG: Prozessor im Debug Modus</value>
+  </data>
+  <data name="fcusb_jtag_dma" xml:space="preserve">
+    <value>Zielgerät unterstützt DMA-Modus</value>
+  </data>
+  <data name="fcusb_jtag_erasecomplete" xml:space="preserve">
+    <value>Löschvorgang abgeschlossen!</value>
+  </data>
+  <data name="fcusb_jtag_err1" xml:space="preserve">
+    <value>Fehler beim Verbinden zum Zielgerät</value>
+  </data>
+  <data name="fcusb_jtag_err2" xml:space="preserve">
+    <value>Es konnte keine Verbindung zum Gerät EJTAG hergestellt werden</value>
+  </data>
+  <data name="fcusb_jtag_foundat" xml:space="preserve">
+    <value>Flash gefunden in: {0}</value>
+  </data>
+  <data name="fcusb_jtag_foundcfi" xml:space="preserve">
+    <value>CFI: Kompatibles Flash gefunden in: {0}</value>
+  </data>
+  <data name="fcusb_jtag_irlen" xml:space="preserve">
+    <value>JTAG: IR Länge auf {0}</value>
+  </data>
+  <data name="fcusb_jtag_nodma" xml:space="preserve">
+    <value>Zielgerät unterstütz keinen DMA-Modus</value>
+  </data>
+  <data name="fcusb_jtag_notfound" xml:space="preserve">
+    <value>Flash konnte nicht gefunden werden</value>
+  </data>
+  <data name="fcusb_jtag_praccmode" xml:space="preserve">
+    <value>JTAG: Gerät unterstützt nur non-DMA (PrAcc)-Modus, aber non-pracc Firmware ist im FlashcatUSB geladen</value>
+  </data>
+  <data name="fcusb_jtag_ready" xml:space="preserve">
+    <value>FlashcatUSB betriebsbereit im JTAG-Modus</value>
+  </data>
+  <data name="fcusb_jtag_searchcfi" xml:space="preserve">
+    <value>Suche nach CFI kompatible Flash-Medium</value>
+  </data>
+  <data name="fcusb_jtag_searchcfiat" xml:space="preserve">
+    <value>Suche nach CFI-Flash @ {0}</value>
+  </data>
+  <data name="fcusb_jtag_spidetected" xml:space="preserve">
+    <value>JTAG: SPI Flash-Speicher gefunden ({0})</value>
+  </data>
+  <data name="fcusb_jtag_spierasing" xml:space="preserve">
+    <value>Löschen des gesamten SPI-Flash (dies könnte einen Moment dauern)</value>
+  </data>
+  <data name="fcusb_jtag_spiregret" xml:space="preserve">
+    <value>JTAG: SPI-Register zurückgegeben {0}</value>
+  </data>
+  <data name="fcusb_length" xml:space="preserve">
+    <value>Länge</value>
+  </data>
+  <data name="fcusb_libusb_ver" xml:space="preserve">
+    <value>LibUsbDotNet Version: {0}</value>
+  </data>
+  <data name="fcusb_memdev" xml:space="preserve">
+    <value>Speicherbaustein</value>
+  </data>
+  <data name="fcusb_memif_beginread" xml:space="preserve">
+    <value>Starte Speicher Lese-Vorgang von {0}</value>
+  </data>
+  <data name="fcusb_memif_dram_notsup" xml:space="preserve">
+    <value>Bulk-Erase wird nicht von DRAM-Geräte unterstützt</value>
+  </data>
+  <data name="fcusb_memif_err1" xml:space="preserve">
+    <value>Speicher Initialisierung: Fehlgechlagen - Initialisierung der Geräteparameter fehlgeschlagen</value>
+  </data>
+  <data name="fcusb_memif_err2" xml:space="preserve">
+    <value>SPI-Flash kann nicht erkannt werden  (API für aktuelle MCU nicht geladen)</value>
+  </data>
+  <data name="fcusb_memif_nopraccsupport" xml:space="preserve">
+    <value>Speicher Initialisierung: Fehlgeschlagen - Keine Verbindungsaufbau zum PrAcc Speicher-Interface möglich (AVR-Firmware wird nicht unterstützt)</value>
+  </data>
+  <data name="fcusb_memif_readdone" xml:space="preserve">
+    <value>Lesevorgang abgeschlossen</value>
+  </data>
+  <data name="fcusb_memif_startaddr" xml:space="preserve">
+    <value>Startadresse: {0} ({1}) Länge: {2} "</value>
+  </data>
+  <data name="fcusb_memif_verify" xml:space="preserve">
+    <value>Prüfe geschriebene Daten in {0}</value>
+  </data>
+  <data name="fcusb_memif_verifyerr1" xml:space="preserve">
+    <value>Fehler: Flashüberprüfung las eine inkorrekte Anzahl von Bytes zurück</value>
+  </data>
+  <data name="fcusb_memif_verifyerr2" xml:space="preserve">
+    <value>Adresse {0}: {1} schrieb und las {2} ({3} Diskrepanz/en) )</value>
+  </data>
+  <data name="fcusb_memif_verifyfailed" xml:space="preserve">
+    <value>Fehler: Datenüberprüfung bei {0} ist fehlgeschlagen!</value>
+  </data>
+  <data name="fcusb_memif_verifyokay" xml:space="preserve">
+    <value>Die Verifizierung der Daten war erfolgreich</value>
+  </data>
+  <data name="fcusb_memif_writeaddr" xml:space="preserve">
+    <value>Schreiben von Adresse {0} mit {1} Bytes ({2})</value>
+  </data>
+  <data name="fcusb_memif_writecomplete" xml:space="preserve">
+    <value>Flash-Vorgang abgeschlossen!</value>
+  </data>
+  <data name="fcusb_memif_writedone" xml:space="preserve">
+    <value>Schreib-Vorgang abgeschlossen, geschrieben {0} Bytes.</value>
+  </data>
+  <data name="fcusb_memif_writespeed" xml:space="preserve">
+    <value>{0} Bytes in {1} Sekunden geschrieben, {2} Bytes / s</value>
+  </data>
+  <data name="fcusb_memif_write_err1" xml:space="preserve">
+    <value>Daten können nicht geschrieben werden (Gerät im Zustand read-only)</value>
+  </data>
+  <data name="fcusb_mem_address" xml:space="preserve">
+    <value>Adresse</value>
+  </data>
+  <data name="fcusb_mem_cancelled" xml:space="preserve">
+    <value>Schreibvorgang durch Benutzer abgebrochen</value>
+  </data>
+  <data name="fcusb_mem_choosefile" xml:space="preserve">
+    <value>Wählen Sie die zu schreibende Datei aus, in {0}</value>
+  </data>
+  <data name="fcusb_mem_err1" xml:space="preserve">
+    <value>Fehler, Datei nicht vorhanden oder enthält keine Daten</value>
+  </data>
+  <data name="fcusb_mem_err2" xml:space="preserve">
+    <value>Fehler beim Versuch, Daten zu lesen</value>
+  </data>
+  <data name="fcusb_mem_filechosen" xml:space="preserve">
+    <value>Datei gewählt, schreibe {0}</value>
+  </data>
+  <data name="fcusb_mem_opened_bin" xml:space="preserve">
+    <value>Datei zum Schreiben geöffnet: {0} (binäre Hex-Format), Gesamtgröße der Datei: {1} Bytes</value>
+  </data>
+  <data name="fcusb_mem_opened_intel" xml:space="preserve">
+    <value>Datei zum Schreiben geföffnet: {0} (Intel Hex-Format), Gesamtgröße der Datei: {1} Bytes</value>
+  </data>
+  <data name="fcusb_mem_readcanceled" xml:space="preserve">
+    <value>Lesevorgang abgebrochen</value>
+  </data>
+  <data name="fcusb_mem_readcomplete" xml:space="preserve">
+    <value>Lesevorgang abgeschlossen, bitte wählen Sie Speicherort und Format-Typ</value>
+  </data>
+  <data name="fcusb_mem_readfrom" xml:space="preserve">
+    <value>Gewählter Bereich gelesen von {0}</value>
+  </data>
+  <data name="fcusb_mem_readstart" xml:space="preserve">
+    <value>Starte Speicher Lese-Vorgang</value>
+  </data>
+  <data name="fcusb_mem_selectwriterange" xml:space="preserve">
+    <value>Wählen Sie den Bereich, um die Daten zu schreiben {0}</value>
+  </data>
+  <data name="fcusb_mem_usercanceledread" xml:space="preserve">
+    <value>Lesevorgang durch Benutzer abgebrochen</value>
+  </data>
+  <data name="fcusb_mem_usercanwrite" xml:space="preserve">
+    <value>Abbruch durch Benutzer. Keine Daten geschrieben nach {0}</value>
+  </data>
+  <data name="fcusb_mem_writecanceled" xml:space="preserve">
+    <value>Flash-Schreib-Vorgang abgebrochen</value>
+  </data>
+  <data name="fcusb_mem_writecomplete" xml:space="preserve">
+    <value>Schreibvorgang abgeschlossen: {0} Bytes geschrieben.</value>
+  </data>
+  <data name="fcusb_mem_writestart" xml:space="preserve">
+    <value>Starte Speicher Schreib-Vorgang</value>
+  </data>
+  <data name="fcusb_mem_writing" xml:space="preserve">
+    <value>Schreibe Datei {0} in {1} ({2} Bytes zu schreiben</value>
+  </data>
+  <data name="fcusb_menu_avrfw" xml:space="preserve">
+    <value>AVR-Firmware</value>
+  </data>
+  <data name="fcusb_menu_console" xml:space="preserve">
+    <value>Konsole</value>
+  </data>
+  <data name="fcusb_menu_cscript" xml:space="preserve">
+    <value>Aktuelles Skript</value>
+  </data>
+  <data name="fcusb_menu_detectdevice" xml:space="preserve">
+    <value>Suche Chip</value>
+  </data>
+  <data name="fcusb_menu_exit" xml:space="preserve">
+    <value>Ausgang</value>
+  </data>
+  <data name="fcusb_menu_language" xml:space="preserve">
+    <value>Sprache</value>
+  </data>
+  <data name="fcusb_menu_loadscript" xml:space="preserve">
+    <value>Lade skript</value>
+  </data>
+  <data name="fcusb_menu_main" xml:space="preserve">
+    <value>Main</value>
+  </data>
+  <data name="fcusb_menu_script" xml:space="preserve">
+    <value>Skript</value>
+  </data>
+  <data name="fcusb_menu_settings" xml:space="preserve">
+    <value>Einstellungen</value>
+  </data>
+  <data name="fcusb_menu_spisettings" xml:space="preserve">
+    <value>SPI-Einstellungen</value>
+  </data>
+  <data name="fcusb_menu_spi_auto" xml:space="preserve">
+    <value>Automatische Einstellungen</value>
+  </data>
+  <data name="fcusb_menu_spi_bitorder" xml:space="preserve">
+    <value>Bit-Reihenfolge</value>
+  </data>
+  <data name="fcusb_menu_spi_chiperase" xml:space="preserve">
+    <value>Chip Löschen</value>
+  </data>
+  <data name="fcusb_menu_spi_chipsize" xml:space="preserve">
+    <value>Chip Größe</value>
+  </data>
+  <data name="fcusb_menu_spi_clodiv" xml:space="preserve">
+    <value>Taktteiler</value>
+  </data>
+  <data name="fcusb_menu_spi_devcmds" xml:space="preserve">
+    <value>SPI Gerät Befehle</value>
+  </data>
+  <data name="fcusb_menu_spi_enwrstatus" xml:space="preserve">
+    <value>Aktiviere Schreibstatus</value>
+  </data>
+  <data name="fcusb_menu_spi_erasesize" xml:space="preserve">
+    <value>Lösch Größe</value>
+  </data>
+  <data name="fcusb_menu_spi_info" xml:space="preserve">
+    <value>Verwenden Sie die Werte aus dem Datenblatt des Chips</value>
+  </data>
+  <data name="fcusb_menu_spi_pmode" xml:space="preserve">
+    <value>Programm-Modus</value>
+  </data>
+  <data name="fcusb_menu_spi_pp" xml:space="preserve">
+    <value>Page Programm</value>
+  </data>
+  <data name="fcusb_menu_spi_read" xml:space="preserve">
+    <value>Lesen</value>
+  </data>
+  <data name="fcusb_menu_spi_rstatus" xml:space="preserve">
+    <value>Status lesen</value>
+  </data>
+  <data name="fcusb_menu_spi_serase" xml:space="preserve">
+    <value>Sektor Löschen</value>
+  </data>
+  <data name="fcusb_menu_spi_spimode" xml:space="preserve">
+    <value>SPI-Modus</value>
+  </data>
+  <data name="fcusb_menu_spi_usesettings" xml:space="preserve">
+    <value>Manuelle Einstellungen</value>
+  </data>
+  <data name="fcusb_menu_spi_we" xml:space="preserve">
+    <value>Write Enable</value>
+  </data>
+  <data name="fcusb_menu_spi_wstatus" xml:space="preserve">
+    <value>Schreib-Status</value>
+  </data>
+  <data name="fcusb_menu_status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="fcusb_menu_unloadscript" xml:space="preserve">
+    <value>Entlade skript</value>
+  </data>
+  <data name="fcusb_nonvol_dataread" xml:space="preserve">
+    <value>Daten erfolgreich gelesen und analysiert</value>
+  </data>
+  <data name="fcusb_nonvol_err1" xml:space="preserve">
+    <value>Fehler: Keinen CFG Bereich gefunden!</value>
+  </data>
+  <data name="fcusb_nonvol_err2" xml:space="preserve">
+    <value>Fehler beim Laden von Non-Vol Daten</value>
+  </data>
+  <data name="fcusb_nonvol_notfound" xml:space="preserve">
+    <value>(Nicht gefunden)</value>
+  </data>
+  <data name="fcusb_nonvol_readingnonvol" xml:space="preserve">
+    <value>Lese Non-Vol-Konfigurationsdaten</value>
+  </data>
+  <data name="fcusb_nonvol_writing" xml:space="preserve">
+    <value>Schreibe Non-Vol-Konfiguration ins Flash</value>
+  </data>
+  <data name="fcusb_nonvol_wrote" xml:space="preserve">
+    <value>Fertig. Non-Vol-Konfiguration aktualisiert</value>
+  </data>
+  <data name="fcusb_nand_conn" xml:space="preserve">
+    <value>Geräte verbunden durch NAND over SPI-Modus</value>
+  </data>
+  <data name="fcusb_nand_ready" xml:space="preserve">
+    <value>FlashcatUSB betriebsbereit für NAND-Modus</value>
+  </data>
+  <data name="fcusb_newavrfw" xml:space="preserve">
+    <value>Programmierung neuer AVR-Firmware</value>
+  </data>
+  <data name="fcusb_noflash" xml:space="preserve">
+    <value>(Kein Flash erkannt)</value>
+  </data>
+  <data name="fcusb_okbutton" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="fcusb_range" xml:space="preserve">
+    <value>Bereich:</value>
+  </data>
+  <data name="fcusb_Read" xml:space="preserve">
+    <value>Lesen</value>
+  </data>
+  <data name="fcusb_running" xml:space="preserve">
+    <value>Ausgeführt auf: {0}</value>
+  </data>
+  <data name="fcusb_script_check" xml:space="preserve">
+    <value>Suche nach einem Gerätspezifischem Skript zum automatisch laden</value>
+  </data>
+  <data name="fcusb_script_loaded" xml:space="preserve">
+    <value>Skript {0} erfolgreich geladen</value>
+  </data>
+  <data name="fcusb_script_loading" xml:space="preserve">
+    <value>Lade Gerät spezifisches Skript: {0}</value>
+  </data>
+  <data name="fcusb_script_none" xml:space="preserve">
+    <value>Keine Skript-Datei verfügbar</value>
+  </data>
+  <data name="fcusb_script_notexist" xml:space="preserve">
+    <value>Skript kann nicht geladen werden (Datei wurde nicht gefunden)</value>
+  </data>
+  <data name="fcusb_script_open" xml:space="preserve">
+    <value>Wählen Sie das zu öffnende FlashcatUSB Skript aus</value>
+  </data>
+  <data name="fcusb_script_unload" xml:space="preserve">
+    <value>Das Skript {0} wurde entladen</value>
+  </data>
+  <data name="fcusb_spi_connflash" xml:space="preserve">
+    <value>Verbunden mit Flash</value>
+  </data>
+  <data name="fcusb_spi_email" xml:space="preserve">
+    <value>Für Lese-Schreib-Support E-Mail an contact@embeddedcomputers.net mit RDID/REMS</value>
+  </data>
+  <data name="fcusb_spi_erasecomplete" xml:space="preserve">
+    <value>Flash Erase in {0} Sekunden abgeschlossen</value>
+  </data>
+  <data name="fcusb_spi_erasingbulk" xml:space="preserve">
+    <value>Löschen des gesamten Flashs, Gesamtgröße: {0} Bytes (dies kann einen Moment dauern)</value>
+  </data>
+  <data name="fcusb_spi_err1" xml:space="preserve">
+    <value>FlashcatUSB im SPI-Modus angeschlossen, aber kein Flash erkannt</value>
+  </data>
+  <data name="fcusb_spi_err2" xml:space="preserve">
+    <value>FlashcatUSB erkannte SPI Gerät, dieser wird jedoch zur Zeit noch nicht unterstützt</value>
+  </data>
+  <data name="fcusb_spi_err3" xml:space="preserve">
+    <value>SPI-Flash Größe muss mindestens 512Kbit sein</value>
+  </data>
+  <data name="fcusb_spi_err4" xml:space="preserve">
+    <value>SPI-Flash Größe muss ein Vielfaches von einem Megabit sein</value>
+  </data>
+  <data name="fcusb_spi_err5" xml:space="preserve">
+    <value>Keine Verbindung zu einem SPI kompatiblen Gerät</value>
+  </data>
+  <data name="fcusb_spi_flashdetected" xml:space="preserve">
+    <value>Flash-Speicher gefunden: {0} ({1} Bytes)</value>
+  </data>
+  <data name="fcusb_spi_modenotsupported" xml:space="preserve">
+    <value>Fehler beim Festlegen des SPI-Modus, Modus nicht unterstützt: {0}</value>
+  </data>
+  <data name="fcusb_spi_modesetauto" xml:space="preserve">
+    <value>SPI-Modus auf auto konfiguriert</value>
+  </data>
+  <data name="fcusb_spi_modesetto" xml:space="preserve">
+    <value>SPI-Modus auf {0}</value>
+  </data>
+  <data name="fcusb_spi_openinmode" xml:space="preserve">
+    <value>Gerät im SPI-Modus verbunden</value>
+  </data>
+  <data name="fcusb_spi_progmode" xml:space="preserve">
+    <value>Programmiermodus: SPI (schnell-Modus)</value>
+  </data>
+  <data name="fcusb_spi_ready" xml:space="preserve">
+    <value>FlashcatUSB betriebsbereit im SPI-Modus</value>
+  </data>
+  <data name="fcusb_spi_scanning" xml:space="preserve">
+    <value>Scannen für SPI-Flash</value>
+  </data>
+  <data name="fcusb_spi_usingcustom" xml:space="preserve">
+    <value>Verwende benutzerdefinierte Einstellungen aus SPI Einstellungen</value>
+  </data>
+  <data name="fcusb_spi_ver" xml:space="preserve">
+    <value>Geräte im SPI-Modus verbunden, Firmware-Version: {0}</value>
+  </data>
+  <data name="fcusb_status_connected" xml:space="preserve">
+    <value>FlashcatUSB Status: Verbunden</value>
+  </data>
+  <data name="fcusb_status_disconnect" xml:space="preserve">
+    <value>FlashcatUSB Status: Getrennt</value>
+  </data>
+  <data name="fcusb_stop" xml:space="preserve">
+    <value>HALT</value>
+  </data>
+  <data name="fcusb_waitingforusb" xml:space="preserve">
+    <value>Software wartet bis Gerät über USB angeschlossen wurde</value>
+  </data>
+  <data name="fcusb_welcome" xml:space="preserve">
+    <value>Willkommen bei FlashcatUSB Interface-Software, build: {0}</value>
+  </data>
+  <data name="fcusb_welcome_status" xml:space="preserve">
+    <value>Willkommen bei FlashcatUSB!</value>
+  </data>
+  <data name="fcusb_Write" xml:space="preserve">
+    <value>Schreiben</value>
+  </data>
+  <data name="cnts_avrver" xml:space="preserve">
+    <value>Board-Firmware-Version</value>
+  </data>
+  <data name="cnts_device" xml:space="preserve">
+    <value>Verbunden mit Gerät</value>
+  </data>
+  <data name="cnts_flashname" xml:space="preserve">
+    <value>Flash-Speicher-Namen</value>
+  </data>
+  <data name="cnts_flashsize" xml:space="preserve">
+    <value>Flash-Speichergröße</value>
+  </data>
+  <data name="cnts_flashtype" xml:space="preserve">
+    <value>Flash-Speicher-Typ</value>
+  </data>
+  <data name="cnts_mode" xml:space="preserve">
+    <value>Geräte-Modus</value>
+  </data>
+  <data name="cnts_script" xml:space="preserve">
+    <value>Skript aktiv</value>
+  </data>
+  <data name="fcusb_menu_verify" xml:space="preserve">
+    <value>Schreibvorgang überprüfen</value>
+  </data>
+  <data name="fcusb_filesave_canceled" xml:space="preserve">
+    <value>Abbruch duch Benutzer. Es wurden keine Daten gespeichert</value>
+  </data>
+  <data name="fcusb_filesave_sucess" xml:space="preserve">
+    <value>{0} erfolgreich auf der Festplatte gespeichert</value>
+  </data>
+  <data name="fcusb_filesave_tohex" xml:space="preserve">
+    <value>Konvertierte Daten im Intel hex Format zum Speichern eingelesen</value>
+  </data>
+  <data name="fcusb_filesave_type" xml:space="preserve">
+    <value>Wählen Sie einen Speicherort und das Output-Daten-Format</value>
+  </data>
+  <data name="fcusb_xferspeed" xml:space="preserve">
+    <value>Geschwindigkeit</value>
+  </data>
+  <data name="fcusb_dfu_file_default" xml:space="preserve">
+    <value>Datei: Keine Datei geladen</value>
+  </data>
+  <data name="fcusb_dfu_loadfile" xml:space="preserve">
+    <value>Datei laden</value>
+  </data>
+  <data name="fcusb_dfu_progfile" xml:space="preserve">
+    <value>programmieren</value>
+  </data>
+  <data name="fcusb_dfu_startprog" xml:space="preserve">
+    <value>Starte Anwendung</value>
+  </data>
+  <data name="fcusb_cmos_ver" xml:space="preserve">
+    <value>Geräte im EXT I/O-Modus verbunden, Firmware-Version: {0}</value>
+  </data>
+  <data name="fcusb_cmos_ready" xml:space="preserve">
+    <value>FlashcatUSB betriebsbereit im EXT I/O-Modus</value>
+  </data>
+  <data name="fcusb_cmos_progmode" xml:space="preserve">
+    <value>Programmiermodus: EXT I/O</value>
+  </data>
+</root>
