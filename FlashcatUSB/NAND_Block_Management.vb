@@ -42,18 +42,31 @@ Public Class NAND_Block_Management
     End Sub
 
     Private Sub NAND_Block_Management_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Dim total_block_size As UInt32 = Me.PAGE_SIZE_TOTAL * Me.PAGE_COUNT
         Me.MinimumSize = Me.Size
         Me.MaximumSize = New Point(Me.Size.Width, 5000)
-        Me.Text = "NAND Block Management (" & Me.NAND_NAME & ")"
         Dim TotalRowsNeeded As Integer = Me.BLOCK_COUNT / 32
-        Me.lbl_desc.Text = "NAND Block Map (" & Format(Me.BLOCK_COUNT, "#,###") & " total blocks; " & Format(total_block_size, "#,###") & " bytes each)"
         BlockMap.Width = 600
         BlockMap.Height = (TotalRowsNeeded * 14) + 8
         DrawImage()
         If MySettings.NAND_Layout = FlashcatSettings.NandMemLayout.Combined Then
             cb_write_bad_block_marker.Enabled = False
         End If
+        Language_Setup()
+    End Sub
+
+    Private Sub Language_Setup()
+        Dim total_block_size As UInt32 = Me.PAGE_SIZE_TOTAL * Me.PAGE_COUNT
+        Me.Text = String.Format(RM.GetString("nandmngr_title"), Me.NAND_NAME) '"NAND Block Management ({0})"
+        Dim block_count_str As String = Format(Me.BLOCK_COUNT, "#,###")
+        Dim block_size_str As String = Format(total_block_size, "#,###")
+        Me.lbl_desc.Text = String.Format(RM.GetString("nandmngr_block_map"), block_count_str, block_size_str)
+        Me.lbl_no_error.Text = RM.GetString("nandmngr_no_error") '"No error"
+        Me.lbl_bad_block.Text = RM.GetString("nandmngr_bad_block") '"Bad block marker"
+        Me.lbl_user_marked.Text = RM.GetString("nandmngr_user_marked") '"User marked"
+        Me.lbl_write_error.Text = RM.GetString("nandmngr_write_error") '"Write error"
+        Me.cmdAnalyze.Text = RM.GetString("nandmngr_analyze") '"Analyze"
+        Me.cb_write_bad_block_marker.Text = RM.GetString("nandmngr_write_marker") '"Write BAD BLOCK markers to spare area"
+        Me.cmdClose.Text = RM.GetString("nandmngr_close") '"Close"
     End Sub
 
     Private Declare Function ShowScrollBar Lib "user32.dll" (ByVal hWnd As IntPtr, ByVal wBar As Integer, ByVal bShow As Boolean) As Boolean
@@ -109,16 +122,17 @@ Public Class NAND_Block_Management
         Else
             Dim block_info As NAND_BLOCK_IF.MAPPING = FCUSB.NAND_IF.MAP(SELECTED_BLOCK)
             Dim page_addr As UInt32 = (block_info.BlockIndex * PAGE_COUNT)
-            MyStatus.Text = "Selected page: 0x" & Hex(page_addr).PadLeft(6, "0") & " [block: " & block_info.BlockIndex & "]"
+            Dim page_addr_str As String = "0x" & Hex(page_addr).PadLeft(6, "0")
+            MyStatus.Text = String.Format(RM.GetString("nandmngr_selected_page"), page_addr_str, block_info.BlockIndex) '"Selected page: {0} [block: {1}]"
             Select Case block_info.Status
                 Case NAND_BLOCK_IF.BLOCK_STATUS.Valid
-                    MyStatus.Text &= " (valid)"
+                    MyStatus.Text &= " (" & RM.GetString("nandmngr_valid") & ")"
                 Case NAND_BLOCK_IF.BLOCK_STATUS.Bad_Marked
-                    MyStatus.Text &= " (user discarded)"
+                    MyStatus.Text &= " (" & RM.GetString("nandmngr_user_discarded") & ")"
                 Case NAND_BLOCK_IF.BLOCK_STATUS.Bad_Manager
-                    MyStatus.Text &= " (bad marker)"
+                    MyStatus.Text &= " (" & RM.GetString("nandmngr_bad_marker") & ")"
                 Case NAND_BLOCK_IF.BLOCK_STATUS.Bad_ByError
-                    MyStatus.Text &= " (write error)"
+                    MyStatus.Text &= " (" & RM.GetString("nandmngr_write_error").ToLower & ")"
             End Select
         End If
     End Sub
@@ -209,9 +223,9 @@ Public Class NAND_Block_Management
         Else
             cmdClose.Enabled = Allow
             If Allow Then
-                cmdAnalyze.Text = "Analyze"
+                cmdAnalyze.Text = RM.GetString("nandmngr_analyze")
             Else
-                cmdAnalyze.Text = "Cancel"
+                cmdAnalyze.Text = RM.GetString("mc_button_cancel")
             End If
             Me.Enabled = True
         End If
@@ -219,8 +233,8 @@ Public Class NAND_Block_Management
 
     Private Sub cmdAnalyze_Click(sender As Object, e As EventArgs) Handles cmdAnalyze.Click
         Me.Enabled = False
-        If (cmdAnalyze.Text = "Analyze") Then
-            If MsgBox("Warning, this operation will erase and overwrite all blocks, continue?", MsgBoxStyle.YesNo, "Confirm operation") = MsgBoxResult.Yes Then
+        If (cmdAnalyze.Text = RM.GetString("nandmngr_analyze")) Then
+            If MsgBox(RM.GetString("nandmngr_warning"), MsgBoxStyle.YesNo, RM.GetString("nandmngr_confim")) = MsgBoxResult.Yes Then
                 Dim td As New Threading.Thread(AddressOf AnalyzeTd)
                 td.Start()
             Else
@@ -261,7 +275,8 @@ Public Class NAND_Block_Management
                 Dim block_info As NAND_BLOCK_IF.MAPPING = FCUSB.NAND_IF.MAP(i)
                 SELECTED_BLOCK = i
                 DrawImage() 'Draw checkbox
-                SetStatus("Verifying block: 0x" & block_info.BlockIndex.ToString.PadLeft(4, "0"))
+                Dim block_addr_str As String = "0x" & block_info.BlockIndex.ToString.PadLeft(4, "0")
+                SetStatus(String.Format(RM.GetString("nandmngr_verifing_block"), block_addr_str))
                 Dim ErrorCount As Integer = 0
                 Dim ValidBlock As Boolean = True
                 Do 'Write block up to 3 times
@@ -323,7 +338,7 @@ Public Class NAND_Block_Management
             Next
         Catch ex As Exception
         Finally
-            SetStatus("NAND blocks analyzed (" & BadBlockCounter & " bad blocks found)")
+            SetStatus(String.Format(RM.GetString("nandmngr_analyzed_done"), BadBlockCounter))
             SELECTED_BLOCK = -1
             PERFORMING_ANALYZE = False
             SetExit(True)

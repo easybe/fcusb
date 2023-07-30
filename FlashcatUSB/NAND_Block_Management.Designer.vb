@@ -30,10 +30,10 @@ Partial Class NAND_Block_Management
         Me.MyStatus = New System.Windows.Forms.ToolStripStatusLabel()
         Me.Panel1 = New System.Windows.Forms.Panel()
         Me.BlockMap = New System.Windows.Forms.PictureBox()
-        Me.Label1 = New System.Windows.Forms.Label()
-        Me.Label2 = New System.Windows.Forms.Label()
-        Me.Label3 = New System.Windows.Forms.Label()
-        Me.Label4 = New System.Windows.Forms.Label()
+        Me.lbl_no_error = New System.Windows.Forms.Label()
+        Me.lbl_bad_block = New System.Windows.Forms.Label()
+        Me.lbl_user_marked = New System.Windows.Forms.Label()
+        Me.lbl_write_error = New System.Windows.Forms.Label()
         Me.PictureBox4 = New System.Windows.Forms.PictureBox()
         Me.PictureBox3 = New System.Windows.Forms.PictureBox()
         Me.PictureBox2 = New System.Windows.Forms.PictureBox()
@@ -112,45 +112,45 @@ Partial Class NAND_Block_Management
         Me.BlockMap.TabIndex = 0
         Me.BlockMap.TabStop = False
         '
-        'Label1
+        'lbl_no_error
         '
-        Me.Label1.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
-        Me.Label1.AutoSize = True
-        Me.Label1.Location = New System.Drawing.Point(91, 332)
-        Me.Label1.Name = "Label1"
-        Me.Label1.Size = New System.Drawing.Size(45, 13)
-        Me.Label1.TabIndex = 10
-        Me.Label1.Text = "No error"
+        Me.lbl_no_error.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
+        Me.lbl_no_error.AutoSize = True
+        Me.lbl_no_error.Location = New System.Drawing.Point(91, 332)
+        Me.lbl_no_error.Name = "lbl_no_error"
+        Me.lbl_no_error.Size = New System.Drawing.Size(45, 13)
+        Me.lbl_no_error.TabIndex = 10
+        Me.lbl_no_error.Text = "No error"
         '
-        'Label2
+        'lbl_bad_block
         '
-        Me.Label2.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
-        Me.Label2.AutoSize = True
-        Me.Label2.Location = New System.Drawing.Point(164, 332)
-        Me.Label2.Name = "Label2"
-        Me.Label2.Size = New System.Drawing.Size(90, 13)
-        Me.Label2.TabIndex = 11
-        Me.Label2.Text = "Bad block marker"
+        Me.lbl_bad_block.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
+        Me.lbl_bad_block.AutoSize = True
+        Me.lbl_bad_block.Location = New System.Drawing.Point(164, 332)
+        Me.lbl_bad_block.Name = "lbl_bad_block"
+        Me.lbl_bad_block.Size = New System.Drawing.Size(90, 13)
+        Me.lbl_bad_block.TabIndex = 11
+        Me.lbl_bad_block.Text = "Bad block marker"
         '
-        'Label3
+        'lbl_user_marked
         '
-        Me.Label3.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
-        Me.Label3.AutoSize = True
-        Me.Label3.Location = New System.Drawing.Point(285, 332)
-        Me.Label3.Name = "Label3"
-        Me.Label3.Size = New System.Drawing.Size(67, 13)
-        Me.Label3.TabIndex = 12
-        Me.Label3.Text = "User marked"
+        Me.lbl_user_marked.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
+        Me.lbl_user_marked.AutoSize = True
+        Me.lbl_user_marked.Location = New System.Drawing.Point(285, 332)
+        Me.lbl_user_marked.Name = "lbl_user_marked"
+        Me.lbl_user_marked.Size = New System.Drawing.Size(67, 13)
+        Me.lbl_user_marked.TabIndex = 12
+        Me.lbl_user_marked.Text = "User marked"
         '
-        'Label4
+        'lbl_write_error
         '
-        Me.Label4.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
-        Me.Label4.AutoSize = True
-        Me.Label4.Location = New System.Drawing.Point(383, 332)
-        Me.Label4.Name = "Label4"
-        Me.Label4.Size = New System.Drawing.Size(56, 13)
-        Me.Label4.TabIndex = 13
-        Me.Label4.Text = "Write error"
+        Me.lbl_write_error.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
+        Me.lbl_write_error.AutoSize = True
+        Me.lbl_write_error.Location = New System.Drawing.Point(383, 332)
+        Me.lbl_write_error.Name = "lbl_write_error"
+        Me.lbl_write_error.Size = New System.Drawing.Size(56, 13)
+        Me.lbl_write_error.TabIndex = 13
+        Me.lbl_write_error.Text = "Write error"
         '
         'PictureBox4
         '
@@ -212,10 +212,10 @@ Partial Class NAND_Block_Management
         Me.ClientSize = New System.Drawing.Size(540, 406)
         Me.ControlBox = False
         Me.Controls.Add(Me.cb_write_bad_block_marker)
-        Me.Controls.Add(Me.Label4)
-        Me.Controls.Add(Me.Label3)
-        Me.Controls.Add(Me.Label2)
-        Me.Controls.Add(Me.Label1)
+        Me.Controls.Add(Me.lbl_write_error)
+        Me.Controls.Add(Me.lbl_user_marked)
+        Me.Controls.Add(Me.lbl_bad_block)
+        Me.Controls.Add(Me.lbl_no_error)
         Me.Controls.Add(Me.PictureBox4)
         Me.Controls.Add(Me.PictureBox3)
         Me.Controls.Add(Me.PictureBox2)
@@ -255,9 +255,9 @@ Partial Class NAND_Block_Management
     Friend WithEvents PictureBox2 As PictureBox
     Friend WithEvents PictureBox3 As PictureBox
     Friend WithEvents PictureBox4 As PictureBox
-    Friend WithEvents Label1 As Label
-    Friend WithEvents Label2 As Label
-    Friend WithEvents Label3 As Label
-    Friend WithEvents Label4 As Label
+    Friend WithEvents lbl_no_error As Label
+    Friend WithEvents lbl_bad_block As Label
+    Friend WithEvents lbl_user_marked As Label
+    Friend WithEvents lbl_write_error As Label
     Friend WithEvents cb_write_bad_block_marker As CheckBox
 End Class

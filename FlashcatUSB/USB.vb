@@ -547,12 +547,18 @@ Namespace USB
                                         FCUSB(i).UPDATE_IN_PROGRESS = False
                                         FCUSB(i).IS_CONNECTED = True
                                         FCUSB(i).LoadFirmwareVersion()
-                                        If Not this_dev.UsbRegistryInfo.Vid = USB_VID_ATMEL Then 'DFU Bootloader mode
+                                        If (Not this_dev.UsbRegistryInfo.Vid = USB_VID_ATMEL) Then 'DFU Bootloader mode
                                             Dim echo_cmd As Boolean = FCUSB(i).USB_Echo
-                                            If Not echo_cmd Then HaltAndCatchFire_2() : Exit Sub
-                                            If HW_MODE = FCUSB_BOARD.NotConnected Then
-                                                HW_MODE = FCUSB(i).HWBOARD
-                                            ElseIf HW_MODE = FCUSB(i).HWBOARD Then
+                                            If echo_cmd Then
+                                                If HW_MODE = FCUSB_BOARD.NotConnected Then
+                                                    HW_MODE = FCUSB(i).HWBOARD
+                                                ElseIf HW_MODE = FCUSB(i).HWBOARD Then
+                                                Else
+                                                    FCUSB(i).USB_PATH = ""
+                                                    FCUSB(i).IS_CONNECTED = False
+                                                    FCUSB(i).USBHANDLE = Nothing
+                                                    Exit For
+                                                End If
                                             Else
                                                 FCUSB(i).USB_PATH = ""
                                                 FCUSB(i).IS_CONNECTED = False
@@ -622,7 +628,7 @@ Namespace USB
                 Dim fcusb_list As UsbRegDeviceList = UsbDevice.AllDevices.FindAll(atmel_dev1)
                 If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
                     For i = 0 To fcusb_list.Count - 1
-                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire_1() : Return Nothing
+                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire() : Return Nothing
                         devices.Add(fcusb_list(i))
                     Next
                 End If
@@ -630,7 +636,7 @@ Namespace USB
                 fcusb_list = UsbDevice.AllDevices.FindAll(atmel_dev2)
                 If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
                     For i = 0 To fcusb_list.Count - 1
-                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire_1() : Return Nothing
+                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire() : Return Nothing
                         devices.Add(fcusb_list(i))
                     Next
                 End If
@@ -638,7 +644,7 @@ Namespace USB
                 fcusb_list = UsbDevice.AllDevices.FindAll(atmel_dev3)
                 If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
                     For i = 0 To fcusb_list.Count - 1
-                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire_1() : Return Nothing
+                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire() : Return Nothing
                         devices.Add(fcusb_list(i))
                     Next
                 End If
@@ -646,7 +652,7 @@ Namespace USB
                 fcusb_list = UsbDevice.AllDevices.FindAll(atmel_dev4)
                 If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
                     For i = 0 To fcusb_list.Count - 1
-                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire_1() : Return Nothing
+                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire() : Return Nothing
                         devices.Add(fcusb_list(i))
                     Next
                 End If
@@ -654,7 +660,7 @@ Namespace USB
                 fcusb_list = UsbDevice.AllDevices.FindAll(fcusb_1)
                 If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
                     For i = 0 To fcusb_list.Count - 1
-                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire_1() : Return Nothing
+                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire() : Return Nothing
                         devices.Add(fcusb_list(i))
                     Next
                 End If
@@ -662,7 +668,7 @@ Namespace USB
                 fcusb_list = UsbDevice.AllDevices.FindAll(fcusb_2)
                 If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
                     For i = 0 To fcusb_list.Count - 1
-                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire_1() : Return Nothing
+                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire() : Return Nothing
                         devices.Add(fcusb_list(i))
                     Next
                 End If
@@ -670,7 +676,7 @@ Namespace USB
                 fcusb_list = UsbDevice.AllDevices.FindAll(fcusb_pro)
                 If fcusb_list IsNot Nothing AndAlso (fcusb_list.Count > 0) Then
                     For i = 0 To fcusb_list.Count - 1
-                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire_1() : Return Nothing
+                        If fcusb_list(i).GetType Is GetType(WinUsb.WinUsbRegistry) Then HaltAndCatchFire() : Return Nothing
                         devices.Add(fcusb_list(i))
                     Next
                 End If
@@ -743,18 +749,9 @@ Namespace USB
             Return Counter
         End Function
 
-        Private Sub HaltAndCatchFire_1()
+        Private Sub HaltAndCatchFire()
             Try
                 MsgBox(RM.GetString("usb_driver_out_of_date"), vbCritical, "FLASHCATUSB DRIVER ERROR")
-                AppIsClosing = True
-                If GUI IsNot Nothing Then GUI.CloseApplication()
-            Catch ex As Exception
-            End Try
-        End Sub
-
-        Private Sub HaltAndCatchFire_2()
-            Try
-                MsgBox(RM.GetString("usb_firm_out_of_date"), vbCritical, "FLASHCATUSB FIRMWARE ERROR")
                 AppIsClosing = True
                 If GUI IsNot Nothing Then GUI.CloseApplication()
             Catch ex As Exception

@@ -16,7 +16,7 @@ Public Module MainApp
     Public Property RM As Resources.ResourceManager = My.Resources.english.ResourceManager
     Public GUI As MainForm
     Public MySettings As New FlashcatSettings
-    Public Const Build As Integer = 507
+    Public Const Build As Integer = 508
     Public PRO_CURRENT_FW As Single = 1.2 'This is the embedded firmware version for pro
     Public CLASSIC_CURRENT_FW As Single = 4.32 'Min revision allowed for classic, xport
     Public AppIsClosing As Boolean = False
@@ -681,34 +681,34 @@ Public Module MainApp
             Select Case name
                 Case "-PATH" 'User is requesting a specific device 
                     If option_task.Count = 0 OrElse option_task(0).StartsWith("-") Then
-                        ConsoleWriteLine("You must specify a USB device path following -PATH") : Console_Exit() : Return False
+                        ConsoleWriteLine(String.Format(RM.GetString("console_value_missing"), "PATH")) : Console_Exit() : Return False
                     End If
                     SEL_USB_PATH = option_task(0) : option_task.RemoveAt(0) 'Add option and pop
                     ConsoleWriteLine("USB path set to: " & SEL_USB_PATH)
                 Case "-ERASE"
                     If (Not MyConsoleOperation.CurrentTask = ConsoleTask.WriteMemory) Then
-                        ConsoleWriteLine("Erase option is only for -WRITE mode") : Console_Exit() : Return False
+                        ConsoleWriteLine(RM.GetString("console_erase_not_valid")) : Console_Exit() : Return False
                     End If
                     MyConsoleOperation.CHIP_ERASE = True
                 Case "-FILE"
                     If option_task.Count = 0 OrElse option_task(0).StartsWith("-") Then
-                        ConsoleWriteLine("You must specify a filename following -FILE") : Console_Exit() : Return False
+                        ConsoleWriteLine(String.Format(RM.GetString("console_value_missing"), "FILE")) : Console_Exit() : Return False
                     End If
                     MyConsoleOperation.FILENAME = option_task(0) : option_task.RemoveAt(0)
                 Case "-LOG"
                     If option_task.Count = 0 OrElse option_task(0).StartsWith("-") Then
-                        ConsoleWriteLine("You must specify a filename following -FILE") : Console_Exit() : Return False
+                        ConsoleWriteLine(String.Format(RM.GetString("console_value_missing"), "LOG")) : Console_Exit() : Return False
                     End If
                     MyConsoleOperation.LogFilename = option_task(0) : option_task.RemoveAt(0)
                 Case "-LOGAPPEND"
                     MyConsoleOperation.LogAppendFile = True
                 Case "-OFFSET"
                     If option_task.Count = 0 OrElse option_task(0).StartsWith("-") Then
-                        ConsoleWriteLine("You must specify a value following -OFFSET") : Console_Exit() : Return False
+                        ConsoleWriteLine(String.Format(RM.GetString("console_value_missing"), "OFFSET")) : Console_Exit() : Return False
                     End If
                     Dim offset_value As String = option_task(0) : option_task.RemoveAt(0)
                     If (Not Utilities.IsDataType.HexString(offset_value)) AndAlso (Not IsNumeric(offset_value)) Then
-                        ConsoleWriteLine("-OFFSET value must be numeric or hexadecimal") : Console_Exit() : Return False
+                        ConsoleWriteLine(String.Format(RM.GetString("console_value_numeric_hex"), "OFFSET")) : Console_Exit() : Return False
                     End If
                     Try
                         If IsNumeric(offset_value) Then
@@ -720,11 +720,11 @@ Public Module MainApp
                     End Try
                 Case "-LENGTH"
                     If option_task.Count = 0 OrElse option_task(0).StartsWith("-") Then
-                        ConsoleWriteLine("You must specify a value following -LENGTH") : Console_Exit() : Return False
+                        ConsoleWriteLine(String.Format(RM.GetString("console_value_missing"), "LENGTH")) : Console_Exit() : Return False
                     End If
                     Dim offset_value As String = option_task(0) : option_task.RemoveAt(0)
                     If (Not Utilities.IsDataType.HexString(offset_value)) AndAlso (Not IsNumeric(offset_value)) Then
-                        ConsoleWriteLine("-LENGTH value must be numeric or hexadecimal") : Console_Exit() : Return False
+                        ConsoleWriteLine(String.Format(RM.GetString("console_value_numeric_hex"), "LENGTH")) : Console_Exit() : Return False
                     End If
                     Try
                         If IsNumeric(offset_value) Then
@@ -740,11 +740,11 @@ Public Module MainApp
                     MyConsoleOperation.ExitConsole = True
                 Case "-ADDRESS"
                     If option_task.Count = 0 OrElse option_task(0).StartsWith("-") Then
-                        ConsoleWriteLine("You must specify a value following -ADDRESS") : Console_Exit() : Return False
+                        ConsoleWriteLine(String.Format(RM.GetString("console_value_missing"), "ADDRESS")) : Console_Exit() : Return False
                     End If
                     Dim offset_value As String = option_task(0) : option_task.RemoveAt(0)
                     If (Not Utilities.IsDataType.HexString(offset_value)) AndAlso (Not IsNumeric(offset_value)) Then
-                        ConsoleWriteLine("-ADDRESS value must be numeric or hexadecimal") : Console_Exit() : Return False
+                        ConsoleWriteLine(String.Format(RM.GetString("console_value_numeric_hex"), "ADDRESS")) : Console_Exit() : Return False
                     End If
                     Try
                         If IsNumeric(offset_value) Then
@@ -756,7 +756,7 @@ Public Module MainApp
                     End Try
                 Case "-EEPROM"
                     If option_task.Count = 0 OrElse option_task(0).StartsWith("-") Then
-                        ConsoleWriteLine("You must specify a value following -EEPROM")
+                        ConsoleWriteLine(String.Format(RM.GetString("console_value_missing"), "EEPROM")) : Console_Exit() : Return False
                         Console_ListEEPROMs()
                         Return False
                     End If
@@ -780,12 +780,12 @@ Public Module MainApp
                         Next
                     End If
                     If Not Device_Found Then
-                        ConsoleWriteLine("The EEPROM device you specified was not found")
+                        ConsoleWriteLine(RM.GetString("console_eeprom_not_specified"))
                         Console_ListEEPROMs()
                         Return False
                     End If
                 Case Else
-                    ConsoleWriteLine("Option not recognized: " & name)
+                    ConsoleWriteLine(String.Format(RM.GetString("console_opt_not_valid"), name))
             End Select
         Loop
         Return True
@@ -871,6 +871,7 @@ Public Module MainApp
         ConsoleWriteLine("Operations:")
         ConsoleWriteLine("-read             " & RM.GetString("console_opt_read"))
         ConsoleWriteLine("-write            " & RM.GetString("console_opt_write"))
+        ConsoleWriteLine("-erase            " & RM.GetString("console_opt_erasechip"))
         ConsoleWriteLine("-execute          " & RM.GetString("console_opt_exe"))
         ConsoleWriteLine("-listpaths        " & RM.GetString("console_opt_list"))
         ConsoleWriteLine("-help             " & RM.GetString("console_opt_help"))
@@ -1643,8 +1644,8 @@ Public Module MainApp
                 If usb_dev.USB_IsBootloaderMode() Then
                     GUI.PrintConsole(RM.GetString("connected_bl_mode"))
                     GUI.UpdateStatusMessage(RM.GetString("device_mode"), RM.GetString("bootloader_mode"))
-                    GUI.SetStatus(RM.GetString("fw_update_starting"))
                     Application.DoEvents()
+                    GUI.SetStatus(RM.GetString("fw_update_performing")) 'Performing firmware unit update
                     Utilities.Sleep(2000)
                     Dim Current_fw() As Byte = Utilities.GetResourceAsBytes("FCUSB_V3.bin")
                     If usb_dev.USB_StartFirmwareUpdate Then

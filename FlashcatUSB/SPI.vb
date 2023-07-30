@@ -46,13 +46,21 @@ Namespace SPI
         Private Function SPI_InitDevice() As Boolean
             SPIBUS_Setup()
             Dim ReadSuccess As Boolean = False
+            Dim MFG As Byte
+            Dim ID1 As UInt16
+            Dim ID2 As UInt16
             Dim DEVICEID As SPI_IDENT = ReadDeviceID() 'Sends RDID/REMS/RES command and reads back
-            If DEVICEID.MANU = &HFF Or DEVICEID.MANU = 0 Then
-            ElseIf (DEVICEID.RDID = &HFFFFFFFFUI) Or (DEVICEID.RDID = 0) Then
+            If (DEVICEID.MANU = &HFF Or DEVICEID.MANU = 0) Then 'Check REMS
                 If Not ((DEVICEID.REMS = &HFFFF) Or (DEVICEID.REMS = &H0)) Then
+                    MFG = (DEVICEID.REMS >> 8)
+                    ID1 = (DEVICEID.REMS And 255)
                     ReadSuccess = True 'RDID did not return anything, but REMS did
                 End If
-            Else 'Read successful!
+            ElseIf (DEVICEID.RDID = &HFFFFFFFFUI) Or (DEVICEID.RDID = 0) Then
+            Else
+                MFG = DEVICEID.MANU
+                ID1 = (DEVICEID.RDID >> 16)
+                ID2 = (DEVICEID.RDID And &HFFFF)
                 ReadSuccess = True
             End If
             If ReadSuccess Then
@@ -61,9 +69,7 @@ Namespace SPI
                 Dim RDID2_Str As String = Hex(DEVICEID.RDID And &HFFFF).PadLeft(4, "0")
                 Dim REMS_Str As String = "0x" & Hex(DEVICEID.REMS).PadLeft(4, "0")
                 RaiseEvent PrintConsole(String.Format(RM.GetString("spi_connected_to_flash_spi"), RDID_Str, REMS_Str))
-                Dim ID1 As UInt16 = (DEVICEID.RDID >> 16)
-                Dim ID2 As UInt16 = (DEVICEID.RDID And &HFFFF)
-                MyFlashDevice = FlashDatabase.FindDevice(DEVICEID.MANU, ID1, ID2, MemoryType.SERIAL_NOR, DEVICEID.FMY)
+                MyFlashDevice = FlashDatabase.FindDevice(MFG, ID1, ID2, MemoryType.SERIAL_NOR, DEVICEID.FMY)
                 If MyFlashDevice IsNot Nothing Then
                     MyFlashStatus = USB.DeviceStatus.Supported
                     LoadDeviceConfigurations() 'Does device settings (4BYTE mode, unlock global block)
@@ -451,7 +457,7 @@ Namespace SPI
             Dim rdid(5) As Byte
             SPIBUS_WriteRead({SPI_Command_DEF.RDID}, rdid) 'This reads SPI CHIP ID
             Dim rems(1) As Byte
-            SPIBUS_WriteRead({SPI_Command_DEF.REMS, 0, 0, 0}, rems)
+            SPIBUS_WriteRead({SPI_Command_DEF.REMS, 0, 0, 0}, rems) 'Some devices (such as SST25VF512) only support REMS
             Dim res(0) As Byte
             SPIBUS_WriteRead({SPI_Command_DEF.RES, 0, 0, 0}, res)
             DEVICEID.MANU = rdid(0)

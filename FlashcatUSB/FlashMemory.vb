@@ -821,7 +821,7 @@ Namespace FlashMemory
             FlashDB.Add(New SPI_NOR_FLASH("Microchip SST25WF010", Mb001, &HBF, &H2502, &H20, &H1000) With {.ProgramMode = SPI_ProgramMode.AAI_Word, .SEND_EWSR = True})
             FlashDB.Add(New SPI_NOR_FLASH("Microchip SST25VF010", Mb001, &HBF, &H49BF, &H20, &H1000) With {.ProgramMode = SPI_ProgramMode.AAI_Byte, .SEND_EWSR = True}) 'SST25VF010A PCT25VF010A
             FlashDB.Add(New SPI_NOR_FLASH("Microchip SST25WF512", Kb512, &HBF, &H2501, &H20, &H1000) With {.ProgramMode = SPI_ProgramMode.AAI_Word, .SEND_EWSR = True})
-            FlashDB.Add(New SPI_NOR_FLASH("Microchip SST25VF512", Kb512, &HBF, &H48BF, &H20, &H1000) With {.ProgramMode = SPI_ProgramMode.AAI_Byte, .SEND_EWSR = True}) 'SST25VF512A PCT25VF512A
+            FlashDB.Add(New SPI_NOR_FLASH("Microchip SST25VF512", Kb512, &HBF, &H48, &H20, &H1000) With {.ProgramMode = SPI_ProgramMode.AAI_Byte, .SEND_EWSR = True}) 'SST25VF512A PCT25VF512A REMS ONLY
             FlashDB.Add(New SPI_NOR_FLASH("Microchip SST25VF020A", Mb002, &HBF, &H43, &H20, &H1000) With {.ProgramMode = SPI_ProgramMode.AAI_Byte, .SEND_EWSR = True}) 'Confirmed (Build 350)
             FlashDB.Add(New SPI_NOR_FLASH("Microchip SST25VF010A", Mb001, &HBF, &H49, &H20, &H1000) With {.ProgramMode = SPI_ProgramMode.AAI_Byte, .SEND_EWSR = True}) 'Confirmed (Build 350)
             'PMC
