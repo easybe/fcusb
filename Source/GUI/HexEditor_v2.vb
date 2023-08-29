@@ -231,11 +231,11 @@
                         TopAddress = 0
                     End If
                     SBAR.Refresh() 'Recently added
-                    Dim DataToGet As Integer = CInt(BaseSize - TopAddress) 'The amount of bytes we need to display in the box
+                    Dim DataToGet As Long = (BaseSize - TopAddress) 'The amount of bytes we need to display in the box
                     If (DataToGet > MaxDataShown) Then
-                        DataToGet = CInt(MaxDataShown)
+                        DataToGet = MaxDataShown
                     End If
-                    ReDim ScreenData(DataToGet - 1)
+                    ReDim ScreenData(CInt(DataToGet) - 1)
                     If PreCache Is Nothing Then
                         RaiseEvent RequestData(TopAddress, ScreenData)
                     Else
@@ -249,7 +249,7 @@
                             If DataToGet > BytesPerLine Then
                                 ReDim BytesForLine(BytesPerLine - 1)
                             Else
-                                ReDim BytesForLine(DataToGet - 1)
+                                ReDim BytesForLine(CInt(DataToGet) - 1)
                             End If
                             Array.Copy(ScreenData, AddrIndex, BytesForLine, 0, BytesForLine.Length)
                             Drawline(i, TopAddress + AddrIndex + BaseOffset, BytesPerLine, BytesForLine, gfx)

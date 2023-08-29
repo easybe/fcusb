@@ -67,8 +67,7 @@
 
     End Class
 
-    Public Class StreamReader
-        Inherits IO.Stream
+    Public Class StreamReader : Inherits IO.Stream
         Public ReadOnly Property IsValid As Boolean
 
         Private m_local_steam As IO.StreamReader

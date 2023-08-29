@@ -278,6 +278,12 @@
     <Compile Include="vendor\vendor_at45.vb">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="vendor\vendor_at28.Designer.vb">
+      <DependentUpon>vendor_at28.vb</DependentUpon>
+    </Compile>
+    <Compile Include="vendor\vendor_at28.vb">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="vendor\vendor_microchip_at21.Designer.vb">
       <DependentUpon>vendor_microchip_at21.vb</DependentUpon>
     </Compile>
@@ -410,6 +416,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="vendor\vendor_at45.resx">
       <DependentUpon>vendor_at45.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="vendor\vendor_at28.resx">
+      <DependentUpon>vendor_at28.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="vendor\vendor_microchip_at21.resx">
       <DependentUpon>vendor_microchip_at21.vb</DependentUpon>

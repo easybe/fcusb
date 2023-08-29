@@ -266,14 +266,12 @@ Public Module DetectDevice
         PNAND_IF.UseRBx = MySettings.NAND_UseRBx
         PNAND_IF.Clock = MySettings.NAND_Speed
         PNAND_IF.PreserveAreas = MySettings.NAND_Preserve
+        PNAND_IF.ChipSelect = MySettings.NAND_CE_SELECT
         PNAND_IF.DeviceInit()
         Select Case PNAND_IF.MyFlashStatus
             Case DeviceStatus.Supported
                 PrintConsole(RM.GetString("mem_flash_supported"), True) '"Flash device successfully detected and ready for operation"
-
-
                 MainApp.ECC_Init(PNAND_IF)
-
                 Dim mem_instance As MemoryDeviceInstance = Nothing
                 If (PNAND_IF.MyAdapter = MEM_PROTOCOL.NAND_X16_ASYNC) Then
                     If FCUSB.HWBOARD = FCUSB_BOARD.Mach1 Then
@@ -288,10 +286,6 @@ Public Module DetectDevice
                         mem_instance = Connected_Event(prg_if, 65536)
                     End If
                 End If
-
-
-
-
                 Return True
             Case DeviceStatus.NotSupported
                 PrintConsole(RM.GetString("mem_not_supported"), True) '"Flash memory detected but not found in Flash library"

@@ -99,6 +99,8 @@ Partial Class FrmSettings
         Me.lbl_1st_byte = New System.Windows.Forms.Label()
         Me.cb_badblock_disabled = New System.Windows.Forms.RadioButton()
         Me.gb_nand_general = New System.Windows.Forms.GroupBox()
+        Me.cbNandCE = New System.Windows.Forms.ComboBox()
+        Me.Label25 = New System.Windows.Forms.Label()
         Me.rbNandWait_SR = New System.Windows.Forms.RadioButton()
         Me.lblNandWait = New System.Windows.Forms.Label()
         Me.rbNandWait_RBx = New System.Windows.Forms.RadioButton()
@@ -988,6 +990,8 @@ Partial Class FrmSettings
         '
         'gb_nand_general
         '
+        Me.gb_nand_general.Controls.Add(Me.cbNandCE)
+        Me.gb_nand_general.Controls.Add(Me.Label25)
         Me.gb_nand_general.Controls.Add(Me.rbNandWait_SR)
         Me.gb_nand_general.Controls.Add(Me.lblNandWait)
         Me.gb_nand_general.Controls.Add(Me.rbNandWait_RBx)
@@ -1003,6 +1007,25 @@ Partial Class FrmSettings
         Me.gb_nand_general.TabIndex = 1
         Me.gb_nand_general.TabStop = False
         Me.gb_nand_general.Text = "General"
+        '
+        'cbNandCE
+        '
+        Me.cbNandCE.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.cbNandCE.FormattingEnabled = True
+        Me.cbNandCE.Items.AddRange(New Object() {"CE0", "CE1", "CE2", "CE3"})
+        Me.cbNandCE.Location = New System.Drawing.Point(397, 38)
+        Me.cbNandCE.Name = "cbNandCE"
+        Me.cbNandCE.Size = New System.Drawing.Size(86, 21)
+        Me.cbNandCE.TabIndex = 9
+        '
+        'Label25
+        '
+        Me.Label25.AutoSize = True
+        Me.Label25.Location = New System.Drawing.Point(394, 19)
+        Me.Label25.Name = "Label25"
+        Me.Label25.Size = New System.Drawing.Size(97, 13)
+        Me.Label25.TabIndex = 10
+        Me.Label25.Text = "Chip-Enable Select"
         '
         'rbNandWait_SR
         '
@@ -1467,7 +1490,7 @@ Partial Class FrmSettings
         '
         Me.cb_retry_write.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cb_retry_write.FormattingEnabled = True
-        Me.cb_retry_write.Items.AddRange(New Object() {"One time", "Two times", "Three times", "Four times", "Five times"})
+        Me.cb_retry_write.Items.AddRange(New Object() {"None", "One time", "Two times", "Three times", "Four times", "Five times"})
         Me.cb_retry_write.Location = New System.Drawing.Point(9, 39)
         Me.cb_retry_write.Name = "cb_retry_write"
         Me.cb_retry_write.Size = New System.Drawing.Size(117, 21)
@@ -1673,4 +1696,6 @@ Partial Class FrmSettings
     Friend WithEvents rbNandWait_RBx As RadioButton
     Friend WithEvents cb_parallel_eeprom As ComboBox
     Friend WithEvents Label26 As Label
+    Friend WithEvents cbNandCE As ComboBox
+    Friend WithEvents Label25 As Label
 End Class

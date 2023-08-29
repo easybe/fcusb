@@ -26,6 +26,7 @@ Public Class FrmSettings
         Else
             cb_ce_select.SelectedIndex = (MySettings.MULTI_CE - 17)
         End If
+        cbNandCE.SelectedIndex = MySettings.NAND_CE_SELECT
         SPI_SetMaximumClockSettings()
         If MySettings.SPI_FASTREAD Then
             rb_fastread_op.Checked = True
@@ -86,7 +87,7 @@ Public Class FrmSettings
         cb_spinand_disable_ecc.Checked = MySettings.SPI_NAND_DISABLE_ECC
         cb_nand_image_readverify.Checked = MySettings.NAND_Verify
         ECC_Feature_Load()
-        cb_retry_write.SelectedIndex = (MySettings.RETRY_WRITE_ATTEMPTS - 1)
+        cb_retry_write.SelectedIndex = MySettings.RETRY_WRITE_ATTEMPTS
         cbSrec.SelectedIndex = MySettings.SREC_DATAMODE
         Select Case MySettings.JTAG_SPEED
             Case JTAG.JTAG_SPEED._10MHZ
@@ -236,6 +237,7 @@ Public Class FrmSettings
         CustomDevice_SaveSettings()
         MySettings.NAND_Preserve = cb_preserve.Checked
         MySettings.NAND_SkipBadBlock = cb_mismatch.Checked
+        MySettings.NAND_CE_SELECT = cbNandCE.SelectedIndex
         If cb_badblock_disabled.Checked Then
             MySettings.NAND_BadBlockMode = BadBlockMarker.Disabled
         Else
@@ -292,7 +294,7 @@ Public Class FrmSettings
         MySettings.SPI_NAND_DISABLE_ECC = cb_spinand_disable_ecc.Checked
         MySettings.NAND_Verify = cb_nand_image_readverify.Checked
         MySettings.NAND_Speed = CType(cbNAND_Speed.SelectedIndex, NandMemSpeed)
-        MySettings.RETRY_WRITE_ATTEMPTS = cb_retry_write.SelectedIndex + 1
+        MySettings.RETRY_WRITE_ATTEMPTS = cb_retry_write.SelectedIndex
         MySettings.SREC_DATAMODE = CType(cbSrec.SelectedIndex, SREC.RECORD_DATAWIDTH)
         Microwire_Save()
         Select Case cb_jtag_tck_speed.SelectedIndex

@@ -33,11 +33,6 @@ Public Module MainApp
     Public Property DefaultLocation As String = Application.StartupPath
 
     Sub Main(ParamArray args() As String)
-        'Dim file() = Utilities.FileIO.ReadBytes("D:\Software\Firmware.bin")
-        'Dim local_file As New IO.FileInfo("D:\Software\Firmware.hex")
-        'Dim output_stream = New IHEX.StreamWriter(New IO.StreamWriter(local_file.Open(IO.FileMode.Create)))
-        'output_stream.Write(file, 0, file.Length)
-        'output_stream.Close()
         Try 'This makes it only allow one instance
             Dim created As Boolean = False
             FcMutex = New Mutex(False, "FCUSB", created)
@@ -315,8 +310,7 @@ Public Module MainApp
     'Called whent the device is closing
     Public Sub AppClosing()
         MEM_IF.AbortOperations()
-        USBCLIENT.DisconnectAll()
-        USBCLIENT.CloseService = True
+        USBCLIENT.CloseService = True 'This will call disconnect all devices
         Application.DoEvents()
         AppIsClosing = True 'Do this last
         Utilities.Sleep(200)

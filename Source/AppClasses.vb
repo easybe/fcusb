@@ -67,6 +67,8 @@ Public Class FlashcatSettings
     Public Property NAND_Layout As NandMemLayout = NandMemLayout.Separated
     Public Property NAND_Speed As NandMemSpeed = NandMemSpeed._20MHz
     Public Property NAND_UseRBx As Boolean = True
+    Public Property NAND_CE_SELECT As Integer = 0
+
     'NAND ECC Settings
     Public Property ECC_FEATURE_ENABLED As Boolean
     'NOR Flash
@@ -128,6 +130,7 @@ Public Class FlashcatSettings
         Me.NAND_Layout = CType(SettingsFile.GetValue("NAND_Layout", NandMemLayout.Separated), NandMemLayout)
         Me.NAND_Speed = CType(SettingsFile.GetValue("NAND_Speed", NandMemSpeed._20MHz), NandMemSpeed)
         Me.NAND_UseRBx = SettingsFile.GetValue("NAND_UseRBx", True)
+        Me.NAND_CE_SELECT = SettingsFile.GetValue("NAND_CE_SELECT", 0)
         Me.ECC_FEATURE_ENABLED = SettingsFile.GetValue("ECC_ENABLED", False)
         Me.S93_DEVICE = SettingsFile.GetValue("S93_DEVICE_NAME", "")
         Me.S93_DEVICE_ORG = SettingsFile.GetValue("S93_ORG", 0)
@@ -171,6 +174,7 @@ Public Class FlashcatSettings
         SettingsFile.SetValue("NAND_Layout", Me.NAND_Layout)
         SettingsFile.SetValue("NAND_Speed", Me.NAND_Speed)
         SettingsFile.SetValue("NAND_UseRBx", Me.NAND_UseRBx)
+        SettingsFile.SetValue("NAND_CE_SELECT", Me.NAND_CE_SELECT)
         SettingsFile.SetValue("Language", LanguageName)
         SettingsFile.SetValue("ECC_ENABLED", Me.ECC_FEATURE_ENABLED)
         SettingsFile.SetValue("S93_DEVICE_NAME", Me.S93_DEVICE)

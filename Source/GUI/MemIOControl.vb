@@ -195,13 +195,14 @@ Public Class MemIOControl
     End Sub
 
     Private Function OpenFileForWrite(ByRef file As IO.FileInfo, ByRef file_type As FileFilterIndex) As Boolean
+        If String.IsNullOrEmpty(LastDirectory) Then LastDirectory = Me.InitialDirectory
         Dim BinFile As String = "Binary Files (*.bin)|*.bin"
         Dim IntelHexFormat As String = "Intel Hex Format (*.hex)|*.hex"
         Dim SrecFormat As String = "S-REC Format (*.srec)|*.srec"
         Dim AllFiles As String = "All files (*.*)|*.*"
         Dim OpenMe As New OpenFileDialog
         OpenMe.AddExtension = True
-        OpenMe.InitialDirectory = Me.InitialDirectory
+        OpenMe.InitialDirectory = LastDirectory
         OpenMe.Title = String.Format(RM.GetString("mc_io_file_choose"), FlashName)
         OpenMe.CheckPathExists = True
         OpenMe.Filter = BinFile & "|" & IntelHexFormat & "|" & SrecFormat & "|" & AllFiles 'Bin Files, Hex Files, SREC, All Files
@@ -228,9 +229,10 @@ Public Class MemIOControl
 
     Private Function CreateFileForRead(DefaultName As String, ByRef file As IO.FileInfo, ByRef file_type As FileFilterIndex) As Boolean
         Try
+            If String.IsNullOrEmpty(LastDirectory) Then LastDirectory = Me.InitialDirectory
             Dim SaveMe As New SaveFileDialog
             SaveMe.AddExtension = True
-            SaveMe.InitialDirectory = Me.InitialDirectory
+            SaveMe.InitialDirectory = LastDirectory
             SaveMe.Title = RM.GetString("mc_io_save_type")
             SaveMe.CheckPathExists = True
             SaveMe.FileName = DefaultName.Replace("/", "-")
@@ -261,13 +263,14 @@ Public Class MemIOControl
     End Function
 
     Private Function OpenFileForCompare(ByRef file As IO.FileInfo, ByRef file_type As FileFilterIndex) As Boolean
+        If String.IsNullOrEmpty(LastDirectory) Then LastDirectory = Me.InitialDirectory
         Dim BinFile As String = "Binary Files (*.bin)|*.bin"
         Dim IntelHexFormat As String = "Intel Hex Format (*.hex)|*.hex"
         Dim SrecFormat As String = "S-REC Format (*.srec)|*.srec"
         Dim AllFiles As String = "All files (*.*)|*.*"
         Dim OpenMe As New OpenFileDialog
         OpenMe.AddExtension = True
-        OpenMe.InitialDirectory = Me.InitialDirectory
+        OpenMe.InitialDirectory = LastDirectory
         OpenMe.Title = String.Format(RM.GetString("mc_compare_selected"), FlashName) '"File selected, verifying {0}"
         OpenMe.CheckPathExists = True
         OpenMe.Filter = BinFile & "|" & IntelHexFormat & "|" & SrecFormat & "|" & AllFiles

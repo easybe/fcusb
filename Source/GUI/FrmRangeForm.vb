@@ -116,7 +116,9 @@
             Else
                 Exit Sub
             End If
-            If (NewValue > MaxStream) Then NewValue = MaxStream
+            If (Not MaxStream = -1) Then
+                If (NewValue > MaxStream) Then NewValue = MaxStream
+            End If
             Dim available As Long = (Me.MaxMedium - Me.BaseOffset)
             If NewValue <= available Then
                 RangeSize = NewValue

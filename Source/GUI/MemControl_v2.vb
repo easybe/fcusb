@@ -784,6 +784,7 @@ Public Class MemControl_v2
                 Dim buffer() As Byte = CompareFlash_Read(flash_addr, packet_size)
                 ReadTimer.Stop()
                 If buffer Is Nothing Then Exit Do 'Abort occured
+                If MAIN_FCUSB Is Nothing Then Exit Do
                 param.Count -= CUInt(buffer.Length)
                 param.BaseOffset += buffer.Length
                 BytesTransfered += CUInt(buffer.Length)

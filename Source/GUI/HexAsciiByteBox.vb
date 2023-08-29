@@ -1,37 +1,39 @@
-﻿Public Class HexByteBox
-    Inherits TextBox
-
+﻿Public Class HexByteBox : Inherits TextBox
     Private Declare Function HideCaret Lib "user32.dll" (hWnd As IntPtr) As Boolean
 
     Public Event CarryByte(k As Char) 'Indicates the user has entered more data
     Public Event EnterKeyPressed()
     Public Event EscapeKeyPress()
 
-    Private my_data As Byte
-    Public Property HexAddress As Long = 0
+    Public Property HexAddress As Long = 0 'An address this byte value is associated with
+    Private initial_data As Byte = 0
 
     Public Property InitialData As Byte
         Get
-            Return my_data
+            Return initial_data
         End Get
         Set(value As Byte)
-            my_data = value
-            Me.Text = Hex(value).PadLeft(2, "0"c).ToUpper
+            initial_data = value
+            Try
+                Me.Text = Hex(value).PadLeft(2, "0"c).ToUpper
+            Catch ex As Exception
+            End Try
         End Set
     End Property
 
-    Public ReadOnly Property ByteData As Byte
+    Public Property ByteData As Byte
         Get
-            Return CByte(Utilities.HexToInt(Me.Text))
+            Try
+                Return CByte(Utilities.HexToInt(Me.Text))
+            Catch ex As Exception
+            End Try
+            Return 0
         End Get
-    End Property
-
-    Public Property HexString As String
-        Get
-            Return Hex(Me.ByteData).PadLeft(2, "0"c).ToUpper
-        End Get
-        Set(value As String)
-            Me.Text = Hex(value).PadLeft(2, "0"c).ToUpper
+        Set(value As Byte)
+            Try
+                Me.Text = Hex(value).PadLeft(2, "0"c).ToUpper
+            Catch ex As Exception
+            End Try
         End Set
     End Property
 
@@ -77,11 +79,14 @@
     End Sub
 
     Private Sub txthex_LostFocus(sender As Object, e As EventArgs) Handles Me.LostFocus
-        If Utilities.IsDataType.Hex(Me.Text) Then
-            Me.Text = Hex(Utilities.HexToInt(Me.Text)).PadLeft(2, "0"c)
-        Else
-            Me.Text = Hex(Me.InitialData).PadLeft(2, "0"c)
-        End If
+        Try
+            If Utilities.IsDataType.Hex(Me.Text) Then
+                Me.Text = Hex(Utilities.HexToInt(Me.Text)).PadLeft(2, "0"c)
+            Else
+                Me.Text = Hex(Me.InitialData).PadLeft(2, "0"c)
+            End If
+        Catch ex As Exception
+        End Try
     End Sub
 
     Private Sub txthex_GotFocus(sender As Object, e As EventArgs) Handles Me.GotFocus

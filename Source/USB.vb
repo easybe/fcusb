@@ -73,10 +73,12 @@ Namespace USB
 
         Private Sub ConnectionThread()
             Try : Me.IsRunning = True
-                Do While (Not CloseService)
+                Do While (Not Me.CloseService)
                     CheckConnectedDevices()
-                    If Not CloseService Then Service_ConnectToDevices()
-                    Thread.Sleep(150)
+                    If (Not Me.CloseService) Then
+                        Service_ConnectToDevices()
+                        Thread.Sleep(150)
+                    End If
                 Loop
                 DisconnectAll()
             Catch ex As Exception

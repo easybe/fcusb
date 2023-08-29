@@ -990,7 +990,7 @@ Public Class MainForm
                 ElseIf mem_dev.FlashType = MemoryType.PARALLEL_NOR Then
                     Dim PROG_IF As PARALLEL_NOR = DirectCast(mem_dev.MEM_IF, PARALLEL_NOR)
                     Dim PNOR_IF As P_NOR = PROG_IF.MyFlashDevice
-                    If PROG_IF.CFI.IS_VALID Then mi_cfi_info.Enabled = True
+                    If PROG_IF.CFI?.IS_VALID Then mi_cfi_info.Enabled = True
                     Exit Sub 'Accept the above
                 ElseIf mem_dev.FlashType = MemoryType.SERIAL_SWI Then
                     mi_erase_tool.Enabled = False
@@ -2425,6 +2425,8 @@ Public Class MainForm
                     mem_dev.VendorMenu = New vendor_intel_01(mem_dev.MEM_IF)
                 ElseIf (flash_vendor = FlashMemory.VENDOR_FEATURE.AT45) Then
                     mem_dev.VendorMenu = New vendor_at45(mem_dev.MEM_IF)
+                ElseIf (flash_vendor = FlashMemory.VENDOR_FEATURE.AT28) Then
+                    mem_dev.VendorMenu = New vendor_at28(mem_dev.MEM_IF)
                 End If
             End If
         End If
